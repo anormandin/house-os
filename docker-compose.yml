@@ -26,8 +26,12 @@ services:
         condition: service_healthy
     environment:
       ConnectionStrings__HouseOs: "Host=postgres;Port=5432;Database=houseos;Username=houseos;Password=${POSTGRES_PASSWORD:-houseos-dev}"
+      Fichiers__Chemin: /app/donnees/fichiers
     ports:
       - "8080:8080"
+    volumes:
+      - fichiers:/app/donnees/fichiers   # manuels et photos des équipements (inclus au backup)
 
 volumes:
   postgres-data:
+  fichiers:

@@ -1,7 +1,7 @@
 ---
 type: domain
 last-verified: 2026-08-23
-verified-against: init
+verified-against: 7b407d4
 tags: []
 ---
 
@@ -33,9 +33,10 @@ récurrence, stratégie d'assignation. Ne pas confondre avec l'occurrence. Voir
 
 ## Spec de récurrence
 
-Le régime de répétition d'une tâche : mode `fixed` | `interval` | `none`, fenêtre
-saisonnière optionnelle, flag rollover. Stockée type + paramètres, jamais RRULE.
-Voir [[D-2026-08-23 Moteur De Récurrence Trois Modes]].
+Le régime de répétition d'une tâche : mode `Ponctuelle` | `Fixe` (jours de semaine,
+jour du mois, annuelle) | `Intervalle` (depuis la complétion), fenêtre saisonnière
+optionnelle, flag rollover. Stockée type + paramètres, jamais RRULE. Voir
+[[D-2026-08-23 Moteur De Récurrence Trois Modes]].
 
 ## Occurrence
 
@@ -51,6 +52,11 @@ Alimente statistiques, équité d'assignation et futur ordonnancement adaptatif.
 
 Plage mois-jour (ex. 1er mai → 31 octobre) restreignant la génération d'occurrences
 d'une tâche, combinable avec les modes fixe et intervalle.
+
+## Pièce jointe
+
+Un fichier attaché à un équipement (manuel PDF, photo). Métadonnées en base, octets
+sur disque ([[D-2026-08-23 Fichiers Sur Disque]]).
 
 ## Appareil
 

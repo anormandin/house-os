@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Avatar, { paletteAvatar } from '@/components/Avatar'
 import { Camion, MaisonSoleil, Sapin } from '@/components/Illustrations'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import QuickAdd from '@/components/QuickAdd'
+import TacheEditeur from '@/components/TacheEditeur'
 import { api, dateLocaleIso, type Occurrence } from '@/lib/api'
 import { bornesJourneeLocale, dateLongue, dodosAvant, jourCourt } from '@/lib/format'
 import { phraseDuJour } from '@/lib/humeur'
@@ -19,6 +21,7 @@ function prochainNoel(): string {
 }
 
 export default function Aujourdhui() {
+  const [editeurTacheId, setEditeurTacheId] = useState<string | null>(null)
   const bornes = bornesJourneeLocale()
   const { data: ouvertes, isLoading: chargementOuvertes } = useQuery({
     queryKey: ['occurrences', 'aujourdhui'],
@@ -87,9 +90,13 @@ export default function Aujourdhui() {
             <OccurrenceListe
               occurrences={listeDuJour}
               vide="Rien pour aujourd'hui. La maison respire."
+              onModifier={setEditeurTacheId}
             />
           )}
           <QuickAdd />
+          {editeurTacheId !== null && (
+            <TacheEditeur tacheId={editeurTacheId} onFermer={() => setEditeurTacheId(null)} />
+          )}
         </div>
 
         {/* Colonne latérale */}

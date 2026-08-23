@@ -1,8 +1,8 @@
 ---
 type: feature
-status: building
+status: implemented
 last-verified: 2026-08-23
-verified-against: 3c8df13
+verified-against: 7b407d4
 tags: []
 ---
 
@@ -37,17 +37,32 @@ Implémenté (V0, as-built) :
   (repli client de [[Titre D'humeur]]), cartes Cette semaine / L'équipe /
   [[Comptes À Rebours|Comptes à rebours]], quick-add repliable (⌘K).
 
-Prévu (V1) :
+Implémenté (V1 « Emménagement », as-built) :
 
-- Tâche à intervalle : la prochaine occurrence est matérialisée à partir de la date
-  de complétion ; tâche fixe : selon l'horaire.
-- Fenêtre saisonnière : aucune occurrence générée hors fenêtre.
-- Rollover : une occurrence manquée glisse au lieu de s'accumuler en retard.
-- Les tâches pourront référencer une [[Glossaire#Zone|zone]] et un
-  [[Équipements|équipement]].
-
-Détail des modes de récurrence : voir
-[[D-2026-08-23 Moteur De Récurrence Trois Modes]].
+- **Trois modes de récurrence** ([[D-2026-08-23 Moteur De Récurrence Trois Modes]]),
+  stockés type + paramètres dans les colonnes de `Taches` (objet possédé
+  `SpecRecurrence`) : Ponctuelle ; Fixe (jours de semaine, jour du mois clampé en
+  fin de mois court, annuelle) ; Intervalle (N jours depuis la **complétion**).
+- **Fenêtre saisonnière** (mois-jour à mois-jour, peut chevaucher l'an) combinable
+  avec les deux modes : une échéance calculée hors fenêtre glisse au premier jour
+  valide de la prochaine fenêtre.
+- **Sémantique de complétion** : la prochaine occurrence est matérialisée à la
+  complétion ; pour une fixe, à partir de max(complétion, échéance courante) — une
+  complétion en avance ne double pas l'horaire ; une seule occurrence en attente
+  par tâche, jamais d'empilement.
+- **Rollover** (défaut activé, tâches fixes seulement) : un `BackgroundService`
+  quotidien glisse les occurrences fixes manquées à leur prochaine date planifiée.
+  Les intervalles ne glissent pas (« tondre » reste dû tant que ce n'est pas fait).
+- **Stratégies d'assignation** appliquées à la matérialisation (l'assigné vit sur
+  l'**occurrence**) : fixe ; alternance (l'autre que le dernier compléteur) ;
+  moins-l'a-fait (journal 90 jours, égalité → alternance).
+- Les tâches référencent une [[Glossaire#Zone|zone]] ([[D-2026-08-23 Zones Plates]])
+  et un [[Équipements|équipement]] ; l'onglet **Pièces** (vue signature) montre la
+  fraîcheur par zone (calcul client, libellés doux) avec gestion des zones inline.
+- **Édition complète** (PUT) : l'occurrence en attente est réalignée sur la
+  nouvelle définition (échéance recalculée si non fournie).
+- **Flux iCal par personne** ([[D-2026-08-23 Flux iCal Par Personne]]) : jeton
+  secret, occurrences assignées + non-assignées, URL copiable dans « Mon calendrier ».
 
 ## Hors périmètre
 
@@ -60,15 +75,23 @@ Détail des modes de récurrence : voir
 - [[D-2026-08-23 Moteur De Récurrence Trois Modes]] — les 3 modes, matérialisation,
   journal séparé, stratégies d'assignation.
 - [[D-2026-08-23 Notifications Par Flux iCal]] — canal de rappel v1.
+- [[D-2026-08-23 Flux iCal Par Personne]] — structure des flux (jeton par compte).
+- [[D-2026-08-23 Zones Plates]] — zones = liste plate CRUD.
 - [[D-2026-08-23 Auth Simple Deux Comptes]] — attribution des complétions.
 
 ## Ancres de code
 
-- `server/HouseOs.Api/Domaine/Tache.cs` — création ponctuelle, génération prochaine occurrence
+- `server/HouseOs.Api/Domaine/SpecRecurrence.cs` — spec type + paramètres, fenêtre
+- `server/HouseOs.Api/Domaine/MoteurRecurrence.cs` — moteur pur (le cœur, le plus testé)
+- `server/HouseOs.Api/Domaine/Assignation.cs` — stratégies d'assignation
+- `server/HouseOs.Api/Domaine/Tache.cs` — créations ponctuelle/récurrente
 - `server/HouseOs.Api/Domaine/Occurrence.cs` — complétion + entrée de journal
 - `server/HouseOs.Api/Features/Taches/TachesEndpoints.cs` — API tâches/occurrences
-- `server/HouseOs.Api/Features/Auth/AuthEndpoints.cs` — connexion/session
-- `server/HouseOs.Tests/Domaine/` — tests du domaine
+- `server/HouseOs.Api/Features/Taches/RolloverService.cs` — glissement quotidien
+- `server/HouseOs.Api/Features/FluxIcal/FluxIcalEndpoints.cs` — flux iCal
+- `server/HouseOs.Tests/Domaine/` — tests du domaine (moteur, stratégies)
+- `web/src/components/TacheEditeur.tsx` — éditeur complet (récurrence en français)
+- `web/src/pages/Pieces.tsx` — vue Pièces (fraîcheur, gestion des zones)
 - `web/src/pages/Aujourdhui.tsx`, `web/src/pages/Taches.tsx`, `web/src/components/QuickAdd.tsx` — UI
 - `web/src/components/OccurrenceListe.tsx` — rangées de tâches (retard, complétée, échéance)
 - `web/src/index.css` — tokens du design chaleureuse (source : maquettes)
@@ -81,3 +104,4 @@ Détail des modes de récurrence : voir
 ## Historique
 
 - [[Plan 2026-08-23 V0 Déménagement]] · [[Recap Tâches]]
+- [[Plan 2026-08-23 V1 Emménagement]] · [[Recap V1 Emménagement]]

@@ -1,14 +1,20 @@
 using HouseOs.Api.Features.Auth;
+using HouseOs.Api.Features.Equipements;
+using HouseOs.Api.Features.FluxIcal;
 using HouseOs.Api.Features.Sante;
 using HouseOs.Api.Features.Taches;
+using HouseOs.Api.Features.Zones;
 using HouseOs.Api.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<HouseOsDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("HouseOs")));
+// EnableDynamicJson : requis pour mapper Dictionary<string,string> (specs) en jsonb.
+var sourceDonnees = new Npgsql.NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("HouseOs"))
+    .EnableDynamicJson()
+    .Build();
+builder.Services.AddDbContext<HouseOsDbContext>(options => options.UseNpgsql(sourceDonnees));
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -37,6 +43,9 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = options.DefaultPolicy;
 });
 
+builder.Services.AddAntiforgery();
+builder.Services.AddHostedService<RolloverService>();
+
 var app = builder.Build();
 
 app.UseDefaultFiles();
@@ -44,10 +53,14 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
 app.MapSante();
 app.MapAuth();
 app.MapTaches();
+app.MapZones();
+app.MapEquipements();
+app.MapIcal();
 
 // PWA : toute route non-API retombe sur l'app React
 app.MapFallbackToFile("index.html").AllowAnonymous();

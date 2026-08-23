@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Check, Trash2 } from 'lucide-react'
+import { Check, Repeat, Trash2 } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import { api, dateLocaleIso, type Occurrence } from '@/lib/api'
 import { dateCourte, heureQuebec, jourCourt } from '@/lib/format'
@@ -29,9 +29,11 @@ function libelleFaite(occurrence: Occurrence): string {
 export default function OccurrenceListe({
   occurrences,
   vide,
+  onModifier,
 }: {
   occurrences: Occurrence[]
   vide: string
+  onModifier?: (tacheId: string) => void
 }) {
   const queryClient = useQueryClient()
   const invalider = () => queryClient.invalidateQueries({ queryKey: ['occurrences'] })
@@ -97,8 +99,16 @@ export default function OccurrenceListe({
                 enRetard ? 'border-rouge' : 'border-coche',
               )}
             />
-            <div className="min-w-0 flex-1">
-              <div className="text-base font-bold">{o.titre}</div>
+            <div
+              className={cn('min-w-0 flex-1', onModifier && 'cursor-pointer')}
+              onClick={onModifier ? () => onModifier(o.tacheId) : undefined}
+            >
+              <div className="flex items-center gap-1.5 text-base font-bold">
+                {o.titre}
+                {o.modeRecurrence !== 'Ponctuelle' && (
+                  <Repeat className="size-3.5 shrink-0 text-dore" aria-label="Tâche récurrente" />
+                )}
+              </div>
               {enRetard && o.echeance && (
                 <div className="mt-px text-[13px] text-rouge">
                   {libelleRetard(o.echeance, aujourdhui)}

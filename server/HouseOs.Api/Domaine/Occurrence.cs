@@ -12,6 +12,8 @@ public class Occurrence
     public Guid TacheId { get; set; }
     public Tache? Tache { get; set; }
     public DateOnly? Echeance { get; set; }
+    public Guid? AssigneAId { get; set; }
+    public Utilisateur? AssigneA { get; set; }
     public StatutOccurrence Statut { get; set; } = StatutOccurrence.EnAttente;
     public Guid? CompleteeParId { get; set; }
     public Utilisateur? CompleteePar { get; set; }

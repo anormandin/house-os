@@ -1,7 +1,7 @@
 ---
 type: reference
 last-verified: 2026-08-23
-verified-against: init
+verified-against: 7b407d4
 tags: []
 ---
 
@@ -25,7 +25,9 @@ tourne en Docker Compose sur une machine maison, joignable via Tailscale
 - `server/HouseOs.Api` — API minimal, features en tranches verticales
   (`Features/<Module>/…`), domaine riche pour le moteur de récurrence.
 - `server/HouseOs.Tests` — tests unitaires (moteur de récurrence d'abord).
-- `web/` — Vite + TS + TanStack Query + Tailwind + shadcn/ui, PWA.
+- `web/` — Vite + TS + TanStack Query + Tailwind, PWA, design « Cuisine
+  chaleureuse » (shadcn retiré à la reconstruction UI de 2026-08-23).
+- `scripts/backup.sh` — backup quotidien (pg_dump + volume fichiers).
 - `firmware/`, `hardware/cad`, `hardware/pcb` — phase 3 (vides pour l'instant).
 - `vault/`, `docs/research/` — connaissance.
 
@@ -46,9 +48,10 @@ tap-pour-compléter ; e-ink et panneaux openHASP ensuite. Détails :
 
 ## Feuille de route (as of 2026-08)
 
-1. **Phase 1a — V0 « Déménagement »** (mi-sept. 2026) : tâches ponctuelles, vue
-   Aujourd'hui, quick-add, login, PWA déployée.
-2. **Phase 1b — V1** (autour du 2026-10-06) : moteur de récurrence 3 modes, zones,
-   module [[Équipements]], flux iCal, backups.
+1. **Phase 1a — V0 « Déménagement »** — livrée 2026-08-23 (tâches ponctuelles, vue
+   Aujourd'hui, quick-add, login, PWA, design chaleureuse).
+2. **Phase 1b — V1 « Emménagement »** — livrée 2026-08-23 (moteur de récurrence
+   3 modes, zones + vue Pièces, module [[Équipements]] avec fichiers, flux iCal par
+   personne, backups). Reste : déploiement Tailscale après le déménagement.
 3. **Phase 2** : météo + règles, ICS, Hydro-Québec, documents, consommables.
 4. **Phase 3** : IoT (hub MQTT, affichages, capteurs).

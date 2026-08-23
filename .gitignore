@@ -25,3 +25,5 @@ dist/
 # Obsidian vault
 vault/.obsidian/workspace.json
 vault/.obsidian/workspace-mobile.json
+backups/
+server/HouseOs.Api/donnees/

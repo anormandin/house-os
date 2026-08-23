@@ -9,6 +9,9 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<Tache> Taches => Set<Tache>();
     public DbSet<Occurrence> Occurrences => Set<Occurrence>();
     public DbSet<EntreeJournal> Journal => Set<EntreeJournal>();
+    public DbSet<Zone> Zones => Set<Zone>();
+    public DbSet<Equipement> Equipements => Set<Equipement>();
+    public DbSet<PieceJointe> PiecesJointes => Set<PieceJointe>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -16,23 +19,48 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
         {
             u.Property(x => x.NomUtilisateur).HasMaxLength(50);
             u.Property(x => x.NomAffichage).HasMaxLength(100);
+            u.Property(x => x.JetonIcal).HasMaxLength(64);
             u.HasIndex(x => x.NomUtilisateur).IsUnique();
         });
 
         modelBuilder.Entity<Tache>(t =>
         {
             t.Property(x => x.Titre).HasMaxLength(200);
-            t.Property(x => x.Mode).HasConversion<string>().HasMaxLength(20);
+            t.Property(x => x.Strategie).HasConversion<string>().HasMaxLength(20);
             t.HasMany(x => x.Occurrences).WithOne(o => o.Tache!).HasForeignKey(o => o.TacheId)
                 .OnDelete(DeleteBehavior.Cascade);
             t.HasOne(x => x.AssigneA).WithMany().HasForeignKey(x => x.AssigneAId)
                 .OnDelete(DeleteBehavior.SetNull);
+            t.HasOne(x => x.Zone).WithMany().HasForeignKey(x => x.ZoneId)
+                .OnDelete(DeleteBehavior.SetNull);
+            t.HasOne(x => x.Equipement).WithMany().HasForeignKey(x => x.EquipementId)
+                .OnDelete(DeleteBehavior.SetNull);
+            // La spec de récurrence vit dans les colonnes de la table Taches
+            // (Mode/Rollover gardent leurs colonnes V0).
+            t.OwnsOne(x => x.Recurrence, r =>
+            {
+                r.Property(p => p.Mode).HasConversion<string>().HasMaxLength(20).HasColumnName("Mode");
+                r.Property(p => p.Rollover).HasColumnName("Rollover");
+                r.Property(p => p.FixeType).HasConversion<string>().HasMaxLength(20).HasColumnName("FixeType");
+                r.Property(p => p.JoursSemaineMasque).HasColumnName("JoursSemaineMasque");
+                r.Property(p => p.JourDuMois).HasColumnName("JourDuMois");
+                r.Property(p => p.MoisAnnuel).HasColumnName("MoisAnnuel");
+                r.Property(p => p.JourAnnuel).HasColumnName("JourAnnuel");
+                r.Property(p => p.IntervalleJours).HasColumnName("IntervalleJours");
+                r.Property(p => p.FenetreDebutMois).HasColumnName("FenetreDebutMois");
+                r.Property(p => p.FenetreDebutJour).HasColumnName("FenetreDebutJour");
+                r.Property(p => p.FenetreFinMois).HasColumnName("FenetreFinMois");
+                r.Property(p => p.FenetreFinJour).HasColumnName("FenetreFinJour");
+            });
+            t.Navigation(x => x.Recurrence).IsRequired();
         });
 
         modelBuilder.Entity<Occurrence>(o =>
         {
             o.Property(x => x.Statut).HasConversion<string>().HasMaxLength(20);
             o.HasOne(x => x.CompleteePar).WithMany().HasForeignKey(x => x.CompleteeParId);
+            o.HasOne(x => x.AssigneA).WithMany().HasForeignKey(x => x.AssigneAId)
+                .OnDelete(DeleteBehavior.SetNull);
             o.HasIndex(x => new { x.Statut, x.Echeance });
         });
 
@@ -42,6 +70,32 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             // Le journal survit à la suppression d'une tâche : pas de FK vers Tache/Occurrence,
             // les ids restent comme références historiques.
             j.HasIndex(x => x.TacheId);
+        });
+
+        modelBuilder.Entity<Zone>(z =>
+        {
+            z.Property(x => x.Nom).HasMaxLength(100);
+            z.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<Equipement>(e =>
+        {
+            e.Property(x => x.Nom).HasMaxLength(200);
+            e.Property(x => x.Marque).HasMaxLength(100);
+            e.Property(x => x.Modele).HasMaxLength(100);
+            e.Property(x => x.NumeroSerie).HasMaxLength(100);
+            e.Property(x => x.Specs).HasColumnType("jsonb");
+            e.HasOne(x => x.Zone).WithMany().HasForeignKey(x => x.ZoneId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.PiecesJointes).WithOne().HasForeignKey(p => p.EquipementId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PieceJointe>(p =>
+        {
+            p.Property(x => x.NomFichier).HasMaxLength(255);
+            p.Property(x => x.CheminDisque).HasMaxLength(255);
+            p.Property(x => x.TypeMime).HasMaxLength(100);
         });
     }
 }
