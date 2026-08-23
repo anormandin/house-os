@@ -34,8 +34,10 @@ Côté API : nouveau filtre `faites` (bornes d'instants de la journée locale du
 client). Composants shadcn et bascule sombre supprimés (mode clair seulement pour
 l'instant). Vérifié visuellement dans Chrome cette fois (connexion → création via
 quick-add → listes → réactivité) ; `tsc`, lint et les 7 tests serveur au vert ;
-image Docker reconstruite. Les premières vraies tâches du déménagement (camion,
-Hydro-Québec, boîtes, SAAQ, internet) ont été créées en base pendant la vérification.
+image Docker reconstruite. Des tâches d'essai (camion, Hydro-Québec, boîtes, SAAQ,
+internet) ont été créées pendant la vérification — **toutes les données actuelles
+sont temporaires** : la base sera repartie à neuf quand Alain et Ariane commenceront
+la vraie saisie (au plus tard au déploiement).
 
 Reste ouvert pour la V1 : moteur de récurrence (3 modes), zones, équipements, flux
 iCal, script de backup, déploiement Tailscale sur la machine de la nouvelle maison.
