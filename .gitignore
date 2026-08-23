@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# .NET
+bin/
+obj/
+*.user
+appsettings.local.json
+.vs/
+
+# Node
+node_modules/
+dist/
+*.local
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+
+# Claude
+**/.claude/settings.local.json
+
+# Obsidian vault
+vault/.obsidian/workspace.json
+vault/.obsidian/workspace-mobile.json

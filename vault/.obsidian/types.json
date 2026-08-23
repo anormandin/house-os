@@ -1,0 +1,13 @@
+{
+  "types": {
+    "date": "date",
+    "last-verified": "date",
+    "status": "text",
+    "type": "text",
+    "feature": "text",
+    "plan": "text",
+    "supersedes": "text",
+    "superseded-by": "text",
+    "verified-against": "text"
+  }
+}

@@ -1,0 +1,40 @@
+filters:
+  and:
+    - 'type == "decision"'
+    - file.inFolder("Decisions")
+views:
+  - type: table
+    name: All
+    order:
+      - file.name
+      - status
+      - date
+      - feature
+      - superseded-by
+    sort:
+      - property: date
+        direction: DESC
+  - type: table
+    name: Active
+    filters:
+      and:
+        - 'status == "accepted"'
+    order:
+      - file.name
+      - date
+      - feature
+    sort:
+      - property: date
+        direction: DESC
+  - type: table
+    name: Superseded
+    filters:
+      and:
+        - 'status == "superseded"'
+    order:
+      - file.name
+      - date
+      - superseded-by
+    sort:
+      - property: date
+        direction: DESC

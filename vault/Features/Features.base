@@ -1,0 +1,26 @@
+filters:
+  and:
+    - 'type == "feature"'
+    - file.inFolder("Features")
+views:
+  - type: table
+    name: All
+    order:
+      - file.name
+      - status
+      - last-verified
+    sort:
+      - property: status
+        direction: ASC
+      - property: last-verified
+        direction: DESC
+  - type: table
+    name: In flight
+    filters:
+      and:
+        - 'status != "implemented"'
+        - 'status != "retired"'
+    order:
+      - file.name
+      - status
+      - last-verified
