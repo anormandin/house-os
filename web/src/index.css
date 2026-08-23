@@ -1,1 +1,90 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Palette Kanagawa (Lotus en clair, Wave en sombre) — voir doc-palette */
+:root {
+  --background: #faf7ed;
+  --foreground: #545464;
+  --card: #ffffff;
+  --card-foreground: #545464;
+  --popover: #ffffff;
+  --popover-foreground: #545464;
+  --primary: #4d699b;
+  --primary-foreground: #faf7ed;
+  --secondary: #e7e2d2;
+  --secondary-foreground: #545464;
+  --muted: #eee9d9;
+  --muted-foreground: #8a8980;
+  --accent: #e7e2d2;
+  --accent-foreground: #545464;
+  --destructive: #c84053;
+  --destructive-foreground: #faf7ed;
+  --border: #ddd8c8;
+  --input: #ddd8c8;
+  --ring: #4d699b;
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #1f1f28;
+  --foreground: #dcd7ba;
+  --card: #2a2a37;
+  --card-foreground: #dcd7ba;
+  --popover: #2a2a37;
+  --popover-foreground: #dcd7ba;
+  --primary: #7e9cd8;
+  --primary-foreground: #16161d;
+  --secondary: #363646;
+  --secondary-foreground: #dcd7ba;
+  --muted: #2a2a37;
+  --muted-foreground: #727169;
+  --accent: #2d4f67;
+  --accent-foreground: #dcd7ba;
+  --destructive: #ff5d62;
+  --destructive-foreground: #16161d;
+  --border: #363646;
+  --input: #363646;
+  --ring: #7e9cd8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}

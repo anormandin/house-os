@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/bin
+**/obj
+vault
+docs
+hardware
+firmware
+.git

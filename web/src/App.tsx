@@ -1,27 +1,37 @@
 import { useQuery } from '@tanstack/react-query'
-
-type Sante = { statut: string }
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { api } from '@/lib/api'
+import Layout from '@/components/Layout'
+import Connexion from '@/pages/Connexion'
+import Aujourdhui from '@/pages/Aujourdhui'
+import Taches from '@/pages/Taches'
 
 function App() {
-  const { data } = useQuery({
-    queryKey: ['sante'],
-    queryFn: async (): Promise<Sante> => {
-      const reponse = await fetch('/api/sante')
-      if (reponse.ok) {
-        return reponse.json()
-      }
-      throw new Error('Serveur injoignable')
-    },
-    retry: false,
+  const { data: moi, isLoading } = useQuery({
+    queryKey: ['moi'],
+    queryFn: api.moi,
   })
 
+  if (isLoading) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center text-muted-foreground">
+        Chargement…
+      </main>
+    )
+  }
+
+  if (moi === undefined) {
+    return <Connexion />
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-2">
-      <h1 className="text-3xl font-semibold">Maison</h1>
-      <p className="text-sm opacity-70">
-        {data?.statut === 'ok' ? 'Serveur en ligne' : 'Serveur hors ligne'}
-      </p>
-    </main>
+    <Routes>
+      <Route element={<Layout moi={moi} />}>
+        <Route path="/" element={<Aujourdhui />} />
+        <Route path="/taches" element={<Taches />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   )
 }
 

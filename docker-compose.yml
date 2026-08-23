@@ -17,8 +17,17 @@ services:
       timeout: 5s
       retries: 5
 
-  # server: (ajouté quand HouseOs.Api aura un Dockerfile)
-  # web:    (ajouté quand le build web sera servi)
+  app:
+    build: .
+    container_name: houseos-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__HouseOs: "Host=postgres;Port=5432;Database=houseos;Username=houseos;Password=${POSTGRES_PASSWORD:-houseos-dev}"
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres-data:

@@ -1,6 +1,6 @@
 ---
 type: feature
-status: draft
+status: building
 last-verified: 2026-08-23
 verified-against: init
 tags: []
@@ -17,16 +17,25 @@ tâches du déménagement du 2026-10-06 (V0).
 
 ## Comportement
 
-- Quand un utilisateur crée une tâche ponctuelle avec échéance, elle apparaît dans la
-  liste et dans la vue Aujourd'hui le jour venu.
-- Quand un utilisateur complète une occurrence, le système journalise qui/quand et,
-  pour une tâche à intervalle, matérialise la prochaine occurrence à partir de la
-  date de complétion.
-- Quand une tâche a une fenêtre saisonnière, aucune occurrence n'est générée hors
-  fenêtre.
-- Quand une occurrence avec flag rollover est manquée, elle glisse au lendemain au
-  lieu de s'accumuler en retard.
-- Les tâches peuvent référencer une [[Glossaire#Zone|zone]] et un
+Implémenté (V0, as-built) :
+
+- Quand un utilisateur crée une tâche ponctuelle (titre, échéance?, assigné?), une
+  occurrence unique est créée ; elle apparaît dans Tâches et, le jour venu ou en
+  retard, dans Aujourd'hui.
+- Quand un utilisateur complète une occurrence, le système journalise qui/quand dans
+  le journal (table séparée) ; une occurrence déjà complétée est refusée (409) ; une
+  ponctuelle ne génère pas d'occurrence suivante.
+- Quand une tâche est supprimée, ses occurrences partent en cascade mais le journal
+  survit (ids historiques, pas de FK).
+- Toute l'API exige la session cookie (2 comptes) ; 401 sinon.
+
+Prévu (V1) :
+
+- Tâche à intervalle : la prochaine occurrence est matérialisée à partir de la date
+  de complétion ; tâche fixe : selon l'horaire.
+- Fenêtre saisonnière : aucune occurrence générée hors fenêtre.
+- Rollover : une occurrence manquée glisse au lieu de s'accumuler en retard.
+- Les tâches pourront référencer une [[Glossaire#Zone|zone]] et un
   [[Équipements|équipement]].
 
 Détail des modes de récurrence : voir
@@ -47,7 +56,12 @@ Détail des modes de récurrence : voir
 
 ## Ancres de code
 
-<!-- À remplir dès la V0 : server/HouseOs.Api/Features/Taches/… -->
+- `server/HouseOs.Api/Domaine/Tache.cs` — création ponctuelle, génération prochaine occurrence
+- `server/HouseOs.Api/Domaine/Occurrence.cs` — complétion + entrée de journal
+- `server/HouseOs.Api/Features/Taches/TachesEndpoints.cs` — API tâches/occurrences
+- `server/HouseOs.Api/Features/Auth/AuthEndpoints.cs` — connexion/session
+- `server/HouseOs.Tests/Domaine/` — tests du domaine
+- `web/src/pages/Aujourdhui.tsx`, `web/src/pages/Taches.tsx`, `web/src/components/QuickAdd.tsx` — UI
 
 ## Sources
 
@@ -55,4 +69,4 @@ Détail des modes de récurrence : voir
 
 ## Historique
 
-<!-- Plans et recaps à venir (V0 Déménagement, V1 récurrence). -->
+- [[Plan 2026-08-23 V0 Déménagement]] · [[Recap Tâches]]
