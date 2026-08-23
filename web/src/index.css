@@ -1,54 +1,84 @@
 @import "tailwindcss";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/nunito-sans";
 
-@custom-variant dark (&:is(.dark *));
-
-/* Palette Kanagawa (Lotus en clair, Wave en sombre) — voir doc-palette */
+/*
+ * Palette « Cuisine chaleureuse » (design final 2026-08-23 — voir
+ * vault/Decisions/D-2026-08-23 Direction Artistique Cuisine Chaleureuse.md
+ * et design/maquettes/Main.dc.html). Mode clair seulement pour l'instant
+ * (la variante Soirée viendra plus tard si on la veut).
+ */
 :root {
-  --background: #faf7ed;
-  --foreground: #545464;
-  --card: #ffffff;
-  --card-foreground: #545464;
-  --popover: #ffffff;
-  --popover-foreground: #545464;
-  --primary: #4d699b;
-  --primary-foreground: #faf7ed;
-  --secondary: #e7e2d2;
-  --secondary-foreground: #545464;
-  --muted: #eee9d9;
-  --muted-foreground: #8a8980;
-  --accent: #e7e2d2;
-  --accent-foreground: #545464;
-  --destructive: #c84053;
-  --destructive-foreground: #faf7ed;
-  --border: #ddd8c8;
-  --input: #ddd8c8;
-  --ring: #4d699b;
-  --radius: 0.625rem;
-}
+  color-scheme: light;
 
-.dark {
-  --background: #1f1f28;
-  --foreground: #dcd7ba;
-  --card: #2a2a37;
-  --card-foreground: #dcd7ba;
-  --popover: #2a2a37;
-  --popover-foreground: #dcd7ba;
-  --primary: #7e9cd8;
-  --primary-foreground: #16161d;
-  --secondary: #363646;
-  --secondary-foreground: #dcd7ba;
-  --muted: #2a2a37;
-  --muted-foreground: #727169;
-  --accent: #2d4f67;
-  --accent-foreground: #dcd7ba;
-  --destructive: #ff5d62;
-  --destructive-foreground: #16161d;
-  --border: #363646;
-  --input: #363646;
-  --ring: #7e9cd8;
+  /* Tokens du langage chaleureuse */
+  --fond: #f2ecbc;          /* fond de page */
+  --carte: #faf7ed;         /* cartes */
+  --creux: #f2ecbc;         /* puits/chips à l'intérieur d'une carte */
+  --encre: #43436c;         /* titres Fraunces */
+  --texte: #545464;
+  --sourdine: #8a8980;
+  --dore: #77713f;          /* texte doux doré */
+  --orange: #cc6d00;        /* accent principal */
+  --vert: #6f894e;          /* succès */
+  --vert-fond: #eef2e4;     /* fond d'une rangée complétée */
+  --rouge: #c84053;         /* retard */
+  --jaune: #d9bd6e;         /* échéance ce soir / attention douce */
+  --tiret: #ddd3ab;         /* bordures pointillées */
+  --tiret-texte: #a89e77;
+  --coche: #b5b3a6;         /* bordure de case à cocher au repos */
+  --barre-piste: #f0ead6;   /* piste des barres de progression */
+
+  /* Avatars pastel */
+  --avatar-ariane-fond: #ded4e8;
+  --avatar-ariane-texte: #624c83;
+  --avatar-alain-fond: #cdd9ec;
+  --avatar-alain-texte: #4d699b;
+
+  /* Mapping shadcn (button/input/label restants) */
+  --background: var(--fond);
+  --foreground: var(--texte);
+  --card: var(--carte);
+  --card-foreground: var(--texte);
+  --popover: var(--carte);
+  --popover-foreground: var(--texte);
+  --primary: var(--orange);
+  --primary-foreground: var(--carte);
+  --secondary: var(--creux);
+  --secondary-foreground: var(--dore);
+  --muted: var(--barre-piste);
+  --muted-foreground: var(--sourdine);
+  --accent: var(--creux);
+  --accent-foreground: var(--texte);
+  --destructive: var(--rouge);
+  --destructive-foreground: var(--carte);
+  --border: var(--tiret);
+  --input: var(--tiret);
+  --ring: var(--orange);
+  --radius: 1rem;
 }
 
 @theme inline {
+  --font-sans: "Nunito Sans Variable", "Nunito Sans", system-ui, sans-serif;
+  --font-titre: "Fraunces Variable", Fraunces, Georgia, serif;
+
+  --color-fond: var(--fond);
+  --color-carte: var(--carte);
+  --color-creux: var(--creux);
+  --color-encre: var(--encre);
+  --color-texte: var(--texte);
+  --color-sourdine: var(--sourdine);
+  --color-dore: var(--dore);
+  --color-orange: var(--orange);
+  --color-vert: var(--vert);
+  --color-vert-fond: var(--vert-fond);
+  --color-rouge: var(--rouge);
+  --color-jaune: var(--jaune);
+  --color-tiret: var(--tiret);
+  --color-tiret-texte: var(--tiret-texte);
+  --color-coche: var(--coche);
+  --color-barre-piste: var(--barre-piste);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -72,6 +102,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-carte: 0 2px 8px rgba(84, 84, 100, 0.07);
+  --shadow-carte-lg: 0 3px 14px rgba(84, 84, 100, 0.08);
 }
 
 @layer base {
@@ -79,12 +112,9 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-fond text-texte font-sans;
   }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    color-scheme: dark;
+  h1, h2, h3 {
+    @apply font-titre text-encre;
   }
 }

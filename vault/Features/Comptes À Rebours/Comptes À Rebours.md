@@ -34,9 +34,17 @@ visite), pas un widget codé en dur pour le déménagement. Demandé par Alain e
 
 - (Aucune encore — feature esquissée, non planifiée. Cible probable : V1b ou phase 2.)
 
+## Intérim (V0, 2026-08-23)
+
+En attendant la vraie feature, la carte « Comptes à rebours » d'Aujourd'hui affiche
+deux comptes calculés côté client et codés en dur : Déménagement (2026-10-06, masqué
+une fois passé) et Noël (prochain 25 décembre). Pas de bouton « Ajouter » tant que
+le CRUD n'existe pas — on n'affiche pas de contrôle mort.
+
 ## Ancres de code
 
-<!-- À remplir à l'implémentation. -->
+- `web/src/pages/Aujourdhui.tsx` — carte intérimaire (comptes codés en dur)
+- `web/src/lib/format.ts` — calcul des dodos
 
 ## Sources
 

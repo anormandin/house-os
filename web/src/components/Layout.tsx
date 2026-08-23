@@ -1,17 +1,22 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, ListTodo, LogOut } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { LogOut } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import Avatar from '@/components/Avatar'
 import { api, type Utilisateur } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
+// Pièces et Équipements arrivent avec la V1 — on n'affiche pas d'onglets morts.
 const onglets = [
-  { vers: '/', libelle: "Aujourd'hui", icone: CalendarDays },
-  { vers: '/taches', libelle: 'Tâches', icone: ListTodo },
+  { vers: '/', libelle: "Aujourd'hui" },
+  { vers: '/taches', libelle: 'Tâches' },
 ]
 
 export default function Layout({ moi }: { moi: Utilisateur }) {
   const queryClient = useQueryClient()
+  const { data: utilisateurs } = useQuery({
+    queryKey: ['utilisateurs'],
+    queryFn: api.utilisateurs,
+  })
 
   async function deconnecter() {
     await api.deconnexion()
@@ -20,41 +25,53 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
-      <header className="flex items-center justify-between px-4 pb-2 pt-4">
-        <h1 className="text-lg font-semibold">Maison</h1>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {moi.nomAffichage}
-          <Button variant="ghost" size="icon" aria-label="Se déconnecter" onClick={deconnecter}>
-            <LogOut className="size-4" />
-          </Button>
-        </div>
-      </header>
-
-      <main className="flex-1 px-4 pb-24">
-        <Outlet />
-      </main>
-
-      <nav className="fixed inset-x-0 bottom-0 border-t bg-background">
-        <div className="mx-auto flex max-w-lg">
-          {onglets.map(({ vers, libelle, icone: Icone }) => (
+    <div className="mx-auto flex min-h-dvh w-full max-w-[1500px] flex-col px-6 lg:px-14">
+      <header className="flex items-center justify-between py-6">
+        <span className="font-titre text-[26px] font-bold text-encre">Maison</span>
+        <nav className="flex gap-7 text-[15px] font-bold">
+          {onglets.map(({ vers, libelle }) => (
             <NavLink
               key={vers}
               to={vers}
               end={vers === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-1 flex-col items-center gap-1 py-3 text-xs',
-                  isActive ? 'text-primary' : 'text-muted-foreground',
+                  'pb-1 transition-colors',
+                  isActive
+                    ? 'border-b-[3px] border-orange text-orange'
+                    : 'text-sourdine hover:text-dore',
                 )
               }
             >
-              <Icone className="size-5" />
               {libelle}
             </NavLink>
           ))}
+        </nav>
+        <div className="flex items-center gap-3">
+          <div className="flex">
+            {(utilisateurs ?? [moi]).map((u, i) => (
+              <Avatar
+                key={u.id}
+                utilisateur={u}
+                taille={36}
+                className={cn('border-2 border-fond', i > 0 && '-ml-3')}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-label="Se déconnecter"
+            onClick={deconnecter}
+            className="text-sourdine transition-colors hover:text-orange"
+          >
+            <LogOut className="size-4" />
+          </button>
         </div>
-      </nav>
+      </header>
+
+      <main className="flex-1 pb-10">
+        <Outlet />
+      </main>
     </div>
   )
 }

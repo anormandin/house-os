@@ -59,6 +59,8 @@ public static class TachesEndpoints
         app.MapGet("/api/occurrences", async (
             string? filtre,
             DateOnly? date,
+            DateTimeOffset? de,
+            DateTimeOffset? a,
             HouseOsDbContext db) =>
         {
             var aujourdhui = date ?? DateOnly.FromDateTime(DateTime.Now);
@@ -75,6 +77,10 @@ public static class TachesEndpoints
                     o.Statut == StatutOccurrence.EnAttente && (o.Echeance == null || o.Echeance > aujourdhui)),
                 "en-attente" => requete.Where(o => o.Statut == StatutOccurrence.EnAttente),
                 "completees" => requete.Where(o => o.Statut == StatutOccurrence.Completee),
+                // Complétées dans une fenêtre d'instants [de, a) — le client fournit les bornes
+                // de sa journée locale (le serveur ne connaît pas le fuseau du client).
+                "faites" => requete.Where(o =>
+                    o.Statut == StatutOccurrence.Completee && o.CompleteeLe >= de && o.CompleteeLe < a),
                 _ => requete,
             };
 

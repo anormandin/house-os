@@ -22,5 +22,20 @@ Déviations du plan :
 3. Vérification visuelle UI non faite en session (extension Chrome déconnectée) —
    API validée par curl ; à confirmer par l'utilisateur sur http://localhost:8080.
 
+## Addendum 2026-08-23 (soir) — reconstruction UI chaleureuse
+
+L'UI V0 (coquille shadcn mobile, jetable par design) a été reconstruite dans le
+design final « Cuisine chaleureuse » (look C5 + structure desktop) : thème complet
+dans `web/src/index.css` (Fraunces + Nunito Sans auto-hébergées), Aujourd'hui avec
+héros illustré + titre d'humeur (repli client), cartes latérales (Cette semaine,
+L'équipe, Comptes à rebours intérimaires Déménagement/Noël), rangées complétées
+« bravo X ✓ 14 h 10 », quick-add repliable ⌘K, Connexion et Tâches assorties.
+Côté API : nouveau filtre `faites` (bornes d'instants de la journée locale du
+client). Composants shadcn et bascule sombre supprimés (mode clair seulement pour
+l'instant). Vérifié visuellement dans Chrome cette fois (connexion → création via
+quick-add → listes → réactivité) ; `tsc`, lint et les 7 tests serveur au vert ;
+image Docker reconstruite. Les premières vraies tâches du déménagement (camion,
+Hydro-Québec, boîtes, SAAQ, internet) ont été créées en base pendant la vérification.
+
 Reste ouvert pour la V1 : moteur de récurrence (3 modes), zones, équipements, flux
 iCal, script de backup, déploiement Tailscale sur la machine de la nouvelle maison.

@@ -48,10 +48,19 @@ du quick-add — candidat futur, lui aussi peu coûteux à ~1 court appel par cr
 
 - (À mint au moment de l'implémentation : choix du modèle et de la cadence.)
 
+## Intérim (V0, 2026-08-23)
+
+Les couches 1 et 2 existent en version client (TypeScript) pour que le héros vive
+dès la V0 : faits calculés depuis les occurrences chargées (ouvertes, en retard,
+faites aujourd'hui, dodos avant le déménagement) + petite banque de phrases avec
+rotation ensemencée par la date. La version serveur C# (structure complète,
+phrases météo-conscientes, table `PhraseDuJour`, polissage LLM) reste le design
+cible — phase 2.
+
 ## Ancres de code
 
-<!-- À remplir à l'implémentation (phase 2, avec la météo — les phrases
-météo-conscientes sont ce qui fera briller la feature). -->
+- `web/src/lib/humeur.ts` — banque de gabarits client (intérim V0)
+- `web/src/pages/Aujourdhui.tsx` — calcul des faits + héros
 
 ## Sources
 

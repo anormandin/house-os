@@ -57,6 +57,11 @@ export const api = {
   utilisateurs: () => requete<Utilisateur[]>('/api/utilisateurs'),
   occurrences: (filtre: string) =>
     requete<Occurrence[]>(`/api/occurrences?filtre=${filtre}&date=${dateLocaleIso()}`),
+  // Occurrences complétées dans une fenêtre d'instants (bornes de la journée locale).
+  occurrencesFaites: (de: string, a: string) =>
+    requete<Occurrence[]>(
+      `/api/occurrences?filtre=faites&de=${encodeURIComponent(de)}&a=${encodeURIComponent(a)}`,
+    ),
   creerTache: (donnees: {
     titre: string
     description?: string

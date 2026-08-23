@@ -14,7 +14,7 @@ function App() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-dvh items-center justify-center text-muted-foreground">
+      <main className="flex min-h-dvh items-center justify-center bg-fond text-sourdine">
         Chargement…
       </main>
     )

@@ -19,25 +19,30 @@ export default function Taches() {
   })
 
   return (
-    <div className="flex flex-col gap-4">
-      <QuickAdd />
-      <div className="flex gap-1 rounded-lg bg-muted p-1">
-        {filtres.map((f) => (
-          <button
-            key={f.cle}
-            type="button"
-            onClick={() => setFiltre(f.cle)}
-            className={cn(
-              'flex-1 rounded-md py-1.5 text-sm transition-colors',
-              filtre === f.cle ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground',
-            )}
-          >
-            {f.libelle}
-          </button>
-        ))}
+    <div className="mx-auto flex max-w-[900px] flex-col gap-5">
+      <div className="flex items-end justify-between">
+        <h1 className="text-4xl font-bold">Toutes les tâches</h1>
+        <div className="flex gap-2">
+          {filtres.map((f) => (
+            <button
+              key={f.cle}
+              type="button"
+              onClick={() => setFiltre(f.cle)}
+              className={cn(
+                'rounded-full px-4 py-1.5 text-sm font-bold transition-colors',
+                filtre === f.cle
+                  ? 'bg-orange text-carte'
+                  : 'bg-carte text-sourdine shadow-carte hover:text-dore',
+              )}
+            >
+              {f.libelle}
+            </button>
+          ))}
+        </div>
       </div>
+      <QuickAdd />
       {isLoading ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Chargement…</p>
+        <p className="py-8 text-center text-sm text-sourdine">Chargement…</p>
       ) : (
         <OccurrenceListe
           occurrences={occurrences ?? []}
