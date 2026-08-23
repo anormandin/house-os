@@ -50,5 +50,9 @@ Recherche initiale : `docs/research/` (3 rapports, 2026-08-23).
 ### Référence
 - [[Architecture]] — stack, structure du monorepo, feuille de route par phases.
 
+### Inspiration UI
+- [[Inspiration UI]] — index du dossier : directions artistiques, patterns, e-ink,
+  typographie québécoise. Maquettes : `design/maquettes/` (canvas Artifact publié).
+
 ### Domaine
 - [[Glossaire]] — vocabulaire du domaine (Tâche, Occurrence, Zone, Équipement…).

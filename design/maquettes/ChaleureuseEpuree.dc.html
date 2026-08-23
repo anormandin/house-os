@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito+Sans:wght@400;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #cc6d00; } a:hover { color: #77713f; }
+  </style>
+</helmet>
+<div style="width: 1440px; height: 900px; background: #faf7ed; color: #545464; font-family: 'Nunito Sans', system-ui, sans-serif; display: flex; overflow: hidden;">
+
+  <!-- Nav gauche texte -->
+  <nav style="width: 220px; border-right: 1px solid #e5dfcc; padding: 44px 0 44px 44px; display: flex; flex-direction: column; gap: 44px;">
+    <div style="font-family: Fraunces, Georgia, serif; font-size: 26px; font-weight: 600; color: #43436c;">Maison</div>
+    <div style="display: flex; flex-direction: column; gap: 18px; font-size: 15px;">
+      <div style="font-weight: 700; color: #cc6d00;">Aujourd&#8217;hui</div>
+      <div style="color: #8a8980;">T&#226;ches</div>
+      <div style="color: #8a8980;">&#201;quipements</div>
+      <div style="color: #8a8980;">Projets</div>
+    </div>
+    <div style="margin-top: auto; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #8a8980;">
+      <span style="width: 26px; height: 26px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">Ar</span>
+      Ariane
+    </div>
+  </nav>
+
+  <main style="flex: 1; padding: 52px 60px; display: flex; flex-direction: column; gap: 34px; min-width: 0;">
+    <header>
+      <h1 style="font-family: Fraunces, Georgia, serif; font-size: 38px; font-weight: 600; margin: 0; color: #43436c;">4 petites choses avant dodo</h1>
+      <p style="margin: 10px 0 0; font-size: 15px; color: #8a8980;">samedi 23 ao&#251;t &#183; 21 &#176;C ensoleill&#233; &#183; 44 dodos avant la nouvelle maison</p>
+    </header>
+
+    <div style="display: flex; align-items: center; gap: 12px; border: 1px solid #e5dfcc; border-radius: 16px; padding: 13px 18px; background: #fdfbf3;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#cc6d00" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+      <span style="font-size: 15px; color: #b5b3a6;">Ajouter une t&#226;che&#8230; &#8984;K</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <div style="display: flex; align-items: center; gap: 16px; padding: 15px 12px; border-bottom: 1px solid #f0ead6;">
+        <span style="width: 22px; height: 22px; border: 2px solid #c84053; border-radius: 8px;"></span>
+        <span style="font-size: 16px; font-weight: 600; flex: 1;">R&#233;server le camion de d&#233;m&#233;nagement</span>
+        <span style="font-size: 13px; color: #c84053;">depuis hier</span>
+        <span style="width: 28px; height: 28px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">Al</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; padding: 15px 12px; border-bottom: 1px solid #f0ead6;">
+        <span style="width: 22px; height: 22px; border: 2px solid #cbc5b2; border-radius: 8px;"></span>
+        <span style="font-size: 16px; font-weight: 600; flex: 1;">Appeler Hydro-Qu&#233;bec — changement d&#8217;adresse</span>
+        <span style="width: 28px; height: 28px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">Ar</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; padding: 15px 12px; border-bottom: 1px solid #f0ead6;">
+        <span style="width: 22px; height: 22px; border: 2px solid #cbc5b2; border-radius: 8px;"></span>
+        <span style="font-size: 16px; font-weight: 600; flex: 1;">Commander des bo&#238;tes</span>
+        <span style="width: 28px; height: 28px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">Al</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; padding: 15px 12px; border-bottom: 1px solid #f0ead6;">
+        <span style="width: 22px; height: 22px; border: 2px solid #cbc5b2; border-radius: 8px;"></span>
+        <span style="font-size: 16px; font-weight: 600; flex: 1;">Trier le garage — bo&#238;tes &#224; donner</span>
+        <span style="background: #f0ead6; border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: 700; color: #77713f;">ce soir</span>
+        <span style="display: inline-flex;">
+          <span style="width: 28px; height: 28px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">Ar</span>
+          <span style="width: 28px; height: 28px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-left: -9px;">Al</span>
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; padding: 15px 12px;">
+        <span style="width: 22px; height: 22px; border-radius: 8px; background: #6f894e; display: inline-flex; align-items: center; justify-content: center;">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#faf7ed" stroke-width="2.2"><path d="M2 6.5 5 9l5-6"/></svg>
+        </span>
+        <span style="font-size: 16px; font-weight: 600; flex: 1; color: #8a8980; text-decoration: line-through;">Vider le cabanon</span>
+        <span style="font-size: 13px; color: #6f894e; font-weight: 700;">Alain &#183; 14 h 10</span>
+      </div>
+    </div>
+  </main>
+
+  <aside style="width: 320px; border-left: 1px solid #e5dfcc; padding: 52px 44px; display: flex; flex-direction: column; gap: 40px;">
+    <section>
+      <h2 style="font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 600; color: #43436c; margin: 0 0 16px;">Cette semaine</h2>
+      <div style="display: flex; flex-direction: column; gap: 13px; font-size: 14px;">
+        <div style="display: flex; justify-content: space-between; gap: 8px;"><span>SAAQ — changement d&#8217;adresse</span><span style="color: #8a8980;">mar</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 8px;"><span>R&#233;silier internet</span><span style="color: #8a8980;">mer</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 8px;"><span>Retouches peinture — salon</span><span style="color: #8a8980;">sam</span></div>
+      </div>
+    </section>
+    <section>
+      <h2 style="font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 600; color: #43436c; margin: 0 0 16px;">L&#8217;&#233;quipe</h2>
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 44px;">Ariane</span>
+          <div style="flex: 1; height: 6px; background: #f0ead6; border-radius: 999px;"><div style="width: 55%; height: 6px; background: #b9a5d8; border-radius: 999px;"></div></div>
+          <span style="color: #8a8980;">5</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 44px;">Alain</span>
+          <div style="flex: 1; height: 6px; background: #f0ead6; border-radius: 999px;"><div style="width: 45%; height: 6px; background: #9db8dd; border-radius: 999px;"></div></div>
+          <span style="color: #8a8980;">4</span>
+        </div>
+      </div>
+    </section>
+    <section style="margin-top: auto; border: 1px solid #e5dfcc; border-radius: 20px; padding: 22px 24px; background: #fdfbf3;">
+      <div style="font-family: Fraunces, Georgia, serif; font-size: 32px; font-weight: 600; color: #43436c;">44 dodos</div>
+      <div style="font-size: 13px; color: #8a8980; margin-top: 4px;">avant Sainte-Catherine-de-la-Jacques-Cartier</div>
+    </section>
+  </aside>
+</div>
+</x-dc>
+</body>
+</html>

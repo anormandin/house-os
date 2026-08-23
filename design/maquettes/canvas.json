@@ -1,0 +1,32 @@
+{
+  "pages": [
+    { "id": "page-final", "name": "Maison — design final" },
+    { "id": "page-chaleureuse", "name": "Chaleureuse — variations" },
+    { "id": "page-explorations", "name": "Explorations (archive)" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Aujourd'hui — final", "page": "page-final" },
+    { "file": "VuePieces.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "Pièces — final", "page": "page-final" },
+    { "file": "DirectionC.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "C — Cuisine chaleureuse", "page": "page-chaleureuse" },
+    { "file": "ChaleureuseEpuree.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "C1 — Épurée", "page": "page-chaleureuse" },
+    { "file": "ChaleureuseSoiree.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "C2 — Soirée", "page": "page-chaleureuse" },
+    { "file": "ChaleureusePieces.dc.html", "x": 0, "y": 1210, "w": 1440, "h": 900, "title": "C3 — Par pièces", "page": "page-chaleureuse" },
+    { "file": "ChaleureuseTableau.dc.html", "x": 1560, "y": 1210, "w": 1440, "h": 900, "title": "C4 — Tableau", "page": "page-chaleureuse" },
+    { "file": "ChaleureuseIllustree.dc.html", "x": 3120, "y": 1210, "w": 1440, "h": 900, "title": "C5 — Illustrée", "page": "page-chaleureuse" },
+    { "file": "DirectionB.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "B — Tableau de bord Kanagawa", "page": "page-explorations" },
+    { "file": "Eink.dc.html", "x": 1560, "y": 0, "w": 800, "h": 480, "title": "Écran e-ink mural (800×480)", "page": "page-explorations" }
+  ],
+  "annotations": [
+    { "id": "note-final", "x": 0, "y": -250, "w": 480, "page": "page-final", "text": "Le design final choisi par Alain et Ariane (2026-08-23) : le look de C5 — Illustrée (Fraunces, illustration au trait, accents en bord de carte) + la vue « par pièces » de C3 comme vue de premier plan (onglet Pièces).\n\nNouveau : les comptes à rebours sont généralisés — déménagement, Noël, un voyage, n'importe quoi (carte à droite d'Aujourd'hui)." },
+    { "id": "note-final-2", "x": 1560, "y": -250, "w": 420, "page": "page-final", "text": "Pièces — la vue signature (à la Tody), maintenant dans le langage final : barres de fraîcheur par pièce (jamais de dates punitives), accent orange en bord de carte pour la pièce qui déborde, détail à côté.\n\nProchaines étapes : version e-ink chaleureuse, puis reconstruction de l'UI réelle (web/) dans ce langage." },
+    { "id": "note-c", "x": 0, "y": -250, "w": 420, "page": "page-chaleureuse", "text": "C — l'originale. Les 5 variations autour remixent son ADN (Fraunces + Nunito, crème, arrondis, avatars pastel, titre d'humeur) sur des axes différents. Verdict : look de C5 + vue de C3 → voir la page « Maison — design final »." },
+    { "id": "note-c1", "x": 1560, "y": -250, "w": 420, "page": "page-chaleureuse", "text": "C1 — Épurée (chaleureuse × papier)\nLa chaleur sans les cartes blanches : filets discrets, rangées aérées, nav latérale texte, en-tête = le titre d'humeur lui-même.\n+ Vieillira bien, plus proche de l'e-ink.\n− Moins « câlin » que l'originale." },
+    { "id": "note-c2", "x": 3120, "y": -250, "w": 420, "page": "page-chaleureuse", "text": "C2 — Soirée (le mode sombre chaleureux)\nBrun-prune chaud + accents dorés « lanterne », lune au lieu de la feuille. Ce que l'app deviendrait le soir (et sur la tablette murale à la brunante).\n+ Prouve que chaleureux ≠ clair seulement.\n− À doser : deux ambiances à entretenir." },
+    { "id": "note-c3", "x": 0, "y": 970, "w": 420, "page": "page-chaleureuse", "text": "C3 — Par pièces (la vue signature desktop, à la Tody)\nL'état de la maison pièce par pièce : barres de fraîcheur (jamais de dates punitives), la pièce cliquée montre ses tâches à côté.\n+ Répond d'un coup d'œil à « la maison va bien? »\n− Vue complémentaire plutôt qu'écran d'accueil.\n★ Retenue pour le design final." },
+    { "id": "note-c4", "x": 1560, "y": 970, "w": 420, "page": "page-chaleureuse", "text": "C4 — Tableau (chaleureuse + bandeau-résumé)\nLe bandeau « état de la maison » (4 tuiles chiffres) greffé au-dessus, cartes plus denses. Préfigure la tablette murale.\n+ Le plus informatif au premier regard.\n− Le plus « tableau de bord » de la famille." },
+    { "id": "note-c5", "x": 3120, "y": 970, "w": 420, "page": "page-chaleureuse", "text": "C5 — Illustrée (la version maximale)\nGrand titre Fraunces, illustration maison-soleil au trait, camion du compte à rebours, bords accentués.\n+ La plus « nôtre », charme immédiat.\n− La plus exigeante à exécuter partout sans tomber dans la carte de vœux.\n★ Son look est retenu pour le design final." },
+    { "id": "note-b", "x": 0, "y": -250, "w": 420, "page": "page-explorations", "text": "B — Tableau de bord Kanagawa (lignée Home Assistant)\nPanneau de contrôle sombre et élégant : tuiles Valeur/Étiquette, un accent par domaine. Non retenu (l'exploration A — Papier d'encre a été remplacée par le design final sur la première page)." },
+    { "id": "note-eink", "x": 1560, "y": 560, "w": 400, "page": "page-explorations", "text": "L'écran e-ink mural est une vue distincte, pas une variante : 1 grande valeur par zone, listes courtes, noir et blanc franc. Rendu côté serveur, rafraîchi aux 15-30 min (phase 3). Une version chaleureuse (bande-titre Fraunces, coins arrondis) suivra le design final." }
+  ],
+  "launch": { "view": "canvas", "page": "page-final" }
+}

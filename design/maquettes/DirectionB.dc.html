@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #7e9cd8; } a:hover { color: #7fb4ca; }
+  </style>
+</helmet>
+<div style="width: 1440px; height: 900px; background: #1f1f28; color: #dcd7ba; font-family: Manrope, system-ui, sans-serif; display: flex; overflow: hidden;">
+
+  <!-- Nav gauche (icônes) -->
+  <nav style="width: 76px; background: #16161d; padding: 28px 0; display: flex; flex-direction: column; align-items: center; gap: 26px;">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7e9cd8" stroke-width="1.8"><path d="M3 11 12 4l9 7"/><path d="M5 10v9h14v-9"/></svg>
+    <div style="width: 40px; height: 40px; border-radius: 10px; background: #2d4f67; display: flex; align-items: center; justify-content: center;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dcd7ba" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    </div>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#727169" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#727169" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M4 9h16"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#727169" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 1 0 3 3L21 6l-3-3z"/><circle cx="9" cy="15" r="5"/></svg>
+    <div style="margin-top: auto; width: 32px; height: 32px; border-radius: 50%; background: #363646; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #957fb8;">A</div>
+  </nav>
+
+  <main style="flex: 1; padding: 36px 44px; display: flex; flex-direction: column; gap: 28px; min-width: 0;">
+    <header style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="font-size: 22px; font-weight: 600;">samedi 23 ao&#251;t <span style="color: #727169; font-weight: 400;">&#183; 19 h 42</span></div>
+      <div style="display: flex; align-items: center; gap: 10px; background: #2a2a37; border-radius: 10px; padding: 9px 16px; width: 380px;">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#727169" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>
+        <span style="font-size: 14px; color: #727169;">Ajouter une t&#226;che&#8230;</span>
+      </div>
+    </header>
+
+    <!-- Bandeau résumé : tuiles Valeur/Étiquette -->
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;">
+      <div style="background: #2a2a37; border-radius: 14px; padding: 20px 22px; border-left: 3px solid #7e9cd8;">
+        <div style="font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; color: #7e9cd8;">4</div>
+        <div style="font-size: 13px; color: #727169; margin-top: 2px;">&#224; faire aujourd&#8217;hui</div>
+      </div>
+      <div style="background: #2a2a37; border-radius: 14px; padding: 20px 22px; border-left: 3px solid #e6c384;">
+        <div style="font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; color: #e6c384;">21 &#176;C</div>
+        <div style="font-size: 13px; color: #727169; margin-top: 2px;">ensoleill&#233; &#183; id&#233;al pour l&#8217;ext&#233;rieur</div>
+      </div>
+      <div style="background: #2a2a37; border-radius: 14px; padding: 20px 22px; border-left: 3px solid #ffa066;">
+        <div style="font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; color: #ffa066;">44 j</div>
+        <div style="font-size: 13px; color: #727169; margin-top: 2px;">avant le d&#233;m&#233;nagement</div>
+      </div>
+      <div style="background: #2a2a37; border-radius: 14px; padding: 20px 22px; border-left: 3px solid #98bb6c;">
+        <div style="font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; color: #98bb6c;">9/14</div>
+        <div style="font-size: 13px; color: #727169; margin-top: 2px;">faites cette semaine</div>
+      </div>
+    </div>
+
+    <!-- Grille de cartes -->
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; flex: 1;">
+      <!-- Aujourd'hui -->
+      <div style="background: #2a2a37; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 18px;">
+        <div style="font-size: 14px; font-weight: 600; color: #7e9cd8;">Aujourd&#8217;hui</div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: 10px; background: rgba(255,93,98,0.07);">
+            <span style="width: 19px; height: 19px; border: 1.5px solid #727169; border-radius: 6px;"></span>
+            <span style="font-size: 15px; flex: 1;">R&#233;server le camion de d&#233;m&#233;nagement</span>
+            <span style="font-size: 12px; color: #ff5d62;">hier</span>
+            <span style="width: 22px; height: 22px; border-radius: 50%; background: #223249; color: #7e9cd8; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">Al</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: 10px;">
+            <span style="width: 19px; height: 19px; border: 1.5px solid #727169; border-radius: 6px;"></span>
+            <span style="font-size: 15px; flex: 1;">Appeler Hydro-Qu&#233;bec — changement d&#8217;adresse</span>
+            <span style="width: 22px; height: 22px; border-radius: 50%; background: #2f2640; color: #957fb8; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">Ar</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: 10px;">
+            <span style="width: 19px; height: 19px; border: 1.5px solid #727169; border-radius: 6px;"></span>
+            <span style="font-size: 15px; flex: 1;">Commander des bo&#238;tes</span>
+            <span style="width: 22px; height: 22px; border-radius: 50%; background: #223249; color: #7e9cd8; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">Al</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: 10px; opacity: 0.55;">
+            <span style="width: 19px; height: 19px; border-radius: 6px; background: #98bb6c; display: inline-flex; align-items: center; justify-content: center;">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#1f1f28" stroke-width="2"><path d="M2 6.5 5 9l5-6"/></svg>
+            </span>
+            <span style="font-size: 15px; flex: 1; text-decoration: line-through;">Vider le cabanon</span>
+            <span style="font-size: 12px; color: #727169;">Alain &#183; 14 h 10</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-radius: 10px;">
+            <span style="width: 19px; height: 19px; border: 1.5px solid #727169; border-radius: 6px;"></span>
+            <span style="font-size: 15px; flex: 1;">Trier le garage — bo&#238;tes &#224; donner</span>
+            <span style="font-size: 12px; color: #e6c384;">ce soir</span>
+            <span style="display: inline-flex;">
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: #2f2640; color: #957fb8; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">Ar</span>
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: #223249; color: #7e9cd8; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; margin-left: -6px;">Al</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+        <!-- Entretien / fraîcheur -->
+        <div style="background: #2a2a37; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-size: 14px; font-weight: 600; color: #7aa89f;">Entretien</div>
+          <div style="display: flex; flex-direction: column; gap: 13px; font-size: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="flex: 1;">Filtre de la fournaise</span>
+              <div style="width: 90px; height: 4px; background: #363646; border-radius: 2px;"><div style="width: 80%; height: 4px; background: #7aa89f; border-radius: 2px;"></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="flex: 1;">Tonte de la pelouse</span>
+              <div style="width: 90px; height: 4px; background: #363646; border-radius: 2px;"><div style="width: 35%; height: 4px; background: #e6c384; border-radius: 2px;"></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="flex: 1;">D&#233;tecteurs de fum&#233;e</span>
+              <div style="width: 90px; height: 4px; background: #363646; border-radius: 2px;"><div style="width: 90%; height: 4px; background: #7aa89f; border-radius: 2px;"></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Semaine -->
+        <div style="background: #2a2a37; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 14px; flex: 1;">
+          <div style="font-size: 14px; font-weight: 600; color: #957fb8;">Cette semaine</div>
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; gap: 8px;"><span>SAAQ — changement d&#8217;adresse</span><span style="color: #727169;">mar</span></div>
+            <div style="display: flex; justify-content: space-between; gap: 8px;"><span>R&#233;silier internet</span><span style="color: #727169;">mer</span></div>
+            <div style="display: flex; justify-content: space-between; gap: 8px;"><span>Retouches peinture — salon</span><span style="color: #727169;">sam</span></div>
+          </div>
+          <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid #363646; display: flex; justify-content: space-between; font-size: 13px; color: #727169;">
+            <span>&#201;quilibre</span>
+            <span><span style="color: #957fb8;">Ariane 5</span> &#183; <span style="color: #7e9cd8;">Alain 4</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

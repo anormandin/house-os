@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #cc6d00; } a:hover { color: #77713f; }
+  </style>
+</helmet>
+<div style="width: 1440px; height: 900px; background: #f2ecbc; color: #545464; font-family: 'Nunito Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 26px 56px;">
+    <span style="font-family: Fraunces, Georgia, serif; font-size: 26px; font-weight: 700; color: #43436c;">Maison</span>
+    <nav style="display: flex; gap: 26px; font-size: 15px; font-weight: 700;">
+      <span style="color: #cc6d00; border-bottom: 3px solid #cc6d00; padding-bottom: 4px;">Aujourd&#8217;hui</span>
+      <span style="color: #8a8980;">Pi&#232;ces</span>
+      <span style="color: #8a8980;">T&#226;ches</span>
+      <span style="color: #8a8980;">&#201;quipements</span>
+    </nav>
+    <div style="display: flex;">
+      <div style="width: 36px; height: 36px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #f2ecbc;">Ar</div>
+      <div style="width: 36px; height: 36px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #f2ecbc; margin-left: -12px;">Al</div>
+    </div>
+  </header>
+
+  <!-- Héros illustré -->
+  <div style="margin: 0 56px; background: #faf7ed; border-radius: 28px; padding: 34px 48px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 3px 14px rgba(84,84,100,0.08);">
+    <div style="max-width: 660px;">
+      <div style="font-size: 14px; font-weight: 700; color: #cc6d00; text-transform: uppercase; letter-spacing: 0.06em;">samedi 23 ao&#251;t &#183; 21 &#176;C ensoleill&#233;</div>
+      <h1 style="font-family: Fraunces, Georgia, serif; font-size: 44px; font-weight: 700; margin: 8px 0 0; color: #43436c; line-height: 1.15;">On y est presque.</h1>
+      <p style="margin: 12px 0 0; font-size: 17px; color: #77713f;">4 petites choses avant dodo — le camion attend depuis hier, le reste est sous contr&#244;le.</p>
+    </div>
+    <svg width="290" height="160" viewBox="0 0 300 170" fill="none">
+      <circle cx="252" cy="38" r="20" stroke="#cc6d00" stroke-width="3"/>
+      <path d="M252 8v-6M252 74v-6M282 38h6M216 38h6M273 17l4-4M227 63l4-4M273 59l4 4M227 13l4 4" stroke="#cc6d00" stroke-width="3" stroke-linecap="round"/>
+      <path d="M40 150h220" stroke="#77713f" stroke-width="3" stroke-linecap="round"/>
+      <path d="M70 150v-52l55-40 55 40v52" stroke="#43436c" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M58 104l67-49 67 49" stroke="#43436c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="110" y="118" width="30" height="32" stroke="#cc6d00" stroke-width="3"/>
+      <rect x="85" y="104" width="18" height="16" stroke="#77713f" stroke-width="3"/>
+      <rect x="147" y="104" width="18" height="16" stroke="#77713f" stroke-width="3"/>
+      <path d="M196 150v-18c0-8 6-14 14-14s14 6 14 14v18" stroke="#6f894e" stroke-width="3"/>
+      <path d="M36 150v-14c0-6 5-11 11-11s11 5 11 11v14" stroke="#6f894e" stroke-width="3"/>
+    </svg>
+  </div>
+
+  <main style="flex: 1; padding: 22px 56px 40px; display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; min-height: 0;">
+    <!-- Tâches -->
+    <div style="display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; align-items: center; gap: 16px; background: #faf7ed; border-radius: 20px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(84,84,100,0.07); border-left: 6px solid #c84053;">
+        <span style="width: 26px; height: 26px; border: 2.5px solid #c84053; border-radius: 9px;"></span>
+        <div style="flex: 1;">
+          <div style="font-size: 16px; font-weight: 700;">R&#233;server le camion de d&#233;m&#233;nagement</div>
+          <div style="font-size: 13px; color: #c84053; margin-top: 1px;">depuis hier — on s&#8217;en occupe?</div>
+        </div>
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Al</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; background: #faf7ed; border-radius: 20px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(84,84,100,0.07);">
+        <span style="width: 26px; height: 26px; border: 2.5px solid #b5b3a6; border-radius: 9px;"></span>
+        <div style="flex: 1; font-size: 16px; font-weight: 700;">Appeler Hydro-Qu&#233;bec — changement d&#8217;adresse</div>
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Ar</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; background: #faf7ed; border-radius: 20px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(84,84,100,0.07);">
+        <span style="width: 26px; height: 26px; border: 2.5px solid #b5b3a6; border-radius: 9px;"></span>
+        <div style="flex: 1; font-size: 16px; font-weight: 700;">Commander des bo&#238;tes</div>
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Al</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; background: #faf7ed; border-radius: 20px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(84,84,100,0.07); border-left: 6px solid #d9bd6e;">
+        <span style="width: 26px; height: 26px; border: 2.5px solid #b5b3a6; border-radius: 9px;"></span>
+        <div style="flex: 1; font-size: 16px; font-weight: 700;">Trier le garage — bo&#238;tes &#224; donner</div>
+        <span style="background: #f2ecbc; border-radius: 999px; padding: 4px 13px; font-size: 12px; font-weight: 700; color: #77713f;">ce soir, &#224; deux</span>
+        <div style="display: flex;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Ar</div>
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-left: -10px;">Al</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; background: #eef2e4; border-radius: 20px; padding: 14px 20px;">
+        <span style="width: 26px; height: 26px; border-radius: 9px; background: #6f894e; display: inline-flex; align-items: center; justify-content: center;">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="#faf7ed" stroke-width="2.4"><path d="M2 6.5 5 9l5-6"/></svg>
+        </span>
+        <div style="flex: 1; font-size: 16px; font-weight: 700; color: #8a8980; text-decoration: line-through;">Vider le cabanon</div>
+        <span style="font-size: 13px; color: #6f894e; font-weight: 700;">bravo Alain ✓ 14 h 10</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; border: 2px dashed #ddd3ab; border-radius: 20px; padding: 12px 20px; color: #a89e77;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#a89e77" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+        <span style="font-size: 14px; font-weight: 700;">Ajouter une t&#226;che&#8230; &#8984;K</span>
+      </div>
+    </div>
+
+    <!-- Colonne latérale -->
+    <div style="display: flex; flex-direction: column; gap: 18px; min-width: 0;">
+      <div style="background: #faf7ed; border-radius: 24px; padding: 22px 26px; box-shadow: 0 2px 8px rgba(84,84,100,0.07);">
+        <div style="font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 700; color: #43436c; margin-bottom: 12px;">Cette semaine</div>
+        <div style="display: flex; flex-direction: column; gap: 11px; font-size: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="background: #f2ecbc; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #77713f;">mar</span><span>SAAQ — changement d&#8217;adresse</span></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="background: #f2ecbc; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #77713f;">mer</span><span>R&#233;silier internet</span></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="background: #f2ecbc; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #77713f;">sam</span><span>Retouches peinture — salon</span></div>
+        </div>
+      </div>
+
+      <div style="background: #faf7ed; border-radius: 24px; padding: 22px 26px; box-shadow: 0 2px 8px rgba(84,84,100,0.07);">
+        <div style="font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 700; color: #43436c; margin-bottom: 12px;">L&#8217;&#233;quipe</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Ar</div>
+            <div style="flex: 1; height: 10px; background: #f2ecbc; border-radius: 999px;"><div style="width: 55%; height: 10px; background: #b9a5d8; border-radius: 999px;"></div></div>
+            <span style="font-size: 15px; font-weight: 700; color: #624c83;">5</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Al</div>
+            <div style="flex: 1; height: 10px; background: #f2ecbc; border-radius: 999px;"><div style="width: 45%; height: 10px; background: #9db8dd; border-radius: 999px;"></div></div>
+            <span style="font-size: 15px; font-weight: 700; color: #4d699b;">4</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comptes à rebours (généralisés) -->
+      <div style="background: #faf7ed; border-radius: 24px; padding: 22px 26px; box-shadow: 0 2px 8px rgba(84,84,100,0.07); flex: 1; display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-family: Fraunces, Georgia, serif; font-size: 18px; font-weight: 700; color: #43436c;">Comptes &#224; rebours</div>
+        <div style="display: flex; align-items: center; gap: 14px; background: #f2ecbc; border-radius: 16px; padding: 12px 16px;">
+          <svg width="34" height="24" viewBox="0 0 40 28" fill="none">
+            <rect x="2" y="8" width="22" height="14" rx="2" stroke="#cc6d00" stroke-width="2.5"/>
+            <path d="M24 12h8l5 5v5h-13" stroke="#cc6d00" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="10" cy="24" r="3" stroke="#43436c" stroke-width="2.5"/>
+            <circle cx="31" cy="24" r="3" stroke="#43436c" stroke-width="2.5"/>
+          </svg>
+          <div style="flex: 1;">
+            <div style="font-size: 15px; font-weight: 700;">D&#233;m&#233;nagement</div>
+            <div style="font-size: 12px; color: #8a8980;">6 octobre</div>
+          </div>
+          <div style="font-family: Fraunces, Georgia, serif; font-size: 22px; font-weight: 700; color: #cc6d00;">44 <span style="font-size: 13px; color: #77713f;">dodos</span></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; background: #f2ecbc; border-radius: 16px; padding: 12px 16px;">
+          <svg width="26" height="28" viewBox="0 0 26 30" fill="none">
+            <path d="M13 2 5 12h4l-6 8h5l-5 7h20l-5-7h5l-6-8h4z" stroke="#6f894e" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M13 27v3" stroke="#77713f" stroke-width="2.5"/>
+          </svg>
+          <div style="flex: 1;">
+            <div style="font-size: 15px; font-weight: 700;">No&#235;l</div>
+            <div style="font-size: 12px; color: #8a8980;">25 d&#233;cembre</div>
+          </div>
+          <div style="font-family: Fraunces, Georgia, serif; font-size: 22px; font-weight: 700; color: #6f894e;">124 <span style="font-size: 13px; color: #77713f;">dodos</span></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; border: 2px dashed #ddd3ab; border-radius: 16px; padding: 10px 16px; color: #a89e77; margin-top: auto;">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#a89e77" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+          <span style="font-size: 13px; font-weight: 700;">Ajouter — un voyage, une visite, n&#8217;importe quoi</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

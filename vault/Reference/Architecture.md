@@ -13,8 +13,9 @@ cette note décrit comment ça s'assemble.
 ## Vue d'ensemble
 
 Un monolithe .NET 10 ([[D-2026-08-23 Monolithe Modulaire Tranches Verticales]]) sert
-l'API ; une PWA React française ([[D-2026-08-23 Frontend Vite React PWA]]) est la
-première interface ; PostgreSQL ([[D-2026-08-23 PostgreSQL]]) stocke tout. Le tout
+l'API ; une app web React française ([[D-2026-08-23 Frontend Vite React PWA]]),
+**desktop d'abord** avec une future vue e-ink distincte
+([[D-2026-08-23 Interface Desktop Et Écran E-ink]]), est la première interface ; PostgreSQL ([[D-2026-08-23 PostgreSQL]]) stocke tout. Le tout
 tourne en Docker Compose sur une machine maison, joignable via Tailscale
 ([[D-2026-08-23 Hébergement Maison Tailscale Docker]]), dans un monorepo unique
 ([[D-2026-08-23 Monorepo]]).

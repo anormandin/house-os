@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito+Sans:wght@400;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #cc6d00; } a:hover { color: #77713f; }
+  </style>
+</helmet>
+<div style="width: 1440px; height: 900px; background: #faf7ed; color: #545464; font-family: 'Nunito Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <!-- En-tête -->
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 28px 48px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 38px; height: 38px; border-radius: 12px; background: #f2ecbc; display: flex; align-items: center; justify-content: center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#cc6d00" stroke-width="2"><path d="M3 11 12 4l9 7"/><path d="M5 10v9h14v-9"/></svg>
+      </div>
+      <span style="font-family: Fraunces, Georgia, serif; font-size: 24px; font-weight: 600; color: #43436c;">Maison</span>
+    </div>
+    <nav style="display: flex; gap: 8px; background: #f0ead6; border-radius: 999px; padding: 6px;">
+      <span style="background: #faf7ed; border-radius: 999px; padding: 8px 20px; font-size: 14px; font-weight: 700; color: #43436c; box-shadow: 0 1px 3px rgba(84,84,100,0.12);">Aujourd&#8217;hui</span>
+      <span style="padding: 8px 20px; font-size: 14px; color: #8a8980;">T&#226;ches</span>
+      <span style="padding: 8px 20px; font-size: 14px; color: #8a8980;">&#201;quipements</span>
+      <span style="padding: 8px 20px; font-size: 14px; color: #8a8980;">Projets</span>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 34px; height: 34px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Ar</div>
+      <div style="width: 34px; height: 34px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-left: -14px;">Al</div>
+    </div>
+  </header>
+
+  <main style="flex: 1; padding: 8px 48px 40px; display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; min-height: 0;">
+    <!-- Colonne principale -->
+    <div style="display: flex; flex-direction: column; gap: 24px; min-width: 0;">
+      <!-- Héros -->
+      <div style="background: #f2ecbc; border-radius: 24px; padding: 32px 36px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <h1 style="font-family: Fraunces, Georgia, serif; font-size: 34px; font-weight: 600; margin: 0; color: #43436c;">4 petites choses avant dodo 🌿</h1>
+          <p style="margin: 8px 0 0; font-size: 15px; color: #77713f;">samedi 23 ao&#251;t &#183; 21 &#176;C &#183; encore 44 dodos avant la nouvelle maison</p>
+        </div>
+        <div style="background: #faf7ed; border-radius: 999px; padding: 12px 22px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 6px rgba(84,84,100,0.10);">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#cc6d00" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+          <span style="font-size: 15px; font-weight: 700; color: #cc6d00;">Ajouter</span>
+        </div>
+      </div>
+
+      <!-- Liste du jour -->
+      <div style="background: #ffffff; border-radius: 24px; padding: 28px 32px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 10px rgba(84,84,100,0.06); flex: 1;">
+        <div style="display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 16px; background: #fdf3f1;">
+          <span style="width: 24px; height: 24px; border: 2px solid #c84053; border-radius: 8px;"></span>
+          <div style="flex: 1;">
+            <div style="font-size: 16px; font-weight: 600;">R&#233;server le camion de d&#233;m&#233;nagement</div>
+            <div style="font-size: 13px; color: #c84053; margin-top: 2px;">depuis hier — on s&#8217;en occupe?</div>
+          </div>
+          <div style="width: 30px; height: 30px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Al</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 16px;">
+          <span style="width: 24px; height: 24px; border: 2px solid #b5b3a6; border-radius: 8px;"></span>
+          <div style="flex: 1; font-size: 16px; font-weight: 600;">Appeler Hydro-Qu&#233;bec — changement d&#8217;adresse</div>
+          <div style="width: 30px; height: 30px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Ar</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 16px;">
+          <span style="width: 24px; height: 24px; border: 2px solid #b5b3a6; border-radius: 8px;"></span>
+          <div style="flex: 1; font-size: 16px; font-weight: 600;">Commander des bo&#238;tes</div>
+          <div style="width: 30px; height: 30px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Al</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 16px;">
+          <span style="width: 24px; height: 24px; border: 2px solid #b5b3a6; border-radius: 8px;"></span>
+          <div style="flex: 1; font-size: 16px; font-weight: 600;">Trier le garage — bo&#238;tes &#224; donner</div>
+          <span style="background: #f0ead6; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 700; color: #77713f;">ce soir</span>
+          <div style="display: flex;">
+            <div style="width: 30px; height: 30px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Ar</div>
+            <div style="width: 30px; height: 30px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-left: -10px;">Al</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 16px; background: #eef2e4;">
+          <span style="width: 24px; height: 24px; border-radius: 8px; background: #6f894e; display: inline-flex; align-items: center; justify-content: center;">
+            <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="#faf7ed" stroke-width="2.2"><path d="M2 6.5 5 9l5-6"/></svg>
+          </span>
+          <div style="flex: 1; font-size: 16px; font-weight: 600; color: #8a8980; text-decoration: line-through;">Vider le cabanon</div>
+          <span style="font-size: 13px; color: #6f894e; font-weight: 700;">bravo Alain ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Colonne latérale -->
+    <div style="display: flex; flex-direction: column; gap: 24px; min-width: 0;">
+      <div style="background: #ffffff; border-radius: 24px; padding: 26px 30px; box-shadow: 0 2px 10px rgba(84,84,100,0.06);">
+        <div style="font-family: Fraunces, Georgia, serif; font-size: 19px; font-weight: 600; color: #43436c; margin-bottom: 16px;">Cette semaine</div>
+        <div style="display: flex; flex-direction: column; gap: 14px; font-size: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="background: #f0ead6; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #77713f;">mar</span><span>SAAQ — changement d&#8217;adresse</span></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="background: #f0ead6; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #77713f;">mer</span><span>R&#233;silier internet</span></div>
+          <div style="display: flex; align-items: center; gap: 10px;"><span style="background: #f0ead6; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #77713f;">sam</span><span>Retouches peinture — salon</span></div>
+        </div>
+      </div>
+
+      <div style="background: #ffffff; border-radius: 24px; padding: 26px 30px; box-shadow: 0 2px 10px rgba(84,84,100,0.06);">
+        <div style="font-family: Fraunces, Georgia, serif; font-size: 19px; font-weight: 600; color: #43436c; margin-bottom: 16px;">L&#8217;&#233;quipe cette semaine</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 30px; height: 30px; border-radius: 50%; background: #ded4e8; color: #624c83; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Ar</div>
+            <div style="flex: 1; height: 10px; background: #f0ead6; border-radius: 999px;"><div style="width: 55%; height: 10px; background: #b9a5d8; border-radius: 999px;"></div></div>
+            <span style="font-size: 14px; font-weight: 700; color: #624c83;">5</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 30px; height: 30px; border-radius: 50%; background: #cdd9ec; color: #4d699b; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">Al</div>
+            <div style="flex: 1; height: 10px; background: #f0ead6; border-radius: 999px;"><div style="width: 45%; height: 10px; background: #9db8dd; border-radius: 999px;"></div></div>
+            <span style="font-size: 14px; font-weight: 700; color: #4d699b;">4</span>
+          </div>
+        </div>
+        <p style="margin: 14px 0 0; font-size: 13px; color: #8a8980;">Belle &#233;quipe — presque &#233;gal!</p>
+      </div>
+
+      <div style="background: #f2ecbc; border-radius: 24px; padding: 26px 30px; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px;">
+        <div style="font-size: 13px; font-weight: 700; color: #77713f; text-transform: uppercase; letter-spacing: 0.05em;">Le compte &#224; rebours</div>
+        <div style="font-family: Fraunces, Georgia, serif; font-size: 44px; font-weight: 600; color: #43436c;">44 dodos</div>
+        <div style="font-size: 14px; color: #77713f;">avant Sainte-Catherine-de-la-Jacques-Cartier</div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

@@ -11,7 +11,7 @@ existants (Donetick, Grocy, Homebox…) servent d'inspiration, jamais d'intégra
 - **Monorepo** ; hébergé sur une machine maison toujours allumée + **Tailscale** ; tout en **Docker Compose** (le homelab change au déménagement).
 - **Backend** : .NET 10, monolithe modulaire en **tranches verticales** (endpoint + handler + data par feature), minimal APIs, EF Core + Npgsql. Domaine riche + tests unitaires pour le moteur de récurrence.
 - **DB** : PostgreSQL (JSONB pour métadonnées flexibles ; backups pg_dump).
-- **Frontend** : Vite + TypeScript + TanStack Query + Tailwind + shadcn/ui, PWA (vite-plugin-pwa). **UI 100 % français, chaînes en dur** (pas de lib i18n).
+- **Frontend** : Vite + TypeScript + TanStack Query + Tailwind + shadcn/ui. **UI 100 % français, chaînes en dur** (pas de lib i18n). **Desktop d'abord** — téléphone non prioritaire (probablement jamais) ; l'écran e-ink mural sera une seconde vue distincte (rendu serveur, phase 3).
 - **Auth** : login simple, 2 comptes, session cookie ; clés API pour les devices IoT plus tard.
 - **Notifications v1** : flux iCal (Ical.Net) auquel chaque téléphone s'abonne. Push/ntfy plus tard.
 - **Pas de n8n/Node-RED dans le cœur** : l'ingestion (météo, ICS…) = un `BackgroundService` .NET par source vers des tables normalisées ; les règles (« bonne journée pour tondre ») = classes C# testables.
