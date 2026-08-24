@@ -8,7 +8,9 @@ services:
       POSTGRES_USER: houseos
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-houseos-dev}
     ports:
-      - "5433:5432"   # 5433 côté hôte : 5432 est déjà pris par un autre projet sur le Mac de dev
+      # 127.0.0.1 seulement : l'app passe par le réseau compose, le port hôte ne
+      # sert qu'à l'admin local. (5433 : 5432 est pris par un autre projet en dev.)
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -27,9 +29,19 @@ services:
     environment:
       ConnectionStrings__HouseOs: "Host=postgres;Port=5432;Database=houseos;Username=houseos;Password=${POSTGRES_PASSWORD:-houseos-dev}"
       Fichiers__Chemin: /app/donnees/fichiers
+      # Le code vit en heure locale (récurrence, humeur, rollover) : fuseau requis.
+      TZ: America/Toronto
+      # Derrière NPM (HTTPS → HTTP interne) : X-Forwarded-Proto → cookie Secure.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       # Clé du endpoint /mcp — obligatoire en prod, à définir dans le .env du serveur
       # (générer avec : openssl rand -hex 32)
       Mcp__Cle: ${HOUSEOS_MCP_KEY:?HOUSEOS_MCP_KEY requis (openssl rand -hex 32, dans le .env)}
+      # Titre d'humeur (facultatif : repli sur la banque de phrases si absent)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Mots de passe initiaux des comptes — appliqués seulement à la création
+      # des utilisateurs (base vierge) ; en changer ensuite = SQL.
+      Seed__Utilisateurs__0__MotDePasse: ${SEED_MDP_ALAIN:-45234523}
+      Seed__Utilisateurs__1__MotDePasse: ${SEED_MDP_ARIANE:-45234523}
     ports:
       - "8080:8080"
     volumes:
