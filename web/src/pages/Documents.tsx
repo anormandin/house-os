@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import { api, dateLocaleIso, type CategorieDocument, type Document, type DocumentDonnees } from '@/lib/api'
-import { dateCourte } from '@/lib/format'
+import { dateLisible } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 export const LIBELLES_CATEGORIE: Record<CategorieDocument, string> = {
@@ -195,7 +195,7 @@ export default function Documents() {
                   <span className="max-w-52 truncate">{document.titre}</span>
                   <span className="font-normal text-sourdine">
                     {jours < 0
-                      ? `expiré depuis ${dateCourte(document.echeance!)}`
+                      ? `expiré depuis le ${dateLisible(document.echeance!)}`
                       : jours === 0
                         ? 'expire aujourd’hui'
                         : `expire dans ${jours} jour${jours > 1 ? 's' : ''}`}
@@ -275,7 +275,7 @@ export default function Documents() {
                       LIBELLES_CATEGORIE[document.categorie],
                       document.nomEquipement,
                       document.nomZone,
-                      document.dateDocument !== null ? dateCourte(document.dateDocument) : null,
+                      document.dateDocument !== null ? dateLisible(document.dateDocument) : null,
                     ].filter(Boolean).join(' · ')}
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export default function Documents() {
                           : 'text-sourdine',
                     )}
                   >
-                    {dateCourte(document.echeance)}
+                    {dateLisible(document.echeance)}
                   </span>
                 )}
               </button>
@@ -325,7 +325,7 @@ export default function Documents() {
 
               <div className="text-xs text-sourdine">
                 {choisi.nomFichier} · {(choisi.taille / 1024 / 1024).toFixed(1).replace('.', ',')} Mo ·
-                ajouté le {dateCourte(dateLocaleIso(new Date(choisi.creeLe)))}
+                ajouté le {dateLisible(dateLocaleIso(new Date(choisi.creeLe)))}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">

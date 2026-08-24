@@ -15,6 +15,16 @@ export function dateCourte(dateIso: string): string {
   return date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })
 }
 
+/** « 22 septembre » cette année, « 22 septembre 2055 » sinon. */
+export function dateLisible(dateIso: string): string {
+  const date = new Date(`${dateIso}T00:00:00`)
+  const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' }
+  if (date.getFullYear() !== new Date().getFullYear()) {
+    options.year = 'numeric'
+  }
+  return date.toLocaleDateString('fr-CA', options)
+}
+
 /** « 14 h 10 » — jamais « 14:10 ». */
 export function heureQuebec(instant: string): string {
   const date = new Date(instant)
