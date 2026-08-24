@@ -165,7 +165,7 @@ export default function OccurrenceListe({
             key={o.id}
             className={cn(
               'group flex items-center gap-4 rounded-[20px] bg-carte px-5 py-3.5 shadow-carte',
-              enRetard && 'border-l-[6px] border-rouge',
+              enRetard && 'border-l-[6px] border-rouge pl-[14px]',
             )}
           >
             <button
@@ -197,13 +197,21 @@ export default function OccurrenceListe({
                 <div className="mt-px text-[13px] text-sourdine">{o.description}</div>
               )}
             </div>
-            {aVenir && o.echeance && (
-              <span className="rounded-full bg-creux px-3 py-1 text-xs font-bold text-dore">
-                {jourCourt(o.echeance)} {dateCourte(o.echeance)}
-              </span>
-            )}
-            {o.assigneA && <Avatar utilisateur={o.assigneA} />}
-            {o.modeRecurrence !== 'Ponctuelle' && (
+            {/* Colonnes de largeur fixe pour que dates, avatars et actions
+                s'alignent verticalement d'une rangée à l'autre. */}
+            <span className="flex w-[9rem] shrink-0 justify-end">
+              {aVenir && o.echeance && (
+                <span className="rounded-full bg-creux px-3 py-1 text-xs font-bold text-dore">
+                  {jourCourt(o.echeance)} {dateCourte(o.echeance)}
+                </span>
+              )}
+            </span>
+            <span className="flex w-8 shrink-0 justify-center">
+              {o.assigneA && <Avatar utilisateur={o.assigneA} />}
+            </span>
+            {o.modeRecurrence === 'Ponctuelle' ? (
+              <span aria-hidden className="size-4 shrink-0" />
+            ) : (
               <button
                 type="button"
                 aria-label={`Passer ${o.titre} cette fois-ci`}
