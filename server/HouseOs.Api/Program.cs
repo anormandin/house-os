@@ -2,6 +2,7 @@ using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxIcal;
+using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Mcp;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Sante;
@@ -12,6 +13,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Secrets locaux hors git (clé Anthropic…) — prime sur appsettings*.json.
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true);
 
 // EnableDynamicJson : requis pour mapper Dictionary<string,string> (specs) en jsonb.
 var sourceDonnees = new Npgsql.NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("HouseOs"))
@@ -61,6 +65,17 @@ builder.Services.Configure<MeteoOptions>(builder.Configuration.GetSection("Meteo
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<MeteoIngestionService>();
 
+builder.Services.Configure<HumeurOptions>(builder.Configuration.GetSection("Humeur"));
+// La clé peut vivre à plat (« ANTHROPIC_API_KEY » dans appsettings.local.json ou en env).
+builder.Services.PostConfigure<HumeurOptions>(o =>
+{
+    if (string.IsNullOrWhiteSpace(o.CleApi))
+    {
+        o.CleApi = builder.Configuration["ANTHROPIC_API_KEY"] ?? "";
+    }
+});
+builder.Services.AddHostedService<HumeurService>();
+
 var app = builder.Build();
 
 app.UseDefaultFiles();
@@ -78,6 +93,7 @@ app.MapComptesARebours();
 app.MapEquipements();
 app.MapIcal();
 app.MapMeteo();
+app.MapHumeur();
 app.MapMcpHouseOs();
 
 // PWA : toute route non-API retombe sur l'app React

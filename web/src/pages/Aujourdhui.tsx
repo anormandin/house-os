@@ -40,18 +40,27 @@ export default function Aujourdhui() {
     queryFn: api.meteo,
     refetchInterval: 15 * 60 * 1000,
   })
+  const { data: phraseServeur } = useQuery({
+    queryKey: ['phrase-du-jour'],
+    queryFn: api.phraseDuJour,
+    refetchInterval: 15 * 60 * 1000,
+  })
   const [gestionComptesOuverte, setGestionComptesOuverte] = useState(false)
 
   const chargement = chargementOuvertes || chargementFaites
   const aujourdhui = dateLocaleIso()
   const dodosDemenagement = dodosAvant(DATE_DEMENAGEMENT)
 
-  const phrase = phraseDuJour({
-    ouvertes: ouvertes?.length ?? 0,
-    enRetard: ouvertes?.filter((o) => o.echeance !== null && o.echeance < aujourdhui).length ?? 0,
-    faites: faites?.length ?? 0,
-    dodosDemenagement: dodosDemenagement > 0 ? dodosDemenagement : null,
-  })
+  // Phrase serveur (banque météo-consciente + polissage LLM) quand elle existe ;
+  // la banque client reste le repli ultime.
+  const phrase =
+    phraseServeur ??
+    phraseDuJour({
+      ouvertes: ouvertes?.length ?? 0,
+      enRetard: ouvertes?.filter((o) => o.echeance !== null && o.echeance < aujourdhui).length ?? 0,
+      faites: faites?.length ?? 0,
+      dodosDemenagement: dodosDemenagement > 0 ? dodosDemenagement : null,
+    })
 
   const listeDuJour: Occurrence[] = [...(ouvertes ?? []), ...(faites ?? [])]
 

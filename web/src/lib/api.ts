@@ -160,6 +160,13 @@ export type Meteo = {
   verdicts: VerdictMeteo[]
 }
 
+export type PhraseDuJour = {
+  titre: string
+  sousTitre: string
+  source: 'Gabarit' | 'Llm'
+  genereLe: string
+}
+
 export class ApiError extends Error {
   statut: number
 
@@ -307,4 +314,17 @@ export const api = {
   monFluxIcal: () => requete<{ chemin: string }>('/api/ical/mon-flux'),
 
   meteo: () => requete<Meteo>('/api/meteo'),
+
+  // null quand aucune phrase n'est encore matérialisée : le client retombe sur
+  // sa banque locale (humeur.ts).
+  phraseDuJour: async (): Promise<PhraseDuJour | null> => {
+    try {
+      return await requete<PhraseDuJour>('/api/phrase-du-jour')
+    } catch (erreur) {
+      if (erreur instanceof ApiError && erreur.statut === 404) {
+        return null
+      }
+      throw erreur
+    }
+  },
 }

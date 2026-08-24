@@ -1,8 +1,8 @@
 ---
 type: feature
-status: draft
-last-verified: 2026-08-23
-verified-against: 5f9f080
+status: implemented
+last-verified: 2026-08-24
+verified-against: a288a62
 tags: []
 ---
 
@@ -15,7 +15,7 @@ Le geste signature de la direction chaleureuse : la bannière-héros d'Aujourd'h
 hier, le reste est sous contrôle. »). Doit rester charmante sans devenir répétitive,
 sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher.
 
-## Comportement (design en trois couches, 2026-08-23)
+## Comportement (trois couches, serveur depuis 2026-08-24)
 
 1. **Faits calculés (C#, déterministe)** : compte du jour, retards, items du soir,
    météo, jalons de comptes à rebours, complétions. Tout ce qui est numérique ou
@@ -26,11 +26,18 @@ sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher
    ensemencée par la date. Zéro coût, testable, sert de repli permanent.
 3. **Polissage LLM (optionnel, jamais dans le chemin de requête)** : un
    `BackgroundService` (cohérent avec [[D-2026-08-23 Pas De N8n Dans Le Cœur]])
-   appelle l'API Claude 1-2×/jour (matin + changement d'état significatif) avec
-   l'état structuré + règles de style (registre québécois, « dodos », jamais de
-   culpabilisation — principe anti-harcèlement de [[Inspiration UI]], longueurs
-   max), stocke titre + sous-titre dans une table `PhraseDuJour`. L'UI lit la
-   table ; API absente → couche 2.
+   appelle Haiku 4.5 à deux créneaux fixes — matin 5 h 30 et soir 17 h,
+   configurables ([[D-2026-08-24 Phrase Du Jour Haiku Matin Et Soir]]) — avec
+   l'état structuré en JSON + règles de style (registre québécois, « dodos »,
+   jamais de culpabilisation — principe anti-harcèlement de [[Inspiration UI]],
+   longueurs max, exemples few-shot) et stocke titre + sous-titre dans la table
+   `PhraseDuJour` (une ligne par date + moment). L'UI lit
+   `GET /api/phrase-du-jour` ; clé absente ou appel/parse raté → couche 2 ;
+   requête HTTP ratée côté web → banque client (`humeur.ts`), le repli ultime.
+   Faits v1 : tâches du jour, météo + verdicts [[Météo]], comptes à rebours —
+   pas d'assignations par personne (choix utilisateur 2026-08-24).
+   Clé API : `Humeur:CleApi`, `ANTHROPIC_API_KEY` (config à plat dans
+   `appsettings.local.json`, gitignoré, ou env).
 
 ## Coût (as of 2026-08, prix API Anthropic)
 
@@ -46,21 +53,23 @@ du quick-add — candidat futur, lui aussi peu coûteux à ~1 court appel par cr
 
 ## Décisions
 
-- (À mint au moment de l'implémentation : choix du modèle et de la cadence.)
-
-## Intérim (V0, 2026-08-23)
-
-Les couches 1 et 2 existent en version client (TypeScript) pour que le héros vive
-dès la V0 : faits calculés depuis les occurrences chargées (ouvertes, en retard,
-faites aujourd'hui, dodos avant le déménagement) + petite banque de phrases avec
-rotation ensemencée par la date. La version serveur C# (structure complète,
-phrases météo-conscientes, table `PhraseDuJour`, polissage LLM) reste le design
-cible — phase 2.
+- [[D-2026-08-24 Phrase Du Jour Haiku Matin Et Soir]] — Haiku 4.5, deux
+  générations fixes par jour, repli en cascade LLM → banque serveur → banque
+  client.
+- [[D-2026-08-23 Pas De N8n Dans Le Cœur]] — le polissage est un
+  `BackgroundService` C#, jamais dans le chemin de requête.
 
 ## Ancres de code
 
-- `web/src/lib/humeur.ts` — banque de gabarits client (intérim V0)
-- `web/src/pages/Aujourdhui.tsx` — calcul des faits + héros
+- `server/HouseOs.Api/Domaine/Humeur/` — état structuré (`EtatMaison`), banque
+  de gabarits, entité `PhraseDuJour`.
+- `server/HouseOs.Api/Features/Humeur/` — construction de l'état, polissage
+  Haiku (SDK C# officiel), worker deux-créneaux, `GET /api/phrase-du-jour`.
+- `server/HouseOs.Tests/Domaine/BanquePhrasesTests.cs` et
+  `server/HouseOs.Tests/Features/Humeur/PolissageLlmTests.cs` — tests.
+- `web/src/lib/humeur.ts` — banque client (ex-intérim V0, désormais repli
+  ultime) ; `web/src/pages/Aujourdhui.tsx` — héros branché sur la phrase
+  serveur.
 
 ## Sources
 
@@ -68,4 +77,4 @@ cible — phase 2.
 
 ## Historique
 
-<!-- Plan et recap à venir. -->
+- [[Plan 2026-08-24 Titre D'humeur Serveur]] · [[Recap Titre D'humeur]]

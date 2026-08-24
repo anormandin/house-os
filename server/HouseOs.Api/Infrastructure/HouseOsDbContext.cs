@@ -1,4 +1,5 @@
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Humeur;
 using HouseOs.Api.Domaine.Meteo;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<PrevisionHoraire> PrevisionsHoraires => Set<PrevisionHoraire>();
     public DbSet<PrevisionQuotidienne> PrevisionsQuotidiennes => Set<PrevisionQuotidienne>();
     public DbSet<ReleveMeteo> RelevesMeteo => Set<ReleveMeteo>();
+    public DbSet<PhraseDuJour> PhrasesDuJour => Set<PhraseDuJour>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -118,6 +120,15 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
         modelBuilder.Entity<ReleveMeteo>(r =>
         {
             r.Property(x => x.Payload).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<PhraseDuJour>(p =>
+        {
+            p.Property(x => x.Titre).HasMaxLength(100);
+            p.Property(x => x.SousTitre).HasMaxLength(300);
+            p.Property(x => x.Moment).HasConversion<string>().HasMaxLength(10);
+            p.Property(x => x.Source).HasConversion<string>().HasMaxLength(10);
+            p.HasIndex(x => new { x.Date, x.Moment }).IsUnique();
         });
 
         modelBuilder.Entity<PieceJointe>(p =>
