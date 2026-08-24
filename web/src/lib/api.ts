@@ -139,6 +139,27 @@ export type CompteAReboursDonnees = {
   icone: IconeCompte
 }
 
+export type JourMeteo = {
+  date: string
+  tempMin: number
+  tempMax: number
+  precipitationMm: number
+  probabilitePrecipitation: number
+  codeMeteo: number
+}
+
+export type VerdictMeteo = {
+  regle: string
+  etat: 'Bon' | 'Passable' | 'Defavorable'
+  raison: string
+}
+
+export type Meteo = {
+  misAJourLe: string | null
+  jours: JourMeteo[]
+  verdicts: VerdictMeteo[]
+}
+
 export class ApiError extends Error {
   statut: number
 
@@ -284,4 +305,6 @@ export const api = {
     requete<void>(`/api/comptes-a-rebours/${id}`, { method: 'DELETE' }),
 
   monFluxIcal: () => requete<{ chemin: string }>('/api/ical/mon-flux'),
+
+  meteo: () => requete<Meteo>('/api/meteo'),
 }

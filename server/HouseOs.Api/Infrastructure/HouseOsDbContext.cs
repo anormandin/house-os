@@ -1,4 +1,5 @@
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Meteo;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Infrastructure;
@@ -13,6 +14,9 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<Equipement> Equipements => Set<Equipement>();
     public DbSet<PieceJointe> PiecesJointes => Set<PieceJointe>();
     public DbSet<CompteARebours> ComptesARebours => Set<CompteARebours>();
+    public DbSet<PrevisionHoraire> PrevisionsHoraires => Set<PrevisionHoraire>();
+    public DbSet<PrevisionQuotidienne> PrevisionsQuotidiennes => Set<PrevisionQuotidienne>();
+    public DbSet<ReleveMeteo> RelevesMeteo => Set<ReleveMeteo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -96,6 +100,24 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
         {
             c.Property(x => x.Titre).HasMaxLength(200);
             c.Property(x => x.Icone).HasConversion<string>().HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<PrevisionHoraire>(p =>
+        {
+            // Heure locale de la maison, sans fuseau (Kind=Unspecified) : timestamptz
+            // exigerait des DateTime UTC côté Npgsql.
+            p.Property(x => x.Heure).HasColumnType("timestamp without time zone");
+            p.HasIndex(x => x.Heure).IsUnique();
+        });
+
+        modelBuilder.Entity<PrevisionQuotidienne>(p =>
+        {
+            p.HasIndex(x => x.Date).IsUnique();
+        });
+
+        modelBuilder.Entity<ReleveMeteo>(r =>
+        {
+            r.Property(x => x.Payload).HasColumnType("jsonb");
         });
 
         modelBuilder.Entity<PieceJointe>(p =>

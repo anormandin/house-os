@@ -3,6 +3,7 @@ using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxIcal;
 using HouseOs.Api.Features.Mcp;
+using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Sante;
 using HouseOs.Api.Features.Taches;
 using HouseOs.Api.Features.Zones;
@@ -56,6 +57,10 @@ builder.Services.AjouterMcp();
 builder.Services.AddAntiforgery();
 builder.Services.AddHostedService<RolloverService>();
 
+builder.Services.Configure<MeteoOptions>(builder.Configuration.GetSection("Meteo"));
+builder.Services.AddHttpClient();
+builder.Services.AddHostedService<MeteoIngestionService>();
+
 var app = builder.Build();
 
 app.UseDefaultFiles();
@@ -72,6 +77,7 @@ app.MapZones();
 app.MapComptesARebours();
 app.MapEquipements();
 app.MapIcal();
+app.MapMeteo();
 app.MapMcpHouseOs();
 
 // PWA : toute route non-API retombe sur l'app React

@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import Avatar, { paletteAvatar } from '@/components/Avatar'
 import ComptesAReboursGestion from '@/components/ComptesAReboursGestion'
 import { ICONES_COMPTE, MaisonSoleil } from '@/components/Illustrations'
+import MeteoCarte from '@/components/MeteoCarte'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import QuickAdd from '@/components/QuickAdd'
 import TacheEditeur from '@/components/TacheEditeur'
@@ -33,6 +34,11 @@ export default function Aujourdhui() {
   const { data: comptesARebours } = useQuery({
     queryKey: ['comptes-a-rebours'],
     queryFn: api.comptesARebours,
+  })
+  const { data: meteo } = useQuery({
+    queryKey: ['meteo'],
+    queryFn: api.meteo,
+    refetchInterval: 15 * 60 * 1000,
   })
   const [gestionComptesOuverte, setGestionComptesOuverte] = useState(false)
 
@@ -87,6 +93,7 @@ export default function Aujourdhui() {
 
         {/* Colonne latérale */}
         <div className="flex flex-col gap-[18px]">
+          <MeteoCarte meteo={meteo} />
           <CetteSemaine enAttente={enAttente ?? []} aujourdhui={aujourdhui} />
           <Equipe enAttente={enAttente ?? []} utilisateurs={utilisateurs ?? []} />
           <ComptesARebours

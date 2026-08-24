@@ -43,11 +43,11 @@ Deux skills projet : `planifier-taches` (workflow plan → push) et `demarrer` (
 
 ## Ingestion de données externes (phase 2)
 
-Un `BackgroundService` par source ([[D-2026-08-23 Pas De N8n Dans Le Cœur]]) :
-Open-Meteo (météo horaire, modèle canadien HRDPS), flux ICS (collectes Recollect,
-calendriers), Hydro-Québec `evenements-pointe`. Tables normalisées, payloads bruts
-archivés. Règles « bonne journée pour… » = classes C# sur un modèle
-`DailyOutlook`/`HourlyOutlook`. Détails : `docs/research/2026-08-23-donnees-externes-meteo.md`.
+Un `BackgroundService` par source ([[D-2026-08-23 Pas De N8n Dans Le Cœur]]) vers
+des tables normalisées, payloads bruts archivés. Livré : [[Météo]] (Open-Meteo
+HRDPS + règles « bonne journée pour… » en classes C# évaluées à la lecture,
+2026-08-24). À venir : flux ICS (collectes Recollect, calendriers), Hydro-Québec
+`evenements-pointe`. Détails : `docs/research/2026-08-23-donnees-externes-meteo.md`.
 
 ## IoT (phase 3)
 
@@ -63,5 +63,6 @@ tap-pour-compléter ; e-ink et panneaux openHASP ensuite. Détails :
 2. **Phase 1b — V1 « Emménagement »** — livrée 2026-08-23 (moteur de récurrence
    3 modes, zones + vue Pièces, module [[Équipements]] avec fichiers, flux iCal par
    personne, backups). Reste : déploiement Tailscale après le déménagement.
-3. **Phase 2** : météo + règles, ICS, Hydro-Québec, documents, consommables.
+3. **Phase 2** (entamée) : météo + règles — livrée 2026-08-24 ([[Météo]]) ;
+   reste : ICS, Hydro-Québec, documents, consommables, [[Titre D'humeur]] serveur.
 4. **Phase 3** : IoT (hub MQTT, affichages, capteurs).
