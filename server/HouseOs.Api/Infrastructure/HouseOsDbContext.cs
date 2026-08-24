@@ -12,6 +12,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<Zone> Zones => Set<Zone>();
     public DbSet<Equipement> Equipements => Set<Equipement>();
     public DbSet<PieceJointe> PiecesJointes => Set<PieceJointe>();
+    public DbSet<CompteARebours> ComptesARebours => Set<CompteARebours>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -89,6 +90,12 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasMany(x => x.PiecesJointes).WithOne().HasForeignKey(p => p.EquipementId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CompteARebours>(c =>
+        {
+            c.Property(x => x.Titre).HasMaxLength(200);
+            c.Property(x => x.Icone).HasConversion<string>().HasMaxLength(20);
         });
 
         modelBuilder.Entity<PieceJointe>(p =>

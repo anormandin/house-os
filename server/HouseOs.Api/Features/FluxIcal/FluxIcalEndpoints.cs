@@ -49,6 +49,25 @@ public static class IcalEndpoints
                 });
             }
 
+            // Comptes à rebours du foyer : évènements toute-la-journée à leur date
+            // cible, dans le flux des deux personnes. Les passés sont exclus.
+            var aujourdhui = DateOnly.FromDateTime(DateTime.Now);
+            var comptes = await db.ComptesARebours.AsNoTracking()
+                .Where(c => c.DateCible >= aujourdhui)
+                .OrderBy(c => c.DateCible)
+                .ToListAsync();
+            foreach (var compte in comptes)
+            {
+                var date = new CalDateTime(compte.DateCible.Year, compte.DateCible.Month, compte.DateCible.Day);
+                calendrier.Events.Add(new CalendarEvent
+                {
+                    Uid = $"compte-{compte.Id}@houseos",
+                    Summary = compte.Titre,
+                    Start = date,
+                    End = date.AddDays(1),
+                });
+            }
+
             var contenu = new CalendarSerializer().SerializeToString(calendrier);
             return Results.Text(contenu, "text/calendar; charset=utf-8");
         }).AllowAnonymous();

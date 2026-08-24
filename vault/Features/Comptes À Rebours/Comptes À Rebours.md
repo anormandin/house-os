@@ -1,8 +1,8 @@
 ---
 type: feature
-status: draft
-last-verified: 2026-08-23
-verified-against: 5f9f080
+status: implemented
+last-verified: 2026-08-24
+verified-against: 24c1562
 tags: []
 ---
 
@@ -17,33 +17,46 @@ visite), pas un widget codé en dur pour le déménagement. Demandé par Alain e
 
 ## Comportement
 
-- Quand un utilisateur crée un compte à rebours (titre, date cible, icône
-  optionnelle), il apparaît dans la carte « Comptes à rebours » d'Aujourd'hui,
-  formulé en « dodos » (registre maison) ou en jours.
-- Quand la date est passée, le compte à rebours s'archive (ou se célèbre) — à
-  préciser au design détaillé.
-- Les comptes à rebours sont candidats naturels pour la vue e-ink et le flux iCal.
+- Un compte à rebours = titre + date cible + icône (set maison de 8, chaque icône
+  porte sa couleur — voir [[D-2026-08-23 Icônes Maison Comptes À Rebours]]). Entité
+  du foyer, pas d'assignation.
+- La carte « Comptes à rebours » d'Aujourd'hui affiche les comptes à venir en
+  « dodos » (registre maison, toujours — pas d'option « jours »), triés par date.
+- Le jour J, la ligne se célèbre (« C'est aujourd'hui ! ») ; dès le lendemain elle
+  est masquée de la carte mais conservée en base
+  ([[D-2026-08-23 Célébration Puis Masquage Des Comptes]]).
+- Gestion (créer/modifier/supprimer) dans un modal ouvert par le « + » de la carte ;
+  les comptes passés y restent visibles et supprimables
+  ([[D-2026-08-23 Gestion Des Comptes Dans Aujourdhui]]). La carte est toujours
+  affichée, avec un état vide.
+- Chaque compte à venir est un évènement toute-la-journée dans les flux iCal
+  personnels ([[D-2026-08-23 Comptes À Rebours Au Flux iCal]]).
+- Données amorcées : Déménagement (2026-10-06, camion) et Noël (2026-12-25, sapin),
+  remplaçant les deux comptes codés en dur de l'intérim V0.
 
 ## Hors périmètre
 
 - Récurrence (un compte à rebours est ponctuel ; Noël se recrée chaque année ou se
   régénère — à trancher plus tard).
-- Rappels/notifications dédiés (v1 : affichage seulement).
+- Rappels/notifications dédiés au-delà du flux iCal.
+- La phrase d'humeur du héros garde sa propre date de déménagement codée en dur
+  (`web/src/lib/humeur.ts`) — concern distinct, retiré naturellement après le
+  6 octobre 2026.
 
 ## Décisions
 
-- (Aucune encore — feature esquissée, non planifiée. Cible probable : V1b ou phase 2.)
-
-## Intérim (V0, 2026-08-23)
-
-En attendant la vraie feature, la carte « Comptes à rebours » d'Aujourd'hui affiche
-deux comptes calculés côté client et codés en dur : Déménagement (2026-10-06, masqué
-une fois passé) et Noël (prochain 25 décembre). Pas de bouton « Ajouter » tant que
-le CRUD n'existe pas — on n'affiche pas de contrôle mort.
+- [[D-2026-08-23 Célébration Puis Masquage Des Comptes]]
+- [[D-2026-08-23 Icônes Maison Comptes À Rebours]]
+- [[D-2026-08-23 Gestion Des Comptes Dans Aujourdhui]]
+- [[D-2026-08-23 Comptes À Rebours Au Flux iCal]]
 
 ## Ancres de code
 
-- `web/src/pages/Aujourdhui.tsx` — carte intérimaire (comptes codés en dur)
+- `server/HouseOs.Api/Domaine/CompteARebours.cs` — entité + enum d'icônes
+- `server/HouseOs.Api/Features/ComptesARebours/ComptesAReboursEndpoints.cs` — CRUD
+- `server/HouseOs.Api/Features/FluxIcal/FluxIcalEndpoints.cs` — évènements iCal
+- `web/src/pages/Aujourdhui.tsx` — carte + modal de gestion
+- `web/src/components/Illustrations.tsx` — les 8 icônes SVG
 - `web/src/lib/format.ts` — calcul des dodos
 
 ## Sources
@@ -52,4 +65,5 @@ le CRUD n'existe pas — on n'affiche pas de contrôle mort.
 
 ## Historique
 
-<!-- Plan et recap à venir. -->
+- [[Plan 2026-08-23 Comptes À Rebours V1]]
+- [[Recap Comptes À Rebours]]

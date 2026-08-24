@@ -1,24 +1,15 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import Avatar, { paletteAvatar } from '@/components/Avatar'
-import { Camion, MaisonSoleil, Sapin } from '@/components/Illustrations'
+import ComptesAReboursGestion from '@/components/ComptesAReboursGestion'
+import { ICONES_COMPTE, MaisonSoleil } from '@/components/Illustrations'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import QuickAdd from '@/components/QuickAdd'
 import TacheEditeur from '@/components/TacheEditeur'
-import { api, dateLocaleIso, type Occurrence } from '@/lib/api'
-import { bornesJourneeLocale, dateLongue, dodosAvant, jourCourt } from '@/lib/format'
-import { phraseDuJour } from '@/lib/humeur'
-
-const DATE_DEMENAGEMENT = '2026-10-06'
-
-function prochainNoel(): string {
-  const maintenant = new Date()
-  const annee =
-    maintenant.getMonth() === 11 && maintenant.getDate() > 25
-      ? maintenant.getFullYear() + 1
-      : maintenant.getFullYear()
-  return `${annee}-12-25`
-}
+import { api, dateLocaleIso, type CompteARebours, type Occurrence } from '@/lib/api'
+import { bornesJourneeLocale, dateCourte, dateLongue, dodosAvant, jourCourt } from '@/lib/format'
+import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
 
 export default function Aujourdhui() {
   const [editeurTacheId, setEditeurTacheId] = useState<string | null>(null)
@@ -39,6 +30,11 @@ export default function Aujourdhui() {
     queryKey: ['utilisateurs'],
     queryFn: api.utilisateurs,
   })
+  const { data: comptesARebours } = useQuery({
+    queryKey: ['comptes-a-rebours'],
+    queryFn: api.comptesARebours,
+  })
+  const [gestionComptesOuverte, setGestionComptesOuverte] = useState(false)
 
   const chargement = chargementOuvertes || chargementFaites
   const aujourdhui = dateLocaleIso()
@@ -52,16 +48,6 @@ export default function Aujourdhui() {
   })
 
   const listeDuJour: Occurrence[] = [...(ouvertes ?? []), ...(faites ?? [])]
-
-  const comptesARebours = [
-    {
-      nom: 'Déménagement',
-      date: DATE_DEMENAGEMENT,
-      icone: <Camion />,
-      couleur: 'var(--orange)',
-    },
-    { nom: 'Noël', date: prochainNoel(), icone: <Sapin />, couleur: 'var(--vert)' },
-  ].filter((c) => dodosAvant(c.date) > 0)
 
   return (
     <div className="flex flex-col gap-6">
@@ -103,9 +89,19 @@ export default function Aujourdhui() {
         <div className="flex flex-col gap-[18px]">
           <CetteSemaine enAttente={enAttente ?? []} aujourdhui={aujourdhui} />
           <Equipe enAttente={enAttente ?? []} utilisateurs={utilisateurs ?? []} />
-          <ComptesARebours comptes={comptesARebours} />
+          <ComptesARebours
+            comptes={comptesARebours ?? []}
+            onGerer={() => setGestionComptesOuverte(true)}
+          />
         </div>
       </div>
+
+      {gestionComptesOuverte && (
+        <ComptesAReboursGestion
+          comptes={comptesARebours ?? []}
+          onFermer={() => setGestionComptesOuverte(false)}
+        />
+      )}
     </div>
   )
 }
@@ -186,32 +182,51 @@ function Equipe({
 
 function ComptesARebours({
   comptes,
+  onGerer,
 }: {
-  comptes: { nom: string; date: string; icone: React.ReactNode; couleur: string }[]
+  comptes: CompteARebours[]
+  onGerer: () => void
 }) {
-  if (comptes.length === 0) {
-    return null
-  }
+  // Célébrer puis masquer : le jour J s'affiche, le lendemain la ligne disparaît
+  // (elle reste supprimable dans la gestion).
+  const aVenir = comptes.filter((c) => dodosAvant(c.dateCible) >= 0)
+
   return (
     <section className="flex flex-col gap-3 rounded-3xl bg-carte px-6 py-5 shadow-carte">
-      <h2 className="text-lg font-bold">Comptes à rebours</h2>
-      {comptes.map((c) => {
-        const dodos = dodosAvant(c.date)
-        const [, mois, jour] = c.date.split('-').map(Number)
-        const libelleDate = new Date(2000, mois - 1, jour).toLocaleDateString('fr-CA', {
-          day: 'numeric',
-          month: 'long',
-        })
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">Comptes à rebours</h2>
+        <button
+          type="button"
+          aria-label="Gérer les comptes à rebours"
+          onClick={onGerer}
+          className="rounded-lg p-1.5 text-sourdine transition-colors hover:text-dore"
+        >
+          <Plus className="size-4" />
+        </button>
+      </div>
+      {aVenir.length === 0 && (
+        <p className="text-sm text-sourdine">On n'attend rien pour l'instant.</p>
+      )}
+      {aVenir.map((c) => {
+        const dodos = dodosAvant(c.dateCible)
+        const { Icone, couleur } = ICONES_COMPTE[c.icone]
         return (
-          <div key={c.nom} className="flex items-center gap-3.5 rounded-2xl bg-creux px-4 py-3">
-            {c.icone}
+          <div key={c.id} className="flex items-center gap-3.5 rounded-2xl bg-creux px-4 py-3">
+            <Icone />
             <div className="flex-1">
-              <div className="text-[15px] font-bold">{c.nom}</div>
-              <div className="text-xs text-sourdine">{libelleDate}</div>
+              <div className="text-[15px] font-bold">{c.titre}</div>
+              <div className="text-xs text-sourdine">{dateCourte(c.dateCible)}</div>
             </div>
-            <div className="font-titre text-[22px] font-bold" style={{ color: c.couleur }}>
-              {dodos} <span className="text-[13px] text-dore">{dodos === 1 ? 'dodo' : 'dodos'}</span>
-            </div>
+            {dodos === 0 ? (
+              <div className="font-titre text-[17px] font-bold" style={{ color: couleur }}>
+                C'est aujourd'hui !
+              </div>
+            ) : (
+              <div className="font-titre text-[22px] font-bold" style={{ color: couleur }}>
+                {dodos}{' '}
+                <span className="text-[13px] text-dore">{dodos === 1 ? 'dodo' : 'dodos'}</span>
+              </div>
+            )}
           </div>
         )
       })}

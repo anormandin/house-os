@@ -115,6 +115,29 @@ export type EquipementDonnees = {
   specs?: Record<string, string>
 }
 
+export type IconeCompte =
+  | 'Camion'
+  | 'Sapin'
+  | 'Avion'
+  | 'Valise'
+  | 'Gateau'
+  | 'Cadeau'
+  | 'Coeur'
+  | 'Soleil'
+
+export type CompteARebours = {
+  id: string
+  titre: string
+  dateCible: string
+  icone: IconeCompte
+}
+
+export type CompteAReboursDonnees = {
+  titre: string
+  dateCible: string
+  icone: IconeCompte
+}
+
 export class ApiError extends Error {
   statut: number
 
@@ -216,6 +239,20 @@ export const api = {
   },
   supprimerPieceJointe: (id: string) =>
     requete<void>(`/api/pieces-jointes/${id}`, { method: 'DELETE' }),
+
+  comptesARebours: () => requete<CompteARebours[]>('/api/comptes-a-rebours'),
+  creerCompteARebours: (donnees: CompteAReboursDonnees) =>
+    requete<CompteARebours>('/api/comptes-a-rebours', {
+      method: 'POST',
+      body: JSON.stringify(donnees),
+    }),
+  modifierCompteARebours: (id: string, donnees: CompteAReboursDonnees) =>
+    requete<void>(`/api/comptes-a-rebours/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(donnees),
+    }),
+  supprimerCompteARebours: (id: string) =>
+    requete<void>(`/api/comptes-a-rebours/${id}`, { method: 'DELETE' }),
 
   monFluxIcal: () => requete<{ chemin: string }>('/api/ical/mon-flux'),
 }

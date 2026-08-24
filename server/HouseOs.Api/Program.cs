@@ -1,4 +1,5 @@
 using HouseOs.Api.Features.Auth;
+using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxIcal;
 using HouseOs.Api.Features.Sante;
@@ -59,6 +60,7 @@ app.MapSante();
 app.MapAuth();
 app.MapTaches();
 app.MapZones();
+app.MapComptesARebours();
 app.MapEquipements();
 app.MapIcal();
 

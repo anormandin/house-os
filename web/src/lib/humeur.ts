@@ -3,6 +3,10 @@
 // jamais inventés ; la phrase tourne selon la date. Le polissage LLM (couche 3)
 // viendra en phase 2 avec la météo — cette banque restera le repli permanent.
 
+// Date propre à la phrase d'humeur (les cartes compte à rebours viennent de l'API).
+// Se retire naturellement après le 6 octobre 2026.
+export const DATE_DEMENAGEMENT = '2026-10-06'
+
 export type FaitsDuJour = {
   ouvertes: number
   enRetard: number
