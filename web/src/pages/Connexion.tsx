@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MaisonSoleil } from '@/components/Illustrations'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 
 export default function Connexion() {
   const queryClient = useQueryClient()
@@ -17,8 +17,12 @@ export default function Connexion() {
     try {
       const moi = await api.connexion(nomUtilisateur, motDePasse)
       queryClient.setQueryData(['moi'], moi)
-    } catch {
-      setErreur('Identifiants invalides.')
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setErreur(e.statut === 401 ? 'Identifiants invalides.' : e.message)
+      } else {
+        setErreur('Serveur injoignable — vérifie que l’API tourne.')
+      }
     } finally {
       setEnCours(false)
     }
