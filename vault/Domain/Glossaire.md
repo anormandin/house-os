@@ -1,7 +1,7 @@
 ---
 type: domain
-last-verified: 2026-08-23
-verified-against: 7b407d4
+last-verified: 2026-08-24
+verified-against: 233f89b
 tags: []
 ---
 
