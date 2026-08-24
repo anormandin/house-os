@@ -105,12 +105,12 @@ export default function Equipements() {
   })
 
   const televerser = useMutation({
-    mutationFn: (fichier: File) => api.televerserPieceJointe(choisiId!, fichier),
+    mutationFn: (fichier: File) => api.televerserDocument(fichier, { equipementId: choisiId! }),
     onSuccess: invalider,
   })
 
-  const supprimerPiece = useMutation({
-    mutationFn: (id: string) => api.supprimerPieceJointe(id),
+  const supprimerDocument = useMutation({
+    mutationFn: (id: string) => api.supprimerDocument(id),
     onSuccess: invalider,
   })
 
@@ -179,9 +179,9 @@ export default function Equipements() {
                           </div>
                         )}
                       </div>
-                      {equipement.nbPiecesJointes > 0 && (
+                      {equipement.nbDocuments > 0 && (
                         <span className="flex items-center gap-1 text-xs text-dore">
-                          <FileText className="size-3.5" /> {equipement.nbPiecesJointes}
+                          <FileText className="size-3.5" /> {equipement.nbDocuments}
                         </span>
                       )}
                     </button>
@@ -319,12 +319,12 @@ export default function Equipements() {
                 </button>
               </div>
 
-              {/* Pièces jointes */}
+              {/* Documents liés */}
               {creation === false && detail !== undefined && (
                 <>
                   <div className="border-t border-barre-piste pt-4">
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-bold text-dore">Manuels et photos</span>
+                      <span className="text-sm font-bold text-dore">Documents</span>
                       <input
                         ref={champFichier}
                         type="file"
@@ -348,35 +348,35 @@ export default function Equipements() {
                         {televerser.isPending ? 'Téléversement…' : 'Ajouter un fichier'}
                       </button>
                     </div>
-                    {detail.piecesJointes.length === 0 ? (
-                      <p className="text-xs text-sourdine">Aucun fichier encore (PDF ou image, max 50 Mo).</p>
+                    {detail.documents.length === 0 ? (
+                      <p className="text-xs text-sourdine">Aucun document encore (PDF ou image, max 50 Mo).</p>
                     ) : (
                       <div className="flex flex-col gap-2">
-                        {detail.piecesJointes.map((piece) => (
+                        {detail.documents.map((document) => (
                           <div
-                            key={piece.id}
+                            key={document.id}
                             className="flex items-center gap-2.5 rounded-xl bg-creux px-3 py-2 text-sm"
                           >
-                            {piece.typeMime === 'application/pdf' ? (
+                            {document.typeMime === 'application/pdf' ? (
                               <FileText className="size-4 shrink-0 text-dore" />
                             ) : (
                               <Image className="size-4 shrink-0 text-dore" />
                             )}
-                            <span className="min-w-0 flex-1 truncate font-bold">{piece.nomFichier}</span>
+                            <span className="min-w-0 flex-1 truncate font-bold">{document.titre}</span>
                             <span className="text-xs text-sourdine">
-                              {(piece.taille / 1024 / 1024).toFixed(1).replace('.', ',')} Mo
+                              {(document.taille / 1024 / 1024).toFixed(1).replace('.', ',')} Mo
                             </span>
                             <a
-                              href={`/api/pieces-jointes/${piece.id}`}
-                              aria-label={`Télécharger ${piece.nomFichier}`}
+                              href={`/api/documents/${document.id}/fichier`}
+                              aria-label={`Télécharger ${document.nomFichier}`}
                               className="text-sourdine hover:text-orange"
                             >
                               <Download className="size-4" />
                             </a>
                             <button
                               type="button"
-                              aria-label={`Supprimer ${piece.nomFichier}`}
-                              onClick={() => supprimerPiece.mutate(piece.id)}
+                              aria-label={`Supprimer ${document.titre}`}
+                              onClick={() => supprimerDocument.mutate(document.id)}
                               className="text-sourdine hover:text-rouge"
                             >
                               <Trash2 className="size-4" />

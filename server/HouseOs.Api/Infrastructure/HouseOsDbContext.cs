@@ -13,7 +13,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<EntreeJournal> Journal => Set<EntreeJournal>();
     public DbSet<Zone> Zones => Set<Zone>();
     public DbSet<Equipement> Equipements => Set<Equipement>();
-    public DbSet<PieceJointe> PiecesJointes => Set<PieceJointe>();
+    public DbSet<Document> Documents => Set<Document>();
     public DbSet<CompteARebours> ComptesARebours => Set<CompteARebours>();
     public DbSet<PrevisionHoraire> PrevisionsHoraires => Set<PrevisionHoraire>();
     public DbSet<PrevisionQuotidienne> PrevisionsQuotidiennes => Set<PrevisionQuotidienne>();
@@ -96,8 +96,6 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             e.Property(x => x.Specs).HasColumnType("jsonb");
             e.HasOne(x => x.Zone).WithMany().HasForeignKey(x => x.ZoneId)
                 .OnDelete(DeleteBehavior.SetNull);
-            e.HasMany(x => x.PiecesJointes).WithOne().HasForeignKey(p => p.EquipementId)
-                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<CompteARebours>(c =>
@@ -150,11 +148,22 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             p.HasIndex(x => new { x.Date, x.Moment }).IsUnique();
         });
 
-        modelBuilder.Entity<PieceJointe>(p =>
+        modelBuilder.Entity<Document>(d =>
         {
-            p.Property(x => x.NomFichier).HasMaxLength(255);
-            p.Property(x => x.CheminDisque).HasMaxLength(255);
-            p.Property(x => x.TypeMime).HasMaxLength(100);
+            d.Property(x => x.Titre).HasMaxLength(200);
+            d.Property(x => x.Categorie).HasConversion<string>().HasMaxLength(20);
+            d.Property(x => x.Notes).HasMaxLength(2000);
+            d.Property(x => x.NomFichier).HasMaxLength(255);
+            d.Property(x => x.CheminDisque).HasMaxLength(255);
+            d.Property(x => x.TypeMime).HasMaxLength(100);
+            // Un document est une archive de la maison : il survit à l'équipement
+            // ou la zone qu'il référence.
+            d.HasOne<Equipement>().WithMany().HasForeignKey(x => x.EquipementId)
+                .OnDelete(DeleteBehavior.SetNull);
+            d.HasOne<Zone>().WithMany().HasForeignKey(x => x.ZoneId)
+                .OnDelete(DeleteBehavior.SetNull);
+            d.HasIndex(x => x.Categorie);
+            d.HasIndex(x => x.Echeance);
         });
     }
 }

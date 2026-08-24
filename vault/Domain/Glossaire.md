@@ -53,10 +53,12 @@ Alimente statistiques, équité d'assignation et futur ordonnancement adaptatif.
 Plage mois-jour (ex. 1er mai → 31 octobre) restreignant la génération d'occurrences
 d'une tâche, combinable avec les modes fixe et intervalle.
 
-## Pièce jointe
+## Document
 
-Un fichier attaché à un équipement (manuel PDF, photo). Métadonnées en base, octets
-sur disque ([[D-2026-08-23 Fichiers Sur Disque]]).
+Un papier de la maison numérisé (acte, assurance, facture, manuel, photo…) :
+fichier sur disque + titre + catégorie fixe + liens optionnels vers un équipement
+ou une zone + échéance optionnelle. A absorbé l'ancienne « pièce jointe »
+d'équipement ([[D-2026-08-24 Document Unifié Sur Disque]]). Voir [[Documents]].
 
 ## Appareil
 

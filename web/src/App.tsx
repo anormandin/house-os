@@ -5,6 +5,7 @@ import BanniereErreur from '@/components/BanniereErreur'
 import Layout from '@/components/Layout'
 import Connexion from '@/pages/Connexion'
 import Aujourdhui from '@/pages/Aujourdhui'
+import Documents from '@/pages/Documents'
 import Equipements from '@/pages/Equipements'
 import Pieces from '@/pages/Pieces'
 import Taches from '@/pages/Taches'
@@ -40,6 +41,7 @@ function App() {
           <Route path="/pieces" element={<Pieces />} />
           <Route path="/taches" element={<Taches />} />
           <Route path="/equipements" element={<Equipements />} />
+          <Route path="/documents" element={<Documents />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

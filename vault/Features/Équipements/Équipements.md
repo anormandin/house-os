@@ -21,9 +21,11 @@ maison en s'installant.
 - Quand un utilisateur crée un équipement, il peut le situer dans une zone et lui
   attacher marque/modèle/série, date d'achat, fin de garantie, notes, et des specs
   libres clé/valeur (JSONB — taille de filtre, code de peinture…).
-- **Pièces jointes** ([[D-2026-08-23 Fichiers Sur Disque]]) : manuels PDF et photos,
-  max 50 Mo, stockés sur disque (volume Docker, inclus au backup), téléchargeables
-  depuis la fiche ; supprimés en cascade avec l'équipement.
+- **Documents liés** ([[D-2026-08-24 Document Unifié Sur Disque]], depuis
+  2026-08-24) : manuels PDF et photos = des [[Documents]] rattachés à
+  l'équipement, téléversés depuis la fiche (catégorie déduite du type),
+  téléchargeables ; supprimer l'équipement **délie** ses documents sans effacer
+  les fichiers.
 - Quand une [[Tâches|tâche]] référence un équipement, la fiche montre l'**historique
   d'entretien** (20 dernières complétions du journal des tâches liées — le journal
   survivant aux tâches supprimées, le titre affiche « Tâche retirée » au besoin).
@@ -37,14 +39,15 @@ maison en s'installant.
 ## Décisions
 
 - [[D-2026-08-23 PostgreSQL]] — JSONB pour les specs flexibles.
-- [[D-2026-08-23 Fichiers Sur Disque]] — pièces jointes sur disque + table dédiée.
+- [[D-2026-08-24 Document Unifié Sur Disque]] — les fichiers de la fiche sont des
+  documents (supersède [[D-2026-08-23 Fichiers Sur Disque]]).
 - [[D-2026-08-23 Plateforme Hobby Cœur Custom]] — Homebox = référence de schéma,
   pas d'intégration.
 
 ## Ancres de code
 
-- `server/HouseOs.Api/Domaine/Equipement.cs`, `PieceJointe.cs` — entités
-- `server/HouseOs.Api/Features/Equipements/EquipementsEndpoints.cs` — CRUD + fichiers + entretien
+- `server/HouseOs.Api/Domaine/Equipement.cs` — entité (fichiers : voir [[Documents]])
+- `server/HouseOs.Api/Features/Equipements/EquipementsEndpoints.cs` — CRUD + entretien
 - `web/src/pages/Equipements.tsx` — liste par zone + fiche
 
 ## Sources

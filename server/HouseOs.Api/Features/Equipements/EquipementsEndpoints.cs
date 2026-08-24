@@ -1,4 +1,5 @@
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,9 +23,7 @@ public record EquipementResumeDto(
     string? Marque,
     string? Modele,
     DateOnly? FinGarantie,
-    int NbPiecesJointes);
-
-public record PieceJointeDto(Guid Id, string NomFichier, string TypeMime, long Taille, DateTimeOffset CreeLe);
+    int NbDocuments);
 
 public record EntretienDto(DateTimeOffset CompleteeLe, string Utilisateur, string? TitreTache, string? Notes);
 
@@ -39,30 +38,19 @@ public record EquipementDetailDto(
     DateOnly? FinGarantie,
     string? Notes,
     Dictionary<string, string> Specs,
-    List<PieceJointeDto> PiecesJointes,
+    List<DocumentDto> Documents,
     List<EntretienDto> Entretiens);
 
 public static class EquipementsEndpoints
 {
-    private const long TailleMax = 50 * 1024 * 1024;
-    private static readonly string[] TypesMimePermis =
-        ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"];
-
-    /// <summary>Dossier des fichiers téléversés (config Fichiers:Chemin, créé au besoin).</summary>
-    public static string DossierFichiers(IConfiguration config, IWebHostEnvironment env)
-    {
-        var chemin = config["Fichiers:Chemin"] ?? Path.Combine(env.ContentRootPath, "donnees", "fichiers");
-        Directory.CreateDirectory(chemin);
-        return chemin;
-    }
-
     public static IEndpointRouteBuilder MapEquipements(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/equipements", async (HouseOsDbContext db) =>
             await db.Equipements
                 .OrderBy(e => e.Nom)
                 .Select(e => new EquipementResumeDto(
-                    e.Id, e.Nom, e.ZoneId, e.Marque, e.Modele, e.FinGarantie, e.PiecesJointes.Count))
+                    e.Id, e.Nom, e.ZoneId, e.Marque, e.Modele, e.FinGarantie,
+                    db.Documents.Count(d => d.EquipementId == e.Id)))
                 .ToListAsync());
 
         app.MapGet("/api/equipements/{id:guid}", async (Guid id, HouseOsDbContext db) =>
@@ -107,116 +95,17 @@ public static class EquipementsEndpoints
             return Results.NoContent();
         });
 
-        app.MapDelete("/api/equipements/{id:guid}", async (
-            Guid id,
-            HouseOsDbContext db,
-            IConfiguration config,
-            IWebHostEnvironment env) =>
-        {
-            var equipement = await db.Equipements
-                .Include(e => e.PiecesJointes)
-                .SingleOrDefaultAsync(e => e.Id == id);
-            if (equipement is null)
-            {
-                return Results.NotFound();
-            }
-
-            var dossier = DossierFichiers(config, env);
-            var fichiers = equipement.PiecesJointes.Select(p => Path.Combine(dossier, p.CheminDisque)).ToList();
-            db.Equipements.Remove(equipement);
-            await db.SaveChangesAsync();
-            foreach (var fichier in fichiers.Where(File.Exists))
-            {
-                File.Delete(fichier);
-            }
-            return Results.NoContent();
-        });
-
-        app.MapPost("/api/equipements/{id:guid}/pieces-jointes", async (
-            Guid id,
-            IFormFile fichier,
-            HouseOsDbContext db,
-            IConfiguration config,
-            IWebHostEnvironment env) =>
+        app.MapDelete("/api/equipements/{id:guid}", async (Guid id, HouseOsDbContext db) =>
         {
             var equipement = await db.Equipements.FindAsync(id);
             if (equipement is null)
             {
                 return Results.NotFound();
             }
-            if (fichier.Length == 0 || fichier.Length > TailleMax)
-            {
-                return Erreur("fichier", "Fichier vide ou trop gros (max 50 Mo).");
-            }
-            if (TypesMimePermis.Contains(fichier.ContentType) == false)
-            {
-                return Erreur("fichier", "Type non permis (PDF ou image).");
-            }
 
-            var pieceJointe = new PieceJointe
-            {
-                Id = Guid.NewGuid(),
-                EquipementId = id,
-                NomFichier = Path.GetFileName(fichier.FileName),
-                CheminDisque = string.Empty,
-                TypeMime = fichier.ContentType,
-                Taille = fichier.Length,
-                CreeLe = DateTimeOffset.UtcNow,
-            };
-            // Nom disque = id + extension d'origine : jamais le nom fourni par le client.
-            pieceJointe.CheminDisque = pieceJointe.Id.ToString("N") + Path.GetExtension(fichier.FileName).ToLowerInvariant();
-
-            var chemin = Path.Combine(DossierFichiers(config, env), pieceJointe.CheminDisque);
-            await using (var flux = File.Create(chemin))
-            {
-                await fichier.CopyToAsync(flux);
-            }
-
-            db.PiecesJointes.Add(pieceJointe);
+            // Les documents liés survivent (FK en SET NULL) — aucun fichier effacé.
+            db.Equipements.Remove(equipement);
             await db.SaveChangesAsync();
-            return Results.Created($"/api/pieces-jointes/{pieceJointe.Id}",
-                new PieceJointeDto(pieceJointe.Id, pieceJointe.NomFichier, pieceJointe.TypeMime,
-                    pieceJointe.Taille, pieceJointe.CreeLe));
-        }).DisableAntiforgery();
-
-        app.MapGet("/api/pieces-jointes/{id:guid}", async (
-            Guid id,
-            HouseOsDbContext db,
-            IConfiguration config,
-            IWebHostEnvironment env) =>
-        {
-            var pieceJointe = await db.PiecesJointes.FindAsync(id);
-            if (pieceJointe is null)
-            {
-                return Results.NotFound();
-            }
-            var chemin = Path.Combine(DossierFichiers(config, env), pieceJointe.CheminDisque);
-            if (File.Exists(chemin) == false)
-            {
-                return Results.NotFound();
-            }
-            return Results.File(chemin, pieceJointe.TypeMime, pieceJointe.NomFichier);
-        });
-
-        app.MapDelete("/api/pieces-jointes/{id:guid}", async (
-            Guid id,
-            HouseOsDbContext db,
-            IConfiguration config,
-            IWebHostEnvironment env) =>
-        {
-            var pieceJointe = await db.PiecesJointes.FindAsync(id);
-            if (pieceJointe is null)
-            {
-                return Results.NotFound();
-            }
-
-            var chemin = Path.Combine(DossierFichiers(config, env), pieceJointe.CheminDisque);
-            db.PiecesJointes.Remove(pieceJointe);
-            await db.SaveChangesAsync();
-            if (File.Exists(chemin))
-            {
-                File.Delete(chemin);
-            }
             return Results.NoContent();
         });
 
@@ -227,12 +116,22 @@ public static class EquipementsEndpoints
     internal static async Task<EquipementDetailDto?> ChargerDetailAsync(HouseOsDbContext db, Guid id)
     {
         var equipement = await db.Equipements.AsNoTracking()
-            .Include(e => e.PiecesJointes)
             .SingleOrDefaultAsync(e => e.Id == id);
         if (equipement is null)
         {
             return null;
         }
+
+        var documents = await db.Documents.AsNoTracking()
+            .Where(d => d.EquipementId == id)
+            .OrderBy(d => d.CreeLe)
+            .Select(d => new DocumentDto(
+                d.Id, d.Titre, d.Categorie.ToString(),
+                d.EquipementId, equipement.Nom,
+                d.ZoneId, db.Zones.Where(z => z.Id == d.ZoneId).Select(z => z.Nom).FirstOrDefault(),
+                d.Notes, d.DateDocument, d.Echeance,
+                d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
+            .ToListAsync();
 
         // Historique d'entretien : complétions du journal des tâches liées à cet
         // équipement (le journal survit à la suppression des tâches — jointure lâche).
@@ -257,10 +156,7 @@ public static class EquipementsEndpoints
             equipement.Id, equipement.Nom, equipement.ZoneId, equipement.Marque,
             equipement.Modele, equipement.NumeroSerie, equipement.DateAchat,
             equipement.FinGarantie, equipement.Notes, equipement.Specs,
-            equipement.PiecesJointes
-                .OrderBy(p => p.CreeLe)
-                .Select(p => new PieceJointeDto(p.Id, p.NomFichier, p.TypeMime, p.Taille, p.CreeLe))
-                .ToList(),
+            documents,
             entretiens);
     }
 

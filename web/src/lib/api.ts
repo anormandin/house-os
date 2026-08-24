@@ -71,15 +71,45 @@ export type EquipementResume = {
   marque: string | null
   modele: string | null
   finGarantie: string | null
-  nbPiecesJointes: number
+  nbDocuments: number
 }
 
-export type PieceJointe = {
+export type CategorieDocument =
+  | 'Manuel'
+  | 'Photo'
+  | 'Assurance'
+  | 'Facture'
+  | 'Garantie'
+  | 'Contrat'
+  | 'PlanPermis'
+  | 'ImpotsTaxes'
+  | 'Autre'
+
+export type Document = {
   id: string
+  titre: string
+  categorie: CategorieDocument
+  equipementId: string | null
+  nomEquipement: string | null
+  zoneId: string | null
+  nomZone: string | null
+  notes: string | null
+  dateDocument: string | null
+  echeance: string | null
   nomFichier: string
   typeMime: string
   taille: number
   creeLe: string
+}
+
+export type DocumentDonnees = {
+  titre: string
+  categorie: CategorieDocument
+  equipementId?: string | null
+  zoneId?: string | null
+  notes?: string | null
+  dateDocument?: string | null
+  echeance?: string | null
 }
 
 export type Entretien = {
@@ -100,7 +130,7 @@ export type EquipementDetail = {
   finGarantie: string | null
   notes: string | null
   specs: Record<string, string>
-  piecesJointes: PieceJointe[]
+  documents: Document[]
   entretiens: Entretien[]
 }
 
@@ -312,16 +342,25 @@ export const api = {
     }),
   supprimerEquipement: (id: string) =>
     requete<void>(`/api/equipements/${id}`, { method: 'DELETE' }),
-  televerserPieceJointe: (equipementId: string, fichier: File) => {
-    const donnees = new FormData()
-    donnees.append('fichier', fichier)
-    return requete<PieceJointe>(`/api/equipements/${equipementId}/pieces-jointes`, {
-      method: 'POST',
-      body: donnees,
-    })
+  documents: (filtres?: { categorie?: CategorieDocument; equipementId?: string }) => {
+    const params = new URLSearchParams()
+    if (filtres?.categorie) params.set('categorie', filtres.categorie)
+    if (filtres?.equipementId) params.set('equipementId', filtres.equipementId)
+    const suffixe = params.size > 0 ? `?${params}` : ''
+    return requete<Document[]>(`/api/documents${suffixe}`)
   },
-  supprimerPieceJointe: (id: string) =>
-    requete<void>(`/api/pieces-jointes/${id}`, { method: 'DELETE' }),
+  televerserDocument: (fichier: File, donnees?: Partial<DocumentDonnees>) => {
+    const formulaire = new FormData()
+    formulaire.append('fichier', fichier)
+    for (const [champ, valeur] of Object.entries(donnees ?? {})) {
+      if (valeur) formulaire.append(champ, valeur)
+    }
+    return requete<{ id: string }>('/api/documents', { method: 'POST', body: formulaire })
+  },
+  modifierDocument: (id: string, donnees: DocumentDonnees) =>
+    requete<void>(`/api/documents/${id}`, { method: 'PUT', body: JSON.stringify(donnees) }),
+  supprimerDocument: (id: string) =>
+    requete<void>(`/api/documents/${id}`, { method: 'DELETE' }),
 
   comptesARebours: () => requete<CompteARebours[]>('/api/comptes-a-rebours'),
   creerCompteARebours: (donnees: CompteAReboursDonnees) =>

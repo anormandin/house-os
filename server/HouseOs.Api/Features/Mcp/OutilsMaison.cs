@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.ComptesARebours;
+using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.Zones;
 using HouseOs.Api.Infrastructure;
@@ -21,6 +22,17 @@ public record EquipementDonnees(
     [property: Description("Fin de garantie YYYY-MM-DD, ou null.")] string? FinGarantie,
     string? Notes,
     [property: Description("Caractéristiques libres clé→valeur (ex. {\"HP\": \"12000 BTU\"}).")] Dictionary<string, string>? Specs);
+
+/// <summary>Métadonnées d'un document pour modifier via MCP (remplace la fiche complète).</summary>
+public record DocumentDonnees(
+    [property: Description("Titre (requis).")] string Titre,
+    [property: Description("Catégorie : Manuel, Photo, Assurance, Facture, Garantie, Contrat, " +
+        "PlanPermis, ImpotsTaxes ou Autre (requise).")] string Categorie,
+    [property: Description("Id d'un équipement existant (via lister_equipements), ou null pour délier.")] Guid? EquipementId,
+    [property: Description("Id d'une zone existante (via lister_zones), ou null pour délier.")] Guid? ZoneId,
+    string? Notes,
+    [property: Description("Date portée par le document YYYY-MM-DD (facture, contrat…), ou null.")] string? DateDocument,
+    [property: Description("Échéance YYYY-MM-DD (rappel visuel dans l'app), ou null.")] string? Echeance);
 
 [McpServerToolType]
 public static class OutilsMaison
@@ -76,17 +88,18 @@ public static class OutilsMaison
 
     [McpServerTool(Name = "lister_equipements")]
     [Description("Liste les équipements de la maison (résumé : id, nom, zoneId, marque, modèle, " +
-        "fin de garantie, nombre de pièces jointes).")]
+        "fin de garantie, nombre de documents liés).")]
     public static async Task<List<EquipementResumeDto>> ListerEquipements(HouseOsDbContext db) =>
         await db.Equipements
             .OrderBy(e => e.Nom)
             .Select(e => new EquipementResumeDto(
-                e.Id, e.Nom, e.ZoneId, e.Marque, e.Modele, e.FinGarantie, e.PiecesJointes.Count))
+                e.Id, e.Nom, e.ZoneId, e.Marque, e.Modele, e.FinGarantie,
+                db.Documents.Count(d => d.EquipementId == e.Id)))
             .ToListAsync();
 
     [McpServerTool(Name = "obtenir_equipement")]
     [Description("Détail d'un équipement : specs, historique d'entretien (20 dernières " +
-        "complétions de tâches liées) et métadonnées des pièces jointes. Le téléversement et le " +
+        "complétions de tâches liées) et métadonnées des documents liés. Le téléversement et le " +
         "téléchargement de fichiers passent par l'interface web, pas par MCP.")]
     public static async Task<EquipementDetailDto> ObtenirEquipement(
         HouseOsDbContext db,
@@ -95,16 +108,13 @@ public static class OutilsMaison
             ?? throw new McpException($"Équipement introuvable : {id}.");
 
     [McpServerTool(Name = "gerer_equipement")]
-    [Description("Créer, modifier ou supprimer un équipement, ou supprimer une de ses pièces " +
-        "jointes (action supprimer_piece_jointe + pieceJointeId). Modifier remplace la fiche " +
-        "complète. L'ajout de pièces jointes n'est pas possible via MCP (interface web).")]
+    [Description("Créer, modifier ou supprimer un équipement. Modifier remplace la fiche " +
+        "complète. Supprimer un équipement délie ses documents sans les effacer " +
+        "(gestion des documents : lister_documents / gerer_document).")]
     public static async Task<object> GererEquipement(
         HouseOsDbContext db,
-        IConfiguration config,
-        IWebHostEnvironment env,
-        [Description("creer, modifier, supprimer ou supprimer_piece_jointe.")] string action,
+        [Description("creer, modifier ou supprimer.")] string action,
         [Description("Id de l'équipement (requis sauf pour creer).")] Guid? id = null,
-        [Description("Id de la pièce jointe (requis pour supprimer_piece_jointe).")] Guid? pieceJointeId = null,
         [Description("Fiche complète (requise pour creer et modifier).")] EquipementDonnees? donnees = null)
     {
         switch (action)
@@ -132,40 +142,114 @@ public static class OutilsMaison
             }
             case "supprimer":
             {
-                var equipement = await db.Equipements
-                    .Include(e => e.PiecesJointes)
-                    .SingleOrDefaultAsync(e => e.Id == RequisId(id))
+                var equipement = await db.Equipements.FindAsync(RequisId(id))
                     ?? throw new McpException($"Équipement introuvable : {id}.");
-                var dossier = EquipementsEndpoints.DossierFichiers(config, env);
-                var fichiers = equipement.PiecesJointes.Select(p => Path.Combine(dossier, p.CheminDisque)).ToList();
+                // Les documents liés survivent (FK en SET NULL) — aucun fichier effacé.
                 db.Equipements.Remove(equipement);
                 await db.SaveChangesAsync();
-                foreach (var fichier in fichiers.Where(File.Exists))
-                {
-                    File.Delete(fichier);
-                }
                 return new { supprime = true, id = equipement.Id };
             }
-            case "supprimer_piece_jointe":
+            default:
+                throw new McpException($"Action inconnue : '{action}' (creer, modifier ou supprimer).");
+        }
+    }
+
+    [McpServerTool(Name = "lister_documents")]
+    [Description("Liste les documents de la maison (classeur : actes, assurances, factures, " +
+        "manuels, photos…) : métadonnées, liens équipement/zone, échéances. Le téléversement " +
+        "et le téléchargement de fichiers passent par l'interface web, pas par MCP.")]
+    public static async Task<List<DocumentDto>> ListerDocuments(
+        HouseOsDbContext db,
+        [Description("Filtrer par catégorie : Manuel, Photo, Assurance, Facture, Garantie, " +
+            "Contrat, PlanPermis, ImpotsTaxes ou Autre.")] string? categorie = null,
+        [Description("Filtrer par équipement lié.")] Guid? equipementId = null)
+    {
+        var documents = db.Documents.AsNoTracking();
+        if (string.IsNullOrWhiteSpace(categorie) == false)
+        {
+            if (Enum.TryParse<CategorieDocument>(categorie, out var cat) == false)
             {
-                if (pieceJointeId is null)
+                throw new McpException($"Catégorie inconnue : '{categorie}'.");
+            }
+            documents = documents.Where(d => d.Categorie == cat);
+        }
+        if (equipementId is not null)
+        {
+            documents = documents.Where(d => d.EquipementId == equipementId);
+        }
+        return await documents
+            .OrderByDescending(d => d.CreeLe)
+            .Select(d => new DocumentDto(
+                d.Id, d.Titre, d.Categorie.ToString(),
+                d.EquipementId,
+                db.Equipements.Where(e => e.Id == d.EquipementId).Select(e => e.Nom).FirstOrDefault(),
+                d.ZoneId,
+                db.Zones.Where(z => z.Id == d.ZoneId).Select(z => z.Nom).FirstOrDefault(),
+                d.Notes, d.DateDocument, d.Echeance,
+                d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
+            .ToListAsync();
+    }
+
+    [McpServerTool(Name = "gerer_document")]
+    [Description("Modifier les métadonnées d'un document (remplace la fiche : titre, catégorie, " +
+        "liens équipement/zone, dates, notes) ou le supprimer (efface aussi le fichier disque). " +
+        "L'ajout d'un document n'est pas possible via MCP (interface web).")]
+    public static async Task<object> GererDocument(
+        HouseOsDbContext db,
+        IConfiguration config,
+        IWebHostEnvironment env,
+        [Description("modifier ou supprimer.")] string action,
+        [Description("Id du document (via lister_documents).")] Guid? id = null,
+        [Description("Métadonnées complètes (requises pour modifier).")] DocumentDonnees? donnees = null)
+    {
+        switch (action)
+        {
+            case "modifier":
+            {
+                var document = await db.Documents.FindAsync(RequisId(id))
+                    ?? throw new McpException($"Document introuvable : {id}.");
+                if (donnees is null)
                 {
-                    throw new McpException("pieceJointeId est requis pour supprimer_piece_jointe.");
+                    throw new McpException("Le paramètre donnees est requis pour modifier.");
                 }
-                var pieceJointe = await db.PiecesJointes.FindAsync(pieceJointeId.Value)
-                    ?? throw new McpException($"Pièce jointe introuvable : {pieceJointeId}.");
-                var chemin = Path.Combine(EquipementsEndpoints.DossierFichiers(config, env), pieceJointe.CheminDisque);
-                db.PiecesJointes.Remove(pieceJointe);
+                if (string.IsNullOrWhiteSpace(donnees.Titre))
+                {
+                    throw new McpException("Le titre est requis.");
+                }
+                if (Enum.TryParse<CategorieDocument>(donnees.Categorie, out var categorie) == false)
+                {
+                    throw new McpException($"Catégorie inconnue : '{donnees.Categorie}'.");
+                }
+                if (donnees.EquipementId is { } equipementId
+                    && await db.Equipements.AnyAsync(e => e.Id == equipementId) == false)
+                {
+                    throw new McpException($"equipementId inconnu : {equipementId} (voir lister_equipements).");
+                }
+                if (donnees.ZoneId is { } zoneId && await db.Zones.AnyAsync(z => z.Id == zoneId) == false)
+                {
+                    throw new McpException($"zoneId inconnu : {zoneId} (voir lister_zones).");
+                }
+
+                document.Titre = donnees.Titre.Trim();
+                document.Categorie = categorie;
+                document.EquipementId = donnees.EquipementId;
+                document.ZoneId = donnees.ZoneId;
+                document.Notes = string.IsNullOrWhiteSpace(donnees.Notes) ? null : donnees.Notes.Trim();
+                document.DateDocument = Conversions.ParserDate(donnees.DateDocument, "dateDocument");
+                document.Echeance = Conversions.ParserDate(donnees.Echeance, "echeance");
                 await db.SaveChangesAsync();
-                if (File.Exists(chemin))
+                return new { modifie = true, id = document.Id };
+            }
+            case "supprimer":
+            {
+                if (await DocumentsEndpoints.SupprimerAsync(db, RequisId(id), config, env) == false)
                 {
-                    File.Delete(chemin);
+                    throw new McpException($"Document introuvable : {id}.");
                 }
-                return new { supprime = true, pieceJointeId };
+                return new { supprime = true, id };
             }
             default:
-                throw new McpException(
-                    $"Action inconnue : '{action}' (creer, modifier, supprimer ou supprimer_piece_jointe).");
+                throw new McpException($"Action inconnue : '{action}' (modifier ou supprimer).");
         }
     }
 

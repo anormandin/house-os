@@ -1,8 +1,9 @@
 ---
 type: decision
-status: accepted
+status: superseded
 date: 2026-08-23
 feature: "[[Équipements]]"
+superseded-by: "[[D-2026-08-24 Document Unifié Sur Disque]]"
 tags: []
 ---
 

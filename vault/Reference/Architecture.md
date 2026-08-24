@@ -65,6 +65,6 @@ tap-pour-compléter ; e-ink et panneaux openHASP ensuite. Détails :
    3 modes, zones + vue Pièces, module [[Équipements]] avec fichiers, flux iCal par
    personne, backups). Reste : déploiement Tailscale après le déménagement.
 3. **Phase 2** (entamée) : météo + règles ([[Météo]]), [[Titre D'humeur]]
-   serveur (Haiku 4.5) et calendriers ICS ([[Flux Externes]]) — livrés
-   2026-08-24 ; reste : Hydro-Québec, documents, consommables.
+   serveur (Haiku 4.5), calendriers ICS ([[Flux Externes]]) et classeur
+   [[Documents]] — livrés 2026-08-24 ; reste : Hydro-Québec, consommables.
 4. **Phase 3** : IoT (hub MQTT, affichages, capteurs).

@@ -18,5 +18,4 @@ public class Equipement
     public string? Notes { get; set; }
     public Dictionary<string, string> Specs { get; set; } = [];
     public DateTimeOffset CreeLe { get; set; }
-    public List<PieceJointe> PiecesJointes { get; } = [];
 }
