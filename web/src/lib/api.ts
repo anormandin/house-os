@@ -10,10 +10,11 @@ export type Occurrence = {
   titre: string
   description: string | null
   echeance: string | null
-  statut: 'EnAttente' | 'Completee'
+  statut: 'EnAttente' | 'Completee' | 'Passee'
   assigneA: Utilisateur | null
   completeePar: Utilisateur | null
   completeeLe: string | null
+  notes: string | null
   zoneId: string | null
   equipementId: string | null
   modeRecurrence: 'Ponctuelle' | 'Fixe' | 'Intervalle'
@@ -161,7 +162,21 @@ async function requete<T>(url: string, options?: RequestInit): Promise<T> {
   if (reponse.ok) {
     return reponse.status === 204 ? (undefined as T) : reponse.json()
   }
-  throw new ApiError(reponse.status, `Erreur serveur (${reponse.status})`)
+  throw new ApiError(reponse.status, await messageErreur(reponse))
+}
+
+// Extrait le message d'un corps d'erreur : { message } (conflits), ProblemDetails
+// avec errors (ValidationProblem) ou title. Repli sur le statut HTTP.
+async function messageErreur(reponse: Response): Promise<string> {
+  try {
+    const corps = await reponse.json()
+    const premiereValidation = corps.errors
+      ? (Object.values(corps.errors as Record<string, string[]>)[0]?.[0] ?? null)
+      : null
+    return corps.message ?? premiereValidation ?? corps.title ?? `Erreur serveur (${reponse.status})`
+  } catch {
+    return `Erreur serveur (${reponse.status})`
+  }
 }
 
 export function dateLocaleIso(date = new Date()): string {
@@ -204,6 +219,20 @@ export const api = {
     requete<void>(`/api/occurrences/${occurrenceId}/completer`, {
       method: 'POST',
       body: JSON.stringify({ notes: notes ?? null }),
+    }),
+  annulerCompletion: (occurrenceId: string) =>
+    requete<void>(`/api/occurrences/${occurrenceId}/annuler-completion`, { method: 'POST' }),
+  passer: (occurrenceId: string) =>
+    requete<void>(`/api/occurrences/${occurrenceId}/passer`, { method: 'POST' }),
+  reporter: (occurrenceId: string, echeance: string) =>
+    requete<void>(`/api/occurrences/${occurrenceId}/reporter`, {
+      method: 'POST',
+      body: JSON.stringify({ echeance }),
+    }),
+  modifierNotes: (occurrenceId: string, notes: string | null) =>
+    requete<void>(`/api/occurrences/${occurrenceId}/notes`, {
+      method: 'PUT',
+      body: JSON.stringify({ notes }),
     }),
   supprimerTache: (tacheId: string) =>
     requete<void>(`/api/taches/${tacheId}`, { method: 'DELETE' }),

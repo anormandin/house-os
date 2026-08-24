@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-24
-verified-against: a9bbbf7
+verified-against: 323fda1
 tags: []
 ---
 
@@ -20,19 +20,22 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 - Le backend expose un endpoint MCP **`/mcp`** (streamable HTTP, stateless) via le SDK
   officiel C#. Quand la requête ne porte pas la clé API (`Authorization: Bearer`,
   config `Mcp:Cle`), le système répond 401 ; clé non configurée = tout est refusé.
-- **12 outils**, noms snake_case français, erreurs en français actionnables
+- **13 outils**, noms snake_case français, erreurs en français actionnables
   (`McpException`) ; dates en chaînes `YYYY-MM-DD` ; enums en chaînes ; retours
   camelCase (mêmes formes que les DTO REST) :
   - `lister_utilisateurs`, `lister_zones`, `gerer_zone`
   - `creer_taches` (lot **tout-ou-rien** : une tâche invalide → rien n'est créé,
     erreurs par index), `gerer_tache` (obtenir/modifier/supprimer),
     `lister_occurrences` (filtres aujourdhui/avenir/en-attente/completees),
-    `completer_occurrence` (matérialise la prochaine occurrence si récurrente)
+    `completer_occurrence` (matérialise la prochaine occurrence si récurrente),
+    `gerer_occurrence` (annuler-completion/passer/reporter — voir
+    [[D-2026-08-24 Annulation Et Passage D'occurrences]])
   - `lister_equipements`, `obtenir_equipement`, `gerer_equipement`
   - `gerer_comptes_a_rebours`, `mon_flux_ical`
 - Quand un outil enregistre une identité (`creer_taches`, `completer_occurrence`,
-  `mon_flux_ical`), le paramètre **`agirComme`** (`alain` | `ariane`) est requis sans
-  défaut — voir [[D-2026-08-24 Clé API Partagée Et AgirComme]].
+  `gerer_occurrence` action passer, `mon_flux_ical`), le paramètre **`agirComme`**
+  (`alain` | `ariane`) est requis sans défaut — voir
+  [[D-2026-08-24 Clé API Partagée Et AgirComme]].
 - La validation référentielle est explicite : `zoneId`/`equipementId`/`assigneA`
   inconnus sont refusés avec un message qui pointe vers l'outil de listage.
 - Claude Code se branche via `.mcp.json` (racine, committé) : URL

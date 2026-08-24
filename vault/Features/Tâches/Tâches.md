@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-23
-verified-against: 7b407d4
+last-verified: 2026-08-24
+verified-against: 323fda1
 tags: []
 ---
 
@@ -64,11 +64,37 @@ Implémenté (V1 « Emménagement », as-built) :
 - **Flux iCal par personne** ([[D-2026-08-23 Flux iCal Par Personne]]) : jeton
   secret, occurrences assignées + non-assignées, URL copiable dans « Mon calendrier ».
 
+Implémenté (cycle de vie des occurrences, 2026-08-24, as-built —
+[[D-2026-08-24 Annulation Et Passage D'occurrences]]) :
+
+- **Annuler une complétion** (bouton « Annuler » au survol de la rangée verte) :
+  journal effacé, occurrence remise en attente avec son échéance d'origine (elle
+  redevient éligible au rollover), occurrence suivante matérialisée supprimée.
+  Garde-fou : seulement la complétion la plus récente de la tâche, et si la suivante
+  est encore en attente (sinon 409).
+- **Passer** (récurrentes seulement, icône au survol) : statut `Passee` daté, aucun
+  journal, la suivante est générée comme après une complétion aujourd'hui (même
+  stratégie d'assignation). Un passage n'est pas annulable.
+- **Reporter** (icône au survol) : glisse l'échéance de l'occurrence en attente
+  (préréglages demain / +2 j / +7 j, ou date libre ≥ aujourd'hui) sans toucher la
+  définition.
+- **Notes post-hoc** : la rangée verte permet d'ajouter/modifier la note de
+  l'entrée de journal (la complétion reste à un clic) ; la note est retournée dans
+  le DTO d'occurrence.
+- **Confirmation avant suppression** partout (composant partagé « Vraiment ? »,
+  extrait de l'idiome Pièces/Équipements) ; le bouton poubelle d'une rangée supprime
+  toujours la tâche entière.
+- **Erreurs API visibles** : messages ProblemDetails parsés côté client et affichés
+  dans une bannière globale (toutes les mutations, 401 exclus).
+
 ## Hors périmètre
 
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).
 - Sous-tâches et projets multi-étapes (module Projets, v2+).
 - Notifications push (v1 = flux iCal seulement).
+- **Documents liés à une tâche** (« fermer le spa → guide ») — besoin exprimé le
+  2026-08-24, reporté au module Documents de la phase 2 ([[Architecture]]) ; prévoir
+  l'attache de un ou plusieurs documents/guides à une tâche.
 
 ## Décisions
 
@@ -78,6 +104,8 @@ Implémenté (V1 « Emménagement », as-built) :
 - [[D-2026-08-23 Flux iCal Par Personne]] — structure des flux (jeton par compte).
 - [[D-2026-08-23 Zones Plates]] — zones = liste plate CRUD.
 - [[D-2026-08-23 Auth Simple Deux Comptes]] — attribution des complétions.
+- [[D-2026-08-24 Annulation Et Passage D'occurrences]] — annuler/passer/reporter,
+  sort du journal, garde-fous.
 
 ## Ancres de code
 
@@ -93,7 +121,11 @@ Implémenté (V1 « Emménagement », as-built) :
 - `web/src/components/TacheEditeur.tsx` — éditeur complet (récurrence en français)
 - `web/src/pages/Pieces.tsx` — vue Pièces (fraîcheur, gestion des zones)
 - `web/src/pages/Aujourdhui.tsx`, `web/src/pages/Taches.tsx`, `web/src/components/QuickAdd.tsx` — UI
-- `web/src/components/OccurrenceListe.tsx` — rangées de tâches (retard, complétée, échéance)
+- `web/src/components/OccurrenceListe.tsx` — rangées de tâches (retard, complétée,
+  échéance, annuler/passer/reporter/notes)
+- `web/src/components/ConfirmerSuppression.tsx` — suppression en deux temps « Vraiment ? »
+- `web/src/lib/erreurs.ts`, `web/src/components/BanniereErreur.tsx` — erreurs globales
+- `server/HouseOs.Tests/Features/Taches/` — tests d'orchestration (harnais Sqlite in-memory)
 - `web/src/index.css` — tokens du design chaleureuse (source : maquettes)
 - `web/src/lib/format.ts` — typographie québécoise (dates, « 14 h 10 », dodos)
 
@@ -105,3 +137,4 @@ Implémenté (V1 « Emménagement », as-built) :
 
 - [[Plan 2026-08-23 V0 Déménagement]] · [[Recap Tâches]]
 - [[Plan 2026-08-23 V1 Emménagement]] · [[Recap V1 Emménagement]]
+- [[Plan 2026-08-24 Cycle De Vie Des Occurrences]] · [[Recap Cycle De Vie Des Occurrences]]

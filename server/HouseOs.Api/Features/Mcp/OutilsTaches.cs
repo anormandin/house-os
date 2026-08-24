@@ -200,7 +200,8 @@ public static class OutilsTaches
     [Description("Liste les occurrences (instances planifiées des tâches), 200 max, triées par " +
         "échéance. Filtres : 'aujourdhui' (en attente, échues à la date de référence ou avant), " +
         "'avenir' (en attente, futures ou sans échéance), 'en-attente' (toutes les non-faites), " +
-        "'completees' (les faites, plus récentes d'abord). Sans filtre : tout.")]
+        "'completees' (les faites, plus récentes d'abord). Sans filtre : tout, y compris les " +
+        "occurrences au statut Passee (sautées sans être faites).")]
     public static async Task<List<OccurrenceDto>> ListerOccurrences(
         HouseOsDbContext db,
         [Description("aujourdhui, avenir, en-attente ou completees.")] string? filtre = null,
@@ -248,5 +249,97 @@ public static class OutilsTaches
                 assigneA = assigne,
             },
         };
+    }
+
+    [McpServerTool(Name = "gerer_occurrence")]
+    [Description("Agit sur une occurrence : 'annuler-completion' défait la complétion la plus " +
+        "récente d'une tâche (le journal est effacé, l'occurrence suivante matérialisée est " +
+        "supprimée — refusé si une complétion plus récente existe ou si la suivante a déjà été " +
+        "traitée) ; 'passer' saute une occurrence récurrente sans la marquer faite (aucun journal, " +
+        "la suivante est créée comme après une complétion aujourd'hui) ; 'reporter' glisse " +
+        "l'échéance de l'occurrence en attente sans toucher la définition de la tâche.")]
+    public static async Task<object> GererOccurrence(
+        HouseOsDbContext db,
+        [Description("annuler-completion, passer ou reporter.")] string action,
+        [Description("Id de l'occurrence (via lister_occurrences).")] Guid occurrenceId,
+        [Description("Requis pour passer : au nom de qui ('alain' ou 'ariane') — alimente la " +
+            "stratégie d'assignation de la suivante. Demander si ambigu.")] string? agirComme = null,
+        [Description("Requis pour reporter : nouvelle échéance YYYY-MM-DD (aujourd'hui ou plus tard).")]
+        string? echeance = null)
+    {
+        switch (action)
+        {
+            case "annuler-completion":
+            {
+                var statut = await OperationsTaches.AnnulerCompletionAsync(db, occurrenceId);
+                return statut switch
+                {
+                    StatutAnnulation.Introuvable =>
+                        throw new McpException($"Occurrence introuvable : {occurrenceId}."),
+                    StatutAnnulation.PasCompletee =>
+                        throw new McpException("L'occurrence n'est pas complétée."),
+                    StatutAnnulation.PasLaDerniere =>
+                        throw new McpException("Cette complétion n'est pas la plus récente."),
+                    StatutAnnulation.ProchaineDejaTraitee =>
+                        throw new McpException("La prochaine occurrence a déjà été traitée."),
+                    _ => new { annulee = true, occurrenceId },
+                };
+            }
+            case "passer":
+            {
+                if (string.IsNullOrWhiteSpace(agirComme))
+                {
+                    throw new McpException("Le paramètre agirComme est requis pour passer.");
+                }
+                var utilisateur = await AgirComme.ResoudreAsync(db, agirComme);
+                var resultat = await OperationsTaches.PasserAsync(
+                    db, occurrenceId, utilisateur.Id, DateTimeOffset.UtcNow);
+                switch (resultat.Statut)
+                {
+                    case StatutPasse.Introuvable:
+                        throw new McpException($"Occurrence introuvable : {occurrenceId}.");
+                    case StatutPasse.DejaTraitee:
+                        throw new McpException("Occurrence déjà traitée.");
+                    case StatutPasse.TachePonctuelle:
+                        throw new McpException("Une tâche ponctuelle ne se passe pas (la supprimer via gerer_tache).");
+                }
+
+                var assigne = resultat.Prochaine?.AssigneAId is { } assigneId
+                    ? await db.Utilisateurs.Where(u => u.Id == assigneId)
+                        .Select(u => u.NomUtilisateur).SingleOrDefaultAsync()
+                    : null;
+                return new
+                {
+                    passee = true,
+                    prochaine = resultat.Prochaine is null
+                        ? null
+                        : new
+                        {
+                            id = resultat.Prochaine.Id,
+                            echeance = resultat.Prochaine.Echeance,
+                            assigneA = assigne,
+                        },
+                };
+            }
+            case "reporter":
+            {
+                var nouvelleEcheance = Conversions.ParserDate(echeance, "echeance")
+                    ?? throw new McpException("Le paramètre echeance est requis pour reporter.");
+                var statut = await OperationsTaches.ReporterAsync(
+                    db, occurrenceId, nouvelleEcheance, DateOnly.FromDateTime(DateTime.Now));
+                return statut switch
+                {
+                    StatutReport.Introuvable =>
+                        throw new McpException($"Occurrence introuvable : {occurrenceId}."),
+                    StatutReport.DejaTraitee =>
+                        throw new McpException("Occurrence déjà traitée."),
+                    StatutReport.DateInvalide =>
+                        throw new McpException("L'échéance reportée ne peut pas être dans le passé."),
+                    _ => new { reportee = true, echeance = nouvelleEcheance },
+                };
+            }
+            default:
+                throw new McpException($"Action inconnue : '{action}' (annuler-completion, passer ou reporter).");
+        }
     }
 }

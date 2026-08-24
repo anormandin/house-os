@@ -4,6 +4,7 @@ public enum StatutOccurrence
 {
     EnAttente,
     Completee,
+    Passee,
 }
 
 public class Occurrence
@@ -18,12 +19,13 @@ public class Occurrence
     public Guid? CompleteeParId { get; set; }
     public Utilisateur? CompleteePar { get; set; }
     public DateTimeOffset? CompleteeLe { get; set; }
+    public DateTimeOffset? PasseeLe { get; set; }
 
     public EntreeJournal Completer(Guid utilisateurId, DateTimeOffset maintenant, string? notes = null)
     {
-        if (Statut == StatutOccurrence.Completee)
+        if (Statut != StatutOccurrence.EnAttente)
         {
-            throw new InvalidOperationException("Occurrence déjà complétée.");
+            throw new InvalidOperationException("Occurrence déjà traitée.");
         }
 
         Statut = StatutOccurrence.Completee;
@@ -39,5 +41,45 @@ public class Occurrence
             CompleteeLe = maintenant,
             Notes = notes,
         };
+    }
+
+    /// <summary>
+    /// Défait une complétion : l'occurrence redevient en attente avec son échéance
+    /// d'origine — elle redevient donc éligible au rollover, ce qui est voulu.
+    /// La suppression de l'entrée de journal appartient à l'appelant.
+    /// </summary>
+    public void AnnulerCompletion()
+    {
+        if (Statut != StatutOccurrence.Completee)
+        {
+            throw new InvalidOperationException("Occurrence non complétée.");
+        }
+
+        Statut = StatutOccurrence.EnAttente;
+        CompleteeParId = null;
+        CompleteeLe = null;
+    }
+
+    /// <summary>Saute l'occurrence sans la marquer faite : trace datée, pas de journal.</summary>
+    public void Passer(DateTimeOffset maintenant)
+    {
+        if (Statut != StatutOccurrence.EnAttente)
+        {
+            throw new InvalidOperationException("Occurrence déjà traitée.");
+        }
+
+        Statut = StatutOccurrence.Passee;
+        PasseeLe = maintenant;
+    }
+
+    /// <summary>Glisse l'échéance de cette occurrence sans toucher la définition de la tâche.</summary>
+    public void Reporter(DateOnly nouvelleEcheance)
+    {
+        if (Statut != StatutOccurrence.EnAttente)
+        {
+            throw new InvalidOperationException("Occurrence déjà traitée.");
+        }
+
+        Echeance = nouvelleEcheance;
     }
 }

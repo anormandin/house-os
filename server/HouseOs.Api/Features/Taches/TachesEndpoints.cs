@@ -42,6 +42,10 @@ public record ModifierTacheRequete(
 
 public record CompleterRequete(string? Notes);
 
+public record ReporterRequete(DateOnly Echeance);
+
+public record NotesRequete(string? Notes);
+
 public record OccurrenceDto(
     Guid Id,
     Guid TacheId,
@@ -52,6 +56,7 @@ public record OccurrenceDto(
     UtilisateurDto? AssigneA,
     UtilisateurDto? CompleteePar,
     DateTimeOffset? CompleteeLe,
+    string? Notes,
     Guid? ZoneId,
     Guid? EquipementId,
     string ModeRecurrence);
@@ -146,6 +151,69 @@ public static class TachesEndpoints
             {
                 StatutCompletion.Introuvable => Results.NotFound(),
                 StatutCompletion.DejaCompletee => Results.Conflict(new { message = "Occurrence déjà complétée." }),
+                _ => Results.NoContent(),
+            };
+        });
+
+        app.MapPost("/api/occurrences/{id:guid}/annuler-completion", async (
+            Guid id,
+            HouseOsDbContext db) =>
+        {
+            var statut = await OperationsTaches.AnnulerCompletionAsync(db, id);
+            return statut switch
+            {
+                StatutAnnulation.Introuvable => Results.NotFound(),
+                StatutAnnulation.PasCompletee => Results.Conflict(new { message = "L'occurrence n'est pas complétée." }),
+                StatutAnnulation.PasLaDerniere => Results.Conflict(new { message = "Cette complétion n'est pas la plus récente." }),
+                StatutAnnulation.ProchaineDejaTraitee => Results.Conflict(new { message = "La prochaine occurrence a déjà été traitée." }),
+                _ => Results.NoContent(),
+            };
+        });
+
+        app.MapPost("/api/occurrences/{id:guid}/passer", async (
+            Guid id,
+            ClaimsPrincipal principal,
+            HouseOsDbContext db) =>
+        {
+            var resultat = await OperationsTaches.PasserAsync(
+                db, id, principal.IdUtilisateur(), DateTimeOffset.UtcNow);
+            return resultat.Statut switch
+            {
+                StatutPasse.Introuvable => Results.NotFound(),
+                StatutPasse.DejaTraitee => Results.Conflict(new { message = "Occurrence déjà traitée." }),
+                StatutPasse.TachePonctuelle => Erreur(new ErreurValidation(
+                    "occurrence", "Une tâche ponctuelle ne se passe pas.")),
+                _ => Results.NoContent(),
+            };
+        });
+
+        app.MapPost("/api/occurrences/{id:guid}/reporter", async (
+            Guid id,
+            ReporterRequete requete,
+            HouseOsDbContext db) =>
+        {
+            var statut = await OperationsTaches.ReporterAsync(
+                db, id, requete.Echeance, DateOnly.FromDateTime(DateTime.Now));
+            return statut switch
+            {
+                StatutReport.Introuvable => Results.NotFound(),
+                StatutReport.DejaTraitee => Results.Conflict(new { message = "Occurrence déjà traitée." }),
+                StatutReport.DateInvalide => Erreur(new ErreurValidation(
+                    "echeance", "L'échéance reportée ne peut pas être dans le passé.")),
+                _ => Results.NoContent(),
+            };
+        });
+
+        app.MapPut("/api/occurrences/{id:guid}/notes", async (
+            Guid id,
+            NotesRequete requete,
+            HouseOsDbContext db) =>
+        {
+            var statut = await OperationsTaches.AjouterNotesAsync(db, id, requete.Notes);
+            return statut switch
+            {
+                StatutNotes.Introuvable => Results.NotFound(),
+                StatutNotes.PasCompletee => Results.Conflict(new { message = "L'occurrence n'est pas complétée." }),
                 _ => Results.NoContent(),
             };
         });

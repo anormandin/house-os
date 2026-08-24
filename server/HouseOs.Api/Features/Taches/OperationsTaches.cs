@@ -11,6 +11,16 @@ public enum StatutCompletion { Introuvable, DejaCompletee, Ok }
 
 public record ResultatCompletion(StatutCompletion Statut, Occurrence? Prochaine);
 
+public enum StatutAnnulation { Introuvable, PasCompletee, PasLaDerniere, ProchaineDejaTraitee, Ok }
+
+public enum StatutPasse { Introuvable, DejaTraitee, TachePonctuelle, Ok }
+
+public record ResultatPasse(StatutPasse Statut, Occurrence? Prochaine);
+
+public enum StatutReport { Introuvable, DejaTraitee, DateInvalide, Ok }
+
+public enum StatutNotes { Introuvable, PasCompletee, Ok }
+
 /// <summary>
 /// Logique de la tranche Taches partagée entre les endpoints REST et les outils MCP.
 /// Les erreurs sont des valeurs (jamais des IResult) : chaque consommateur les traduit
@@ -125,7 +135,7 @@ public static class OperationsTaches
         {
             return new ResultatCompletion(StatutCompletion.Introuvable, null);
         }
-        if (occurrence.Statut == StatutOccurrence.Completee)
+        if (occurrence.Statut != StatutOccurrence.EnAttente)
         {
             return new ResultatCompletion(StatutCompletion.DejaCompletee, null);
         }
@@ -148,6 +158,157 @@ public static class OperationsTaches
 
         await db.SaveChangesAsync();
         return new ResultatCompletion(StatutCompletion.Ok, prochaine);
+    }
+
+    /// <summary>
+    /// Défait la complétion la plus récente d'une tâche : supprime l'entrée de journal,
+    /// remet l'occurrence en attente et supprime l'occurrence suivante matérialisée.
+    /// Refusé si une complétion plus récente existe ou si la suivante a déjà été traitée.
+    /// L'occurrence annulée reprend son ancienne échéance et redevient éligible au
+    /// rollover — voulu. Fait SaveChanges.
+    /// </summary>
+    public static async Task<StatutAnnulation> AnnulerCompletionAsync(
+        HouseOsDbContext db,
+        Guid occurrenceId)
+    {
+        var occurrence = await db.Occurrences
+            .Include(o => o.Tache)
+            .SingleOrDefaultAsync(o => o.Id == occurrenceId);
+        if (occurrence is null)
+        {
+            return StatutAnnulation.Introuvable;
+        }
+        if (occurrence.Statut != StatutOccurrence.Completee)
+        {
+            return StatutAnnulation.PasCompletee;
+        }
+
+        var tache = occurrence.Tache!;
+        var entree = await db.Journal.SingleOrDefaultAsync(j => j.OccurrenceId == occurrence.Id);
+        if (entree is null)
+        {
+            return StatutAnnulation.PasLaDerniere;
+        }
+        // Garde « dernière complétion » évaluée côté client : le journal d'une tâche
+        // reste minuscule (deux personnes) et Sqlite (tests) ne traduit pas les
+        // comparaisons de DateTimeOffset en SQL.
+        var horodatages = await db.Journal
+            .Where(j => j.TacheId == tache.Id)
+            .Select(j => j.CompleteeLe)
+            .ToListAsync();
+        if (horodatages.Any(h => h > entree.CompleteeLe))
+        {
+            return StatutAnnulation.PasLaDerniere;
+        }
+
+        if (tache.Recurrence.Mode != ModeRecurrence.Ponctuelle)
+        {
+            var prochaine = await db.Occurrences.SingleOrDefaultAsync(o =>
+                o.TacheId == tache.Id && o.Statut == StatutOccurrence.EnAttente);
+            if (prochaine is null)
+            {
+                return StatutAnnulation.ProchaineDejaTraitee;
+            }
+            db.Occurrences.Remove(prochaine);
+        }
+
+        occurrence.AnnulerCompletion();
+        db.Journal.Remove(entree);
+        await db.SaveChangesAsync();
+        return StatutAnnulation.Ok;
+    }
+
+    /// <summary>
+    /// Saute une occurrence récurrente sans la marquer faite : statut Passee (trace
+    /// datée), aucune entrée de journal, prochaine occurrence matérialisée comme après
+    /// une complétion aujourd'hui (même stratégie d'assignation). Fait SaveChanges.
+    /// </summary>
+    public static async Task<ResultatPasse> PasserAsync(
+        HouseOsDbContext db,
+        Guid occurrenceId,
+        Guid utilisateurId,
+        DateTimeOffset maintenant)
+    {
+        var occurrence = await db.Occurrences
+            .Include(o => o.Tache)
+            .SingleOrDefaultAsync(o => o.Id == occurrenceId);
+        if (occurrence is null)
+        {
+            return new ResultatPasse(StatutPasse.Introuvable, null);
+        }
+        if (occurrence.Statut != StatutOccurrence.EnAttente)
+        {
+            return new ResultatPasse(StatutPasse.DejaTraitee, null);
+        }
+
+        var tache = occurrence.Tache!;
+        if (tache.Recurrence.Mode == ModeRecurrence.Ponctuelle)
+        {
+            return new ResultatPasse(StatutPasse.TachePonctuelle, null);
+        }
+
+        occurrence.Passer(maintenant);
+
+        var assigne = await ChoisirProchainAssigne(db, tache, utilisateurId, maintenant);
+        var prochaine = tache.GenererProchaineOccurrence(
+            DateOnly.FromDateTime(maintenant.LocalDateTime), occurrence.Echeance, assigne);
+        if (prochaine is not null)
+        {
+            db.Occurrences.Add(prochaine);
+        }
+
+        await db.SaveChangesAsync();
+        return new ResultatPasse(StatutPasse.Ok, prochaine);
+    }
+
+    /// <summary>
+    /// Glisse l'échéance de l'occurrence en attente sans toucher la définition de la
+    /// tâche. Dates passées refusées. Fait SaveChanges.
+    /// </summary>
+    public static async Task<StatutReport> ReporterAsync(
+        HouseOsDbContext db,
+        Guid occurrenceId,
+        DateOnly nouvelleEcheance,
+        DateOnly aujourdhui)
+    {
+        var occurrence = await db.Occurrences.SingleOrDefaultAsync(o => o.Id == occurrenceId);
+        if (occurrence is null)
+        {
+            return StatutReport.Introuvable;
+        }
+        if (occurrence.Statut != StatutOccurrence.EnAttente)
+        {
+            return StatutReport.DejaTraitee;
+        }
+        if (nouvelleEcheance < aujourdhui)
+        {
+            return StatutReport.DateInvalide;
+        }
+
+        occurrence.Reporter(nouvelleEcheance);
+        await db.SaveChangesAsync();
+        return StatutReport.Ok;
+    }
+
+    /// <summary>
+    /// Met à jour les notes de l'entrée de journal d'une occurrence complétée
+    /// (ajout post-hoc depuis la rangée verte). Fait SaveChanges.
+    /// </summary>
+    public static async Task<StatutNotes> AjouterNotesAsync(
+        HouseOsDbContext db,
+        Guid occurrenceId,
+        string? notes)
+    {
+        var entree = await db.Journal.SingleOrDefaultAsync(j => j.OccurrenceId == occurrenceId);
+        if (entree is null)
+        {
+            var existe = await db.Occurrences.AnyAsync(o => o.Id == occurrenceId);
+            return existe ? StatutNotes.PasCompletee : StatutNotes.Introuvable;
+        }
+
+        entree.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        await db.SaveChangesAsync();
+        return StatutNotes.Ok;
     }
 
     /// <summary>Liste les occurrences selon le filtre (mêmes règles pour REST et MCP).</summary>
@@ -198,6 +359,7 @@ public static class OperationsTaches
                     ? null
                     : new UtilisateurDto(o.CompleteePar.Id, o.CompleteePar.NomUtilisateur, o.CompleteePar.NomAffichage),
                 o.CompleteeLe,
+                db.Journal.Where(j => j.OccurrenceId == o.Id).Select(j => j.Notes).FirstOrDefault(),
                 o.Tache.ZoneId,
                 o.Tache.EquipementId,
                 o.Tache.Recurrence.Mode.ToString()))

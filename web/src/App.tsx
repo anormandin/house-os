@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { api } from '@/lib/api'
+import BanniereErreur from '@/components/BanniereErreur'
 import Layout from '@/components/Layout'
 import Connexion from '@/pages/Connexion'
 import Aujourdhui from '@/pages/Aujourdhui'
@@ -23,19 +24,27 @@ function App() {
   }
 
   if (moi === undefined) {
-    return <Connexion />
+    return (
+      <>
+        <Connexion />
+        <BanniereErreur />
+      </>
+    )
   }
 
   return (
-    <Routes>
-      <Route element={<Layout moi={moi} />}>
-        <Route path="/" element={<Aujourdhui />} />
-        <Route path="/pieces" element={<Pieces />} />
-        <Route path="/taches" element={<Taches />} />
-        <Route path="/equipements" element={<Equipements />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+    <>
+      <Routes>
+        <Route element={<Layout moi={moi} />}>
+          <Route path="/" element={<Aujourdhui />} />
+          <Route path="/pieces" element={<Pieces />} />
+          <Route path="/taches" element={<Taches />} />
+          <Route path="/equipements" element={<Equipements />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+      <BanniereErreur />
+    </>
   )
 }
 

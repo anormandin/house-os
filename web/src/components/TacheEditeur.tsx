@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import { api, type Recurrence, type TacheDonnees } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -473,13 +474,13 @@ export default function TacheEditeur({
 
         <div className="mt-2 flex items-center gap-2">
           {tacheId !== null && (
-            <button
-              type="button"
-              onClick={() => supprimer.mutate()}
-              className="rounded-xl px-4 py-2 text-sm font-bold text-rouge hover:bg-rouge/10"
+            <ConfirmerSuppression
+              ariaLabel="Supprimer la tâche"
+              onConfirmer={() => supprimer.mutate()}
+              className="rounded-xl px-4 py-2 text-sm font-bold text-rouge hover:bg-rouge/10 hover:text-rouge"
             >
               Supprimer
-            </button>
+            </ConfirmerSuppression>
           )}
           <div className="ml-auto flex gap-2">
             <button

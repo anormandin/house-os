@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, FileText, Image, Plus, Trash2, X } from 'lucide-react'
+import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import { api, type EquipementDonnees } from '@/lib/api'
 import { dateCourte, heureQuebec } from '@/lib/format'
 import { dateLocaleIso } from '@/lib/api'
@@ -42,7 +43,6 @@ export default function Equipements() {
   const [choisiId, setChoisiId] = useState<string | null>(null)
   const [creation, setCreation] = useState(false)
   const [fiche, setFiche] = useState<Fiche>(ficheVide)
-  const [confirmerSuppression, setConfirmerSuppression] = useState(false)
   const champFichier = useRef<HTMLInputElement>(null)
   const maj = (champ: Partial<Fiche>) => setFiche((ancienne) => ({ ...ancienne, ...champ }))
 
@@ -100,7 +100,6 @@ export default function Equipements() {
     mutationFn: () => api.supprimerEquipement(choisiId!),
     onSuccess: () => {
       setChoisiId(null)
-      setConfirmerSuppression(false)
       invalider()
     },
   })
@@ -136,7 +135,6 @@ export default function Equipements() {
           onClick={() => {
             setCreation(true)
             setChoisiId(null)
-            setConfirmerSuppression(false)
           }}
           className="flex items-center gap-2 rounded-full bg-orange px-4 py-2 text-sm font-bold text-carte"
         >
@@ -167,7 +165,6 @@ export default function Equipements() {
                       onClick={() => {
                         setChoisiId(equipement.id)
                         setCreation(false)
-                        setConfirmerSuppression(false)
                       }}
                       className={cn(
                         'flex items-center gap-3 rounded-[18px] bg-carte px-4 py-3 text-left shadow-carte transition-shadow hover:shadow-carte-lg',
@@ -207,25 +204,15 @@ export default function Equipements() {
                 <h2 className="text-2xl font-bold">
                   {creation ? 'Nouvel équipement' : fiche.nom || '…'}
                 </h2>
-                {creation === false &&
-                  (confirmerSuppression ? (
-                    <button
-                      type="button"
-                      onClick={() => supprimer.mutate()}
-                      className="ml-auto rounded-full bg-rouge px-3 py-1 text-xs font-bold text-carte"
-                    >
-                      Vraiment?
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      aria-label="Supprimer l'équipement"
-                      onClick={() => setConfirmerSuppression(true)}
-                      className="ml-auto text-sourdine hover:text-rouge"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  ))}
+                {creation === false && (
+                  <span className="ml-auto flex">
+                    <ConfirmerSuppression
+                      key={choisiId ?? 'aucun'}
+                      ariaLabel="Supprimer l'équipement"
+                      onConfirmer={() => supprimer.mutate()}
+                    />
+                  </span>
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">

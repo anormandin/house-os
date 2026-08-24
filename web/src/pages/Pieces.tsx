@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
+import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import { api, dateLocaleIso, type Occurrence, type Zone } from '@/lib/api'
 import { bornesJourneeLocale, dateLongue } from '@/lib/format'
@@ -46,7 +47,6 @@ export default function Pieces() {
   const [nomAjout, setNomAjout] = useState('')
   const [typeAjout, setTypeAjout] = useState<'Interieur' | 'Exterieur'>('Interieur')
   const [renommage, setRenommage] = useState<string | null>(null)
-  const [confirmerSuppression, setConfirmerSuppression] = useState(false)
 
   const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
   const { data: enAttente } = useQuery({
@@ -79,7 +79,6 @@ export default function Pieces() {
     mutationFn: (id: string) => api.supprimerZone(id),
     onSuccess: () => {
       setZoneChoisieId(null)
-      setConfirmerSuppression(false)
       invaliderZones()
       queryClient.invalidateQueries({ queryKey: ['occurrences'] })
     },
@@ -131,7 +130,6 @@ export default function Pieces() {
                 type="button"
                 onClick={() => {
                   setZoneChoisieId(zone.id)
-                  setConfirmerSuppression(false)
                   setRenommage(null)
                 }}
                 className={cn(
@@ -257,24 +255,11 @@ export default function Pieces() {
                   {dansZone(faitesJour, zoneChoisie.id).length} faite
                   {dansZone(faitesJour, zoneChoisie.id).length > 1 ? 's' : ''} aujourd’hui
                 </span>
-                {confirmerSuppression ? (
-                  <button
-                    type="button"
-                    onClick={() => supprimerZone.mutate(zoneChoisie.id)}
-                    className="rounded-full bg-rouge px-3 py-1 text-xs font-bold text-carte"
-                  >
-                    Vraiment?
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label="Supprimer la pièce"
-                    onClick={() => setConfirmerSuppression(true)}
-                    className="text-sourdine hover:text-rouge"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                )}
+                <ConfirmerSuppression
+                  key={zoneChoisie.id}
+                  ariaLabel="Supprimer la pièce"
+                  onConfirmer={() => supprimerZone.mutate(zoneChoisie.id)}
+                />
               </div>
 
               <OccurrenceListe
