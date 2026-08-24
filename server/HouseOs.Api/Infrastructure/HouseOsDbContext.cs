@@ -19,6 +19,8 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<PrevisionQuotidienne> PrevisionsQuotidiennes => Set<PrevisionQuotidienne>();
     public DbSet<ReleveMeteo> RelevesMeteo => Set<ReleveMeteo>();
     public DbSet<PhraseDuJour> PhrasesDuJour => Set<PhraseDuJour>();
+    public DbSet<FluxExterne> FluxExternes => Set<FluxExterne>();
+    public DbSet<EvenementExterne> EvenementsExternes => Set<EvenementExterne>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -120,6 +122,23 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
         modelBuilder.Entity<ReleveMeteo>(r =>
         {
             r.Property(x => x.Payload).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<FluxExterne>(f =>
+        {
+            f.Property(x => x.Nom).HasMaxLength(100);
+            f.Property(x => x.Url).HasMaxLength(500);
+            f.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+            f.Property(x => x.DerniereErreur).HasMaxLength(300);
+            f.HasMany(x => x.Evenements).WithOne().HasForeignKey(e => e.FluxExterneId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EvenementExterne>(e =>
+        {
+            e.Property(x => x.Uid).HasMaxLength(300);
+            e.Property(x => x.Titre).HasMaxLength(200);
+            e.HasIndex(x => x.Date);
         });
 
         modelBuilder.Entity<PhraseDuJour>(p =>

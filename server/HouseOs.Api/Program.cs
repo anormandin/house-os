@@ -1,6 +1,7 @@
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Equipements;
+using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.FluxIcal;
 using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Mcp;
@@ -65,6 +66,8 @@ builder.Services.Configure<MeteoOptions>(builder.Configuration.GetSection("Meteo
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<MeteoIngestionService>();
 
+builder.Services.AddHostedService<FluxExternesRafraichissement>();
+
 builder.Services.Configure<HumeurOptions>(builder.Configuration.GetSection("Humeur"));
 // La clé peut vivre à plat (« ANTHROPIC_API_KEY » dans appsettings.local.json ou en env).
 builder.Services.PostConfigure<HumeurOptions>(o =>
@@ -94,6 +97,7 @@ app.MapEquipements();
 app.MapIcal();
 app.MapMeteo();
 app.MapHumeur();
+app.MapFluxExternes();
 app.MapMcpHouseOs();
 
 // PWA : toute route non-API retombe sur l'app React

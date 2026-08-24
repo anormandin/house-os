@@ -160,6 +160,32 @@ export type Meteo = {
   verdicts: VerdictMeteo[]
 }
 
+export type TypeFluxExterne = 'Collecte' | 'Ecole' | 'Autre'
+
+export type FluxExterne = {
+  id: string
+  nom: string
+  url: string
+  type: TypeFluxExterne
+  actif: boolean
+  dernierRafraichissementLe: string | null
+  derniereErreur: string | null
+  nbEvenements: number
+}
+
+export type FluxExterneDonnees = {
+  nom: string
+  url: string
+  type: TypeFluxExterne
+}
+
+export type EvenementExterne = {
+  titre: string
+  type: TypeFluxExterne
+  date: string
+  heure: string | null
+}
+
 export type PhraseDuJour = {
   titre: string
   sousTitre: string
@@ -314,6 +340,22 @@ export const api = {
   monFluxIcal: () => requete<{ chemin: string }>('/api/ical/mon-flux'),
 
   meteo: () => requete<Meteo>('/api/meteo'),
+
+  fluxExternes: () => requete<FluxExterne[]>('/api/flux-externes'),
+  creerFluxExterne: (donnees: FluxExterneDonnees) =>
+    requete<FluxExterne>('/api/flux-externes', {
+      method: 'POST',
+      body: JSON.stringify(donnees),
+    }),
+  modifierFluxExterne: (id: string, donnees: FluxExterneDonnees) =>
+    requete<void>(`/api/flux-externes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(donnees),
+    }),
+  supprimerFluxExterne: (id: string) =>
+    requete<void>(`/api/flux-externes/${id}`, { method: 'DELETE' }),
+  evenementsExternes: (jours = 7) =>
+    requete<EvenementExterne[]>(`/api/evenements-externes?jours=${jours}`),
 
   // null quand aucune phrase n'est encore matérialisée : le client retombe sur
   // sa banque locale (humeur.ts).

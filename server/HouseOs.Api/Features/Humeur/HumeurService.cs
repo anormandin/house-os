@@ -25,7 +25,9 @@ public class HumeurService(
                 var (date, moment) = CreneauCourant(DateTimeOffset.Now);
                 await GenererSiManquante(date, moment, stoppingToken);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            // Filtre sur le jeton : un timeout réseau est aussi une
+            // OperationCanceledException et ne doit pas tuer le service.
+            catch (Exception ex) when (stoppingToken.IsCancellationRequested == false)
             {
                 logger.LogError(ex, "Humeur : échec de génération de la phrase du jour.");
             }
@@ -107,7 +109,7 @@ public class HumeurService(
                 }
                 logger.LogWarning("Humeur : réponse LLM inutilisable — repli sur la banque.");
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (ct.IsCancellationRequested == false)
             {
                 logger.LogWarning(ex, "Humeur : appel LLM raté — repli sur la banque.");
             }

@@ -26,7 +26,9 @@ public class MeteoIngestionService(
             {
                 await Ingerer(stoppingToken);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            // Filtre sur le jeton : un timeout HTTP est aussi une
+            // OperationCanceledException et ne doit pas tuer le service.
+            catch (Exception ex) when (stoppingToken.IsCancellationRequested == false)
             {
                 logger.LogError(ex, "Météo : échec de l'ingestion — les dernières prévisions connues restent servies.");
             }

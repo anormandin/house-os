@@ -1,14 +1,21 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { CalendarPlus, Plus } from 'lucide-react'
 import Avatar, { paletteAvatar } from '@/components/Avatar'
 import ComptesAReboursGestion from '@/components/ComptesAReboursGestion'
+import FluxExternesGestion, { ICONES_FLUX } from '@/components/FluxExternesGestion'
 import { ICONES_COMPTE, MaisonSoleil } from '@/components/Illustrations'
 import MeteoCarte from '@/components/MeteoCarte'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import QuickAdd from '@/components/QuickAdd'
 import TacheEditeur from '@/components/TacheEditeur'
-import { api, dateLocaleIso, type CompteARebours, type Occurrence } from '@/lib/api'
+import {
+  api,
+  dateLocaleIso,
+  type CompteARebours,
+  type EvenementExterne,
+  type Occurrence,
+} from '@/lib/api'
 import { bornesJourneeLocale, dateCourte, dateLongue, dodosAvant, jourCourt } from '@/lib/format'
 import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
 
@@ -45,6 +52,11 @@ export default function Aujourdhui() {
     queryFn: api.phraseDuJour,
     refetchInterval: 15 * 60 * 1000,
   })
+  const { data: evenementsExternes } = useQuery({
+    queryKey: ['evenements-externes'],
+    queryFn: () => api.evenementsExternes(7),
+  })
+  const [gestionFluxOuverte, setGestionFluxOuverte] = useState(false)
   const [gestionComptesOuverte, setGestionComptesOuverte] = useState(false)
 
   const chargement = chargementOuvertes || chargementFaites
@@ -85,6 +97,9 @@ export default function Aujourdhui() {
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         {/* Liste du jour */}
         <div className="flex flex-col gap-[11px]">
+          <EvenementsDuJour
+            evenements={(evenementsExternes ?? []).filter((e) => e.date === aujourdhui)}
+          />
           {chargement ? (
             <p className="py-8 text-center text-sm text-sourdine">Chargement…</p>
           ) : (
@@ -103,7 +118,12 @@ export default function Aujourdhui() {
         {/* Colonne latérale */}
         <div className="flex flex-col gap-[18px]">
           <MeteoCarte meteo={meteo} />
-          <CetteSemaine enAttente={enAttente ?? []} aujourdhui={aujourdhui} />
+          <CetteSemaine
+            enAttente={enAttente ?? []}
+            aujourdhui={aujourdhui}
+            evenements={evenementsExternes ?? []}
+            onGerer={() => setGestionFluxOuverte(true)}
+          />
           <Equipe enAttente={enAttente ?? []} utilisateurs={utilisateurs ?? []} />
           <ComptesARebours
             comptes={comptesARebours ?? []}
@@ -118,6 +138,31 @@ export default function Aujourdhui() {
           onFermer={() => setGestionComptesOuverte(false)}
         />
       )}
+      {gestionFluxOuverte && <FluxExternesGestion onFermer={() => setGestionFluxOuverte(false)} />}
+    </div>
+  )
+}
+
+/* Les événements du jour : des faits (collecte, école…), pas des tâches — un
+   bandeau discret, rien à cocher. */
+function EvenementsDuJour({ evenements }: { evenements: EvenementExterne[] }) {
+  if (evenements.length === 0) {
+    return null
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {evenements.map((e) => {
+        const { Icone } = ICONES_FLUX[e.type]
+        return (
+          <span
+            key={`${e.titre}-${e.date}`}
+            className="flex items-center gap-2 rounded-full bg-carte px-4 py-2 text-sm font-bold shadow-carte"
+          >
+            <Icone className="size-4 text-orange" />
+            {e.titre} aujourd&rsquo;hui
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -125,31 +170,59 @@ export default function Aujourdhui() {
 function CetteSemaine({
   enAttente,
   aujourdhui,
+  evenements,
+  onGerer,
 }: {
   enAttente: Occurrence[]
   aujourdhui: string
+  evenements: EvenementExterne[]
+  onGerer: () => void
 }) {
   const [annee, mois, jour] = aujourdhui.split('-').map(Number)
   const dansSeptJours = dateLocaleIso(new Date(annee, mois - 1, jour + 7))
-  const semaine = enAttente
+  const taches = enAttente
     .filter((o) => o.echeance !== null && o.echeance > aujourdhui && o.echeance <= dansSeptJours)
-    .slice(0, 5)
+    .map((o) => ({ cle: `t-${o.id}`, date: o.echeance!, titre: o.titre, type: null }))
+  const externes = evenements
+    .filter((e) => e.date > aujourdhui)
+    .map((e, i) => ({ cle: `e-${i}`, date: e.date, titre: e.titre, type: e.type }))
+  const semaine = [...taches, ...externes].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 7)
 
   return (
     <section className="rounded-3xl bg-carte px-6 py-5 shadow-carte">
-      <h2 className="mb-3 text-lg font-bold">Cette semaine</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-bold">Cette semaine</h2>
+        <button
+          type="button"
+          aria-label="Gérer les calendriers externes"
+          onClick={onGerer}
+          className="rounded-lg p-1.5 text-sourdine transition-colors hover:text-dore"
+        >
+          <CalendarPlus className="size-4" />
+        </button>
+      </div>
       {semaine.length === 0 ? (
         <p className="text-sm text-sourdine">Rien de prévu — belle semaine en vue.</p>
       ) : (
         <ul className="flex flex-col gap-[11px] text-sm">
-          {semaine.map((o) => (
-            <li key={o.id} className="flex items-center gap-2.5">
-              <span className="rounded-full bg-creux px-2.5 py-0.5 text-xs font-bold text-dore">
-                {jourCourt(o.echeance!)}
-              </span>
-              <span className="min-w-0 truncate">{o.titre}</span>
-            </li>
-          ))}
+          {semaine.map((item) => {
+            const Icone = item.type === null ? null : ICONES_FLUX[item.type].Icone
+            return (
+              <li key={item.cle} className="flex items-center gap-2.5">
+                <span className="rounded-full bg-creux px-2.5 py-0.5 text-xs font-bold text-dore">
+                  {jourCourt(item.date)}
+                </span>
+                <span
+                  className={
+                    Icone === null ? 'min-w-0 truncate' : 'min-w-0 truncate italic text-dore'
+                  }
+                >
+                  {item.titre}
+                </span>
+                {Icone !== null && <Icone className="size-3.5 shrink-0 text-sourdine" />}
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>
