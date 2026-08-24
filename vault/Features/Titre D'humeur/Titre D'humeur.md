@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-24
-verified-against: a288a62
+verified-against: b9e7e9b
 tags: []
 ---
 
