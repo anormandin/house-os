@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-08-23
-verified-against: 7b407d4
+last-verified: 2026-08-24
+verified-against: a9bbbf7
 tags: []
 ---
 
@@ -30,6 +30,16 @@ tourne en Docker Compose sur une machine maison, joignable via Tailscale
 - `scripts/backup.sh` — backup quotidien (pg_dump + volume fichiers).
 - `firmware/`, `hardware/cad`, `hardware/pcb` — phase 3 (vides pour l'instant).
 - `vault/`, `docs/research/` — connaissance.
+- `.mcp.json`, `.claude/skills/` — branchement Claude Code (voir ci-dessous).
+
+## Interface agent (MCP)
+
+Le backend expose un endpoint MCP `/mcp` ([[Serveur MCP]],
+[[D-2026-08-24 Serveur MCP Intégré Au Backend]]) : Claude Code pilote l'app (créer un
+lot de tâches, compléter, zones/équipements/comptes) avec une clé API partagée et une
+identité déclarée par appel ([[D-2026-08-24 Clé API Partagée Et AgirComme]]).
+`.mcp.json` vise le dev par défaut, la prod via `HOUSEOS_MCP_URL`/`HOUSEOS_MCP_KEY`.
+Deux skills projet : `planifier-taches` (workflow plan → push) et `demarrer` (dev).
 
 ## Ingestion de données externes (phase 2)
 

@@ -67,42 +67,8 @@ public static class EquipementsEndpoints
 
         app.MapGet("/api/equipements/{id:guid}", async (Guid id, HouseOsDbContext db) =>
         {
-            var equipement = await db.Equipements.AsNoTracking()
-                .Include(e => e.PiecesJointes)
-                .SingleOrDefaultAsync(e => e.Id == id);
-            if (equipement is null)
-            {
-                return Results.NotFound();
-            }
-
-            // Historique d'entretien : complétions du journal des tâches liées à cet
-            // équipement (le journal survit à la suppression des tâches — jointure lâche).
-            var tachesLiees = await db.Taches
-                .Where(t => t.EquipementId == id)
-                .Select(t => new { t.Id, t.Titre })
-                .ToListAsync();
-            var idsTaches = tachesLiees.Select(t => t.Id).ToList();
-            var titres = tachesLiees.ToDictionary(t => t.Id, t => t.Titre);
-            var entretiens = (await db.Journal
-                    .Where(j => idsTaches.Contains(j.TacheId))
-                    .OrderByDescending(j => j.CompleteeLe)
-                    .Take(20)
-                    .Join(db.Utilisateurs, j => j.UtilisateurId, u => u.Id,
-                        (j, u) => new { j.TacheId, j.CompleteeLe, u.NomAffichage, j.Notes })
-                    .ToListAsync())
-                .Select(j => new EntretienDto(
-                    j.CompleteeLe, j.NomAffichage, titres.GetValueOrDefault(j.TacheId), j.Notes))
-                .ToList();
-
-            return Results.Ok(new EquipementDetailDto(
-                equipement.Id, equipement.Nom, equipement.ZoneId, equipement.Marque,
-                equipement.Modele, equipement.NumeroSerie, equipement.DateAchat,
-                equipement.FinGarantie, equipement.Notes, equipement.Specs,
-                equipement.PiecesJointes
-                    .OrderBy(p => p.CreeLe)
-                    .Select(p => new PieceJointeDto(p.Id, p.NomFichier, p.TypeMime, p.Taille, p.CreeLe))
-                    .ToList(),
-                entretiens));
+            var detail = await ChargerDetailAsync(db, id);
+            return detail is null ? Results.NotFound() : Results.Ok(detail);
         });
 
         app.MapPost("/api/equipements", async (EquipementRequete requete, HouseOsDbContext db) =>
@@ -257,7 +223,48 @@ public static class EquipementsEndpoints
         return app;
     }
 
-    private static void Appliquer(EquipementRequete requete, Equipement equipement)
+    /// <summary>Détail complet d'un équipement (partagé REST + MCP), null si introuvable.</summary>
+    internal static async Task<EquipementDetailDto?> ChargerDetailAsync(HouseOsDbContext db, Guid id)
+    {
+        var equipement = await db.Equipements.AsNoTracking()
+            .Include(e => e.PiecesJointes)
+            .SingleOrDefaultAsync(e => e.Id == id);
+        if (equipement is null)
+        {
+            return null;
+        }
+
+        // Historique d'entretien : complétions du journal des tâches liées à cet
+        // équipement (le journal survit à la suppression des tâches — jointure lâche).
+        var tachesLiees = await db.Taches
+            .Where(t => t.EquipementId == id)
+            .Select(t => new { t.Id, t.Titre })
+            .ToListAsync();
+        var idsTaches = tachesLiees.Select(t => t.Id).ToList();
+        var titres = tachesLiees.ToDictionary(t => t.Id, t => t.Titre);
+        var entretiens = (await db.Journal
+                .Where(j => idsTaches.Contains(j.TacheId))
+                .OrderByDescending(j => j.CompleteeLe)
+                .Take(20)
+                .Join(db.Utilisateurs, j => j.UtilisateurId, u => u.Id,
+                    (j, u) => new { j.TacheId, j.CompleteeLe, u.NomAffichage, j.Notes })
+                .ToListAsync())
+            .Select(j => new EntretienDto(
+                j.CompleteeLe, j.NomAffichage, titres.GetValueOrDefault(j.TacheId), j.Notes))
+            .ToList();
+
+        return new EquipementDetailDto(
+            equipement.Id, equipement.Nom, equipement.ZoneId, equipement.Marque,
+            equipement.Modele, equipement.NumeroSerie, equipement.DateAchat,
+            equipement.FinGarantie, equipement.Notes, equipement.Specs,
+            equipement.PiecesJointes
+                .OrderBy(p => p.CreeLe)
+                .Select(p => new PieceJointeDto(p.Id, p.NomFichier, p.TypeMime, p.Taille, p.CreeLe))
+                .ToList(),
+            entretiens);
+    }
+
+    internal static void Appliquer(EquipementRequete requete, Equipement equipement)
     {
         equipement.Nom = requete.Nom.Trim();
         equipement.ZoneId = requete.ZoneId;
