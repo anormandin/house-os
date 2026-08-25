@@ -96,7 +96,7 @@ function ApercuImage({ document }: { document: Document }) {
         alt={`Aperçu de ${document.titre}`}
         loading="lazy"
         onError={() => setEnErreur(true)}
-        className="max-h-56 max-w-full object-contain"
+        className="h-40 max-w-full object-contain"
       />
     </a>
   )
