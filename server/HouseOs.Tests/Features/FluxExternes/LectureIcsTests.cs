@@ -121,4 +121,12 @@ public class LectureIcsTests
         var e = Assert.Single(LectureIcs.Normaliser(ics, Debut, Fin));
         Assert.Equal("(sans titre)", e.Titre);
     }
+
+    [Fact]
+    public void ContenuSansCalendrier_ErreurClaire()
+    {
+        var ex = Assert.Throws<FormatException>(
+            () => LectureIcs.Normaliser("", Debut, Fin));
+        Assert.Contains("iCalendar", ex.Message);
+    }
 }

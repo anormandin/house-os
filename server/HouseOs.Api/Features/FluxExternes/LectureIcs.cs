@@ -12,7 +12,8 @@ public static class LectureIcs
 {
     public static List<EvenementExterne> Normaliser(string ics, DateOnly debut, DateOnly finExclue)
     {
-        var calendrier = Ical.Net.Calendar.Load(ics);
+        var calendrier = Ical.Net.Calendar.Load(ics)
+            ?? throw new FormatException("Le contenu reçu n'est pas un calendrier iCalendar.");
         var evenements = new List<EvenementExterne>();
 
         foreach (var occurrence in calendrier.GetOccurrences(new CalDateTime(debut.ToDateTime(TimeOnly.MinValue))))
