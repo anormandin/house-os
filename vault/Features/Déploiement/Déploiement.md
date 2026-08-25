@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-24
-verified-against: 5560ca1
+last-verified: 2026-08-25
+verified-against: 526df63
 tags: []
 ---
 
@@ -23,9 +23,10 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   + app (port 8080), volumes nommés (`postgres-data`, `fichiers`), redémarrage
   automatique, `TZ=America/Toronto`, en-têtes proxy activés
   ([[D-2026-08-24 Prod LXC Proxmox NPM GitHub]]).
-- **Accès** : `https://houseos.alainnormandin.dev` (NPM, cert wildcard) — PWA
-  installable ; à l'extérieur, Tailscale (subnet router du lab). Le MCP prod se
-  branche sur `/mcp` de la même URL.
+- **Accès** : `https://houseos.alainnormandin.dev` (NPM, cert wildcard) — app
+  installable (manifest seulement, sans service worker :
+  [[D-2026-08-25 Retrait Du Service Worker]]) ; à l'extérieur, Tailscale (subnet
+  router du lab). Le MCP prod se branche sur `/mcp` de la même URL.
 - **DNS** : enregistrement local UniFi `houseos.alainnormandin.dev` → NPM
   (192.168.4.50, jamais vers le LXC : c'est NPM qui termine le TLS) — l'app reste
   joignable du wifi même sans Internet ; + réservation DHCP de l'IP du LXC

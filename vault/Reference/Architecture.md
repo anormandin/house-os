@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-08-24
-verified-against: 5560ca1
+last-verified: 2026-08-25
+verified-against: 526df63
 tags: []
 ---
 
@@ -25,7 +25,8 @@ tourne en Docker Compose sur une machine maison, joignable via Tailscale
 - `server/HouseOs.Api` — API minimal, features en tranches verticales
   (`Features/<Module>/…`), domaine riche pour le moteur de récurrence.
 - `server/HouseOs.Tests` — tests unitaires (moteur de récurrence d'abord).
-- `web/` — Vite + TS + TanStack Query + Tailwind, PWA, design « Cuisine
+- `web/` — Vite + TS + TanStack Query + Tailwind, installable (manifest sans
+  service worker : [[D-2026-08-25 Retrait Du Service Worker]]), design « Cuisine
   chaleureuse » (shadcn retiré à la reconstruction UI de 2026-08-23).
 - `scripts/backup.sh` — backup quotidien (pg_dump + volume fichiers).
 - `firmware/`, `hardware/cad`, `hardware/pcb` — phase 3 (vides pour l'instant).

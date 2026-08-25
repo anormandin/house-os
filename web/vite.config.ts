@@ -10,6 +10,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // App desktop-web servie sur le LAN : le pré-cache offline n'apporte rien et
+      // retarde chaque déploiement d'un rechargement. selfDestroying publie un SW
+      // qui désenregistre ceux déjà installés ; le manifest (installable) reste.
+      selfDestroying: true,
       registerType: 'autoUpdate',
       manifest: {
         name: 'House OS',
