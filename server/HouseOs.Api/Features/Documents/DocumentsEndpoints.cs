@@ -2,6 +2,8 @@ using System.Globalization;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace HouseOs.Api.Features.Documents;
 
@@ -36,12 +38,52 @@ public static class DocumentsEndpoints
     public static readonly string[] TypesMimePermis =
         ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"];
 
+    /// <summary>Côté maximal (px) des miniatures servies aux listes et fiches.</summary>
+    public const int CoteMiniature = 512;
+
     /// <summary>Dossier des fichiers téléversés (config Fichiers:Chemin, créé au besoin).</summary>
     public static string DossierFichiers(IConfiguration config, IWebHostEnvironment env)
     {
         var chemin = config["Fichiers:Chemin"] ?? Path.Combine(env.ContentRootPath, "donnees", "fichiers");
         Directory.CreateDirectory(chemin);
         return chemin;
+    }
+
+    /// <summary>Cache disque des miniatures, sous-dossier du dossier des fichiers.</summary>
+    public static string DossierMiniatures(IConfiguration config, IWebHostEnvironment env)
+    {
+        var chemin = Path.Combine(DossierFichiers(config, env), "miniatures");
+        Directory.CreateDirectory(chemin);
+        return chemin;
+    }
+
+    /// <summary>
+    /// Génère la miniature WebP d'une image (EXIF redressé, réduite à <see cref="CoteMiniature"/>,
+    /// jamais agrandie). False si le fichier n'est pas décodable (HEIC, corrompu…).
+    /// </summary>
+    public static async Task<bool> GenererMiniatureAsync(string source, string destination)
+    {
+        try
+        {
+            using var image = await Image.LoadAsync(source);
+            image.Mutate(op => op.AutoOrient());
+            if (image.Width > CoteMiniature || image.Height > CoteMiniature)
+            {
+                image.Mutate(op => op.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new Size(CoteMiniature, CoteMiniature),
+                }));
+            }
+            var temporaire = $"{destination}.{Guid.NewGuid():N}.tmp";
+            await image.SaveAsWebpAsync(temporaire);
+            File.Move(temporaire, destination, overwrite: true);
+            return true;
+        }
+        catch (ImageFormatException)
+        {
+            return false;
+        }
     }
 
     /// <summary>Catégorie déduite du type MIME quand l'utilisateur n'en fournit pas.</summary>
@@ -192,6 +234,32 @@ public static class DocumentsEndpoints
             return Results.File(chemin, document.TypeMime, document.NomFichier);
         });
 
+        app.MapGet("/api/documents/{id:guid}/miniature", async (
+            Guid id,
+            HouseOsDbContext db,
+            IConfiguration config,
+            IWebHostEnvironment env) =>
+        {
+            var document = await db.Documents.FindAsync(id);
+            if (document is null || document.TypeMime.StartsWith("image/") == false)
+            {
+                return Results.NotFound();
+            }
+            var miniature = Path.Combine(
+                DossierMiniatures(config, env),
+                Path.GetFileNameWithoutExtension(document.CheminDisque) + ".webp");
+            if (File.Exists(miniature) == false)
+            {
+                var original = Path.Combine(DossierFichiers(config, env), document.CheminDisque);
+                if (File.Exists(original) == false
+                    || await GenererMiniatureAsync(original, miniature) == false)
+                {
+                    return Results.NotFound();
+                }
+            }
+            return Results.File(miniature, "image/webp");
+        });
+
         app.MapDelete("/api/documents/{id:guid}", async (
             Guid id,
             HouseOsDbContext db,
@@ -212,11 +280,18 @@ public static class DocumentsEndpoints
             return false;
         }
         var chemin = Path.Combine(DossierFichiers(config, env), document.CheminDisque);
+        var miniature = Path.Combine(
+            DossierMiniatures(config, env),
+            Path.GetFileNameWithoutExtension(document.CheminDisque) + ".webp");
         db.Documents.Remove(document);
         await db.SaveChangesAsync();
         if (File.Exists(chemin))
         {
             File.Delete(chemin);
+        }
+        if (File.Exists(miniature))
+        {
+            File.Delete(miniature);
         }
         return true;
     }

@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-24
-verified-against: 233f89b
+last-verified: 2026-08-25
+verified-against: 5560ca1
 tags: []
 ---
 
@@ -26,6 +26,11 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   téléversement avec métadonnées, fiche éditable, téléchargement, suppression
   deux-clics. Les documents dont l'échéance tombe dans les 60 jours sont mis en
   évidence en tête de page ; aucune tâche n'est générée.
+- Chaque rangée de liste montre une **vignette** (miniature pour les images, icône
+  de catégorie sinon), un **badge de type** (PDF, JPG…) et un **bouton de
+  téléchargement direct** ; la fiche montre un aperçu cliquable pour les images.
+  Miniatures : WebP ≤ 512 px générées à la demande et mises en cache serveur,
+  pas d'aperçu pour PDF/HEIC ([[D-2026-08-25 Miniatures De Documents]]).
 - La **fiche équipement** montre ses documents liés (téléversement direct depuis
   la fiche : catégorie déduite du type — PDF → Manuel, image → Photo — puis
   modifiable).
@@ -48,6 +53,8 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   pièces jointes, fichiers survivent à l'équipement.
 - [[D-2026-08-24 Catégories Et Échéance De Document]] — catégories fixes,
   échéance + rappel visuel 60 jours, page dédiée.
+- [[D-2026-08-25 Miniatures De Documents]] — miniatures WebP côté serveur, cache
+  disque, ImageSharp 3.1, HEIC sans aperçu.
 
 ## Ancres de code
 
@@ -55,6 +62,7 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
 - `server/HouseOs.Api/Features/Documents/DocumentsEndpoints.cs` — CRUD + fichiers.
 - `web/src/pages/Documents.tsx` — page ; `web/src/pages/Equipements.tsx` —
   documents liés sur la fiche.
+- `web/src/components/VignetteDocument.tsx` — vignette + libellé de type partagés.
 
 ## Sources
 

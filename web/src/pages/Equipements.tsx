@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, FileText, Image, Plus, Trash2, X } from 'lucide-react'
+import { Download, FileText, Plus, Trash2, X } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
+import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
 import { api, type EquipementDonnees } from '@/lib/api'
 import { dateCourte, heureQuebec } from '@/lib/format'
 import { dateLocaleIso } from '@/lib/api'
@@ -357,13 +358,10 @@ export default function Equipements() {
                             key={document.id}
                             className="flex items-center gap-2.5 rounded-xl bg-creux px-3 py-2 text-sm"
                           >
-                            {document.typeMime === 'application/pdf' ? (
-                              <FileText className="size-4 shrink-0 text-dore" />
-                            ) : (
-                              <Image className="size-4 shrink-0 text-dore" />
-                            )}
+                            <VignetteDocument document={document} classe="size-9 bg-carte" />
                             <span className="min-w-0 flex-1 truncate font-bold">{document.titre}</span>
                             <span className="text-xs text-sourdine">
+                              {libelleTypeFichier(document)} ·{' '}
                               {(document.taille / 1024 / 1024).toFixed(1).replace('.', ',')} Mo
                             </span>
                             <a

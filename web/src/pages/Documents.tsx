@@ -5,6 +5,7 @@ import {
   Map, Plus, Receipt, Shield, TriangleAlert,
 } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
+import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
 import { api, dateLocaleIso, type CategorieDocument, type Document, type DocumentDonnees } from '@/lib/api'
 import { dateLisible } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -76,6 +77,29 @@ function versDonnees(fiche: Fiche): DocumentDonnees {
     dateDocument: fiche.dateDocument || null,
     echeance: fiche.echeance || null,
   }
+}
+
+/** Aperçu d'une image dans la fiche — masqué si la miniature échoue (HEIC…). */
+function ApercuImage({ document }: { document: Document }) {
+  const [enErreur, setEnErreur] = useState(false)
+  if (enErreur) {
+    return null
+  }
+  return (
+    <a
+      href={`/api/documents/${document.id}/fichier`}
+      aria-label={`Télécharger ${document.nomFichier}`}
+      className="self-start overflow-hidden rounded-xl bg-creux"
+    >
+      <img
+        src={`/api/documents/${document.id}/miniature`}
+        alt={`Aperçu de ${document.titre}`}
+        loading="lazy"
+        onError={() => setEnErreur(true)}
+        className="max-h-56 max-w-full object-contain"
+      />
+    </a>
+  )
 }
 
 export default function Documents() {
@@ -255,47 +279,60 @@ export default function Documents() {
           {(documents ?? []).length > 0 && visibles.length === 0 && (
             <p className="px-5 py-8 text-center text-sm text-sourdine">Rien ne correspond.</p>
           )}
-          {visibles.map((document) => {
-            const Icone = ICONES_CATEGORIE[document.categorie]
-            return (
+          {visibles.map((document) => (
+            <div
+              key={document.id}
+              className={cn(
+                'flex items-center gap-3 rounded-[18px] bg-carte px-4 py-3 shadow-carte transition-shadow hover:shadow-carte-lg',
+                choisiId === document.id && 'outline-2 outline-orange/50',
+              )}
+            >
               <button
-                key={document.id}
                 type="button"
                 onClick={() => setChoisiId(document.id)}
-                className={cn(
-                  'flex items-center gap-3 rounded-[18px] bg-carte px-4 py-3 text-left shadow-carte transition-shadow hover:shadow-carte-lg',
-                  choisiId === document.id && 'outline-2 outline-orange/50',
-                )}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
               >
-                <Icone className="size-4 shrink-0 text-dore" />
+                <VignetteDocument document={document} icone={ICONES_CATEGORIE[document.categorie]} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[15px] font-bold">{document.titre}</div>
-                  <div className="truncate text-xs text-sourdine">
-                    {[
-                      LIBELLES_CATEGORIE[document.categorie],
-                      document.nomEquipement,
-                      document.nomZone,
-                      document.dateDocument !== null ? dateLisible(document.dateDocument) : null,
-                    ].filter(Boolean).join(' · ')}
+                  <div className="flex items-center gap-1.5 text-xs text-sourdine">
+                    <span className="shrink-0 rounded bg-creux px-1 py-px text-[10px] font-bold text-dore">
+                      {libelleTypeFichier(document)}
+                    </span>
+                    <span className="truncate">
+                      {[
+                        LIBELLES_CATEGORIE[document.categorie],
+                        document.nomEquipement,
+                        document.nomZone,
+                        document.dateDocument !== null ? dateLisible(document.dateDocument) : null,
+                      ].filter(Boolean).join(' · ')}
+                    </span>
                   </div>
                 </div>
-                {document.echeance !== null && (
-                  <span
-                    className={cn(
-                      'shrink-0 text-xs font-bold',
-                      joursAvant(document.echeance) < 0
-                        ? 'text-rouge'
-                        : joursAvant(document.echeance) <= SEUIL_ECHEANCE_JOURS
-                          ? 'text-jaune'
-                          : 'text-sourdine',
-                    )}
-                  >
-                    {dateLisible(document.echeance)}
-                  </span>
-                )}
               </button>
-            )
-          })}
+              {document.echeance !== null && (
+                <span
+                  className={cn(
+                    'shrink-0 text-xs font-bold',
+                    joursAvant(document.echeance) < 0
+                      ? 'text-rouge'
+                      : joursAvant(document.echeance) <= SEUIL_ECHEANCE_JOURS
+                        ? 'text-jaune'
+                        : 'text-sourdine',
+                  )}
+                >
+                  {dateLisible(document.echeance)}
+                </span>
+              )}
+              <a
+                href={`/api/documents/${document.id}/fichier`}
+                aria-label={`Télécharger ${document.nomFichier}`}
+                className="shrink-0 text-sourdine hover:text-orange"
+              >
+                <Download className="size-4" />
+              </a>
+            </div>
+          ))}
         </div>
 
         {/* Fiche */}
@@ -324,9 +361,14 @@ export default function Documents() {
               </div>
 
               <div className="text-xs text-sourdine">
-                {choisi.nomFichier} · {(choisi.taille / 1024 / 1024).toFixed(1).replace('.', ',')} Mo ·
+                {libelleTypeFichier(choisi)} · {choisi.nomFichier} ·{' '}
+                {(choisi.taille / 1024 / 1024).toFixed(1).replace('.', ',')} Mo ·
                 ajouté le {dateLisible(dateLocaleIso(new Date(choisi.creeLe)))}
               </div>
+
+              {choisi.typeMime.startsWith('image/') && (
+                <ApercuImage key={choisi.id} document={choisi} />
+              )}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <input

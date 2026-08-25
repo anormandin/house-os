@@ -29,3 +29,14 @@ Photo → Assurance, suppression deux-clics), téléchargement par curl.
 
 Déviations : aucune. À noter : la confirmation deux-clics se désarme après 4 s
 (comportement voulu du composant partagé, pas un bug).
+
+## Incrément 2026-08-25 — vignettes, types, téléchargement direct
+
+- Endpoint `GET /api/documents/{id}/miniature` (WebP ≤ 512 px, EXIF redressé,
+  cache disque effacé avec le document, 404 si non décodable) —
+  [[D-2026-08-25 Miniatures De Documents]] ; 3 tests `GenererMiniatureTests`.
+- Web : `VignetteDocument` partagé (miniature avec repli icône), badge de type
+  (PDF/JPG/…), bouton télécharger sur chaque rangée des pages Documents et
+  Équipements, aperçu cliquable dans la fiche.
+- Vérifié : 140 tests verts, build web propre. Parcours navigateur à refaire
+  après redémarrage de l'API.
