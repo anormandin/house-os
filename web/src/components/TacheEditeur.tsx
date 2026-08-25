@@ -108,13 +108,15 @@ function Pilule({
 
 export default function TacheEditeur({
   tacheId,
+  zoneInitialeId,
   onFermer,
 }: {
   tacheId: string | null
+  zoneInitialeId?: string
   onFermer: () => void
 }) {
   const queryClient = useQueryClient()
-  const [f, setF] = useState<Formulaire>(defaut)
+  const [f, setF] = useState<Formulaire>({ ...defaut, zoneId: zoneInitialeId ?? '' })
   const maj = (champ: Partial<Formulaire>) => setF((ancien) => ({ ...ancien, ...champ }))
 
   const { data: utilisateurs } = useQuery({ queryKey: ['utilisateurs'], queryFn: api.utilisateurs })
@@ -125,6 +127,16 @@ export default function TacheEditeur({
     queryFn: () => api.tache(tacheId!),
     enabled: tacheId !== null,
   })
+
+  useEffect(() => {
+    function surTouche(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onFermer()
+      }
+    }
+    window.addEventListener('keydown', surTouche)
+    return () => window.removeEventListener('keydown', surTouche)
+  }, [onFermer])
 
   useEffect(() => {
     if (tache === undefined) {

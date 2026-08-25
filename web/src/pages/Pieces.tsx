@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import OccurrenceListe from '@/components/OccurrenceListe'
+import TacheEditeur from '@/components/TacheEditeur'
 import { api, dateLocaleIso, type Occurrence, type Zone } from '@/lib/api'
 import { bornesJourneeLocale, dateLongue } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -47,6 +48,7 @@ export default function Pieces() {
   const [nomAjout, setNomAjout] = useState('')
   const [typeAjout, setTypeAjout] = useState<'Interieur' | 'Exterieur'>('Interieur')
   const [renommage, setRenommage] = useState<string | null>(null)
+  const [editeur, setEditeur] = useState<{ tacheId: string | null } | null>(null)
 
   const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
   const { data: enAttente } = useQuery({
@@ -265,7 +267,16 @@ export default function Pieces() {
               <OccurrenceListe
                 occurrences={listeZone}
                 vide="Rien à faire ici. La pièce respire."
+                onModifier={(tacheId) => setEditeur({ tacheId })}
               />
+
+              <button
+                type="button"
+                onClick={() => setEditeur({ tacheId: null })}
+                className="flex items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-tiret px-5 py-3 text-sm font-bold text-tiret-texte transition-colors hover:border-orange/50 hover:text-dore"
+              >
+                <Plus className="size-4" /> Ajouter une tâche dans {zoneChoisie.nom}
+              </button>
 
               {duJourHorsZone.length > 0 && (
                 <div className="mt-auto border-t border-barre-piste pt-4">
@@ -294,6 +305,14 @@ export default function Pieces() {
           )}
         </div>
       </div>
+
+      {editeur !== null && (
+        <TacheEditeur
+          tacheId={editeur.tacheId}
+          zoneInitialeId={zoneChoisie?.id}
+          onFermer={() => setEditeur(null)}
+        />
+      )}
     </div>
   )
 }
