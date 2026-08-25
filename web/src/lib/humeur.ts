@@ -1,7 +1,7 @@
 // Titre d'humeur — couche 2 (banque de gabarits) du design en trois couches décrit
 // dans vault/Features/Titre D'humeur/Titre D'humeur.md. Les faits sont calculés,
 // jamais inventés ; la phrase tourne selon la date. Le polissage LLM (couche 3)
-// viendra en phase 2 avec la météo — cette banque restera le repli permanent.
+// vit côté serveur — cette banque est le repli permanent quand il est absent.
 
 // Date propre à la phrase d'humeur (les cartes compte à rebours viennent de l'API).
 // Se retire naturellement après le 6 octobre 2026.

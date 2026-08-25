@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: e546ee2
+verified-against: ccaeced
 tags: []
 ---
 
@@ -35,7 +35,8 @@ Implémenté (V0, as-built) :
 - L'UI applique le design final [[D-2026-08-23 Direction Artistique Cuisine Chaleureuse]] :
   desktop d'abord (en-tête Maison + onglets), héros illustré avec titre d'humeur
   (repli client de [[Titre D'humeur]]), cartes Cette semaine / Bilan /
-  [[Comptes À Rebours|Comptes à rebours]], quick-add repliable (⌘K).
+  [[Comptes À Rebours|Comptes à rebours]], quick-add (bouton + ⌘K) qui ouvre
+  l'éditeur complet en modal.
 
 Implémenté (V1 « Emménagement », as-built) :
 
@@ -58,9 +59,14 @@ Implémenté (V1 « Emménagement », as-built) :
   moins-l'a-fait (journal 90 jours, égalité → alternance).
 - Les tâches référencent une [[Glossaire#Zone|zone]] ([[D-2026-08-23 Zones Plates]])
   et un [[Équipements|équipement]] ; l'onglet **Pièces** (vue signature) montre la
-  fraîcheur par zone (calcul client, libellés doux) avec gestion des zones inline.
-- **Édition complète** (PUT) : l'occurrence en attente est réalignée sur la
-  nouvelle définition (échéance recalculée si non fournie).
+  fraîcheur par zone (calcul client, libellés doux) avec gestion des zones inline ;
+  le panneau d'une pièce liste ses tâches (rangées cliquables → éditeur) et offre
+  « Ajouter une tâche dans ‹pièce› » (zone préremplie).
+- **Édition complète** (PUT) : pour une récurrente, l'occurrence en attente est
+  réalignée sur la nouvelle définition (échéance recalculée si non fournie) ; pour
+  une **ponctuelle**, l'échéance envoyée remplace telle quelle celle de l'occurrence
+  en attente — l'omettre l'efface (d'où l'obligation pour tout client de la
+  recharger avant d'enregistrer, voir la tranche éditeur du 2026-08-25).
 - **Flux iCal par personne** ([[D-2026-08-23 Flux iCal Par Personne]]) : jeton
   secret, occurrences assignées + non-assignées, URL copiable dans « Mon calendrier ».
 
@@ -106,9 +112,12 @@ Implémenté (éditeur de tâche, 2026-08-25, as-built) :
   l'enregistrement d'une tâche ponctuelle.
 - Éditeur : la description est un `textarea` de 4 lignes ; le quick-add (⌘K, pages
   Aujourd'hui et Tâches) et le panneau d'une pièce ouvrent le **modal complet**
-  (zone préremplie depuis la pièce) ; Échap ferme le modal.
+  (zone préremplie depuis la pièce) ; Échap ferme le modal. `TacheEditeur` est
+  l'unique point d'entrée de création **et** d'édition ; cliquer une rangée
+  d'occurrence (Aujourd'hui, Tâches, Pièces) ouvre l'éditeur de sa tâche.
 - Listes : la description s'affiche en doré, retours à la ligne préservés, y compris
-  sur les tâches en retard (sous la ligne « depuis X jours »).
+  sur les tâches en retard (sous la ligne « depuis X jours ») ; les notes de la
+  rangée verte préservent aussi leurs retours à la ligne (en sourdine).
 
 ## Hors périmètre
 
@@ -143,7 +152,8 @@ Implémenté (éditeur de tâche, 2026-08-25, as-built) :
 - `server/HouseOs.Api/Features/Taches/RolloverService.cs` — glissement quotidien
 - `server/HouseOs.Api/Features/FluxIcal/FluxIcalEndpoints.cs` — flux iCal
 - `server/HouseOs.Tests/Domaine/` — tests du domaine (moteur, stratégies)
-- `web/src/components/TacheEditeur.tsx` — éditeur complet (récurrence en français)
+- `web/src/components/TacheEditeur.tsx` — éditeur complet (récurrence en français),
+  unique point d'entrée création/édition (`zoneInitialeId`, fermeture par Échap)
 - `web/src/pages/Pieces.tsx` — vue Pièces (fraîcheur, gestion des zones)
 - `web/src/pages/Aujourdhui.tsx`, `web/src/pages/Taches.tsx`, `web/src/components/QuickAdd.tsx` — UI
 - `web/src/components/OccurrenceListe.tsx` — rangées de tâches (retard, complétée,
@@ -165,3 +175,6 @@ Implémenté (éditeur de tâche, 2026-08-25, as-built) :
 - [[Plan 2026-08-24 Cycle De Vie Des Occurrences]] · [[Recap Cycle De Vie Des Occurrences]]
 - 2026-08-25 Bilan hebdo du ménage — tranche directe sans plan, voir
   [[D-2026-08-25 Bilan Hebdo Du Ménage]] et la section as-built ci-dessus.
+- 2026-08-25 Éditeur de tâche / quick-add / pièces — tranche directe sans plan
+  (échéance chargée dans l'éditeur, modal unique, tâches depuis une pièce), voir
+  la section as-built ci-dessus.

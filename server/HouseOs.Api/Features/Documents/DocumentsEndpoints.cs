@@ -80,7 +80,7 @@ public static class DocumentsEndpoints
             File.Move(temporaire, destination, overwrite: true);
             return true;
         }
-        catch (ImageFormatException)
+        catch (Exception e) when (e is ImageFormatException or NotSupportedException)
         {
             return false;
         }

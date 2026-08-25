@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-24
-verified-against: 233f89b
+last-verified: 2026-08-25
+verified-against: ccaeced
 tags: []
 ---
 
@@ -23,13 +23,22 @@ maison en s'installant.
   libres clé/valeur (JSONB — taille de filtre, code de peinture…).
 - **Documents liés** ([[D-2026-08-24 Document Unifié Sur Disque]], depuis
   2026-08-24) : manuels PDF et photos = des [[Documents]] rattachés à
-  l'équipement, téléversés depuis la fiche (catégorie déduite du type),
-  téléchargeables ; supprimer l'équipement **délie** ses documents sans effacer
+  l'équipement, téléversés depuis la fiche (catégorie déduite du type). Chaque
+  document lié affiche vignette, badge de type, taille, téléchargement direct
+  ([[D-2026-08-25 Miniatures De Documents]]) et se supprime depuis la fiche
+  (suppression deux-clics « Vraiment ? » — le document et son fichier disque
+  sont effacés) ; supprimer l'équipement **délie** ses documents sans effacer
   les fichiers.
 - Quand une [[Tâches|tâche]] référence un équipement, la fiche montre l'**historique
   d'entretien** (20 dernières complétions du journal des tâches liées — le journal
-  survivant aux tâches supprimées, le titre affiche « Tâche retirée » au besoin).
-- L'onglet Équipements groupe la liste par zone ; la fiche est éditable en place.
+  survivant aux tâches supprimées, le titre affiche « Tâche retirée » au besoin) ;
+  les notes de complétion s'affichent sous le titre (sourdine, retours à la ligne
+  préservés, même idiome que les listes de tâches).
+- L'onglet Équipements groupe la liste par zone (avec compteur de documents par
+  équipement) ; la fiche est éditable en place.
+- **MCP** ([[Serveur MCP]]) : `lister_equipements`, `obtenir_equipement` et
+  `gerer_equipement` (modifier = remplacement complet de la fiche ; supprimer
+  délie les documents) — les fichiers restent dans l'interface web.
 
 ## Hors périmètre
 
@@ -49,6 +58,8 @@ maison en s'installant.
 - `server/HouseOs.Api/Domaine/Equipement.cs` — entité (fichiers : voir [[Documents]])
 - `server/HouseOs.Api/Features/Equipements/EquipementsEndpoints.cs` — CRUD + entretien
 - `web/src/pages/Equipements.tsx` — liste par zone + fiche
+- `web/src/components/VignetteDocument.tsx` — vignettes des documents liés
+- `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — outils MCP équipements
 
 ## Sources
 

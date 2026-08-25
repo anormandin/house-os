@@ -42,6 +42,7 @@ Choix de l'utilisateur (2026-08-24).
 ## Confirmation
 
 - `grep -r "claude-haiku-4-5" server/HouseOs.Api` touche uniquement
-  `Features/Humeur/`.
+  `Features/Humeur/` et la config (`appsettings*.json`, valeur par défaut de
+  `HumeurOptions`).
 - `grep -r "AnthropicClient" server/HouseOs.Api` n'apparaît jamais dans un
   endpoint — seulement dans le worker de la tranche Humeur.

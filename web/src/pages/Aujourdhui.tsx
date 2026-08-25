@@ -63,8 +63,8 @@ export default function Aujourdhui() {
   const aujourdhui = dateLocaleIso()
   const dodosDemenagement = dodosAvant(DATE_DEMENAGEMENT)
 
-  // Phrase serveur (banque météo-consciente + polissage LLM) quand elle existe ;
-  // la banque client reste le repli ultime.
+  // Phrase serveur (banque axée tâches, météo sur exception + polissage LLM)
+  // quand elle existe ; la banque client reste le repli ultime.
   const phrase =
     phraseServeur ??
     phraseDuJour({

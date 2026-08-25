@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: 6a0c130
+verified-against: ccaeced
 ---
 
 # Suite de tests

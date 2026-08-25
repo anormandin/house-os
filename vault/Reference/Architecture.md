@@ -1,7 +1,7 @@
 ---
 type: reference
 last-verified: 2026-08-25
-verified-against: 526df63
+verified-against: ccaeced
 tags: []
 ---
 
@@ -24,11 +24,18 @@ tourne en Docker Compose sur une machine maison, joignable via Tailscale
 
 - `server/HouseOs.Api` — API minimal, features en tranches verticales
   (`Features/<Module>/…`), domaine riche pour le moteur de récurrence.
-- `server/HouseOs.Tests` — tests unitaires (moteur de récurrence d'abord).
+- `server/HouseOs.Tests` — tests xunit : `Domaine/` + `Features/` (unitaires,
+  harnais Sqlite in-memory) et `Integration/` (WebApplicationFactory +
+  Testcontainers Postgres) ; voir [[Suite De Tests]].
 - `web/` — Vite + TS + TanStack Query + Tailwind, installable (manifest sans
   service worker : [[D-2026-08-25 Retrait Du Service Worker]]), design « Cuisine
-  chaleureuse » (shadcn retiré à la reconstruction UI de 2026-08-23).
+  chaleureuse » (shadcn retiré à la reconstruction UI de 2026-08-23) ; tests
+  composants Vitest + Testing Library + MSW (`src/**/*.test.tsx`).
+- `web/e2e/` — fumée E2E Playwright (Chromium) ; voir [[Suite De Tests]].
 - `scripts/backup.sh` — backup quotidien (pg_dump + volume fichiers).
+- `Dockerfile`, `docker-compose.yml`, `.env.example` — conteneurisation et prod
+  ([[Déploiement]]).
+- `design/` — maquettes retenues (canvas Artifact publié).
 - `firmware/`, `hardware/cad`, `hardware/pcb` — phase 3 (vides pour l'instant).
 - `vault/`, `docs/research/` — connaissance.
 - `.mcp.json`, `.claude/skills/` — branchement Claude Code (voir ci-dessous).

@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: fdbfa07
+verified-against: ccaeced
 tags: []
 ---
 
@@ -31,15 +31,18 @@ Première brique d'ingestion de données externes de la phase 2.
   2026-08-25, la série horaire inclut le code temps WMO et tout code ≥ 51
   (bruine incluse, même à 0 mm) compte comme précipitation
   ([[D-2026-08-25 Code Météo Horaire Et Conditions Du Moment]]).
-- Un évaluateur `MeteoRemarquable` (même famille que les règles) produit un
+- Un évaluateur `MeteoRemarquable` (statique, du même domaine mais hors
+  `RegleJournee.Toutes` — il ne sort pas par `GET /api/meteo`) produit un
   signal « la météo sort de l'ordinaire » (orage, neige, pluie soutenue,
-  chaleur/froid extrême, grand vent, journée exceptionnelle) — consommé par
-  [[Titre D'humeur]], qui ne parle météo que sur ce signal.
+  chaleur/froid extrême, grand vent, journée exceptionnelle) — consommé
+  uniquement par [[Titre D'humeur]], qui ne parle météo que sur ce signal.
 - Quand des prévisions existent, Aujourd'hui affiche un bandeau météo compact et
-  des pastilles quand une règle rend un verdict favorable ; pas de page météo
-  dédiée. La grosse icône et la température affichent les conditions de l'heure
-  courante (objet `maintenant` de `GET /api/meteo`, dérivé de la ligne horaire) ;
-  le code quotidien sert aux jours suivants.
+  des pastilles sur verdict `Bon` d'une règle, plus une pastille « rester en
+  dedans » quand « Être dehors » est défavorable (`Passable` reste muet) ; pas de
+  page météo dédiée. La grosse icône et la température affichent les conditions
+  de l'heure courante (objet `maintenant` de `GET /api/meteo`, dérivé de la ligne
+  horaire, repli sur le code quotidien si la ligne manque) ; le code quotidien
+  sert aux jours suivants.
 - L'UI lit uniquement les tables locales via `GET /api/meteo` ; Open-Meteo hors
   ligne → dernières données connues, jamais d'appel API dans le chemin de requête.
 
@@ -69,7 +72,8 @@ Première brique d'ingestion de données externes de la phase 2.
   `RegleAeration`, `RegleJourneeDehors`, `MeteoRemarquable`, seuils en constantes).
 - `server/HouseOs.Api/Features/Meteo/` — options, normalisation Open-Meteo,
   worker d'ingestion, endpoint `GET /api/meteo`.
-- `server/HouseOs.Tests/Domaine/ReglesJourneeTests.cs` et
+- `server/HouseOs.Tests/Domaine/ReglesJourneeTests.cs`,
+  `server/HouseOs.Tests/Domaine/MeteoRemarquableTests.cs` et
   `server/HouseOs.Tests/Features/Meteo/OpenMeteoNormalisationTests.cs` — tests.
 - `web/src/components/MeteoCarte.tsx` — carte « Dehors » d'Aujourd'hui
   (bandeau + pastilles).

@@ -57,4 +57,4 @@ Option 2 — trois couches, chacune avec un rôle précis :
 - `ls server/HouseOs.Tests/Integration` — la couche intégration existe.
 - `rg "vitest" web/package.json` — la couche composants existe.
 - `ls web/e2e` — la couche fumée existe.
-- `rg "EditionSansModificationEstSansPerte|edition sans perte" -i server web` — l'invariant clé est testé.
+- `rg "EditionSansModification_EstSansPerte" server` — l'invariant clé est testé.

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, FileText, Plus, Trash2, X } from 'lucide-react'
+import { Download, FileText, Plus, X } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
 import { api, type EquipementDonnees } from '@/lib/api'
-import { dateCourte, heureQuebec } from '@/lib/format'
+import { dateLisible, heureQuebec } from '@/lib/format'
 import { dateLocaleIso } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -371,14 +371,10 @@ export default function Equipements() {
                             >
                               <Download className="size-4" />
                             </a>
-                            <button
-                              type="button"
-                              aria-label={`Supprimer ${document.titre}`}
-                              onClick={() => supprimerDocument.mutate(document.id)}
-                              className="text-sourdine hover:text-rouge"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
+                            <ConfirmerSuppression
+                              ariaLabel={`Supprimer ${document.titre}`}
+                              onConfirmer={() => supprimerDocument.mutate(document.id)}
+                            />
                           </div>
                         ))}
                       </div>
@@ -391,16 +387,23 @@ export default function Equipements() {
                       <div className="mb-2 text-sm font-bold text-dore">Entretien</div>
                       <div className="flex flex-col gap-2 text-sm">
                         {detail.entretiens.map((entretien, i) => (
-                          <div key={i} className="flex items-center gap-2.5">
-                            <span className="size-[7px] rounded-full bg-vert" />
-                            <span className="min-w-0 flex-1 truncate">
-                              {entretien.titreTache ?? 'Tâche retirée'}
-                            </span>
+                          <div key={i} className="flex items-start gap-2.5">
+                            <span className="mt-1.5 size-[7px] shrink-0 rounded-full bg-vert" />
+                            <div className="min-w-0 flex-1">
+                              <span className="block truncate">
+                                {entretien.titreTache ?? 'Tâche retirée'}
+                              </span>
+                              {entretien.notes && (
+                                <div className="mt-px whitespace-pre-line text-[13px] text-sourdine">
+                                  {entretien.notes}
+                                </div>
+                              )}
+                            </div>
                             <span className="text-xs text-vert">
                               {entretien.utilisateur} ✓{' '}
                               {dateLocaleIso(new Date(entretien.completeeLe)) === dateLocaleIso()
                                 ? heureQuebec(entretien.completeeLe)
-                                : dateCourte(dateLocaleIso(new Date(entretien.completeeLe)))}
+                                : dateLisible(dateLocaleIso(new Date(entretien.completeeLe)))}
                             </span>
                           </div>
                         ))}

@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-08-23
-verified-against: 5f9f080
+last-verified: 2026-08-25
+verified-against: ccaeced
 tags: []
 ---
 
@@ -13,6 +13,8 @@ Normes de rédaction pour que l'UI se sente *native*, pas traduite. Source : OQL
 ## Dates et heures
 
 - Date longue : « samedi 23 août » — pas de majuscule au jour ni au mois.
+- Année affichée **seulement hors année courante** : « 22 septembre » cette année,
+  « 22 septembre 2025 » sinon (helper `dateLisible` de `web/src/lib/format.ts`).
 - Date numérique : **ISO 8601 (2026-08-23)**, jamais 08/23.
 - Heure : **24 h avec « h » espacé : « 19 h 30 », « 9 h »** — pas de zéro de tête en
   texte courant ; « 19:30 » acceptable en contexte tabulaire/technique. Jamais

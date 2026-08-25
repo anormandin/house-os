@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: fdbfa07
+verified-against: ccaeced
 tags: []
 ---
 
@@ -24,9 +24,13 @@ sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher
    [[D-2026-08-25 Phrase Du Jour Axée Tâches]]). Tout ce qui est numérique ou
    factuel vient de cette couche — jamais du LLM (pas de chiffres hallucinés).
    Cette même structure nourrira la vue e-ink.
-2. **Banque de gabarits (plancher)** : ~20-30 phrases françaises par état de maison
-   (tout-est-fait, retard, soirée chargée, veille de déménagement…), rotation
-   ensemencée par la date. Zéro coût, testable, sert de repli permanent.
+2. **Banque de gabarits (plancher)** : une douzaine de titres en trois familles
+   (calme / actif / compte à rebours ≤ 60 dodos) et 1-2 variantes de sous-titre
+   par état de maison (`ToutFait`, `RienAuProgramme`, `Retard`, `JourneeChargee`,
+   `Calme` — enum `EtatMaison`), rotation ensemencée par la date. Variante
+   « Prochaine affaire : … » sur les journées libres ; la touche météo est
+   retirée sur `Retard`/`JourneeChargee` même quand le signal remarquable est
+   présent. Zéro coût, testable, sert de repli permanent.
 3. **Polissage LLM (optionnel, jamais dans le chemin de requête)** : un
    `BackgroundService` (cohérent avec [[D-2026-08-23 Pas De N8n Dans Le Cœur]])
    appelle Haiku 4.5 à deux créneaux fixes — matin 5 h 30 et soir 17 h,
@@ -46,7 +50,7 @@ sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher
 
 ## Coût (as of 2026-08, prix API Anthropic)
 
-~700 tokens entrée + ~60 sortie par appel. À 2 appels/jour : Haiku 4.5 (« claude-haiku-4-5 »,
+~700-1 000 tokens entrée (prompt few-shot allongé le 2026-08-25) + ~60 sortie par appel. À 2 appels/jour : Haiku 4.5 (« claude-haiku-4-5 »,
 1 $/5 $ par Mtok) ≈ **0,75 $/an** ; même Opus 5 ≈ 3,70 $/an. Le coût ne devient un
 sujet que si un LLM entre dans un chemin interactif (ex. parsing en langage naturel
 du quick-add — candidat futur, lui aussi peu coûteux à ~1 court appel par création).

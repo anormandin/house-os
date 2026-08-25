@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: 5560ca1
+verified-against: ccaeced
 tags: []
 ---
 
@@ -18,17 +18,21 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
 
 ## Comportement
 
-- Un document = un fichier (PDF ou image, 50 Mo max) + titre + catégorie fixe
+- Un document = un fichier (50 Mo max ; liste blanche PDF/JPEG/PNG/WebP/HEIC) +
+  titre + catégorie fixe
   ([[D-2026-08-24 Catégories Et Échéance De Document]]) + optionnels : lien vers
   un [[Équipements|équipement]] ou une zone, notes, date du document (facture,
   contrat…), échéance.
-- **Page Documents** dans la nav : filtres par catégorie, recherche titre/notes,
-  téléversement avec métadonnées, fiche éditable, téléchargement, suppression
-  deux-clics. Les documents dont l'échéance tombe dans les 60 jours sont mis en
-  évidence en tête de page ; aucune tâche n'est générée.
+- **Page Documents** dans la nav : filtres par catégorie, recherche
+  titre/notes/nom de fichier, téléversement en un clic (titre déduit du nom de
+  fichier, catégorie du type MIME), fiche éditable ensuite (métadonnées),
+  téléchargement, suppression deux-clics. Les documents dont l'échéance tombe
+  dans les 60 jours **ou est déjà passée** (expirés en rouge, sans borne
+  d'ancienneté) sont mis en évidence en tête de page ; aucune tâche n'est générée.
 - Chaque rangée de liste montre une **vignette** (miniature pour les images, icône
   de catégorie sinon), un **badge de type** (PDF, JPG…) et un **bouton de
-  téléchargement direct** ; la fiche montre un aperçu cliquable pour les images.
+  téléchargement direct** ; la fiche montre un aperçu cliquable pour les images
+  (hauteur fixe, masqué si la miniature échoue).
   Miniatures : WebP ≤ 512 px générées à la demande et mises en cache serveur,
   pas d'aperçu pour PDF/HEIC ([[D-2026-08-25 Miniatures De Documents]]).
 - La **fiche équipement** montre ses documents liés (téléversement direct depuis

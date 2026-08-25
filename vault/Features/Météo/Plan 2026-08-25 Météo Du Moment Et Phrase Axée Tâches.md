@@ -42,8 +42,9 @@ par [[D-2026-08-25 Code Météo Horaire Et Conditions Du Moment]] et
 
 - [x] `dotnet test` vert ; `tsc` vert côté web.
 - [x] Vault : specs [[Météo]] et [[Titre D'humeur]] à jour, recaps, validation.
-- [ ] Déploiement prod + suppression de la phrase du matin périmée pour forcer une
-      régénération (demander avant).
+- [x] Déploiement prod + suppression de la phrase du matin périmée pour forcer une
+      régénération (demander avant). *(Fait au /vault sync du 2026-08-25 : prod à
+      `6a0c130`, rangée Matin supprimée + conteneur redémarré, phrase régénérée.)*
 
 ## Vérification
 

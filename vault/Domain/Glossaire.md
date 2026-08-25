@@ -1,7 +1,7 @@
 ---
 type: domain
-last-verified: 2026-08-24
-verified-against: 233f89b
+last-verified: 2026-08-25
+verified-against: ccaeced
 tags: []
 ---
 
@@ -59,6 +59,19 @@ Un papier de la maison numérisé (acte, assurance, facture, manuel, photo…) :
 fichier sur disque + titre + catégorie fixe + liens optionnels vers un équipement
 ou une zone + échéance optionnelle. A absorbé l'ancienne « pièce jointe »
 d'équipement ([[D-2026-08-24 Document Unifié Sur Disque]]). Voir [[Documents]].
+
+## Compte à rebours
+
+Un événement attendu du foyer (déménagement, visite, voyage…) : titre + date cible +
+icône maison. Entité du foyer, pas d'assignation ; affiché en « dodos » dans
+Aujourd'hui et publié dans les flux iCal. Voir [[Comptes À Rebours]].
+
+## Flux externe
+
+Un calendrier ICS du monde extérieur (collectes Recollect, calendrier scolaire…)
+suivi par l'app : URL + fenêtre de lecture, rafraîchi par worker. Ses **événements
+externes** sont affichés seulement — jamais couplés aux tâches
+([[D-2026-08-24 Flux ICS Dans L'app Affichage Seul]]). Voir [[Flux Externes]].
 
 ## Appareil
 

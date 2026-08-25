@@ -40,6 +40,7 @@ de l'utilisateur, contre la recommandation emoji.
 
 ## Confirmation
 
-Enum `IconeCompteARebours` à 8 valeurs dans le Domaine ; composants SVG
-correspondants dans `web/src/components/Illustrations.tsx` ; sélecteur d'icônes dans
+Enum `IconeCompteARebours` dans le Domaine (8 valeurs à l'origine — le set peut
+grandir sans nouvelle décision) ; composants SVG au trait correspondant à chaque
+valeur dans `web/src/components/Illustrations.tsx` ; sélecteur d'icônes dans
 le modal de gestion.

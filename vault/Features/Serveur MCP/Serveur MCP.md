@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-24
-verified-against: 233f89b
+last-verified: 2026-08-25
+verified-against: ccaeced
 tags: []
 ---
 
@@ -70,8 +70,11 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 - `server/HouseOs.Api/Features/Mcp/AuthentificationCleApi.cs` — scheme CleApi.
 - `server/HouseOs.Api/Features/Mcp/OutilsTaches.cs` — outils tâches (dont creer_taches).
 - `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — zones, équipements, comptes.
+- `server/HouseOs.Api/Features/Mcp/OutilsIcal.cs` — mon_flux_ical.
 - `server/HouseOs.Api/Features/Mcp/AgirComme.cs` — résolution d'identité.
 - `server/HouseOs.Api/Features/Taches/OperationsTaches.cs` — logique partagée REST+MCP.
+- `server/HouseOs.Tests/Integration/McpApiTests.cs` et
+  `server/HouseOs.Tests/Features/Mcp/` — tests (401 sans clé, clé API, agirComme).
 - `.mcp.json` — branchement Claude Code.
 
 ## Sources
