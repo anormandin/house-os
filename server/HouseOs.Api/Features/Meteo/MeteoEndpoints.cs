@@ -35,7 +35,10 @@ public static class MeteoEndpoints
                 .Select(r => (DateTimeOffset?)r.RecupereLe)
                 .FirstOrDefaultAsync();
 
-            var aujourdhui = DateOnly.FromDateTime(DateTime.Now);
+            // Une seule lecture d'horloge : à la bascule de minuit, quatre lectures
+            // séparées pouvaient mélanger la date d'hier et l'heure d'aujourd'hui.
+            var instant = DateTime.Now;
+            var aujourdhui = DateOnly.FromDateTime(instant);
             var jours = await db.PrevisionsQuotidiennes
                 .Where(j => j.Date >= aujourdhui)
                 .OrderBy(j => j.Date)
@@ -46,14 +49,14 @@ public static class MeteoEndpoints
             MaintenantDto? maintenant = null;
             if (heures.Count > 0)
             {
-                var apercu = new ApercuMeteo(DateTime.Now, heures, jours);
+                var apercu = new ApercuMeteo(instant, heures, jours);
                 verdicts = RegleJournee.Toutes
                     .Select(r => r.Evaluer(apercu))
                     .Select(v => new VerdictDto(v.Regle, v.Etat.ToString(), v.Raison))
                     .ToList();
 
-                var heureCourante = new DateTime(DateTime.Now.Year, DateTime.Now.Month,
-                    DateTime.Now.Day, DateTime.Now.Hour, 0, 0);
+                var heureCourante = new DateTime(instant.Year, instant.Month,
+                    instant.Day, instant.Hour, 0, 0);
                 var courante = heures.FirstOrDefault(h => h.Heure == heureCourante);
                 maintenant = courante is null
                     ? null

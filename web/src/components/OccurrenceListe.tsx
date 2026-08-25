@@ -97,7 +97,9 @@ export default function OccurrenceListe({
   const aujourdhui = dateLocaleIso()
 
   const sauverNote = () => {
-    if (noteEnEdition === null) {
+    // Enter (submit) puis blur (démontage de l'input) passent tous deux ici :
+    // sans la garde isPending, la note partirait deux fois.
+    if (noteEnEdition === null || modifierNotes.isPending) {
       return
     }
     const texte = noteEnEdition.texte.trim()

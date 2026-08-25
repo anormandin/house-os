@@ -46,7 +46,16 @@ public class FluxExternesRafraichissement(
 
         foreach (var abonnement in flux)
         {
-            await Rafraichir(db, abonnement, httpFactory.CreateClient(), ct);
+            try
+            {
+                await Rafraichir(db, abonnement, httpFactory.CreateClient(), ct);
+            }
+            // Ceinture : un flux qui échoue (même dans sa gestion d'erreur) ne doit
+            // jamais priver les flux suivants de leur rafraîchissement pendant 6 h.
+            catch (Exception ex) when (ct.IsCancellationRequested == false)
+            {
+                logger.LogError(ex, "Flux externes : échec isolé du flux {Nom}.", abonnement.Nom);
+            }
         }
     }
 
@@ -77,8 +86,22 @@ public class FluxExternesRafraichissement(
         // OperationCanceledException.
         catch (Exception ex) when (ct.IsCancellationRequested == false)
         {
-            flux.DerniereErreur = ex.Message.Length > 300 ? ex.Message[..300] : ex.Message;
-            await db.SaveChangesAsync(ct);
+            var message = ex.Message.Length > 300 ? ex.Message[..300] : ex.Message;
+            flux.DerniereErreur = message; // lu par la validation à la création
+            // Le contexte traque encore les événements de la tentative ratée : les
+            // purger, sinon la sauvegarde de l'erreur les flusherait — ou lèverait
+            // (flux supprimé entre-temps), avortant le passage entier.
+            db.ChangeTracker.Clear();
+            try
+            {
+                await db.FluxExternes
+                    .Where(f => f.Id == flux.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(f => f.DerniereErreur, message), ct);
+            }
+            catch (Exception) when (ct.IsCancellationRequested == false)
+            {
+                // Flux supprimé pendant le passage : rien à noter.
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ export default function ConfirmerSuppression({
 }) {
   const [confirmer, setConfirmer] = useState(false)
   const minuterie = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const armeeA = useRef(0)
 
   useEffect(() => {
     if (confirmer) {
@@ -33,8 +34,13 @@ export default function ConfirmerSuppression({
     return (
       <button
         type="button"
-        aria-label={ariaLabel}
+        aria-label={`${ariaLabel} — confirmer`}
         onClick={() => {
+          // Un double-clic rapide au même endroit ne doit pas supprimer sans que
+          // « Vraiment? » ait eu le temps d'être vu.
+          if (Date.now() - armeeA.current < 300) {
+            return
+          }
           setConfirmer(false)
           onConfirmer()
         }}
@@ -49,7 +55,10 @@ export default function ConfirmerSuppression({
     <button
       type="button"
       aria-label={ariaLabel}
-      onClick={() => setConfirmer(true)}
+      onClick={() => {
+        armeeA.current = Date.now()
+        setConfirmer(true)
+      }}
       className={cn('text-sourdine transition-colors hover:text-rouge', className)}
     >
       {children ?? <Trash2 className="size-4" />}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
-import TacheEditeur from '@/components/TacheEditeur'
+import TacheEditeur, { editeurDejaOuvert } from '@/components/TacheEditeur'
 
 export default function QuickAdd() {
   const [ouvert, setOuvert] = useState(false)
@@ -9,6 +9,11 @@ export default function QuickAdd() {
     function surTouche(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
+        // Un éditeur est déjà à l'écran (modification en cours) : ⌘K ne doit pas
+        // empiler un second modal invisible dessous.
+        if (editeurDejaOuvert()) {
+          return
+        }
         setOuvert(true)
       }
     }

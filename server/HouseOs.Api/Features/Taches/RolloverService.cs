@@ -26,22 +26,47 @@ public class RolloverService(IServiceScopeFactory scopeFactory, ILogger<Rollover
                 logger.LogError(ex, "Rollover : échec du glissement quotidien.");
             }
 
-            // Prochain passage : minuit local + 5 minutes.
-            var maintenant = DateTimeOffset.Now;
-            var prochainMinuit = new DateTimeOffset(
-                DateOnly.FromDateTime(maintenant.LocalDateTime).AddDays(1)
-                    .ToDateTime(new TimeOnly(0, 5)),
-                maintenant.Offset);
-            await Task.Delay(prochainMinuit - maintenant, stoppingToken);
+            await Task.Delay(DelaiProchainPassage(DateTimeOffset.Now), stoppingToken);
         }
+    }
+
+    /// <summary>
+    /// Délai jusqu'au prochain minuit local + 5 minutes. L'offset est celui de la date
+    /// cible (les nuits de changement d'heure, l'offset courant donnerait un passage à
+    /// 23 h 05 ou 01 h 05), et le délai est borné à une minute au plancher — un délai
+    /// négatif tuerait le service via ArgumentOutOfRangeException.
+    /// </summary>
+    internal static TimeSpan DelaiProchainPassage(DateTimeOffset maintenant)
+    {
+        var cible = DateOnly.FromDateTime(maintenant.LocalDateTime).AddDays(1)
+            .ToDateTime(new TimeOnly(0, 5));
+        var prochainMinuit = new DateTimeOffset(cible, TimeZoneInfo.Local.GetUtcOffset(cible));
+        var delai = prochainMinuit - maintenant;
+        return delai < TimeSpan.FromMinutes(1) ? TimeSpan.FromMinutes(1) : delai;
     }
 
     private async Task GlisserOccurrencesManquees(CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<HouseOsDbContext>();
-        var aujourdhui = DateOnly.FromDateTime(DateTime.Now);
 
+        var glissees = await GlisserOccurrencesManquees(db, DateOnly.FromDateTime(DateTime.Now), ct);
+        if (glissees > 0)
+        {
+            logger.LogInformation("Rollover : {Nombre} occurrence(s) glissée(s).", glissees);
+        }
+    }
+
+    /// <summary>
+    /// Le cœur du glissement, extrait pour les tests : seules les occurrences fixes,
+    /// rollover actif, à échéance strictement passée, glissent vers la prochaine date
+    /// planifiée. Fait SaveChanges. Retourne le nombre d'occurrences glissées.
+    /// </summary>
+    internal static async Task<int> GlisserOccurrencesManquees(
+        HouseOsDbContext db,
+        DateOnly aujourdhui,
+        CancellationToken ct = default)
+    {
         var manquees = await db.Occurrences
             .Include(o => o.Tache)
             .Where(o => o.Statut == StatutOccurrence.EnAttente
@@ -63,7 +88,7 @@ public class RolloverService(IServiceScopeFactory scopeFactory, ILogger<Rollover
         if (glissees > 0)
         {
             await db.SaveChangesAsync(ct);
-            logger.LogInformation("Rollover : {Nombre} occurrence(s) glissée(s).", glissees);
         }
+        return glissees;
     }
 }

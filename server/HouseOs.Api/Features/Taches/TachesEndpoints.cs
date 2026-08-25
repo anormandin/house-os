@@ -87,7 +87,7 @@ public static class TachesEndpoints
             ClaimsPrincipal principal,
             HouseOsDbContext db) =>
         {
-            var (tache, erreur) = OperationsTaches.PreparerTache(
+            var (tache, erreur) = await OperationsTaches.PreparerTacheAsync(
                 db, requete, principal.IdUtilisateur(),
                 DateTimeOffset.UtcNow, DateOnly.FromDateTime(DateTime.Now));
             if (erreur is not null)
@@ -138,6 +138,10 @@ public static class TachesEndpoints
             DateTimeOffset? a,
             HouseOsDbContext db) =>
         {
+            if (OperationsTaches.ValiderFiltre(filtre, de, a) is { } erreurFiltre)
+            {
+                return Erreur(erreurFiltre);
+            }
             var aujourdhui = date ?? DateOnly.FromDateTime(DateTime.Now);
             return Results.Ok(await OperationsTaches.ListerOccurrencesAsync(db, filtre, aujourdhui, de, a));
         });
@@ -175,6 +179,7 @@ public static class TachesEndpoints
                 StatutAnnulation.PasCompletee => Results.Conflict(new { message = "L'occurrence n'est pas complétée." }),
                 StatutAnnulation.PasLaDerniere => Results.Conflict(new { message = "Cette complétion n'est pas la plus récente." }),
                 StatutAnnulation.ProchaineDejaTraitee => Results.Conflict(new { message = "La prochaine occurrence a déjà été traitée." }),
+                StatutAnnulation.JournalManquant => Results.Conflict(new { message = "Aucune entrée de journal pour cette complétion — rien à annuler." }),
                 _ => Results.NoContent(),
             };
         });

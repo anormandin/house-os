@@ -75,8 +75,15 @@ public static class ZonesEndpoints
                 ["nom"] = ["Le nom est requis."],
             }));
         }
+        if (requete.Nom.Trim().Length > 100)
+        {
+            return (zone, Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["nom"] = ["Le nom ne peut pas dépasser 100 caractères."],
+            }));
+        }
         var type = TypeZone.Interieur;
-        if (requete.Type is not null && Enum.TryParse(requete.Type, out type) == false)
+        if (requete.Type is not null && Mcp.Conversions.ParserEnum(requete.Type, out type) == false)
         {
             return (zone, Results.ValidationProblem(new Dictionary<string, string[]>
             {

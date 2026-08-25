@@ -77,6 +77,13 @@ public static class ComptesAReboursEndpoints
                 ["titre"] = ["Le titre est requis."],
             });
         }
+        if (requete.Titre.Trim().Length > 200)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["titre"] = ["Le titre ne peut pas dépasser 200 caractères."],
+            });
+        }
         if (requete.DateCible is null)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -85,7 +92,7 @@ public static class ComptesAReboursEndpoints
             });
         }
         var icone = IconeCompteARebours.Soleil;
-        if (requete.Icone is not null && Enum.TryParse(requete.Icone, out icone) == false)
+        if (requete.Icone is not null && Mcp.Conversions.ParserEnum(requete.Icone, out icone) == false)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {

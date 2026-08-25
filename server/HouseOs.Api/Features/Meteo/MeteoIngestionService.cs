@@ -33,7 +33,10 @@ public class MeteoIngestionService(
                 logger.LogError(ex, "Météo : échec de l'ingestion — les dernières prévisions connues restent servies.");
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(options.Value.CadenceMinutes), stoppingToken);
+            // Plancher d'une minute : une cadence nulle ou négative (mauvaise config)
+            // ferait lever Task.Delay et tuerait le service en silence.
+            var cadence = TimeSpan.FromMinutes(Math.Max(1, options.Value.CadenceMinutes));
+            await Task.Delay(cadence, stoppingToken);
         }
     }
 

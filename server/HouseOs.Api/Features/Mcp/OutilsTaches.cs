@@ -100,7 +100,7 @@ public static class OutilsTaches
             var requete = new CreerTacheRequete(
                 item.Titre, item.Description, echeance, assigneAId,
                 item.ZoneId, item.EquipementId, item.Strategie, item.Recurrence);
-            var (tache, erreur) = OperationsTaches.PreparerTache(db, requete, createur.Id, maintenant, aujourdhui);
+            var (tache, erreur) = await OperationsTaches.PreparerTacheAsync(db, requete, createur.Id, maintenant, aujourdhui);
             if (erreur is not null)
             {
                 erreurs.Add($"[{index}] {erreur.Champ} : {erreur.Message}");
@@ -111,6 +111,9 @@ public static class OutilsTaches
 
         if (erreurs.Count > 0)
         {
+            // Tout-ou-rien réel : les tâches valides déjà attachées au contexte seraient
+            // flushées par n'importe quel SaveChanges ultérieur du même scope.
+            db.ChangeTracker.Clear();
             throw new McpException(
                 "Aucune tâche créée (lot tout-ou-rien). Erreurs :\n" + string.Join("\n", erreurs));
         }
@@ -130,15 +133,17 @@ public static class OutilsTaches
 
     [McpServerTool(Name = "gerer_tache")]
     [Description("Obtenir, modifier ou supprimer une définition de tâche (pas ses occurrences — " +
-        "voir lister_occurrences). Modifier remplace la définition complète et réaligne " +
-        "l'occurrence en attente ; supprimer efface aussi les occurrences (le journal survit).")]
+        "voir lister_occurrences). Modifier remplace la définition et réaligne l'occurrence en " +
+        "attente ; garde-fous : recurrence omise sur une tâche récurrente est refusée (obtenir " +
+        "d'abord la fiche), echeance omise conserve l'échéance en attente ('aucune' pour " +
+        "l'effacer) ; supprimer efface aussi les occurrences (le journal survit).")]
     public static async Task<object> GererTache(
         HouseOsDbContext db,
         [Description("obtenir, modifier ou supprimer.")] string action,
         [Description("Id de la tâche.")] Guid id,
-        [Description("Nouvelle définition complète (requise pour modifier).")] TacheAPlanifier? tache = null)
+        [Description("Nouvelle définition (requise pour modifier).")] TacheAPlanifier? tache = null)
     {
-        switch (action)
+        switch (Conversions.NormaliserAction(action))
         {
             case "obtenir":
             {
@@ -163,7 +168,29 @@ public static class OutilsTaches
                     throw new McpException($"Tâche introuvable : {id}.");
                 }
 
-                var echeance = Conversions.ParserDate(tache.Echeance, "echeance");
+                // Garde-fou : une fiche partielle du client (« change juste le titre »)
+                // transformerait silencieusement une récurrente en ponctuelle.
+                var recurrence = tache.Recurrence;
+                if (recurrence is null && existante.Recurrence.Mode != ModeRecurrence.Ponctuelle)
+                {
+                    throw new McpException("Cette tâche est récurrente : le champ recurrence est requis " +
+                        "pour modifier (obtenir d'abord la fiche via l'action obtenir).");
+                }
+
+                // echeance omise = conserver celle de l'occurrence en attente ;
+                // 'aucune' = l'effacer explicitement.
+                DateOnly? echeance;
+                if (string.Equals(tache.Echeance?.Trim(), "aucune", StringComparison.OrdinalIgnoreCase))
+                {
+                    echeance = null;
+                }
+                else
+                {
+                    echeance = Conversions.ParserDate(tache.Echeance, "echeance")
+                        ?? existante.Occurrences
+                            .FirstOrDefault(o => o.Statut == StatutOccurrence.EnAttente)?.Echeance;
+                }
+
                 Guid? assigneAId = null;
                 if (string.IsNullOrWhiteSpace(tache.AssigneA) == false)
                 {
@@ -177,7 +204,7 @@ public static class OutilsTaches
 
                 var requete = new ModifierTacheRequete(
                     tache.Titre, tache.Description, echeance, assigneAId,
-                    tache.ZoneId, tache.EquipementId, tache.Strategie, tache.Recurrence);
+                    tache.ZoneId, tache.EquipementId, tache.Strategie, recurrence);
                 var erreur = await OperationsTaches.ModifierTacheAsync(
                     db, existante, requete, DateOnly.FromDateTime(DateTime.Now));
                 if (erreur is not null)
@@ -214,6 +241,10 @@ public static class OutilsTaches
         [Description("aujourdhui, avenir, en-attente ou completees.")] string? filtre = null,
         [Description("Date de référence YYYY-MM-DD (défaut : aujourd'hui, heure du serveur).")] string? date = null)
     {
+        if (OperationsTaches.ValiderFiltre(filtre, null, null) is { } erreurFiltre)
+        {
+            throw new McpException(erreurFiltre.Message);
+        }
         var aujourdhui = Conversions.ParserDate(date, "date") ?? DateOnly.FromDateTime(DateTime.Now);
         return await OperationsTaches.ListerOccurrencesAsync(db, filtre, aujourdhui, null, null);
     }
@@ -307,7 +338,7 @@ public static class OutilsTaches
         [Description("Requis pour reporter : nouvelle échéance YYYY-MM-DD (aujourd'hui ou plus tard).")]
         string? echeance = null)
     {
-        switch (action)
+        switch (Conversions.NormaliserAction(action))
         {
             case "annuler-completion":
             {
@@ -322,6 +353,8 @@ public static class OutilsTaches
                         throw new McpException("Cette complétion n'est pas la plus récente."),
                     StatutAnnulation.ProchaineDejaTraitee =>
                         throw new McpException("La prochaine occurrence a déjà été traitée."),
+                    StatutAnnulation.JournalManquant =>
+                        throw new McpException("Aucune entrée de journal pour cette complétion — rien à annuler."),
                     _ => new { annulee = true, occurrenceId },
                 };
             }

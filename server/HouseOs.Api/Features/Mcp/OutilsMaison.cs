@@ -57,7 +57,7 @@ public static class OutilsMaison
         [Description("Interieur (défaut) ou Exterieur.")] string? type = null,
         [Description("Ordre d'affichage (petit = en premier).")] int? ordre = null)
     {
-        switch (action)
+        switch (Conversions.NormaliserAction(action))
         {
             case "creer":
             {
@@ -117,7 +117,7 @@ public static class OutilsMaison
         [Description("Id de l'équipement (requis sauf pour creer).")] Guid? id = null,
         [Description("Fiche complète (requise pour creer et modifier).")] EquipementDonnees? donnees = null)
     {
-        switch (action)
+        switch (Conversions.NormaliserAction(action))
         {
             case "creer":
             {
@@ -202,7 +202,7 @@ public static class OutilsMaison
         [Description("Id du document (via lister_documents).")] Guid? id = null,
         [Description("Métadonnées complètes (requises pour modifier).")] DocumentDonnees? donnees = null)
     {
-        switch (action)
+        switch (Conversions.NormaliserAction(action))
         {
             case "modifier":
             {
@@ -266,7 +266,7 @@ public static class OutilsMaison
         [Description("Date cible YYYY-MM-DD (requise pour creer).")] string? dateCible = null,
         [Description("Icône (voir la liste).")] string? icone = null)
     {
-        switch (action)
+        switch (Conversions.NormaliserAction(action))
         {
             case "lister":
                 return await db.ComptesARebours
@@ -285,7 +285,9 @@ public static class OutilsMaison
             {
                 var compte = await db.ComptesARebours.FindAsync(RequisId(id))
                     ?? throw new McpException($"Compte à rebours introuvable : {id}.");
-                AppliquerCompte(compte, titre ?? compte.Titre, dateCible, icone, estCreation: false);
+                AppliquerCompte(compte,
+                    string.IsNullOrWhiteSpace(titre) ? compte.Titre : titre,
+                    dateCible, icone, estCreation: false);
                 await db.SaveChangesAsync();
                 return new CompteARebourDto(compte.Id, compte.Titre, compte.DateCible, compte.Icone.ToString());
             }
@@ -311,13 +313,15 @@ public static class OutilsMaison
 
     private static void AppliquerZone(Zone zone, string? nom, string? type, int? ordre)
     {
-        var nomFinal = nom ?? zone.Nom;
+        // Nom vide ou blanc = « ne pas toucher » (fiche partielle d'un client LLM),
+        // jamais un effacement ; à la création le nom reste donc requis.
+        var nomFinal = string.IsNullOrWhiteSpace(nom) ? zone.Nom : nom;
         if (string.IsNullOrWhiteSpace(nomFinal))
         {
             throw new McpException("Le nom est requis.");
         }
         var typeFinal = zone.Type;
-        if (type is not null && Enum.TryParse(type, out typeFinal) == false)
+        if (type is not null && Conversions.ParserEnum(type, out typeFinal) == false)
         {
             throw new McpException($"Type inconnu : '{type}' (Interieur ou Exterieur).");
         }
@@ -360,10 +364,11 @@ public static class OutilsMaison
             throw new McpException("dateCible est requise pour creer (YYYY-MM-DD).");
         }
         var iconeFinale = compte.Icone;
-        if (icone is not null && Enum.TryParse(icone, out iconeFinale) == false)
+        if (icone is not null && Conversions.ParserEnum(icone, out iconeFinale) == false)
         {
+            // Liste dérivée de l'enum : elle ne peut plus se désynchroniser du set réel.
             throw new McpException(
-                $"Icône inconnue : '{icone}' (Camion, Sapin, Avion, Valise, Gateau, Cadeau, Coeur, Soleil).");
+                $"Icône inconnue : '{icone}' ({string.Join(", ", Enum.GetNames<IconeCompteARebours>())}).");
         }
         compte.Titre = titre.Trim();
         compte.DateCible = date ?? compte.DateCible;

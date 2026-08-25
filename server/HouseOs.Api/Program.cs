@@ -19,6 +19,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Secrets locaux hors git (clé Anthropic…) — prime sur appsettings*.json.
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true);
 
+// Le défaut Kestrel (30 Mo) est sous la limite documents de 50 Mo : sans ceci, un
+// scan PDF de 40 Mo meurt en 413 opaque avant même d'atteindre le handler.
+builder.WebHost.ConfigureKestrel(options =>
+    options.Limits.MaxRequestBodySize = DocumentsEndpoints.TailleMax + 1024 * 1024);
+
 // EnableDynamicJson : requis pour mapper Dictionary<string,string> (specs) en jsonb.
 var sourceDonnees = new Npgsql.NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("HouseOs"))
     .EnableDynamicJson()

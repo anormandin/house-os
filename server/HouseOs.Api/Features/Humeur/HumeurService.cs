@@ -32,7 +32,15 @@ public class HumeurService(
                 logger.LogError(ex, "Humeur : échec de génération de la phrase du jour.");
             }
 
-            await Task.Delay(ProchainCreneau(DateTimeOffset.Now) - DateTimeOffset.Now, stoppingToken);
+            // Plancher d'une minute : un délai négatif (config d'heures farfelue,
+            // horloge reculée) ferait lever Task.Delay — hors du try — et tuerait le
+            // service en silence jusqu'au prochain redémarrage.
+            var delai = ProchainCreneau(DateTimeOffset.Now) - DateTimeOffset.Now;
+            if (delai < TimeSpan.FromMinutes(1))
+            {
+                delai = TimeSpan.FromMinutes(1);
+            }
+            await Task.Delay(delai, stoppingToken);
         }
     }
 
@@ -62,8 +70,10 @@ public class HumeurService(
             : heure < options.Value.HeureSoir
                 ? date.ToDateTime(options.Value.HeureSoir)
                 : date.AddDays(1).ToDateTime(options.Value.HeureMatin);
-        // Une minute de marge pour être sûr d'atterrir après le créneau.
-        return new DateTimeOffset(prochaine, maintenant.Offset).AddMinutes(1);
+        // Offset de la date CIBLE (les nuits de changement d'heure, l'offset courant
+        // viserait une heure trop tôt ou trop tard) ; une minute de marge pour être
+        // sûr d'atterrir après le créneau.
+        return new DateTimeOffset(prochaine, TimeZoneInfo.Local.GetUtcOffset(prochaine)).AddMinutes(1);
     }
 
     private async Task GenererSiManquante(DateOnly date, MomentJournee moment, CancellationToken ct)

@@ -58,10 +58,11 @@ public static class ConstruireEtat
             .ToList();
 
         return new EtatMaison(date, moment, ouvertes, enRetard, faites, comptesProches,
-            tachesDuJour, prochaines, await SignalMeteo(db, ct));
+            tachesDuJour, prochaines, await SignalMeteo(db, date, ct));
     }
 
-    private static async Task<SignalMeteoRemarquable?> SignalMeteo(HouseOsDbContext db, CancellationToken ct)
+    private static async Task<SignalMeteoRemarquable?> SignalMeteo(
+        HouseOsDbContext db, DateOnly date, CancellationToken ct)
     {
         var heures = await db.PrevisionsHoraires.OrderBy(h => h.Heure).ToListAsync(ct);
         if (heures.Count == 0)
@@ -69,7 +70,10 @@ public static class ConstruireEtat
             return null;
         }
         var jours = await db.PrevisionsQuotidiennes.OrderBy(j => j.Date).ToListAsync(ct);
-        return MeteoRemarquable.Evaluer(new ApercuMeteo(DateTime.Now, heures, jours));
+        // La météo évaluée est celle de la DATE de la phrase : au rattrapage de 3 h du
+        // matin, la phrase du soir d'hier ne doit pas annoncer les orages d'aujourd'hui.
+        var instant = date.ToDateTime(TimeOnly.FromDateTime(DateTime.Now));
+        return MeteoRemarquable.Evaluer(new ApercuMeteo(instant, heures, jours));
     }
 
     // Minuit local exprimé en UTC : Npgsql n'accepte que l'offset 0 en paramètre timestamptz.

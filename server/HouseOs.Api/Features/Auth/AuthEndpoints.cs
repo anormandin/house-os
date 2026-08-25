@@ -22,6 +22,17 @@ public static class AuthEndpoints
             HouseOsDbContext db,
             HttpContext http) =>
         {
+            // Corps partiel ({} ou champ manquant) : le binding laisse les membres à
+            // null malgré le type non-nullable — sans cette garde, NRE → 500 anonyme.
+            if (string.IsNullOrWhiteSpace(requete.NomUtilisateur)
+                || string.IsNullOrWhiteSpace(requete.MotDePasse))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["connexion"] = ["Nom d'utilisateur et mot de passe requis."],
+                });
+            }
+
             var nom = requete.NomUtilisateur.Trim().ToLowerInvariant();
             var utilisateur = await db.Utilisateurs.SingleOrDefaultAsync(u => u.NomUtilisateur == nom);
             if (utilisateur is null)
@@ -56,13 +67,18 @@ public static class AuthEndpoints
             return Results.NoContent();
         });
 
-        groupe.MapGet("/moi", async (ClaimsPrincipal principal, HouseOsDbContext db) =>
+        groupe.MapGet("/moi", async (ClaimsPrincipal principal, HouseOsDbContext db, HttpContext http) =>
         {
             var id = principal.IdUtilisateur();
             var utilisateur = await db.Utilisateurs.FindAsync(id);
-            return utilisateur is null
-                ? Results.Unauthorized()
-                : Results.Ok(new UtilisateurDto(utilisateur.Id, utilisateur.NomUtilisateur, utilisateur.NomAffichage));
+            if (utilisateur is null)
+            {
+                // Cookie valide mais compte disparu : purger le cookie, sinon le client
+                // boucle sur un 401 impossible à sortir sans vider le navigateur.
+                await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return Results.Unauthorized();
+            }
+            return Results.Ok(new UtilisateurDto(utilisateur.Id, utilisateur.NomUtilisateur, utilisateur.NomAffichage));
         });
 
         return app;

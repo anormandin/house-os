@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import { api, type Recurrence, type TacheDonnees } from '@/lib/api'
@@ -106,6 +106,13 @@ function Pilule({
   )
 }
 
+// Pile des éditeurs ouverts (module) : Échap ne ferme que le plus récent, et le
+// quick-add (⌘K) n'empile pas un second modal par-dessus une édition en cours.
+const pileEditeurs: symbol[] = []
+export function editeurDejaOuvert(): boolean {
+  return pileEditeurs.length > 0
+}
+
 export default function TacheEditeur({
   tacheId,
   zoneInitialeId,
@@ -117,6 +124,19 @@ export default function TacheEditeur({
 }) {
   const queryClient = useQueryClient()
   const [f, setF] = useState<Formulaire>({ ...defaut, zoneId: zoneInitialeId ?? '' })
+  const jeton = useRef(Symbol('editeur'))
+  const initialiseePour = useRef<string | null>(null)
+
+  useEffect(() => {
+    const present = jeton.current
+    pileEditeurs.push(present)
+    return () => {
+      const i = pileEditeurs.indexOf(present)
+      if (i >= 0) {
+        pileEditeurs.splice(i, 1)
+      }
+    }
+  }, [])
   const maj = (champ: Partial<Formulaire>) => setF((ancien) => ({ ...ancien, ...champ }))
 
   const { data: utilisateurs } = useQuery({ queryKey: ['utilisateurs'], queryFn: api.utilisateurs })
@@ -130,7 +150,9 @@ export default function TacheEditeur({
 
   useEffect(() => {
     function surTouche(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
+      // Seul l'éditeur du dessus ferme : deux écouteurs window fermeraient les
+      // deux modaux d'un seul Échap.
+      if (e.key === 'Escape' && pileEditeurs[pileEditeurs.length - 1] === jeton.current) {
         onFermer()
       }
     }
@@ -139,9 +161,12 @@ export default function TacheEditeur({
   }, [onFermer])
 
   useEffect(() => {
-    if (tache === undefined) {
+    // Initialiser le formulaire une seule fois par tâche : un refetch (retour
+    // d'onglet, invalidation) ne doit jamais écraser une saisie en cours.
+    if (tache === undefined || initialiseePour.current === tache.id) {
       return
     }
+    initialiseePour.current = tache.id
     const r = tache.recurrence
     setF({
       ...defaut,

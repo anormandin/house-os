@@ -19,7 +19,12 @@ public static class LectureIcs
         foreach (var occurrence in calendrier.GetOccurrences(new CalDateTime(debut.ToDateTime(TimeOnly.MinValue))))
         {
             var depart = occurrence.Period.StartTime;
-            var date = DateOnly.FromDateTime(depart.Value);
+            // Heures UTC (« …Z ») ou TZID étranger — la norme chez Recollect et les
+            // calendriers scolaires — converties vers le fuseau de la maison, sinon
+            // un événement de 17 h 30 UTC s'afficherait à 17 h 30 locales (et la date
+            // du soir basculerait). Les heures flottantes sont déjà « murales ».
+            var local = depart.IsFloating ? depart : depart.ToTimeZone(TimeZoneInfo.Local.Id);
+            var date = DateOnly.FromDateTime(local.Value);
             if (date >= finExclue)
             {
                 break;
@@ -34,7 +39,7 @@ public static class LectureIcs
                 Uid = $"{evenement.Uid}:{date:yyyy-MM-dd}",
                 Titre = string.IsNullOrWhiteSpace(evenement.Summary) ? "(sans titre)" : evenement.Summary.Trim(),
                 Date = date,
-                Heure = depart.HasTime ? TimeOnly.FromDateTime(depart.Value) : null,
+                Heure = depart.HasTime ? TimeOnly.FromDateTime(local.Value) : null,
             });
         }
 

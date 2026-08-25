@@ -267,12 +267,21 @@ async function requete<T>(url: string, options?: RequestInit): Promise<T> {
 // Extrait le message d'un corps d'erreur : { message } (conflits), ProblemDetails
 // avec errors (ValidationProblem) ou title. Repli sur le statut HTTP.
 async function messageErreur(reponse: Response): Promise<string> {
+  // Seules des chaînes non vides sortent d'ici : un message inattendu (objet, nombre)
+  // finirait rendu tel quel comme enfant React dans la bannière → écran blanc.
+  const texte = (v: unknown) => (typeof v === 'string' && v.length > 0 ? v : null)
   try {
     const corps = await reponse.json()
-    const premiereValidation = corps.errors
-      ? (Object.values(corps.errors as Record<string, string[]>)[0]?.[0] ?? null)
-      : null
-    return corps.message ?? premiereValidation ?? corps.title ?? `Erreur serveur (${reponse.status})`
+    const premiereValidation =
+      corps && typeof corps === 'object' && corps.errors
+        ? (Object.values(corps.errors as Record<string, string[]>)[0]?.[0] ?? null)
+        : null
+    return (
+      texte(corps?.message) ??
+      texte(premiereValidation) ??
+      texte(corps?.title) ??
+      `Erreur serveur (${reponse.status})`
+    )
   } catch {
     return `Erreur serveur (${reponse.status})`
   }

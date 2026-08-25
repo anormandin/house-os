@@ -83,37 +83,52 @@ public static class PolissageLlm
             meteoRemarquable = etat.MeteoRemarquable?.Description,
         });
 
-    /// <summary>Parse défensif de la réponse : clôtures de code tolérées, champs
-    /// requis, longueurs bornées. Tout écart → null → banque de gabarits.</summary>
+    /// <summary>Parse défensif de la réponse : clôtures de code et prose autour du JSON
+    /// tolérées (chaque « { » est essayé comme début d'objet, le texte qui suit est
+    /// ignoré), champs requis et textuels, longueurs bornées. Tout écart → null →
+    /// banque de gabarits.</summary>
     public static (string Titre, string SousTitre)? Extraire(string texte)
     {
-        var debut = texte.IndexOf('{');
-        var fin = texte.LastIndexOf('}');
-        if (debut < 0 || fin <= debut)
+        var octets = System.Text.Encoding.UTF8.GetBytes(texte);
+        for (var i = 0; i < octets.Length; i++)
         {
-            return null;
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(texte[debut..(fin + 1)]);
-            if (document.RootElement.TryGetProperty("titre", out var titre) == false
-                || document.RootElement.TryGetProperty("sousTitre", out var sousTitre) == false)
+            if (octets[i] != (byte)'{')
             {
-                return null;
+                continue;
             }
-            var t = titre.GetString()?.Trim();
-            var s = sousTitre.GetString()?.Trim();
-            if (string.IsNullOrEmpty(t) || string.IsNullOrEmpty(s)
-                || t.Length > LongueurMaxTitre || s.Length > LongueurMaxSousTitre)
+            try
             {
-                return null;
+                var lecteur = new System.Text.Json.Utf8JsonReader(octets.AsSpan(i));
+                if (JsonDocument.TryParseValue(ref lecteur, out var document) == false)
+                {
+                    continue;
+                }
+                using (document)
+                {
+                    if (document.RootElement.TryGetProperty("titre", out var titre) == false
+                        || document.RootElement.TryGetProperty("sousTitre", out var sousTitre) == false
+                        // Contrat « tout écart → null » : un champ non textuel ferait
+                        // lever GetString hors du catch JsonException.
+                        || titre.ValueKind != JsonValueKind.String
+                        || sousTitre.ValueKind != JsonValueKind.String)
+                    {
+                        continue;
+                    }
+                    var t = titre.GetString()?.Trim();
+                    var s = sousTitre.GetString()?.Trim();
+                    if (string.IsNullOrEmpty(t) || string.IsNullOrEmpty(s)
+                        || t.Length > LongueurMaxTitre || s.Length > LongueurMaxSousTitre)
+                    {
+                        return null;
+                    }
+                    return (t, s);
+                }
             }
-            return (t, s);
+            catch (JsonException)
+            {
+                // Cette accolade n'ouvrait pas un objet valide — essayer la suivante.
+            }
         }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return null;
     }
 }

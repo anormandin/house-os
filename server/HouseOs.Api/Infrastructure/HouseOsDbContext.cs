@@ -71,6 +71,14 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             o.HasOne(x => x.AssigneA).WithMany().HasForeignKey(x => x.AssigneAId)
                 .OnDelete(DeleteBehavior.SetNull);
             o.HasIndex(x => new { x.Statut, x.Echeance });
+            // Index FK conservé explicitement : l'index partiel ci-dessous ne sert pas
+            // les recherches générales par tâche (cascade de suppression).
+            o.HasIndex(x => x.TacheId);
+            // Invariant du moteur : une seule occurrence en attente par tâche — ferme la
+            // course entre deux complétions simultanées (syntaxe valide Postgres et Sqlite).
+            o.HasIndex(x => x.TacheId, "IX_Occurrences_TacheId_EnAttente")
+                .IsUnique()
+                .HasFilter("\"Statut\" = 'EnAttente'");
         });
 
         modelBuilder.Entity<EntreeJournal>(j =>

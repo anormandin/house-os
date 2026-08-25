@@ -20,14 +20,18 @@ import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
 
 export default function Aujourdhui() {
   const [editeurTacheId, setEditeurTacheId] = useState<string | null>(null)
-  const bornes = bornesJourneeLocale()
   const { data: ouvertes, isLoading: chargementOuvertes } = useQuery({
     queryKey: ['occurrences', 'aujourdhui'],
     queryFn: () => api.occurrences('aujourdhui'),
   })
   const { data: faites, isLoading: chargementFaites } = useQuery({
-    queryKey: ['occurrences', 'faites', bornes.de],
-    queryFn: () => api.occurrencesFaites(bornes.de, bornes.a),
+    queryKey: ['occurrences', 'faites'],
+    // Bornes calculées à l'exécution, pas au montage : un tableau de bord laissé
+    // ouvert la nuit doit interroger la nouvelle journée à son prochain refetch.
+    queryFn: () => {
+      const bornes = bornesJourneeLocale()
+      return api.occurrencesFaites(bornes.de, bornes.a)
+    },
   })
   const { data: enAttente } = useQuery({
     queryKey: ['occurrences', 'en-attente'],

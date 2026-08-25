@@ -11,7 +11,7 @@ public enum StatutCompletion { Introuvable, DejaCompletee, Ok }
 
 public record ResultatCompletion(StatutCompletion Statut, Occurrence? Prochaine);
 
-public enum StatutAnnulation { Introuvable, PasCompletee, PasLaDerniere, ProchaineDejaTraitee, Ok }
+public enum StatutAnnulation { Introuvable, PasCompletee, PasLaDerniere, ProchaineDejaTraitee, JournalManquant, Ok }
 
 public enum StatutPasse { Introuvable, DejaTraitee, TachePonctuelle, Ok }
 
@@ -28,17 +28,64 @@ public enum StatutNotes { Introuvable, PasCompletee, Ok }
 /// </summary>
 public static class OperationsTaches
 {
+    /// <summary>Filtres acceptés par <see cref="ListerOccurrencesAsync"/> (REST et MCP).</summary>
+    public static readonly string[] FiltresConnus = ["aujourdhui", "avenir", "en-attente", "completees", "faites"];
+
+    /// <summary>
+    /// Valide le filtre de liste : filtre inconnu refusé (sinon il retournerait tout,
+    /// silencieusement), « faites » exige ses deux bornes.
+    /// </summary>
+    public static ErreurValidation? ValiderFiltre(string? filtre, DateTimeOffset? de, DateTimeOffset? a)
+    {
+        if (filtre is not null && FiltresConnus.Contains(filtre) == false)
+        {
+            return new ErreurValidation("filtre",
+                $"Filtre inconnu : {filtre}. Valides : {string.Join(", ", FiltresConnus)} (ou aucun).");
+        }
+        if (filtre == "faites" && (de is null || a is null))
+        {
+            return new ErreurValidation("de", "Le filtre « faites » exige les bornes de et a.");
+        }
+        return null;
+    }
+
+    /// <summary>Les références optionnelles doivent exister — sinon la FK ferait un 500.</summary>
+    private static async Task<ErreurValidation?> ValiderReferencesAsync(
+        HouseOsDbContext db, Guid? zoneId, Guid? equipementId, Guid? assigneAId)
+    {
+        if (zoneId is { } z && await db.Zones.AnyAsync(x => x.Id == z) == false)
+        {
+            return new ErreurValidation("zoneId", "Cette pièce n'existe pas (ou plus).");
+        }
+        if (equipementId is { } e && await db.Equipements.AnyAsync(x => x.Id == e) == false)
+        {
+            return new ErreurValidation("equipementId", "Cet équipement n'existe pas (ou plus).");
+        }
+        if (assigneAId is { } u && await db.Utilisateurs.AnyAsync(x => x.Id == u) == false)
+        {
+            return new ErreurValidation("assigneAId", "Cet utilisateur n'existe pas.");
+        }
+        return null;
+    }
+
+    private static ErreurValidation? ValiderTitre(string titre) =>
+        string.IsNullOrWhiteSpace(titre)
+            ? new ErreurValidation("titre", "Le titre est requis.")
+            : titre.Trim().Length > 200
+                ? new ErreurValidation("titre", "Le titre ne peut pas dépasser 200 caractères.")
+                : null;
+
     /// <summary>Valide la requête et ajoute la tâche au contexte, sans SaveChanges.</summary>
-    public static (Tache? Tache, ErreurValidation? Erreur) PreparerTache(
+    public static async Task<(Tache? Tache, ErreurValidation? Erreur)> PreparerTacheAsync(
         HouseOsDbContext db,
         CreerTacheRequete requete,
         Guid creeParId,
         DateTimeOffset maintenant,
         DateOnly aujourdhui)
     {
-        if (string.IsNullOrWhiteSpace(requete.Titre))
+        if (ValiderTitre(requete.Titre ?? "") is { } erreurTitre)
         {
-            return (null, new ErreurValidation("titre", "Le titre est requis."));
+            return (null, erreurTitre);
         }
 
         var (spec, erreur) = ConvertirRecurrence(requete.Recurrence);
@@ -51,8 +98,13 @@ public static class OperationsTaches
         {
             return (null, new ErreurValidation("strategie", erreurStrategie));
         }
+        if (await ValiderReferencesAsync(db, requete.ZoneId, requete.EquipementId, requete.AssigneAId)
+            is { } erreurReference)
+        {
+            return (null, erreurReference);
+        }
 
-        var titre = requete.Titre.Trim();
+        var titre = requete.Titre!.Trim();
         var description = string.IsNullOrWhiteSpace(requete.Description) ? null : requete.Description.Trim();
 
         var tache = spec.Mode == ModeRecurrence.Ponctuelle
@@ -78,9 +130,9 @@ public static class OperationsTaches
         ModifierTacheRequete requete,
         DateOnly aujourdhui)
     {
-        if (string.IsNullOrWhiteSpace(requete.Titre))
+        if (ValiderTitre(requete.Titre ?? "") is { } erreurTitre)
         {
-            return new ErreurValidation("titre", "Le titre est requis.");
+            return erreurTitre;
         }
 
         var (spec, erreur) = ConvertirRecurrence(requete.Recurrence);
@@ -93,8 +145,13 @@ public static class OperationsTaches
         {
             return new ErreurValidation("strategie", erreurStrategie);
         }
+        if (await ValiderReferencesAsync(db, requete.ZoneId, requete.EquipementId, requete.AssigneAId)
+            is { } erreurReference)
+        {
+            return erreurReference;
+        }
 
-        tache.Titre = requete.Titre.Trim();
+        tache.Titre = requete.Titre!.Trim();
         tache.Description = string.IsNullOrWhiteSpace(requete.Description) ? null : requete.Description.Trim();
         tache.AssigneAId = requete.AssigneAId;
         tache.ZoneId = requete.ZoneId;
@@ -111,7 +168,25 @@ public static class OperationsTaches
                 ModeRecurrence.Ponctuelle => requete.Echeance,
                 _ => requete.Echeance ?? await RecalculerEcheance(db, tache, spec, aujourdhui),
             };
-            enAttente.AssigneAId = requete.AssigneAId ?? enAttente.AssigneAId;
+            // Stratégie Fixe : l'occurrence suit la tâche (y compris la désassignation).
+            // Stratégies tournantes : l'assigné choisi par la stratégie reste en place
+            // tant que la requête n'en impose pas un autre.
+            enAttente.AssigneAId = strategie == StrategieAssignation.Fixe
+                ? requete.AssigneAId
+                : requete.AssigneAId ?? enAttente.AssigneAId;
+        }
+        else if (spec.Mode != ModeRecurrence.Ponctuelle)
+        {
+            // Convertir une tâche sans occurrence en attente (ex. ponctuelle complétée)
+            // en récurrente doit matérialiser une occurrence — sinon la tâche devient
+            // invisible de tous les filtres, définitivement.
+            db.Occurrences.Add(new Occurrence
+            {
+                Id = Guid.NewGuid(),
+                TacheId = tache.Id,
+                Echeance = requete.Echeance ?? await RecalculerEcheance(db, tache, spec, aujourdhui),
+                AssigneAId = requete.AssigneAId,
+            });
         }
 
         return null;
@@ -156,7 +231,17 @@ public static class OperationsTaches
             }
         }
 
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Course entre deux complétions : l'index unique « une seule occurrence en
+            // attente par tâche » a refusé la seconde matérialisation — l'autre a gagné.
+            db.ChangeTracker.Clear();
+            return new ResultatCompletion(StatutCompletion.DejaCompletee, null);
+        }
         return new ResultatCompletion(StatutCompletion.Ok, prochaine);
     }
 
@@ -187,7 +272,9 @@ public static class OperationsTaches
         var entree = await db.Journal.SingleOrDefaultAsync(j => j.OccurrenceId == occurrence.Id);
         if (entree is null)
         {
-            return StatutAnnulation.PasLaDerniere;
+            // Complétée mais sans entrée de journal (données importées, incident) :
+            // un message « pas la plus récente » serait faux et sans issue.
+            return StatutAnnulation.JournalManquant;
         }
         // Garde « dernière complétion » évaluée côté client : le journal d'une tâche
         // reste minuscule (deux personnes) et Sqlite (tests) ne traduit pas les
@@ -257,7 +344,16 @@ public static class OperationsTaches
             db.Occurrences.Add(prochaine);
         }
 
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Même course que la complétion : l'index unique a tranché.
+            db.ChangeTracker.Clear();
+            return new ResultatPasse(StatutPasse.DejaTraitee, null);
+        }
         return new ResultatPasse(StatutPasse.Ok, prochaine);
     }
 
@@ -340,10 +436,17 @@ public static class OperationsTaches
             _ => requete,
         };
 
-        return await requete
-            .OrderBy(o => o.Echeance == null)
-            .ThenBy(o => o.Echeance)
-            .ThenByDescending(o => o.CompleteeLe)
+        // Les listes de complétions se lisent des plus récentes ; les listes d'attente
+        // par échéance. Le tri précède le plafond : sans ça, au-delà de 200 complétions
+        // les récentes disparaîtraient.
+        var ordonnee = filtre is "completees" or "faites"
+            ? requete.OrderByDescending(o => o.CompleteeLe).ThenBy(o => o.Id)
+            : requete
+                .OrderBy(o => o.Echeance == null)
+                .ThenBy(o => o.Echeance)
+                .ThenByDescending(o => o.CompleteeLe);
+
+        return await ordonnee
             .Take(200)
             .Select(o => new OccurrenceDto(
                 o.Id,
@@ -392,7 +495,11 @@ public static class OperationsTaches
             return tache.AssigneAId;
         }
 
-        var utilisateurs = await db.Utilisateurs.Select(u => u.Id).ToListAsync();
+        // Ordre stable requis : les stratégies prennent « le premier » en cas d'égalité.
+        var utilisateurs = await db.Utilisateurs
+            .OrderBy(u => u.NomUtilisateur)
+            .Select(u => u.Id)
+            .ToListAsync();
         var depuis = maintenant.AddDays(-90);
         var completions = await db.Journal
             .Where(j => j.TacheId == tache.Id && j.CompleteeLe >= depuis)
@@ -464,7 +571,7 @@ public static class OperationsTaches
                 return (spec, "IntervalleJours requis (≥ 1) en mode intervalle.");
             }
             spec.IntervalleJours = dto.IntervalleJours;
-            return (spec, null);
+            return (spec, ValiderCoherence(spec));
         }
 
         // Mode fixe
@@ -499,7 +606,39 @@ public static class OperationsTaches
                 spec.JourAnnuel = dto.JourAnnuel;
                 break;
         }
-        return (spec, null);
+        return (spec, ValiderCoherence(spec));
+    }
+
+    /// <summary>
+    /// Validation croisée spec × fenêtre : chaque champ peut être valide isolément alors
+    /// que la combinaison ne planifie jamais rien — sans cette garde, le moteur boucle
+    /// 1500 jours puis lève, et la création répond 500 au lieu de 400.
+    /// </summary>
+    private static string? ValiderCoherence(SpecRecurrence spec)
+    {
+        if (spec.AFenetre)
+        {
+            // Bornes = vraies dates (année bissextile de référence : le 29 février passe).
+            if (spec.FenetreDebutJour > DateTime.DaysInMonth(2024, spec.FenetreDebutMois!.Value)
+                || spec.FenetreFinJour > DateTime.DaysInMonth(2024, spec.FenetreFinMois!.Value))
+            {
+                return "Fenêtre saisonnière invalide : ce jour n'existe pas dans ce mois.";
+            }
+        }
+        if (spec.Mode == ModeRecurrence.Fixe)
+        {
+            try
+            {
+                // Sonde déterministe : la date de départ n'importe pas, le balayage
+                // couvre plus de 4 ans.
+                MoteurRecurrence.ProchainePlanifiee(spec, new DateOnly(2026, 1, 1));
+            }
+            catch (InvalidOperationException)
+            {
+                return "Cette récurrence ne tombe jamais dans la fenêtre saisonnière.";
+            }
+        }
+        return null;
     }
 
     public static (StrategieAssignation Strategie, string? Erreur) ConvertirStrategie(string? strategie)

@@ -65,6 +65,15 @@ public static class DocumentsEndpoints
     {
         try
         {
+            // Bombe de décompression : un PNG de 30000×30000 tient dans quelques
+            // centaines de Ko compressés mais exige des Go une fois décodé — on lit
+            // les dimensions dans l'en-tête avant de décoder quoi que ce soit.
+            var info = await Image.IdentifyAsync(source);
+            if ((long)info.Width * info.Height > 64_000_000)
+            {
+                return false;
+            }
+
             using var image = await Image.LoadAsync(source);
             image.Mutate(op => op.AutoOrient());
             if (image.Width > CoteMiniature || image.Height > CoteMiniature)
@@ -76,11 +85,23 @@ public static class DocumentsEndpoints
                 }));
             }
             var temporaire = $"{destination}.{Guid.NewGuid():N}.tmp";
-            await image.SaveAsWebpAsync(temporaire);
-            File.Move(temporaire, destination, overwrite: true);
+            try
+            {
+                await image.SaveAsWebpAsync(temporaire);
+                File.Move(temporaire, destination, overwrite: true);
+            }
+            catch
+            {
+                // Ne jamais laisser de .tmp orphelin dans le cache (rien ne le balaie).
+                File.Delete(temporaire);
+                throw;
+            }
             return true;
         }
-        catch (Exception e) when (e is ImageFormatException or NotSupportedException)
+        catch (Exception e) when (
+            e is ImageFormatException
+                or NotSupportedException
+                or SixLabors.ImageSharp.Memory.InvalidMemoryOperationException)
         {
             return false;
         }
@@ -139,12 +160,19 @@ public static class DocumentsEndpoints
             {
                 return Erreur("fichier", "Fichier manquant, vide ou trop gros (max 50 Mo).");
             }
-            if (TypesMimePermis.Contains(fichier.ContentType) == false)
+            // Les types MIME sont insensibles à la casse et peuvent porter des paramètres
+            // (« ; charset=… ») ; certains clients envoient image/jpg.
+            var typeMime = (fichier.ContentType ?? "").Split(';')[0].Trim().ToLowerInvariant();
+            if (typeMime == "image/jpg")
+            {
+                typeMime = "image/jpeg";
+            }
+            if (TypesMimePermis.Contains(typeMime) == false)
             {
                 return Erreur("fichier", "Type non permis (PDF ou image).");
             }
 
-            var categorie = CategorieParDefaut(fichier.ContentType);
+            var categorie = CategorieParDefaut(typeMime);
             var categorieBrute = formulaire["categorie"].ToString();
             if (string.IsNullOrWhiteSpace(categorieBrute) == false
                 && Enum.TryParse(categorieBrute, out categorie) == false)
@@ -152,10 +180,32 @@ public static class DocumentsEndpoints
                 return Erreur("categorie", "Catégorie inconnue.");
             }
 
+            var nomFichier = NettoyerNomFichier(fichier.FileName, typeMime);
             var titre = formulaire["titre"].ToString().Trim();
             if (titre.Length == 0)
             {
-                titre = Path.GetFileNameWithoutExtension(fichier.FileName);
+                titre = Path.GetFileNameWithoutExtension(nomFichier);
+            }
+            if (titre.Length > 200)
+            {
+                return Erreur("titre", "Le titre ne peut pas dépasser 200 caractères.");
+            }
+            var notes = Nettoyer(formulaire["notes"]);
+            if (notes?.Length > 2000)
+            {
+                return Erreur("notes", "Les notes ne peuvent pas dépasser 2000 caractères.");
+            }
+            // Valider les liens avant d'écrire quoi que ce soit : une violation de FK
+            // après l'écriture laisserait un fichier orphelin permanent sur disque.
+            var equipementId = LireGuid(formulaire["equipementId"]);
+            if (equipementId is { } eq && await db.Equipements.AnyAsync(e => e.Id == eq) == false)
+            {
+                return Erreur("equipementId", "Cet équipement n'existe pas (ou plus).");
+            }
+            var zoneId = LireGuid(formulaire["zoneId"]);
+            if (zoneId is { } z && await db.Zones.AnyAsync(x => x.Id == z) == false)
+            {
+                return Erreur("zoneId", "Cette pièce n'existe pas (ou plus).");
             }
 
             var document = new Document
@@ -163,19 +213,20 @@ public static class DocumentsEndpoints
                 Id = Guid.NewGuid(),
                 Titre = titre,
                 Categorie = categorie,
-                EquipementId = LireGuid(formulaire["equipementId"]),
-                ZoneId = LireGuid(formulaire["zoneId"]),
-                Notes = Nettoyer(formulaire["notes"]),
+                EquipementId = equipementId,
+                ZoneId = zoneId,
+                Notes = notes,
                 DateDocument = LireDate(formulaire["dateDocument"]),
                 Echeance = LireDate(formulaire["echeance"]),
-                NomFichier = Path.GetFileName(fichier.FileName),
+                NomFichier = nomFichier,
                 CheminDisque = string.Empty,
-                TypeMime = fichier.ContentType,
+                TypeMime = typeMime,
                 Taille = fichier.Length,
                 CreeLe = DateTimeOffset.UtcNow,
             };
-            // Nom disque = id + extension d'origine : jamais le nom fourni par le client.
-            document.CheminDisque = document.Id.ToString("N") + Path.GetExtension(fichier.FileName).ToLowerInvariant();
+            // Nom disque = id + extension dérivée du type MIME : jamais le nom (ni
+            // l'extension) fourni par le client.
+            document.CheminDisque = document.Id.ToString("N") + ExtensionPour(typeMime);
 
             var chemin = Path.Combine(DossierFichiers(config, env), document.CheminDisque);
             await using (var flux = File.Create(chemin))
@@ -184,7 +235,15 @@ public static class DocumentsEndpoints
             }
 
             db.Documents.Add(document);
-            await db.SaveChangesAsync();
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch
+            {
+                File.Delete(chemin);
+                throw;
+            }
             return Results.Created($"/api/documents/{document.Id}", new { document.Id });
         }).DisableAntiforgery();
 
@@ -284,7 +343,15 @@ public static class DocumentsEndpoints
             DossierMiniatures(config, env),
             Path.GetFileNameWithoutExtension(document.CheminDisque) + ".webp");
         db.Documents.Remove(document);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Deux suppressions concurrentes : l'autre a gagné — introuvable, pas 500.
+            return false;
+        }
         if (File.Exists(chemin))
         {
             File.Delete(chemin);
@@ -295,6 +362,33 @@ public static class DocumentsEndpoints
         }
         return true;
     }
+
+    /// <summary>
+    /// Nom d'affichage sûr : sans séparateurs de chemin (le backslash traverse
+    /// Path.GetFileName sous Linux), sans caractères de contrôle (CRLF casserait
+    /// l'en-tête Content-Disposition), borné à 255 (colonne varchar).
+    /// </summary>
+    private static string NettoyerNomFichier(string? nomBrut, string typeMime)
+    {
+        var nom = Path.GetFileName((nomBrut ?? "").Replace('\\', '/'));
+        nom = new string(nom.Where(c => char.IsControl(c) == false).ToArray()).Trim();
+        if (nom.Length == 0)
+        {
+            nom = "document" + ExtensionPour(typeMime);
+        }
+        return nom.Length > 255 ? nom[^255..] : nom;
+    }
+
+    /// <summary>Extension disque dérivée du type MIME validé — jamais du nom client.</summary>
+    private static string ExtensionPour(string typeMime) => typeMime switch
+    {
+        "application/pdf" => ".pdf",
+        "image/jpeg" => ".jpg",
+        "image/png" => ".png",
+        "image/webp" => ".webp",
+        "image/heic" => ".heic",
+        _ => ".bin",
+    };
 
     private static Guid? LireGuid(string? valeur) =>
         Guid.TryParse(valeur, out var id) ? id : null;

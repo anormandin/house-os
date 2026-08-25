@@ -61,9 +61,9 @@ public static class EquipementsEndpoints
 
         app.MapPost("/api/equipements", async (EquipementRequete requete, HouseOsDbContext db) =>
         {
-            if (string.IsNullOrWhiteSpace(requete.Nom))
+            if (await ValiderAsync(requete, db) is { } erreur)
             {
-                return Erreur("nom", "Le nom est requis.");
+                return erreur;
             }
 
             var equipement = new Equipement
@@ -80,9 +80,9 @@ public static class EquipementsEndpoints
 
         app.MapPut("/api/equipements/{id:guid}", async (Guid id, EquipementRequete requete, HouseOsDbContext db) =>
         {
-            if (string.IsNullOrWhiteSpace(requete.Nom))
+            if (await ValiderAsync(requete, db) is { } erreur)
             {
-                return Erreur("nom", "Le nom est requis.");
+                return erreur;
             }
             var equipement = await db.Equipements.FindAsync(id);
             if (equipement is null)
@@ -133,8 +133,10 @@ public static class EquipementsEndpoints
                 d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
             .ToListAsync();
 
-        // Historique d'entretien : complétions du journal des tâches liées à cet
-        // équipement (le journal survit à la suppression des tâches — jointure lâche).
+        // Historique d'entretien : complétions du journal des tâches actuellement liées
+        // à cet équipement. Limite connue : le lien tâche→équipement vit sur la tâche —
+        // supprimer une tâche retire donc ses complétions de CET historique (le journal
+        // lui-même survit et reste compté dans le bilan).
         var tachesLiees = await db.Taches
             .Where(t => t.EquipementId == id)
             .Select(t => new { t.Id, t.Titre })
@@ -144,6 +146,7 @@ public static class EquipementsEndpoints
         var entretiens = (await db.Journal
                 .Where(j => idsTaches.Contains(j.TacheId))
                 .OrderByDescending(j => j.CompleteeLe)
+                .ThenBy(j => j.Id) // tri secondaire : ordre stable à instants égaux
                 .Take(20)
                 .Join(db.Utilisateurs, j => j.UtilisateurId, u => u.Id,
                     (j, u) => new { j.TacheId, j.CompleteeLe, u.NomAffichage, j.Notes })
@@ -158,6 +161,38 @@ public static class EquipementsEndpoints
             equipement.FinGarantie, equipement.Notes, equipement.Specs,
             documents,
             entretiens);
+    }
+
+    /// <summary>
+    /// Validations partagées POST/PUT : longueurs de colonnes, zone existante, specs
+    /// acceptables par jsonb — sans elles, Postgres répond par un 500.
+    /// </summary>
+    private static async Task<IResult?> ValiderAsync(EquipementRequete requete, HouseOsDbContext db)
+    {
+        if (string.IsNullOrWhiteSpace(requete.Nom))
+        {
+            return Erreur("nom", "Le nom est requis.");
+        }
+        if (requete.Nom.Trim().Length > 200)
+        {
+            return Erreur("nom", "Le nom ne peut pas dépasser 200 caractères.");
+        }
+        if (requete.Marque?.Trim().Length > 100 || requete.Modele?.Trim().Length > 100
+            || requete.NumeroSerie?.Trim().Length > 100)
+        {
+            return Erreur("equipement", "Marque, modèle et numéro de série sont limités à 100 caractères.");
+        }
+        if (requete.ZoneId is { } zoneId && await db.Zones.AnyAsync(z => z.Id == zoneId) == false)
+        {
+            return Erreur("zoneId", "Cette pièce n'existe pas (ou plus).");
+        }
+        // Postgres refuse le caractère nul dans un jsonb (erreur 22P05).
+        if (requete.Specs is not null
+            && requete.Specs.Any(s => s.Key.Contains('\0') || s.Value.Contains('\0')))
+        {
+            return Erreur("specs", "Les specs ne peuvent pas contenir de caractère nul.");
+        }
+        return null;
     }
 
     internal static void Appliquer(EquipementRequete requete, Equipement equipement)

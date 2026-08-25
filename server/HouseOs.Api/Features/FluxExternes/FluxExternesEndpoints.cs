@@ -71,7 +71,12 @@ public static class FluxExternesEndpoints
                 flux.DernierRafraichissementLe, null, nbEvenements));
         });
 
-        app.MapPut("/api/flux-externes/{id:guid}", async (Guid id, FluxExterneRequete requete, HouseOsDbContext db) =>
+        app.MapPut("/api/flux-externes/{id:guid}", async (
+            Guid id,
+            FluxExterneRequete requete,
+            HouseOsDbContext db,
+            IHttpClientFactory httpFactory,
+            CancellationToken ct) =>
         {
             var flux = await db.FluxExternes.FindAsync(id);
             if (flux is null)
@@ -84,10 +89,20 @@ public static class FluxExternesEndpoints
                 return erreur;
             }
 
+            var urlChangee = flux.Url != requete.Url.Trim();
             flux.Nom = requete.Nom.Trim();
             flux.Url = requete.Url.Trim();
             flux.Type = type;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(ct);
+
+            if (urlChangee)
+            {
+                // L'ancien calendrier ne vaut plus rien sous ce flux : purger tout de
+                // suite et recharger — sinon jusqu'à 6 h de faux événements sous le
+                // nouveau nom. Un échec s'affiche dans la gestion (DerniereErreur).
+                await db.EvenementsExternes.Where(e => e.FluxExterneId == flux.Id).ExecuteDeleteAsync(ct);
+                await FluxExternesRafraichissement.Rafraichir(db, flux, httpFactory.CreateClient(), ct);
+            }
             return Results.NoContent();
         });
 

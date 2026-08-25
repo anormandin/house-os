@@ -33,13 +33,13 @@ const LIBELLES_BON: Record<string, string> = {
 }
 
 function pastilles(verdicts: VerdictMeteo[]) {
-  const chips: { texte: string; raison: string; enDedans: boolean }[] = []
+  const chips: { regle: string; texte: string; raison: string; enDedans: boolean }[] = []
   for (const v of verdicts) {
     if (v.etat === 'Bon' && LIBELLES_BON[v.regle]) {
-      chips.push({ texte: LIBELLES_BON[v.regle], raison: v.raison, enDedans: false })
+      chips.push({ regle: v.regle, texte: LIBELLES_BON[v.regle], raison: v.raison, enDedans: false })
     }
     if (v.etat === 'Defavorable' && v.regle === 'Être dehors') {
-      chips.push({ texte: 'Une journée pour rester en dedans', raison: v.raison, enDedans: true })
+      chips.push({ regle: v.regle, texte: 'Une journée pour rester en dedans', raison: v.raison, enDedans: true })
     }
   }
   return chips
@@ -94,7 +94,7 @@ export default function MeteoCarte({ meteo }: { meteo: Meteo | undefined }) {
         <div className="mt-4 flex flex-wrap gap-2">
           {chips.map((chip) => (
             <span
-              key={chip.texte}
+              key={chip.regle}
               title={chip.raison}
               className={
                 chip.enDedans

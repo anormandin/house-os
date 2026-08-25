@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Les seams internes (RolloverService, HumeurService…) sont testés directement. -->
+    <InternalsVisibleTo Include="HouseOs.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.42.0" />
     <PackageReference Include="Ical.Net" Version="5.2.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
