@@ -108,3 +108,6 @@ app.MapFallbackToFile("index.html").AllowAnonymous();
 await app.MigrerEtAmorcer();
 
 app.Run();
+
+// Rend la classe Program visible à WebApplicationFactory<Program> (tests d'intégration).
+public partial class Program;
