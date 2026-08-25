@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-24
-verified-against: 235843c
+last-verified: 2026-08-25
+verified-against: 8c1ff42
 tags: []
 ---
 
@@ -17,9 +17,10 @@ visite), pas un widget codé en dur pour le déménagement. Demandé par Alain e
 
 ## Comportement
 
-- Un compte à rebours = titre + date cible + icône (set maison de 8, chaque icône
-  porte sa couleur — voir [[D-2026-08-23 Icônes Maison Comptes À Rebours]]). Entité
-  du foyer, pas d'assignation.
+- Un compte à rebours = titre + date cible + icône (set maison de 16, chaque icône
+  porte sa couleur — voir [[D-2026-08-23 Icônes Maison Comptes À Rebours]] ; 8 icônes
+  saisonnières/activités ajoutées le 2026-08-25 : flocon, citrouille, feuille, fleur,
+  tente, vélo, ballon, étoile). Entité du foyer, pas d'assignation.
 - La carte « Comptes à rebours » d'Aujourd'hui affiche les comptes à venir en
   « dodos » (registre maison, toujours — pas d'option « jours »), triés par date.
 - Le jour J, la ligne se célèbre (« C'est aujourd'hui ! ») ; dès le lendemain elle
@@ -56,7 +57,7 @@ visite), pas un widget codé en dur pour le déménagement. Demandé par Alain e
 - `server/HouseOs.Api/Features/ComptesARebours/ComptesAReboursEndpoints.cs` — CRUD
 - `server/HouseOs.Api/Features/FluxIcal/FluxIcalEndpoints.cs` — évènements iCal
 - `web/src/pages/Aujourdhui.tsx` — carte + modal de gestion
-- `web/src/components/Illustrations.tsx` — les 8 icônes SVG
+- `web/src/components/Illustrations.tsx` — les icônes SVG (`ICONES_COMPTE`)
 - `web/src/lib/format.ts` — calcul des dodos
 
 ## Sources

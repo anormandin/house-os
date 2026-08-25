@@ -155,6 +155,14 @@ export type IconeCompte =
   | 'Cadeau'
   | 'Coeur'
   | 'Soleil'
+  | 'Flocon'
+  | 'Citrouille'
+  | 'Feuille'
+  | 'Fleur'
+  | 'Tente'
+  | 'Velo'
+  | 'Ballon'
+  | 'Etoile'
 
 export type CompteARebours = {
   id: string

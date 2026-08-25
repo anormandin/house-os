@@ -256,7 +256,8 @@ public static class OutilsMaison
     [McpServerTool(Name = "gerer_comptes_a_rebours")]
     [Description("Comptes à rebours affichés dans l'app (ex. le déménagement). Actions : lister " +
         "(inclut les passés), creer, modifier, supprimer. Icônes : Camion, Sapin, Avion, Valise, " +
-        "Gateau, Cadeau, Coeur, Soleil (défaut).")]
+        "Gateau, Cadeau, Coeur, Soleil (défaut), Flocon, Citrouille, Feuille, Fleur, Tente, " +
+        "Velo, Ballon, Etoile.")]
     public static async Task<object> GererComptesARebours(
         HouseOsDbContext db,
         [Description("lister, creer, modifier ou supprimer.")] string action,

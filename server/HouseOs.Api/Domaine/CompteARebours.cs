@@ -10,6 +10,14 @@ public enum IconeCompteARebours
     Cadeau,
     Coeur,
     Soleil,
+    Flocon,
+    Citrouille,
+    Feuille,
+    Fleur,
+    Tente,
+    Velo,
+    Ballon,
+    Etoile,
 }
 
 /// <summary>Un compte à rebours du foyer (déménagement, Noël, un voyage…). Pas d'assignation.</summary>

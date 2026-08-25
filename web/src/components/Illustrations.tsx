@@ -158,6 +158,150 @@ export function Soleil() {
   )
 }
 
+export function Flocon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path
+        d="M16 3v26M4.7 9.5l22.6 13M27.3 9.5L4.7 22.5"
+        stroke="var(--encre)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 6l4 4 4-4M12 26l4-4 4 4M4 14.5l5 1.5-5 1.5M28 14.5L23 16l5 1.5"
+        stroke="var(--encre)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function Citrouille() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <ellipse cx="16" cy="19" rx="11" ry="9.5" stroke="var(--orange)" strokeWidth="2.5" />
+      <path
+        d="M12 10.5c-3 4-3 13 0 17M20 10.5c3 4 3 13 0 17"
+        stroke="var(--orange)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M16 9V6c0-1.7 1.2-3 3-3"
+        stroke="var(--vert)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function Feuille() {
+  return (
+    <svg width="26" height="28" viewBox="0 0 28 32" fill="none" aria-hidden="true">
+      <path
+        d="M14 2C6.5 8.5 4.5 16 14 26c9.5-10 7.5-17.5 0-24z"
+        stroke="var(--rouge)"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 8v22M14 14l-4-3M14 14l4-3M14 19l-4.5-3.5M14 19l4.5-3.5"
+        stroke="var(--dore)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function Fleur() {
+  return (
+    <svg width="26" height="28" viewBox="0 0 28 32" fill="none" aria-hidden="true">
+      <path
+        d="M7 3v6c0 5.5 3 9.5 7 9.5s7-4 7-9.5V3l-4 4-3-4-3 4-4-4z"
+        stroke="var(--orange)"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <path d="M14 18.5V30" stroke="var(--vert)" strokeWidth="2.5" strokeLinecap="round" />
+      <path
+        d="M14 26c-4.5-.5-6.5-3-7-7 4.5.5 6.5 3 7 7z"
+        stroke="var(--vert)"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function Tente() {
+  return (
+    <svg width="32" height="26" viewBox="0 0 36 30" fill="none" aria-hidden="true">
+      <path d="M3 27h30" stroke="var(--dore)" strokeWidth="2.5" strokeLinecap="round" />
+      <path
+        d="M18 4 5 27h9l4-7.5 4 7.5h9L18 4z"
+        stroke="var(--vert)"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <path d="M18 4c-1.5-2-3.5-2.5-5-2" stroke="var(--vert)" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function Velo() {
+  return (
+    <svg width="36" height="26" viewBox="0 0 40 28" fill="none" aria-hidden="true">
+      <circle cx="9" cy="20" r="6" stroke="var(--encre)" strokeWidth="2.5" />
+      <circle cx="31" cy="20" r="6" stroke="var(--encre)" strokeWidth="2.5" />
+      <path
+        d="M9 20 15 9l5 11 7-11 4 11"
+        stroke="var(--orange)"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <path d="M12.5 9H18M27 9l-3-3" stroke="var(--orange)" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function Ballon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 30 32" fill="none" aria-hidden="true">
+      <ellipse cx="10.5" cy="9" rx="6" ry="7" stroke="var(--rouge)" strokeWidth="2.5" />
+      <path
+        d="M10.5 16c-1.5 5 2 8 1 13"
+        stroke="var(--rouge)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <ellipse cx="22" cy="13" rx="5" ry="6" stroke="var(--orange)" strokeWidth="2.5" />
+      <path
+        d="M22 19c1 4-1.5 6.5-.5 10"
+        stroke="var(--orange)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function Etoile() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path
+        d="M16 3l4 8.1 8.9 1.3-6.4 6.3 1.5 8.9-8-4.2-8 4.2 1.5-8.9-6.4-6.3L12 11.1 16 3z"
+        stroke="var(--dore)"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 /** Set d'icônes des comptes à rebours — chaque icône porte sa couleur d'accent. */
 export const ICONES_COMPTE: Record<
   IconeCompte,
@@ -171,4 +315,12 @@ export const ICONES_COMPTE: Record<
   Cadeau: { Icone: Cadeau, libelle: 'cadeau', couleur: 'var(--vert)' },
   Coeur: { Icone: Coeur, libelle: 'cœur', couleur: 'var(--rouge)' },
   Soleil: { Icone: Soleil, libelle: 'soleil', couleur: 'var(--orange)' },
+  Flocon: { Icone: Flocon, libelle: 'flocon', couleur: 'var(--encre)' },
+  Citrouille: { Icone: Citrouille, libelle: 'citrouille', couleur: 'var(--orange)' },
+  Feuille: { Icone: Feuille, libelle: 'feuille', couleur: 'var(--rouge)' },
+  Fleur: { Icone: Fleur, libelle: 'fleur', couleur: 'var(--orange)' },
+  Tente: { Icone: Tente, libelle: 'tente', couleur: 'var(--vert)' },
+  Velo: { Icone: Velo, libelle: 'vélo', couleur: 'var(--encre)' },
+  Ballon: { Icone: Ballon, libelle: 'ballon', couleur: 'var(--rouge)' },
+  Etoile: { Icone: Etoile, libelle: 'étoile', couleur: 'var(--dore)' },
 }
