@@ -208,4 +208,37 @@ public class ReglesJourneeTests
         var verdict = new RegleJourneeDehors().Evaluer(Apercu(heures));
         Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
     }
+
+    // --- Bruine : code 51+ à 0 mm et faible probabilité (le piège du 2026-08-25) ---
+
+    [Fact]
+    public void Dehors_Bruine_SansMillimetres_PasBon()
+    {
+        var heures = BellesHeures(h => h.CodeMeteo = 51);
+        var verdict = new RegleJourneeDehors().Evaluer(Apercu(heures));
+        Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
+    }
+
+    [Fact]
+    public void Tonte_BruineRecente_Defavorable()
+    {
+        var heures = BellesHeures(h =>
+        {
+            if (h.Heure == Maintenant.AddHours(-3))
+            {
+                h.CodeMeteo = 53;
+            }
+        });
+        var verdict = new RegleTonte().Evaluer(Apercu(heures));
+        Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
+        Assert.Contains("plu", verdict.Raison);
+    }
+
+    [Fact]
+    public void Aeration_Bruine_Defavorable()
+    {
+        var heures = BellesHeures(h => h.CodeMeteo = 51);
+        var verdict = new RegleAeration().Evaluer(Apercu(heures));
+        Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
+    }
 }

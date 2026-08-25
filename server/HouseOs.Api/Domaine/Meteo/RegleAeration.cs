@@ -23,7 +23,8 @@ public class RegleAeration : RegleJournee
             return SansDonnees();
         }
 
-        if (prochaines.Any(h => h.PrecipitationMm > 0 || h.ProbabilitePrecipitationPct >= ProbabilitePluieMaxPct))
+        if (prochaines.Any(h => h.PrecipitationMm > 0 || h.AnnoncePrecipitation
+            || h.ProbabilitePrecipitationPct >= ProbabilitePluieMaxPct))
         {
             return new(Nom, EtatVerdict.Defavorable, "Il pleut ou risque de pleuvoir — fenêtres fermées.");
         }

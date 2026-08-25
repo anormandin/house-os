@@ -14,7 +14,14 @@ public record JourMeteoDto(
 
 public record VerdictDto(string Regle, string Etat, string Raison);
 
-public record MeteoDto(DateTimeOffset? MisAJourLe, List<JourMeteoDto> Jours, List<VerdictDto> Verdicts);
+/// <summary>Les conditions de l'heure courante — le « dehors, là, maintenant ».</summary>
+public record MaintenantDto(double TemperatureC, int CodeMeteo);
+
+public record MeteoDto(
+    DateTimeOffset? MisAJourLe,
+    MaintenantDto? Maintenant,
+    List<JourMeteoDto> Jours,
+    List<VerdictDto> Verdicts);
 
 public static class MeteoEndpoints
 {
@@ -36,6 +43,7 @@ public static class MeteoEndpoints
             var heures = await db.PrevisionsHoraires.OrderBy(h => h.Heure).ToListAsync();
 
             var verdicts = new List<VerdictDto>();
+            MaintenantDto? maintenant = null;
             if (heures.Count > 0)
             {
                 var apercu = new ApercuMeteo(DateTime.Now, heures, jours);
@@ -43,10 +51,18 @@ public static class MeteoEndpoints
                     .Select(r => r.Evaluer(apercu))
                     .Select(v => new VerdictDto(v.Regle, v.Etat.ToString(), v.Raison))
                     .ToList();
+
+                var heureCourante = new DateTime(DateTime.Now.Year, DateTime.Now.Month,
+                    DateTime.Now.Day, DateTime.Now.Hour, 0, 0);
+                var courante = heures.FirstOrDefault(h => h.Heure == heureCourante);
+                maintenant = courante is null
+                    ? null
+                    : new MaintenantDto(courante.TemperatureC, courante.CodeMeteo);
             }
 
             return new MeteoDto(
                 misAJourLe,
+                maintenant,
                 jours.Select(j => new JourMeteoDto(
                     j.Date, j.TemperatureMinC, j.TemperatureMaxC,
                     j.PrecipitationMm, j.ProbabilitePrecipitationMaxPct, j.CodeMeteo)).ToList(),

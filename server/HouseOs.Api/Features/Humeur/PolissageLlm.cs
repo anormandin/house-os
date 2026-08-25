@@ -18,10 +18,19 @@ public static class PolissageLlm
     private const string PromptSysteme = """
         Tu écris la phrase d'accueil du tableau de bord maison d'Alain et Ariane,
         un couple québécois. À partir de l'état JSON fourni, écris un titre et un
-        sous-titre chaleureux pour le héros de la page Aujourd'hui.
+        sous-titre chaleureux et motivants pour le héros de la page Aujourd'hui.
+
+        Priorités du contenu, dans l'ordre :
+        1. Les tâches : celles du jour (nomme-en une ou deux quand il y en a), et ce
+           qui s'en vient cette semaine (prochainesTaches, avec l'horizon en jours) —
+           donne le goût de s'y mettre, ou quelque chose à anticiper.
+        2. Les comptes à rebours (« dodos ») quand ils approchent.
+        3. La météo : SEULEMENT si meteoRemarquable est présent, et en passant —
+           jamais le sujet principal. S'il est absent, ne parle pas de météo du tout.
 
         Règles strictes :
         - Registre québécois léger et affectueux (« dodos » pour compter les nuits) ; jamais pompeux.
+        - Inspirant sans jouer au coach de vie : de la chaleur et de l'élan, pas de slogans.
         - Jamais de culpabilisation, de reproche ni d'urgence anxiogène — même s'il y a du retard, on rassure.
         - N'utilise que les chiffres et faits présents dans l'état ; n'invente rien.
         - « moment » indique si on est le matin ou le soir — adapte le ton.
@@ -31,9 +40,10 @@ public static class PolissageLlm
           {"titre": "…", "sousTitre": "…"}
 
         Exemples du ton recherché (inspire-t'en sans les recopier) :
+        {"titre": "Le garage n'a qu'à bien se tenir.", "sousTitre": "Grand ménage du garage aujourd'hui — pis samedi, les boîtes du salon. Ça avance pour vrai."}
         {"titre": "On y est presque.", "sousTitre": "4 petites choses avant dodo — le camion attend depuis hier, le reste est sous contrôle."}
-        {"titre": "La maison respire.", "sousTitre": "Tout est fait, pis il fait beau — allez donc prendre l'air."}
-        {"titre": "Petit train va loin.", "sousTitre": "2 choses au programme ce soir, rien qui presse."}
+        {"titre": "La maison respire.", "sousTitre": "Rien aujourd'hui. Prochaine affaire : les filtres de l'échangeur, dans 3 jours."}
+        {"titre": "Petit train va loin.", "sousTitre": "2 choses au programme ce soir, rien qui presse — 12 dodos avant le grand départ."}
         """;
 
     public static async Task<(string Titre, string SousTitre)?> Polir(
@@ -65,15 +75,12 @@ public static class PolissageLlm
             tachesEnRetard = etat.EnRetard,
             tachesFaitesAujourdhui = etat.FaitesAujourdhui,
             etat = etat.Cle.ToString(),
+            tachesDuJour = etat.TachesDuJour,
+            prochainesTaches = etat.ProchainesTaches
+                .Select(t => new { titre = t.Titre, dansJours = t.DansJours }),
             comptesARebours = etat.ComptesProches
                 .Select(c => new { titre = c.Titre, dodos = c.Dodos }),
-            meteo = etat.Meteo is null ? null : new
-            {
-                temperatureMin = Math.Round(etat.Meteo.TemperatureMin),
-                temperatureMax = Math.Round(etat.Meteo.TemperatureMax),
-                probabilitePluiePct = etat.Meteo.ProbabilitePrecipitationPct,
-                bonnesJourneesPour = etat.Meteo.VerdictsFavorables,
-            },
+            meteoRemarquable = etat.MeteoRemarquable?.Description,
         });
 
     /// <summary>Parse défensif de la réponse : clôtures de code tolérées, champs

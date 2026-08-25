@@ -1,4 +1,5 @@
 using HouseOs.Api.Domaine.Humeur;
+using HouseOs.Api.Domaine.Meteo;
 
 namespace HouseOs.Tests.Domaine;
 
@@ -12,8 +13,9 @@ public class BanquePhrasesTests
         int faites = 0,
         MomentJournee moment = MomentJournee.Matin,
         IReadOnlyList<CompteProche>? comptes = null,
-        MeteoDuJour? meteo = null) =>
-        new(Date, moment, ouvertes, enRetard, faites, comptes ?? [], meteo);
+        IReadOnlyList<TacheAVenir>? prochaines = null,
+        SignalMeteoRemarquable? meteo = null) =>
+        new(Date, moment, ouvertes, enRetard, faites, comptes ?? [], [], prochaines ?? [], meteo);
 
     // --- Clé d'état ---
 
@@ -77,29 +79,52 @@ public class BanquePhrasesTests
     }
 
     [Fact]
-    public void BeauTemps_AjouteUneToucheMeteo()
+    public void MeteoRemarquableFavorable_AjouteUneToucheMeteo()
     {
-        var meteo = new MeteoDuJour(12, 24, 10, ["Être dehors"]);
+        var meteo = new SignalMeteoRemarquable("une journée magnifique pour être dehors", Favorable: true);
         var (_, sousTitre) = BanquePhrases.Generer(Etat(ouvertes: 2, meteo: meteo));
         var touches = new[] { "il fait beau", "nez dehors" };
         Assert.Contains(touches, t => sousTitre.Contains(t));
     }
 
     [Fact]
-    public void JourDePluie_MentionneLaPluie()
+    public void MeteoRemarquableDefavorable_ReprendLaDescription()
     {
-        var meteo = new MeteoDuJour(10, 15, 80, []);
+        var meteo = new SignalMeteoRemarquable("de la pluie pour une bonne partie de la journée", Favorable: false);
         var (_, sousTitre) = BanquePhrases.Generer(Etat(ouvertes: 2, meteo: meteo));
-        var touches = new[] { "Parapluie", "au chaud" };
-        Assert.Contains(touches, t => sousTitre.Contains(t));
+        Assert.Contains("de la pluie pour une bonne partie de la journée", sousTitre);
+    }
+
+    [Fact]
+    public void MeteoOrdinaire_AucuneMentionMeteo()
+    {
+        var (_, sousTitre) = BanquePhrases.Generer(Etat(ouvertes: 2));
+        Assert.DoesNotContain("dehors", sousTitre);
+        Assert.DoesNotContain("beau", sousTitre);
     }
 
     [Fact]
     public void JourneeChargee_PasDeToucheMeteo()
     {
-        var meteo = new MeteoDuJour(12, 24, 10, ["Être dehors"]);
+        var meteo = new SignalMeteoRemarquable("une journée magnifique pour être dehors", Favorable: true);
         var (_, sousTitre) = BanquePhrases.Generer(Etat(ouvertes: 7, meteo: meteo));
         Assert.DoesNotContain("il fait beau", sousTitre);
+    }
+
+    [Fact]
+    public void JourneeLibre_PointeLaProchaineTache()
+    {
+        var prochaines = new[] { new TacheAVenir("Changer les filtres", 3) };
+        var (_, sousTitre) = BanquePhrases.Generer(Etat(prochaines: prochaines));
+        Assert.Contains("Prochaine affaire : Changer les filtres, dans 3 jours.", sousTitre);
+    }
+
+    [Fact]
+    public void JourneeOccupee_NePointePasLaProchaine()
+    {
+        var prochaines = new[] { new TacheAVenir("Changer les filtres", 3) };
+        var (_, sousTitre) = BanquePhrases.Generer(Etat(ouvertes: 2, prochaines: prochaines));
+        Assert.DoesNotContain("Prochaine affaire", sousTitre);
     }
 
     [Fact]

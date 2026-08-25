@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-24
-verified-against: 2f7524e
+last-verified: 2026-08-25
+verified-against: fdbfa07
 tags: []
 ---
 
@@ -27,10 +27,19 @@ Première brique d'ingestion de données externes de la phase 2.
   normalisé — elles ne voient jamais la forme de l'API. Règles v1 (choix
   utilisateur 2026-08-24) : **tonte**, **aération / fenêtres ouvertes**,
   **journée dehors / journée en dedans** (un verdict activités extérieures vs
-  intérieures). Seuils dans le plan, ajustables par code + test.
-- Quand des prévisions existent, Aujourd'hui affiche un bandeau météo compact
-  (aujourd'hui + prochains jours) et des pastilles quand une règle rend un verdict
-  favorable ; pas de page météo dédiée.
+  intérieures). Seuils dans le plan, ajustables par code + test. Depuis le
+  2026-08-25, la série horaire inclut le code temps WMO et tout code ≥ 51
+  (bruine incluse, même à 0 mm) compte comme précipitation
+  ([[D-2026-08-25 Code Météo Horaire Et Conditions Du Moment]]).
+- Un évaluateur `MeteoRemarquable` (même famille que les règles) produit un
+  signal « la météo sort de l'ordinaire » (orage, neige, pluie soutenue,
+  chaleur/froid extrême, grand vent, journée exceptionnelle) — consommé par
+  [[Titre D'humeur]], qui ne parle météo que sur ce signal.
+- Quand des prévisions existent, Aujourd'hui affiche un bandeau météo compact et
+  des pastilles quand une règle rend un verdict favorable ; pas de page météo
+  dédiée. La grosse icône et la température affichent les conditions de l'heure
+  courante (objet `maintenant` de `GET /api/meteo`, dérivé de la ligne horaire) ;
+  le code quotidien sert aux jours suivants.
 - L'UI lit uniquement les tables locales via `GET /api/meteo` ; Open-Meteo hors
   ligne → dernières données connues, jamais d'appel API dans le chemin de requête.
 
@@ -50,12 +59,14 @@ Première brique d'ingestion de données externes de la phase 2.
   comme source unique de la v1.
 - [[D-2026-08-24 Tables Météo Normalisées]] — worker horaire → tables normalisées
   + brut archivé ; règles évaluées à la lecture.
+- [[D-2026-08-25 Code Météo Horaire Et Conditions Du Moment]] — code WMO horaire,
+  règles sensibles à la bruine, conditions du moment dérivées de l'heure courante.
 - [[D-2026-08-23 Pas De N8n Dans Le Cœur]] — ingestion et règles en C# typé.
 
 ## Ancres de code
 
 - `server/HouseOs.Api/Domaine/Meteo/` — modèle normalisé + règles (`RegleTonte`,
-  `RegleAeration`, `RegleJourneeDehors`, seuils en constantes).
+  `RegleAeration`, `RegleJourneeDehors`, `MeteoRemarquable`, seuils en constantes).
 - `server/HouseOs.Api/Features/Meteo/` — options, normalisation Open-Meteo,
   worker d'ingestion, endpoint `GET /api/meteo`.
 - `server/HouseOs.Tests/Domaine/ReglesJourneeTests.cs` et
@@ -71,3 +82,4 @@ Première brique d'ingestion de données externes de la phase 2.
 ## Historique
 
 - [[Plan 2026-08-24 Météo V1]] · [[Recap Météo]]
+- [[Plan 2026-08-25 Météo Du Moment Et Phrase Axée Tâches]]

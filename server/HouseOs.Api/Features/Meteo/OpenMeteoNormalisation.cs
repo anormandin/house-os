@@ -37,6 +37,7 @@ public static class OpenMeteoNormalisation
                 HumiditeSol = Nombre(horaire, "soil_moisture_0_to_1cm", i),
                 CouvertureNuageusePct = (int)(Nombre(horaire, "cloud_cover", i) ?? 0),
                 IndiceUv = Nombre(horaire, "uv_index", i) ?? 0,
+                CodeMeteo = (int)(Nombre(horaire, "weather_code", i) ?? 0),
             });
         }
         return heures;

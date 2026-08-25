@@ -11,6 +11,9 @@ namespace HouseOs.Api.Features.Humeur;
 public static class ConstruireEtat
 {
     private const int MaxComptesProches = 3;
+    private const int MaxTachesDuJour = 5;
+    private const int MaxProchainesTaches = 4;
+    private const int HorizonProchainesJours = 7;
 
     public static async Task<EtatMaison> Construire(
         HouseOsDbContext db,
@@ -36,29 +39,37 @@ public static class ConstruireEtat
             .Select(c => new CompteProche(c.Titre, c.DateCible.DayNumber - date.DayNumber))
             .ToList();
 
+        var tachesDuJour = await db.Occurrences
+            .Where(o => o.Statut == StatutOccurrence.EnAttente && o.Echeance != null && o.Echeance <= date)
+            .OrderBy(o => o.Echeance)
+            .Take(MaxTachesDuJour)
+            .Select(o => o.Tache!.Titre)
+            .ToListAsync(ct);
+
+        var horizon = date.AddDays(HorizonProchainesJours);
+        var prochaines = (await db.Occurrences
+                .Where(o => o.Statut == StatutOccurrence.EnAttente
+                    && o.Echeance != null && o.Echeance > date && o.Echeance <= horizon)
+                .OrderBy(o => o.Echeance)
+                .Take(MaxProchainesTaches)
+                .Select(o => new { o.Tache!.Titre, Echeance = o.Echeance!.Value })
+                .ToListAsync(ct))
+            .Select(o => new TacheAVenir(o.Titre, o.Echeance.DayNumber - date.DayNumber))
+            .ToList();
+
         return new EtatMaison(date, moment, ouvertes, enRetard, faites, comptesProches,
-            await MeteoDuJour(db, date, ct));
+            tachesDuJour, prochaines, await SignalMeteo(db, ct));
     }
 
-    private static async Task<MeteoDuJour?> MeteoDuJour(HouseOsDbContext db, DateOnly date, CancellationToken ct)
+    private static async Task<SignalMeteoRemarquable?> SignalMeteo(HouseOsDbContext db, CancellationToken ct)
     {
-        var jour = await db.PrevisionsQuotidiennes.FirstOrDefaultAsync(j => j.Date == date, ct);
-        if (jour is null)
+        var heures = await db.PrevisionsHoraires.OrderBy(h => h.Heure).ToListAsync(ct);
+        if (heures.Count == 0)
         {
             return null;
         }
-
-        var heures = await db.PrevisionsHoraires.OrderBy(h => h.Heure).ToListAsync(ct);
         var jours = await db.PrevisionsQuotidiennes.OrderBy(j => j.Date).ToListAsync(ct);
-        var apercu = new ApercuMeteo(DateTime.Now, heures, jours);
-        var favorables = RegleJournee.Toutes
-            .Select(r => r.Evaluer(apercu))
-            .Where(v => v.Etat == EtatVerdict.Bon)
-            .Select(v => v.Regle)
-            .ToList();
-
-        return new MeteoDuJour(jour.TemperatureMinC, jour.TemperatureMaxC,
-            jour.ProbabilitePrecipitationMaxPct, favorables);
+        return MeteoRemarquable.Evaluer(new ApercuMeteo(DateTime.Now, heures, jours));
     }
 
     // Minuit local exprimé en UTC : Npgsql n'accepte que l'offset 0 en paramètre timestamptz.

@@ -52,7 +52,10 @@ export default function MeteoCarte({ meteo }: { meteo: Meteo | undefined }) {
   }
 
   const [aujourdhui, ...suivants] = meteo.jours
-  const { Icone: IconeJour, classe } = icone(aujourdhui.codeMeteo)
+  // Le moment présent en grand (l'heure courante) ; le jour sert de repli quand
+  // la ligne horaire manque.
+  const { Icone: IconeJour, classe } = icone(meteo.maintenant?.codeMeteo ?? aujourdhui.codeMeteo)
+  const temperature = meteo.maintenant?.temperatureC ?? aujourdhui.tempMax
   const chips = pastilles(meteo.verdicts)
 
   return (
@@ -62,10 +65,10 @@ export default function MeteoCarte({ meteo }: { meteo: Meteo | undefined }) {
       <div className="flex items-center gap-4">
         <IconeJour className={`size-10 ${classe}`} strokeWidth={1.8} />
         <div className="flex items-baseline gap-2">
-          <span className="font-titre text-3xl font-bold">
-            {Math.round(aujourdhui.tempMax)}°
+          <span className="font-titre text-3xl font-bold">{Math.round(temperature)}°</span>
+          <span className="text-sm text-sourdine">
+            {Math.round(aujourdhui.tempMin)}° à {Math.round(aujourdhui.tempMax)}°
           </span>
-          <span className="text-sm text-sourdine">{Math.round(aujourdhui.tempMin)}°</span>
         </div>
         {aujourdhui.probabilitePrecipitation >= 30 && (
           <span className="ml-auto rounded-full bg-creux px-2.5 py-0.5 text-xs font-bold text-dore">

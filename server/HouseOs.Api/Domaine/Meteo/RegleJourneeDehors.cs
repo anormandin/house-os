@@ -30,7 +30,8 @@ public class RegleJourneeDehors : RegleJournee
 
         var confortables = journee.Count(h =>
             h.TemperatureC >= ConfortMinC && h.TemperatureC <= ConfortMaxC
-            && h.PrecipitationMm == 0 && h.ProbabilitePrecipitationPct < ProbabilitePluieMaxPct
+            && h.PrecipitationMm == 0 && h.AnnoncePrecipitation == false
+            && h.ProbabilitePrecipitationPct < ProbabilitePluieMaxPct
             && h.VentKmh < VentMaxKmh);
 
         if (confortables >= HeuresConfortablesPourBon)

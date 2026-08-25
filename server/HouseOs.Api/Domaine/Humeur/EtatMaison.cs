@@ -19,16 +19,14 @@ public enum CleEtat
 
 public record CompteProche(string Titre, int Dodos);
 
-public record MeteoDuJour(
-    double TemperatureMin,
-    double TemperatureMax,
-    int ProbabilitePrecipitationPct,
-    IReadOnlyList<string> VerdictsFavorables);
+public record TacheAVenir(string Titre, int DansJours);
 
 /// <summary>
 /// Couche 1 du titre d'humeur : l'état structuré de la maison, calculé en C# —
 /// tout ce qui est numérique ou factuel vient d'ici, jamais du LLM. La même
-/// structure nourrira la vue e-ink.
+/// structure nourrira la vue e-ink. Axé tâches : titres du jour et de la semaine ;
+/// la météo n'y figure que si elle sort de l'ordinaire
+/// (D-2026-08-25 Phrase Du Jour Axée Tâches).
 /// </summary>
 public record EtatMaison(
     DateOnly Date,
@@ -37,7 +35,9 @@ public record EtatMaison(
     int EnRetard,
     int FaitesAujourdhui,
     IReadOnlyList<CompteProche> ComptesProches,
-    MeteoDuJour? Meteo)
+    IReadOnlyList<string> TachesDuJour,
+    IReadOnlyList<TacheAVenir> ProchainesTaches,
+    Meteo.SignalMeteoRemarquable? MeteoRemarquable)
 {
     private const int SeuilJourneeChargee = 5;
 

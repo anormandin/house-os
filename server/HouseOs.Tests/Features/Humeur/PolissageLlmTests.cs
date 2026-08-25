@@ -1,4 +1,5 @@
 using HouseOs.Api.Domaine.Humeur;
+using HouseOs.Api.Domaine.Meteo;
 using HouseOs.Api.Features.Humeur;
 
 namespace HouseOs.Tests.Features.Humeur;
@@ -50,7 +51,9 @@ public class PolissageLlmTests
             new DateOnly(2026, 10, 3), MomentJournee.Matin,
             Ouvertes: 4, EnRetard: 1, FaitesAujourdhui: 2,
             ComptesProches: [new CompteProche("Déménagement", 3)],
-            Meteo: new MeteoDuJour(8.4, 17.6, 20, ["Tondre"]));
+            TachesDuJour: ["Vider le garage"],
+            ProchainesTaches: [new TacheAVenir("Changer les filtres", 2)],
+            MeteoRemarquable: new SignalMeteoRemarquable("des orages attendus aujourd'hui", Favorable: false));
 
         var json = PolissageLlm.SerialiserEtat(etat);
 
@@ -59,22 +62,24 @@ public class PolissageLlmTests
         Assert.Contains("\"tachesEnRetard\":1", json);
         Assert.Contains("\"dodos\":3", json);
         Assert.Contains("D\\u00E9m\\u00E9nagement", json, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("\"temperatureMax\":18", json);
-        Assert.Contains("Tondre", json);
+        Assert.Contains("Vider le garage", json);
+        Assert.Contains("\"dansJours\":2", json);
+        Assert.Contains("orages", json);
     }
 
     [Fact]
-    public void SerialiserEtat_SansMeteo()
+    public void SerialiserEtat_MeteoOrdinaireAbsente()
     {
         var etat = new EtatMaison(
             new DateOnly(2026, 8, 24), MomentJournee.Soir,
             Ouvertes: 0, EnRetard: 0, FaitesAujourdhui: 5,
-            ComptesProches: [], Meteo: null);
+            ComptesProches: [], TachesDuJour: [], ProchainesTaches: [],
+            MeteoRemarquable: null);
 
         var json = PolissageLlm.SerialiserEtat(etat);
 
         Assert.Contains("\"moment\":\"soir\"", json);
-        Assert.Contains("\"meteo\":null", json);
+        Assert.Contains("\"meteoRemarquable\":null", json);
         Assert.Contains("ToutFait", json);
     }
 }

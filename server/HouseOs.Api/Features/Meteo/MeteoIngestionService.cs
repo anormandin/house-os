@@ -73,7 +73,7 @@ public class MeteoIngestionService(
         return "https://api.open-meteo.com/v1/forecast"
             + $"?latitude={latitude}&longitude={longitude}"
             + "&hourly=temperature_2m,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,"
-            + "relative_humidity_2m,soil_moisture_0_to_1cm,cloud_cover,uv_index"
+            + "relative_humidity_2m,soil_moisture_0_to_1cm,cloud_cover,uv_index,weather_code"
             + "&daily=temperature_2m_min,temperature_2m_max,precipitation_sum,precipitation_probability_max,"
             + "wind_speed_10m_max,wind_gusts_10m_max,uv_index_max,weather_code,sunrise,sunset"
             + $"&timezone={Uri.EscapeDataString(options.FuseauHoraire)}"

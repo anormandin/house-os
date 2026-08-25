@@ -24,11 +24,13 @@ public class RegleTonte : RegleJournee
             return SansDonnees();
         }
 
-        if (avant.Sum(h => h.PrecipitationMm) > PluieRecenteMaxMm)
+        if (avant.Sum(h => h.PrecipitationMm) > PluieRecenteMaxMm
+            || avant.Any(h => h.AnnoncePrecipitation))
         {
             return new(Nom, EtatVerdict.Defavorable, "Il a plu dans les dernières heures — le gazon est mouillé.");
         }
-        if (apres.Any(h => h.PrecipitationMm > 0 || h.ProbabilitePrecipitationPct >= ProbabilitePluieMaxPct))
+        if (apres.Any(h => h.PrecipitationMm > 0 || h.AnnoncePrecipitation
+            || h.ProbabilitePrecipitationPct >= ProbabilitePluieMaxPct))
         {
             return new(Nom, EtatVerdict.Defavorable, "De la pluie s'en vient.");
         }

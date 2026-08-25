@@ -63,29 +63,39 @@ public static class BanquePhrases
                 ], graine),
         };
 
-        var meteo = PhraseMeteo(etat, graine);
-        return meteo is null ? corps : $"{corps} {meteo}";
+        var suites = new[] { corps, PhraseProchaine(etat), PhraseMeteo(etat, graine) };
+        return string.Join(" ", suites.Where(s => s is not null));
     }
 
-    /// <summary>Une touche météo-consciente sur les journées sans retard —
-    /// jamais pour alourdir une journée déjà chargée.</summary>
-    private static string? PhraseMeteo(EtatMaison etat, int graine)
+    /// <summary>Sur une journée libre, pointer la prochaine tâche — quelque chose
+    /// à anticiper plutôt qu'un simple « rien au programme ».</summary>
+    private static string? PhraseProchaine(EtatMaison etat)
     {
-        if (etat.Meteo is null || etat.Cle is CleEtat.Retard or CleEtat.JourneeChargee)
+        var journeeLibre = etat.Cle is CleEtat.ToutFait or CleEtat.RienAuProgramme;
+        var prochaine = etat.ProchainesTaches.FirstOrDefault();
+        if (journeeLibre == false || prochaine is null)
         {
             return null;
         }
-        if (etat.Meteo.VerdictsFavorables.Contains("Être dehors"))
+        var horizon = prochaine.DansJours == 1 ? "demain" : $"dans {prochaine.DansJours} jours";
+        return $"Prochaine affaire : {prochaine.Titre}, {horizon}.";
+    }
+
+    /// <summary>La météo seulement quand elle sort de l'ordinaire (D-2026-08-25
+    /// Phrase Du Jour Axée Tâches) — et jamais pour alourdir une journée déjà
+    /// chargée ou en retard.</summary>
+    private static string? PhraseMeteo(EtatMaison etat, int graine)
+    {
+        if (etat.MeteoRemarquable is null || etat.Cle is CleEtat.Retard or CleEtat.JourneeChargee)
+        {
+            return null;
+        }
+        if (etat.MeteoRemarquable.Favorable)
         {
             return Choisir(
                 ["Et il fait beau — sortez donc.", "Belle journée pour mettre le nez dehors."], graine);
         }
-        if (etat.Meteo.ProbabilitePrecipitationPct >= 60)
-        {
-            return Choisir(
-                ["Parapluie pas loin, on dirait.", "Journée parfaite pour rester au chaud."], graine);
-        }
-        return null;
+        return $"Pis dehors : {etat.MeteoRemarquable.Description}.";
     }
 
     private static string PhraseRetard(int enRetard) =>

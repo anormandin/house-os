@@ -21,7 +21,8 @@ public class OpenMeteoNormalisationTests
             "relative_humidity_2m": [55, 60],
             "soil_moisture_0_to_1cm": [0.21, null],
             "cloud_cover": [35, 80],
-            "uv_index": [5.2, 4.1]
+            "uv_index": [5.2, 4.1],
+            "weather_code": [2, 51]
           },
           "daily": {
             "time": ["2026-08-24", "2026-08-25"],
@@ -54,6 +55,9 @@ public class OpenMeteoNormalisationTests
         Assert.Equal(0.21, premiere.HumiditeSol);
         Assert.Equal(35, premiere.CouvertureNuageusePct);
         Assert.Equal(5.2, premiere.IndiceUv);
+        Assert.Equal(2, premiere.CodeMeteo);
+        Assert.Equal(51, resultat.Heures[1].CodeMeteo);
+        Assert.True(resultat.Heures[1].AnnoncePrecipitation);
     }
 
     [Fact]
@@ -103,6 +107,7 @@ public class OpenMeteoNormalisationTests
 
         Assert.Equal(0, resultat.Heures[0].PrecipitationMm);
         Assert.Null(resultat.Heures[0].HumiditeSol);
+        Assert.Equal(0, resultat.Heures[0].CodeMeteo);
         Assert.Equal(0, resultat.Jours[0].CodeMeteo);
     }
 }

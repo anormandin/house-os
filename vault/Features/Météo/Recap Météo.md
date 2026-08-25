@@ -30,3 +30,13 @@ Déviations :
    le reste du schéma.
 3. Passe visuelle du bandeau dans le navigateur laissée à Alain (extension Chrome
    déconnectée pendant la session).
+
+## 2026-08-25 — Météo du moment ([[Plan 2026-08-25 Météo Du Moment Et Phrase Axée Tâches]])
+
+Bogue prod corrigé (bruine dehors, héros vantant la belle météo) : code temps WMO
+ajouté à la série horaire (migration `AjouterCodeMeteoHoraire`), tout code ≥ 51
+compte comme précipitation dans les trois règles, `GET /api/meteo` expose
+`maintenant` (heure courante) et la carte « Dehors » l'affiche en grand avec la
+plage min-max du jour. Nouvel évaluateur `MeteoRemarquable` pour [[Titre D'humeur]].
+Vérifié : 156 tests verts, `maintenant` cohérent avec le vrai ciel via curl, la
+règle Tondre détecte la bruine du matin réel.

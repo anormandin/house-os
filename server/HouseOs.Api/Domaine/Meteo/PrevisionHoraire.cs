@@ -16,4 +16,10 @@ public class PrevisionHoraire
     public double? HumiditeSol { get; set; }
     public int CouvertureNuageusePct { get; set; }
     public double IndiceUv { get; set; }
+    /// <summary>Code temps WMO de l'heure (0 = ciel clair … 99 = orage).</summary>
+    public int CodeMeteo { get; set; }
+
+    /// <summary>La bruine (51+) tombe souvent à 0 mm et sous 30 % de probabilité :
+    /// le code est le seul signal fiable qu'il précipite.</summary>
+    public bool AnnoncePrecipitation => CodeMeteo >= 51;
 }

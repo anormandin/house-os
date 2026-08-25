@@ -184,8 +184,14 @@ export type VerdictMeteo = {
   raison: string
 }
 
+export type MeteoMaintenant = {
+  temperatureC: number
+  codeMeteo: number
+}
+
 export type Meteo = {
   misAJourLe: string | null
+  maintenant: MeteoMaintenant | null
   jours: JourMeteo[]
   verdicts: VerdictMeteo[]
 }

@@ -33,3 +33,16 @@ Déviations :
    en salutation ; avec les exemples, le ton rejoint la banque.
 4. `Extraire`/`SerialiserEtat` publics (pas d'`InternalsVisibleTo` dans le
    projet — convention existante).
+
+## 2026-08-25 — Phrase axée tâches ([[Plan 2026-08-25 Météo Du Moment Et Phrase Axée Tâches]])
+
+`EtatMaison` réorienté : titres des tâches du jour (≤ 5) et des prochaines de la
+semaine (≤ 4, horizon en jours) remplacent le bloc météo permanent ; la météo n'y
+figure plus que via `SignalMeteoRemarquable`
+([[D-2026-08-25 Phrase Du Jour Axée Tâches]]). Prompt réécrit (motivant, tâches
+d'abord, météo interdite hors signal),
+banque de gabarits alignée + variante « Prochaine affaire : … » sur les journées
+libres. Vérifié : régénération réelle en dev — « Les boîtes commencent à se
+vider. / Appels administratifs et ménage ce matin — internet à résilier demain.
+Le déménagement, c'est dans 42 dodos. » — tâches réelles nommées, zéro météo un
+jour ordinaire.
