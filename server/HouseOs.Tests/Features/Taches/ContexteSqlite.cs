@@ -3,12 +3,15 @@ using HouseOs.Api.Domaine;
 using HouseOs.Api.Infrastructure;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HouseOs.Tests.Features.Taches;
 
 /// <summary>
-/// Contexte de test sur Sqlite in-memory : seule différence avec Postgres, la colonne
-/// jsonb Equipement.Specs est re-mappée en TEXT via une conversion JSON.
+/// Contexte de test sur Sqlite in-memory : différences avec Postgres — la colonne
+/// jsonb Equipement.Specs est re-mappée en TEXT via une conversion JSON, et les
+/// DateTimeOffset comparés en requête (journal) sont convertis en binaire, car le
+/// fournisseur Sqlite ne sait pas les traduire.
 /// </summary>
 public class HouseOsDbContextSqlite(DbContextOptions<HouseOsDbContext> options)
     : HouseOsDbContext(options)
@@ -22,6 +25,8 @@ public class HouseOsDbContextSqlite(DbContextOptions<HouseOsDbContext> options)
                 specs => JsonSerializer.Serialize(specs, (JsonSerializerOptions?)null),
                 texte => JsonSerializer.Deserialize<Dictionary<string, string>>(
                     texte, (JsonSerializerOptions?)null) ?? new Dictionary<string, string>());
+        modelBuilder.Entity<EntreeJournal>().Property(j => j.CompleteeLe)
+            .HasConversion(new DateTimeOffsetToBinaryConverter());
     }
 }
 

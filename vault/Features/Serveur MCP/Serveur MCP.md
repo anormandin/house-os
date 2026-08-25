@@ -20,7 +20,7 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 - Le backend expose un endpoint MCP **`/mcp`** (streamable HTTP, stateless) via le SDK
   officiel C#. Quand la requête ne porte pas la clé API (`Authorization: Bearer`,
   config `Mcp:Cle`), le système répond 401 ; clé non configurée = tout est refusé.
-- **15 outils**, noms snake_case français, erreurs en français actionnables
+- **16 outils**, noms snake_case français, erreurs en français actionnables
   (`McpException`) ; dates en chaînes `YYYY-MM-DD` ; enums en chaînes ; retours
   camelCase (mêmes formes que les DTO REST) :
   - `lister_utilisateurs`, `lister_zones`, `gerer_zone`
@@ -29,7 +29,9 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
     `lister_occurrences` (filtres aujourdhui/avenir/en-attente/completees),
     `completer_occurrence` (matérialise la prochaine occurrence si récurrente),
     `gerer_occurrence` (annuler-completion/passer/reporter — voir
-    [[D-2026-08-24 Annulation Et Passage D'occurrences]])
+    [[D-2026-08-24 Annulation Et Passage D'occurrences]]),
+    `bilan_taches` (complétions du ménage par semaine, heure du serveur — voir
+    [[D-2026-08-25 Bilan Hebdo Du Ménage]])
   - `lister_equipements`, `obtenir_equipement`, `gerer_equipement`
   - `lister_documents`, `gerer_document` (métadonnées et suppression seulement —
     les octets passent par l'interface web ; voir [[Documents]])

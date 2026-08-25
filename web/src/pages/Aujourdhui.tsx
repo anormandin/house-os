@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarPlus, Plus } from 'lucide-react'
-import Avatar, { paletteAvatar } from '@/components/Avatar'
 import ComptesAReboursGestion from '@/components/ComptesAReboursGestion'
 import FluxExternesGestion, { ICONES_FLUX } from '@/components/FluxExternesGestion'
 import { ICONES_COMPTE, MaisonSoleil } from '@/components/Illustrations'
@@ -34,9 +33,10 @@ export default function Aujourdhui() {
     queryKey: ['occurrences', 'en-attente'],
     queryFn: () => api.occurrences('en-attente'),
   })
-  const { data: utilisateurs } = useQuery({
-    queryKey: ['utilisateurs'],
-    queryFn: api.utilisateurs,
+  const bornesBilan = bornesSemainesBilan()
+  const { data: bilan } = useQuery({
+    queryKey: ['journal', 'bilan', bornesBilan.de],
+    queryFn: () => api.bilanJournal(bornesBilan.de, bornesBilan.a),
   })
   const { data: comptesARebours } = useQuery({
     queryKey: ['comptes-a-rebours'],
@@ -124,7 +124,7 @@ export default function Aujourdhui() {
             evenements={evenementsExternes ?? []}
             onGerer={() => setGestionFluxOuverte(true)}
           />
-          <Equipe enAttente={enAttente ?? []} utilisateurs={utilisateurs ?? []} />
+          <Bilan instants={bilan ?? []} lundis={bornesBilan.lundis} />
           <ComptesARebours
             comptes={comptesARebours ?? []}
             onGerer={() => setGestionComptesOuverte(true)}
@@ -229,41 +229,77 @@ function CetteSemaine({
   )
 }
 
-function Equipe({
-  enAttente,
-  utilisateurs,
-}: {
-  enAttente: Occurrence[]
-  utilisateurs: { id: string; nomUtilisateur: string; nomAffichage: string }[]
-}) {
-  const comptes = utilisateurs.map((u) => ({
-    utilisateur: u,
-    nombre: enAttente.filter((o) => o.assigneA?.id === u.id).length,
-  }))
-  const maximum = Math.max(1, ...comptes.map((c) => c.nombre))
+/* Bilan du ménage : total complété par semaine, sans égard à qui a cliqué —
+   l'attribution individuelle est indicative, le foyer compte ensemble. */
+const NB_SEMAINES_BILAN = 8
+
+function bornesSemainesBilan(date = new Date()): { de: string; a: string; lundis: string[] } {
+  const jour = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const lundiCourant = new Date(
+    jour.getFullYear(),
+    jour.getMonth(),
+    jour.getDate() - ((jour.getDay() + 6) % 7),
+  )
+  const lundis: string[] = []
+  for (let i = NB_SEMAINES_BILAN - 1; i >= 0; i--) {
+    lundis.push(
+      dateLocaleIso(
+        new Date(
+          lundiCourant.getFullYear(),
+          lundiCourant.getMonth(),
+          lundiCourant.getDate() - 7 * i,
+        ),
+      ),
+    )
+  }
+  const debut = new Date(`${lundis[0]}T00:00:00`)
+  const fin = new Date(
+    lundiCourant.getFullYear(),
+    lundiCourant.getMonth(),
+    lundiCourant.getDate() + 7,
+  )
+  return { de: debut.toISOString(), a: fin.toISOString(), lundis }
+}
+
+function Bilan({ instants, lundis }: { instants: string[]; lundis: string[] }) {
+  const indexParLundi = new Map(lundis.map((lundi, i) => [lundi, i]))
+  const comptes = lundis.map(() => 0)
+  for (const instant of instants) {
+    const local = new Date(instant)
+    const lundi = dateLocaleIso(
+      new Date(
+        local.getFullYear(),
+        local.getMonth(),
+        local.getDate() - ((local.getDay() + 6) % 7),
+      ),
+    )
+    const i = indexParLundi.get(lundi)
+    if (i !== undefined) {
+      comptes[i] += 1
+    }
+  }
+  const maximum = Math.max(1, ...comptes)
+  const cetteSemaine = comptes[comptes.length - 1]
 
   return (
     <section className="rounded-3xl bg-carte px-6 py-5 shadow-carte">
-      <h2 className="mb-1 text-lg font-bold">L’équipe</h2>
-      <p className="mb-3 text-xs text-sourdine">tâches à faire chacun</p>
-      <div className="flex flex-col gap-2.5">
-        {comptes.map(({ utilisateur, nombre }) => {
-          const palette = paletteAvatar(utilisateur)
-          return (
-            <div key={utilisateur.id} className="flex items-center gap-3">
-              <Avatar utilisateur={utilisateur} taille={28} />
-              <div className="h-2.5 flex-1 rounded-full bg-creux">
-                <div
-                  className="h-2.5 rounded-full"
-                  style={{ width: `${(nombre / maximum) * 100}%`, background: palette.barre }}
-                />
-              </div>
-              <span className="w-4 text-right text-[15px] font-bold" style={{ color: palette.texte }}>
-                {nombre}
-              </span>
-            </div>
-          )
-        })}
+      <h2 className="mb-1 text-lg font-bold">Bilan</h2>
+      <p className="mb-3 text-xs text-sourdine">tâches faites, semaine après semaine</p>
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-bold leading-none text-orange">{cetteSemaine}</span>
+        <span className="text-sm text-dore">
+          {cetteSemaine === 1 ? 'tâche faite cette semaine' : 'tâches faites cette semaine'}
+        </span>
+      </div>
+      <div className="mt-3 flex h-14 items-end gap-1.5">
+        {comptes.map((nombre, i) => (
+          <div
+            key={lundis[i]}
+            title={`Semaine du ${dateCourte(lundis[i])} : ${nombre}`}
+            className={`flex-1 rounded-t-md ${i === comptes.length - 1 ? 'bg-orange' : 'bg-orange/30'}`}
+            style={{ height: `${Math.max((nombre / maximum) * 100, 6)}%` }}
+          />
+        ))}
       </div>
     </section>
   )

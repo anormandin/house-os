@@ -53,6 +53,21 @@ public class OperationsTachesTests : TestAvecSqlite
         Db.Occurrences.Single(o => o.TacheId == tache.Id && o.Statut == StatutOccurrence.EnAttente);
 
     [Fact]
+    public async Task Bilan_retourne_les_completions_de_la_fenetre_seulement()
+    {
+        var tache = CreerIntervalle(jours: 7);
+        var premiere = EnAttenteDe(tache);
+        await OperationsTaches.CompleterAsync(Db, premiere.Id, _alain.Id, null, _maintenant);
+        var suivante = EnAttenteDe(tache);
+        await OperationsTaches.CompleterAsync(Db, suivante.Id, _alain.Id, null, _maintenant.AddDays(14));
+
+        var instants = await OperationsTaches.BilanCompletionsAsync(
+            Db, _maintenant.AddDays(-1), _maintenant.AddDays(7));
+
+        Assert.Equal([_maintenant], instants);
+    }
+
+    [Fact]
     public async Task Annuler_la_derniere_completion_restaure_tout()
     {
         var tache = CreerIntervalle();

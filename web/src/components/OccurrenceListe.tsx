@@ -44,7 +44,11 @@ export default function OccurrenceListe({
   onModifier?: (tacheId: string) => void
 }) {
   const queryClient = useQueryClient()
-  const invalider = () => queryClient.invalidateQueries({ queryKey: ['occurrences'] })
+  const invalider = () => {
+    queryClient.invalidateQueries({ queryKey: ['occurrences'] })
+    // Compléter/annuler touche le journal, donc le bilan hebdo.
+    queryClient.invalidateQueries({ queryKey: ['journal'] })
+  }
 
   // Éditeurs inline, un seul ouvert à la fois (id d'occurrence concerné).
   const [reportOuvert, setReportOuvert] = useState<string | null>(null)

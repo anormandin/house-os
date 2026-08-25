@@ -293,6 +293,11 @@ export const api = {
     requete<Occurrence[]>(
       `/api/occurrences?filtre=faites&de=${encodeURIComponent(de)}&a=${encodeURIComponent(a)}`,
     ),
+  // Instants de complétion du journal dans [de, a) — le client agrège par semaine locale.
+  bilanJournal: (de: string, a: string) =>
+    requete<string[]>(
+      `/api/journal/bilan?de=${encodeURIComponent(de)}&a=${encodeURIComponent(a)}`,
+    ),
 
   tache: (id: string) => requete<TacheDetail>(`/api/taches/${id}`),
   creerTache: (donnees: TacheDonnees) =>

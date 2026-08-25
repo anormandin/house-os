@@ -20,6 +20,11 @@ public record TacheAPlanifier(
     [property: Description("Stratégie d'assignation pour une tâche récurrente : Fixe (défaut), Alternance ou MoinsLAFait.")] string? Strategie,
     [property: Description("Récurrence ; omise = tâche ponctuelle. mode: Ponctuelle|Fixe|Intervalle ; en mode Fixe, fixeType: JoursSemaine (+ joursSemaine 0=dimanche…6=samedi) | JourDuMois (+ jourDuMois 1-31) | Annuelle (+ moisAnnuel 1-12, jourAnnuel 1-31) ; en mode Intervalle, intervalleJours ≥ 1 (depuis la dernière complétion). Fenêtre saisonnière optionnelle : les 4 bornes fenetreDebutMois/fenetreDebutJour/fenetreFinMois/fenetreFinJour ensemble.")] RecurrenceDto? Recurrence);
 
+/// <summary>Une semaine du bilan : lundi de la semaine (YYYY-MM-DD) et total complété.</summary>
+public record BilanSemaineDto(
+    [property: Description("Lundi de la semaine, format YYYY-MM-DD.")] string SemaineDu,
+    [property: Description("Nombre de complétions du foyer cette semaine-là.")] int Nombre);
+
 [McpServerToolType]
 public static class OutilsTaches
 {
@@ -209,6 +214,39 @@ public static class OutilsTaches
     {
         var aujourdhui = Conversions.ParserDate(date, "date") ?? DateOnly.FromDateTime(DateTime.Now);
         return await OperationsTaches.ListerOccurrencesAsync(db, filtre, aujourdhui, null, null);
+    }
+
+    [McpServerTool(Name = "bilan_taches")]
+    [Description("Bilan du ménage : nombre de tâches complétées par semaine (lundi à dimanche, " +
+        "heure du serveur), semaine courante en premier. Total du foyer entier — l'attribution " +
+        "individuelle du journal est indicative (qui clique n'est pas toujours qui a fait).")]
+    public static async Task<List<BilanSemaineDto>> BilanTaches(
+        HouseOsDbContext db,
+        [Description("Nombre de semaines à couvrir, semaine courante incluse (défaut 8, max 52).")] int? semaines = null)
+    {
+        var nb = Math.Clamp(semaines ?? 8, 1, 52);
+        var aujourdhui = DateOnly.FromDateTime(DateTime.Now);
+        var lundiCourant = aujourdhui.AddDays(-(((int)aujourdhui.DayOfWeek + 6) % 7));
+        var debut = lundiCourant.AddDays(-7 * (nb - 1));
+        var de = new DateTimeOffset(debut.ToDateTime(TimeOnly.MinValue)).ToUniversalTime();
+        var a = new DateTimeOffset(lundiCourant.AddDays(7).ToDateTime(TimeOnly.MinValue)).ToUniversalTime();
+
+        var instants = await OperationsTaches.BilanCompletionsAsync(db, de, a);
+        var comptes = new int[nb];
+        foreach (var instant in instants)
+        {
+            var indice = (DateOnly.FromDateTime(instant.ToLocalTime().Date).DayNumber - debut.DayNumber) / 7;
+            if (indice >= 0 && indice < nb)
+            {
+                comptes[indice]++;
+            }
+        }
+
+        return Enumerable.Range(0, nb)
+            .Select(i => new BilanSemaineDto(
+                debut.AddDays(7 * i).ToString("yyyy-MM-dd"), comptes[i]))
+            .Reverse()
+            .ToList();
     }
 
     [McpServerTool(Name = "completer_occurrence")]

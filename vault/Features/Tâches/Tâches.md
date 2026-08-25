@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-24
-verified-against: 323fda1
+last-verified: 2026-08-25
+verified-against: e546ee2
 tags: []
 ---
 
@@ -34,7 +34,7 @@ Implémenté (V0, as-built) :
   fuseau du client.
 - L'UI applique le design final [[D-2026-08-23 Direction Artistique Cuisine Chaleureuse]] :
   desktop d'abord (en-tête Maison + onglets), héros illustré avec titre d'humeur
-  (repli client de [[Titre D'humeur]]), cartes Cette semaine / L'équipe /
+  (repli client de [[Titre D'humeur]]), cartes Cette semaine / Bilan /
   [[Comptes À Rebours|Comptes à rebours]], quick-add repliable (⌘K).
 
 Implémenté (V1 « Emménagement », as-built) :
@@ -87,6 +87,17 @@ Implémenté (cycle de vie des occurrences, 2026-08-24, as-built —
 - **Erreurs API visibles** : messages ProblemDetails parsés côté client et affichés
   dans une bannière globale (toutes les mutations, 401 exclus).
 
+Implémenté (bilan hebdo du ménage, 2026-08-25, as-built —
+[[D-2026-08-25 Bilan Hebdo Du Ménage]]) :
+
+- La carte « L'équipe » d'Aujourd'hui est remplacée par **« Bilan »** : total
+  complété cette semaine + mini-histogramme des 8 dernières semaines (lundi au
+  dimanche, semaine locale). Le total est celui du **ménage entier** — l'attribution
+  individuelle (qui a cliqué) est indicative, jamais un fondement de feature.
+- `GET /api/journal/bilan?de=&a=` retourne les instants de complétion dans `[de, a)` ;
+  le client agrège par semaine locale (même patron que le filtre `faites`).
+- Parité MCP : outil `bilan_taches` (comptes par semaine, heure du serveur).
+
 ## Hors périmètre
 
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).
@@ -106,6 +117,8 @@ Implémenté (cycle de vie des occurrences, 2026-08-24, as-built —
 - [[D-2026-08-23 Auth Simple Deux Comptes]] — attribution des complétions.
 - [[D-2026-08-24 Annulation Et Passage D'occurrences]] — annuler/passer/reporter,
   sort du journal, garde-fous.
+- [[D-2026-08-25 Bilan Hebdo Du Ménage]] — carte Bilan (total par semaine) à la
+  place de L'équipe ; attribution individuelle conservée mais indicative.
 
 ## Ancres de code
 
@@ -138,3 +151,5 @@ Implémenté (cycle de vie des occurrences, 2026-08-24, as-built —
 - [[Plan 2026-08-23 V0 Déménagement]] · [[Recap Tâches]]
 - [[Plan 2026-08-23 V1 Emménagement]] · [[Recap V1 Emménagement]]
 - [[Plan 2026-08-24 Cycle De Vie Des Occurrences]] · [[Recap Cycle De Vie Des Occurrences]]
+- 2026-08-25 Bilan hebdo du ménage — tranche directe sans plan, voir
+  [[D-2026-08-25 Bilan Hebdo Du Ménage]] et la section as-built ci-dessus.

@@ -139,6 +139,12 @@ public static class TachesEndpoints
             return Results.Ok(await OperationsTaches.ListerOccurrencesAsync(db, filtre, aujourdhui, de, a));
         });
 
+        app.MapGet("/api/journal/bilan", async (
+            DateTimeOffset de,
+            DateTimeOffset a,
+            HouseOsDbContext db) =>
+            Results.Ok(await OperationsTaches.BilanCompletionsAsync(db, de, a)));
+
         app.MapPost("/api/occurrences/{id:guid}/completer", async (
             Guid id,
             CompleterRequete? requete,

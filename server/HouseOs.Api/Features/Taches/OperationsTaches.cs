@@ -366,6 +366,20 @@ public static class OperationsTaches
             .ToListAsync();
     }
 
+    /// <summary>
+    /// Instants de complétion du journal dans [de, a) — bilan du ménage entier, sans égard
+    /// à qui a cliqué. Le client fournit les bornes et agrège par semaine locale (le serveur
+    /// ne connaît pas le fuseau du client).
+    /// </summary>
+    public static Task<List<DateTimeOffset>> BilanCompletionsAsync(
+        HouseOsDbContext db,
+        DateTimeOffset de,
+        DateTimeOffset a) =>
+        db.Journal.AsNoTracking()
+            .Where(j => j.CompleteeLe >= de && j.CompleteeLe < a)
+            .Select(j => j.CompleteeLe)
+            .ToListAsync();
+
     /// <summary>Applique la stratégie d'assignation pour la prochaine occurrence.</summary>
     internal static async Task<Guid?> ChoisirProchainAssigne(
         HouseOsDbContext db,
