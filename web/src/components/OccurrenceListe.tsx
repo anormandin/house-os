@@ -139,7 +139,11 @@ export default function OccurrenceListe({
                     />
                   </form>
                 ) : (
-                  o.notes && <div className="mt-px text-[13px] text-sourdine">{o.notes}</div>
+                  o.notes && (
+                    <div className="mt-px whitespace-pre-line text-[13px] text-sourdine">
+                      {o.notes}
+                    </div>
+                  )
                 )}
               </div>
               <button
@@ -197,8 +201,10 @@ export default function OccurrenceListe({
                   {libelleRetard(o.echeance, aujourdhui)}
                 </div>
               )}
-              {o.description && !enRetard && (
-                <div className="mt-px text-[13px] text-sourdine">{o.description}</div>
+              {o.description && (
+                <div className="mt-0.5 whitespace-pre-line text-[13px] leading-snug text-dore">
+                  {o.description}
+                </div>
               )}
             </div>
             {/* Colonnes de largeur fixe pour que dates, avatars et actions

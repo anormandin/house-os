@@ -98,6 +98,18 @@ Implémenté (bilan hebdo du ménage, 2026-08-25, as-built —
   le client agrège par semaine locale (même patron que le filtre `faites`).
 - Parité MCP : outil `bilan_taches` (comptes par semaine, heure du serveur).
 
+Implémenté (éditeur de tâche, 2026-08-25, as-built) :
+
+- `GET /api/taches/{id}` (et l'outil MCP `gerer_tache`, action `obtenir`) retourne
+  maintenant **`echeance`** : celle de l'occurrence en attente. Corrige le bug où
+  l'éditeur, n'affichant pas l'échéance existante, l'effaçait silencieusement à
+  l'enregistrement d'une tâche ponctuelle.
+- Éditeur : la description est un `textarea` de 4 lignes ; le quick-add (⌘K, pages
+  Aujourd'hui et Tâches) et le panneau d'une pièce ouvrent le **modal complet**
+  (zone préremplie depuis la pièce) ; Échap ferme le modal.
+- Listes : la description s'affiche en doré, retours à la ligne préservés, y compris
+  sur les tâches en retard (sous la ligne « depuis X jours »).
+
 ## Hors périmètre
 
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).

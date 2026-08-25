@@ -147,6 +147,7 @@ export default function TacheEditeur({
       ...defaut,
       titre: tache.titre,
       description: tache.description ?? '',
+      echeance: tache.echeance ?? '',
       assigneAId: tache.assigneAId ?? '',
       zoneId: tache.zoneId ?? '',
       equipementId: tache.equipementId ?? '',
@@ -230,12 +231,13 @@ export default function TacheEditeur({
           aria-label="Titre"
           className="rounded-xl bg-creux px-4 py-2.5 text-base font-bold placeholder:font-normal placeholder:text-sourdine focus:outline-2 focus:outline-orange/60"
         />
-        <input
+        <textarea
           value={f.description}
           onChange={(e) => maj({ description: e.target.value })}
           placeholder="Détails (facultatif)"
           aria-label="Description"
-          className={classeChamp}
+          rows={4}
+          className={cn(classeChamp, 'resize-y leading-snug')}
         />
 
         <div className="flex flex-wrap gap-3">

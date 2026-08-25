@@ -39,6 +39,7 @@ export type TacheDetail = {
   id: string
   titre: string
   description: string | null
+  echeance: string | null
   assigneAId: string | null
   zoneId: string | null
   equipementId: string | null

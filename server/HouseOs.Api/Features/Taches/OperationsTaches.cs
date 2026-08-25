@@ -523,6 +523,7 @@ public static class OperationsTaches
             tache.Id,
             tache.Titre,
             tache.Description,
+            tache.Occurrences.FirstOrDefault(o => o.Statut == StatutOccurrence.EnAttente)?.Echeance,
             tache.AssigneAId,
             tache.ZoneId,
             tache.EquipementId,

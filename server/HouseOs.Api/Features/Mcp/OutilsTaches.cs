@@ -142,7 +142,9 @@ public static class OutilsTaches
         {
             case "obtenir":
             {
-                var existante = await db.Taches.AsNoTracking().SingleOrDefaultAsync(t => t.Id == id);
+                var existante = await db.Taches.AsNoTracking()
+                    .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
+                    .SingleOrDefaultAsync(t => t.Id == id);
                 return existante is null
                     ? throw new McpException($"Tâche introuvable : {id}.")
                     : OperationsTaches.VersTacheDto(existante);

@@ -65,6 +65,7 @@ public record TacheDto(
     Guid Id,
     string Titre,
     string? Description,
+    DateOnly? Echeance,
     Guid? AssigneAId,
     Guid? ZoneId,
     Guid? EquipementId,
@@ -100,7 +101,9 @@ public static class TachesEndpoints
 
         app.MapGet("/api/taches/{id:guid}", async (Guid id, HouseOsDbContext db) =>
         {
-            var tache = await db.Taches.AsNoTracking().SingleOrDefaultAsync(t => t.Id == id);
+            var tache = await db.Taches.AsNoTracking()
+                .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
+                .SingleOrDefaultAsync(t => t.Id == id);
             return tache is null ? Results.NotFound() : Results.Ok(OperationsTaches.VersTacheDto(tache));
         });
 
