@@ -1,8 +1,8 @@
 ---
 type: feature
-status: building
+status: implemented
 last-verified: 2026-08-24
-verified-against: c2ab2d7
+verified-against: 5560ca1
 tags: []
 ---
 
@@ -26,6 +26,11 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 - **Accès** : `https://houseos.alainnormandin.dev` (NPM, cert wildcard) — PWA
   installable ; à l'extérieur, Tailscale (subnet router du lab). Le MCP prod se
   branche sur `/mcp` de la même URL.
+- **DNS** : enregistrement local UniFi `houseos.alainnormandin.dev` → NPM
+  (192.168.4.50, jamais vers le LXC : c'est NPM qui termine le TLS) — l'app reste
+  joignable du wifi même sans Internet ; + réservation DHCP de l'IP du LXC
+  (192.168.4.146). Règle : tout nom `*.alainnormandin.dev` servi en HTTPS pointe
+  vers NPM.
 - **Secrets** : `.env` sur le serveur seulement (`.env.example` committé) —
   mot de passe Postgres, clé MCP, clé Anthropic, mots de passe initiaux des
   2 comptes.
@@ -60,4 +65,4 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 
 ## Historique
 
-- [[Plan 2026-08-24 Déploiement V1]]
+- [[Plan 2026-08-24 Déploiement V1]] · [[Recap Déploiement]]

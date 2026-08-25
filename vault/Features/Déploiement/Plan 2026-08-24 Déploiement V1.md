@@ -1,6 +1,6 @@
 ---
 type: plan
-status: approved
+status: executed
 date: 2026-08-24
 feature: "[[Déploiement]]"
 ---
@@ -29,29 +29,38 @@ NPM, brancher les backups. Gouverné par
 
 ### GitHub
 
-- [ ] `gh repo create anormandin/house-os --private` + push `main` (demander à
+- [x] `gh repo create anormandin/house-os --private` + push `main` (demander à
       Alain de se connecter si `gh` n'est pas authentifié).
 
 ### LXC sur pve (SSH `proxmox_auto`)
 
-- [ ] Créer le LXC `house-os` : Debian 13, nesting activé, 2 vCPU / 2 Go / 16 Go,
+- [x] Créer le LXC `house-os` : Debian 13, nesting activé, 2 vCPU / 2 Go / 16 Go,
       IP fixe sur `192.168.4.0/24`, démarrage automatique.
-- [ ] Installer Docker + git ; cloner le repo dans `/opt/house-os` (deploy key en
+- [x] Installer Docker + git ; cloner le repo dans `/opt/house-os` (deploy key en
       lecture seule) ; écrire `.env` (secrets générés sur place, clé Anthropic
       fournie par Alain) ; `docker compose up -d --build`.
-- [ ] Cron quotidien `scripts/backup.sh` (3 h) ; vérifier que le job PBS couvre le
+- [x] Cron quotidien `scripts/backup.sh` (3 h) ; vérifier que le job PBS couvre le
       nouveau LXC (l'ajouter sinon).
 
 ### NPM + accès
 
-- [ ] Proxy host `houseos.alainnormandin.dev` → IP du LXC:8080 (cert wildcard,
+- [x] Proxy host `houseos.alainnormandin.dev` → IP du LXC:8080 (cert wildcard,
       WebSockets au besoin) — via l'admin NPM (accès à demander à Alain).
-- [ ] Vérifier du navigateur : `https://houseos.alainnormandin.dev` → login,
+- [x] Vérifier du navigateur : `https://houseos.alainnormandin.dev` → login,
       Aujourd'hui avec météo/humeur (workers vivants), heure locale correcte,
       cookie Secure, manifest PWA servi.
-- [ ] `/mcp` : 401 sans clé, 200 avec la clé du `.env` ; noter la commande
+- [x] `/mcp` : 401 sans clé, 200 avec la clé du `.env` ; noter la commande
       `claude-maison` (variables `HOUSEOS_MCP_URL`/`HOUSEOS_MCP_KEY`).
 
 ### Clôture
 
-- [ ] Vault : spec as-built, Recap, stamps ; mémoire projet si leçons apprises.
+- [x] Vault : spec as-built, Recap, stamps ; mémoire projet si leçons apprises.
+
+Notes de vérification : le login prod et le cookie Secure ont été validés par
+`curl` (l'agent n'entre jamais de mots de passe dans un formulaire) ; les workers
+par les logs du conteneur (météo ingérée, humeur générée via LLM) ; la page de
+connexion HTTPS vue dans le navigateur — la traversée post-login dans le
+navigateur reste à Alain. Fait après coup par Alain dans UniFi (vérifié le
+2026-08-24) : réservation DHCP de 192.168.4.146 (MAC BC:24:11:88:6B:5C) et
+enregistrement DNS local `houseos.alainnormandin.dev` → NPM (une première version
+pointait vers le LXC — corrigée : rien n'écoute sur 443 dans le LXC).

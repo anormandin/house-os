@@ -1,7 +1,7 @@
 ---
 type: reference
 last-verified: 2026-08-24
-verified-against: 233f89b
+verified-against: 5560ca1
 tags: []
 ---
 
@@ -63,7 +63,9 @@ tap-pour-compléter ; e-ink et panneaux openHASP ensuite. Détails :
    Aujourd'hui, quick-add, login, PWA, design chaleureuse).
 2. **Phase 1b — V1 « Emménagement »** — livrée 2026-08-23 (moteur de récurrence
    3 modes, zones + vue Pièces, module [[Équipements]] avec fichiers, flux iCal par
-   personne, backups). Reste : déploiement Tailscale après le déménagement.
+   personne, backups). **En prod depuis 2026-08-24** : `https://houseos.alainnormandin.dev`
+   ([[Déploiement]] — LXC sur pve, NPM, backups cron + PBS ; le lab déménage avec
+   la maison).
 3. **Phase 2** (entamée) : météo + règles ([[Météo]]), [[Titre D'humeur]]
    serveur (Haiku 4.5), calendriers ICS ([[Flux Externes]]) et classeur
    [[Documents]] — livrés 2026-08-24 ; reste : Hydro-Québec, consommables.

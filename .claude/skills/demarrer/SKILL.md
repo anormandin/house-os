@@ -42,12 +42,13 @@ relancer `dotnet run` après un changement C#.
 ### Choisir l'environnement (dev vs prod)
 
 L'expansion `${…}` se fait **au démarrage de Claude Code** : sans variables, on parle
-au serveur **dev** (localhost:5000). Pour viser la **prod** (serveur maison via
-Tailscale), lancer la session avec les deux variables :
+au serveur **dev** (localhost:5000). Pour viser la **prod** (LXC 105 sur pve,
+derrière NPM — joignable du LAN et via Tailscale), lancer la session avec les deux
+variables :
 
 ```bash
-HOUSEOS_MCP_URL="http://<hôte-tailscale>:8080/mcp" \
-HOUSEOS_MCP_KEY="<clé du .env du serveur>" \
+HOUSEOS_MCP_URL="https://houseos.alainnormandin.dev/mcp" \
+HOUSEOS_MCP_KEY="<HOUSEOS_MCP_KEY du /opt/house-os/.env sur le LXC>" \
 claude
 ```
 
