@@ -129,4 +129,135 @@ public class LectureIcsTests
             () => LectureIcs.Normaliser("", Debut, Fin));
         Assert.Contains("iCalendar", ex.Message);
     }
+
+    [Fact]
+    public void EvenementEnUtc_ConvertiEnHeureLocale()
+    {
+        // La norme chez Recollect et les calendriers scolaires : DTSTART en « …Z ».
+        const string ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//test//FR
+            BEGIN:VEVENT
+            UID:conseil@ville
+            DTSTART:20260908T173000Z
+            SUMMARY:Conseil municipal
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var evenements = LectureIcs.Normaliser(ics, Debut, Fin);
+
+        // Attendu calculé via le fuseau de la machine — déterministe partout.
+        var attenduLocal = TimeZoneInfo.ConvertTimeFromUtc(
+            new DateTime(2026, 9, 8, 17, 30, 0, DateTimeKind.Utc), TimeZoneInfo.Local);
+        var e = Assert.Single(evenements);
+        Assert.Equal(DateOnly.FromDateTime(attenduLocal), e.Date);
+        Assert.Equal(TimeOnly.FromDateTime(attenduLocal), e.Heure);
+    }
+
+    [Fact]
+    public void EvenementAvecTzidEtranger_ConvertiEnHeureLocale()
+    {
+        const string ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//test//FR
+            BEGIN:VEVENT
+            UID:webinaire@ouest
+            DTSTART;TZID=America/Vancouver:20260908T090000
+            SUMMARY:Webinaire
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var evenements = LectureIcs.Normaliser(ics, Debut, Fin);
+
+        var vancouver = TimeZoneInfo.FindSystemTimeZoneById("America/Vancouver");
+        var utc = TimeZoneInfo.ConvertTimeToUtc(new DateTime(2026, 9, 8, 9, 0, 0), vancouver);
+        var attenduLocal = TimeZoneInfo.ConvertTimeFromUtc(utc, TimeZoneInfo.Local);
+        var e = Assert.Single(evenements);
+        Assert.Equal(DateOnly.FromDateTime(attenduLocal), e.Date);
+        Assert.Equal(TimeOnly.FromDateTime(attenduLocal), e.Heure);
+    }
+
+    [Fact]
+    public void Recurrence_AvecExdate_OccurrenceAnnuleeAbsente()
+    {
+        // Collecte décalée un jour férié : la municipalité annule le mercredi via EXDATE.
+        const string ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//test//FR
+            BEGIN:VEVENT
+            UID:ordures@recollect
+            DTSTART;VALUE=DATE:20260902
+            RRULE:FREQ=WEEKLY;BYDAY=WE;COUNT=4
+            EXDATE;VALUE=DATE:20260909
+            SUMMARY:Ordures
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var evenements = LectureIcs.Normaliser(ics, Debut, Fin);
+
+        Assert.Equal(3, evenements.Count);
+        Assert.DoesNotContain(evenements, e => e.Date == new DateOnly(2026, 9, 9));
+    }
+
+    [Fact]
+    public void Recurrence_DeplaceeParRecurrenceId_SuitLaNouvelleDate()
+    {
+        // L'occurrence du 9 est déplacée au jeudi 10 (férié) via RECURRENCE-ID.
+        const string ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//test//FR
+            BEGIN:VEVENT
+            UID:compost@recollect
+            DTSTART;VALUE=DATE:20260902
+            RRULE:FREQ=WEEKLY;BYDAY=WE;COUNT=3
+            SUMMARY:Compost
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:compost@recollect
+            RECURRENCE-ID;VALUE=DATE:20260909
+            DTSTART;VALUE=DATE:20260910
+            SUMMARY:Compost (reporté)
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var evenements = LectureIcs.Normaliser(ics, Debut, Fin);
+
+        Assert.Equal(3, evenements.Count);
+        Assert.DoesNotContain(evenements, e => e.Date == new DateOnly(2026, 9, 9));
+        Assert.Contains(evenements, e => e.Date == new DateOnly(2026, 9, 10));
+    }
+
+    [Fact]
+    public void ComposantsNonEvenements_Ignores()
+    {
+        const string ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//test//FR
+            BEGIN:VTODO
+            UID:todo@test
+            DTSTART;VALUE=DATE:20260910
+            SUMMARY:Une tâche VTODO
+            END:VTODO
+            BEGIN:VEVENT
+            UID:vrai@test
+            DTSTART;VALUE=DATE:20260911
+            SUMMARY:Un vrai événement
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var evenements = LectureIcs.Normaliser(ics, Debut, Fin);
+
+        var e = Assert.Single(evenements);
+        Assert.Equal("Un vrai événement", e.Titre);
+    }
 }

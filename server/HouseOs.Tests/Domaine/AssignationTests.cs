@@ -71,4 +71,34 @@ public class AssignationTests
             StrategieAssignation.MoinsLAFait, null, null, Duo, comptes);
         Assert.Equal(Alain, choisi);
     }
+
+    [Theory]
+    [InlineData(StrategieAssignation.Alternance)]
+    [InlineData(StrategieAssignation.MoinsLAFait)]
+    public void ListeDUtilisateursVide_RetourneNull(StrategieAssignation strategie)
+    {
+        var choisi = Assignation.ChoisirAssigne(
+            strategie, Alain, Alain, [], new Dictionary<Guid, int>());
+        Assert.Null(choisi);
+    }
+
+    [Fact]
+    public void Alternance_DernierCompleteurHorsListe_PrendLeDefautPuisLePremier()
+    {
+        var inconnu = Guid.NewGuid();
+        // Le dernier compléteur n'est pas un candidat : « l'autre » = toute la liste,
+        // donc le premier candidat sort.
+        var choisi = Assignation.ChoisirAssigne(
+            StrategieAssignation.Alternance, null, inconnu, Duo, new Dictionary<Guid, int>());
+        Assert.Equal(Duo[0], choisi);
+    }
+
+    [Fact]
+    public void Alternance_UtilisateurUnique_SeReassigneLuiMeme()
+    {
+        // Cas dégénéré à un seul compte : personne d'autre — le repli retombe sur lui.
+        var choisi = Assignation.ChoisirAssigne(
+            StrategieAssignation.Alternance, Alain, Alain, [Alain], new Dictionary<Guid, int>());
+        Assert.Equal(Alain, choisi);
+    }
 }

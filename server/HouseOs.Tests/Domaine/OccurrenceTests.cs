@@ -126,4 +126,24 @@ public class OccurrenceTests
         Assert.Throws<InvalidOperationException>(() =>
             occurrence.Reporter(new DateOnly(2026, 9, 22)));
     }
+
+    [Fact]
+    public void Annuler_une_occurrence_passee_est_refuse()
+    {
+        var occurrence = NouvelleOccurrence();
+        occurrence.Passer(DateTimeOffset.UtcNow);
+
+        Assert.Throws<InvalidOperationException>(() => occurrence.AnnulerCompletion());
+        Assert.Equal(StatutOccurrence.Passee, occurrence.Statut);
+    }
+
+    [Fact]
+    public void Reporter_une_occurrence_passee_est_refuse()
+    {
+        var occurrence = NouvelleOccurrence();
+        occurrence.Passer(DateTimeOffset.UtcNow);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            occurrence.Reporter(new DateOnly(2026, 9, 22)));
+    }
 }

@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: ccaeced
+verified-against: eb830ec
 tags: []
 ---
 
@@ -119,9 +119,33 @@ Implémenté (éditeur de tâche, 2026-08-25, as-built) :
   sur les tâches en retard (sous la ligne « depuis X jours ») ; les notes de la
   rangée verte préservent aussi leurs retours à la ligne (en sourdine).
 
+Implémenté (durcissement cas de bord, 2026-08-25, as-built) :
+
+- **Courses de complétion fermées en base** ([[D-2026-08-25 Invariants D'occurrence En Base]]) :
+  deux clics simultanés donnent un 204 et un 409, jamais deux journaux ni deux
+  occurrences suivantes.
+- **Validation croisée récurrence × fenêtre saisonnière** : une combinaison qui ne
+  planifie jamais rien (annuelle hors fenêtre, 31 avril…) répond 400 à la création
+  au lieu de boucler puis 500.
+- **Édition** : convertir une tâche sans occurrence en attente (ponctuelle complétée)
+  en récurrente matérialise une occurrence — plus de tâche invisible ; en stratégie
+  Fixe, la désassignation suit la tâche jusqu'à l'occurrence ; en stratégie
+  tournante, l'assigné choisi par la stratégie est conservé.
+- **Annulation** : refusée aussi quand un « passer » postérieur a fait avancer la
+  chaîne (l'occurrence passée resterait orpheline), et signalée distinctement quand
+  l'entrée de journal manque.
+- **Listes** : filtre inconnu → 400 (au lieu de tout retourner en silence),
+  `faites` exige ses bornes, les complétées sortent des plus récentes (tri avant le
+  plafond de 200) ; FK inexistantes (zone/équipement/assigné) et titres trop longs
+  → 400 au lieu de 500.
+
 ## Hors périmètre
 
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).
+- **Rotation du jeton iCal** — dette assumée : le jeton par personne est généré une
+  fois et n'est pas révocable sans SQL manuel ; un jeton fuité donne un accès
+  lecture permanent au flux. À trancher (endpoint de rotation) avant toute
+  exposition hors Tailscale.
 - Sous-tâches et projets multi-étapes (module Projets, v2+).
 - Notifications push (v1 = flux iCal seulement).
 - **Documents liés à une tâche** (« fermer le spa → guide ») — besoin exprimé le
@@ -140,6 +164,8 @@ Implémenté (éditeur de tâche, 2026-08-25, as-built) :
   sort du journal, garde-fous.
 - [[D-2026-08-25 Bilan Hebdo Du Ménage]] — carte Bilan (total par semaine) à la
   place de L'équipe ; attribution individuelle conservée mais indicative.
+- [[D-2026-08-25 Invariants D'occurrence En Base]] — index uniques (une en-attente
+  par tâche, une complétion par occurrence), courses converties en 409.
 
 ## Ancres de code
 
@@ -178,3 +204,6 @@ Implémenté (éditeur de tâche, 2026-08-25, as-built) :
 - 2026-08-25 Éditeur de tâche / quick-add / pièces — tranche directe sans plan
   (échéance chargée dans l'éditeur, modal unique, tâches depuis une pièce), voir
   la section as-built ci-dessus.
+- 2026-08-25 Durcissement cas de bord — audit de couverture (artifact « Angles
+  morts de House OS »), correctifs + tests, voir [[Suite De Tests]] et
+  [[D-2026-08-25 Invariants D'occurrence En Base]].

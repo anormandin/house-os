@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { expect, test } from 'vitest'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import { dateLocaleIso, type Occurrence } from '@/lib/api'
+import { dateCourte } from '@/lib/format'
 import { rendre } from '@/test/rendre'
 import { ALAIN, serveur } from '@/test/serveur-msw'
 
@@ -86,6 +87,56 @@ test('une rangée faite accepte une note post-hoc', async () => {
   await userEvent.type(screen.getByPlaceholderText(/Une note/), 'coût : 12 $[Enter]')
 
   await waitFor(() => expect(noteEnvoyee).toEqual({ notes: 'coût : 12 $' }))
+})
+
+test("enregistrer une note n'envoie qu'une seule requête (Enter puis blur)", async () => {
+  let requetes = 0
+  serveur.use(
+    http.put('/api/occurrences/o-1/notes', async () => {
+      requetes++
+      await new Promise((resoudre) => setTimeout(resoudre, 30))
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  rendre(
+    <OccurrenceListe
+      occurrences={[
+        occurrence({
+          statut: 'Completee',
+          completeePar: ALAIN,
+          completeeLe: new Date().toISOString(),
+        }),
+      ]}
+      vide="rien"
+    />,
+  )
+
+  await userEvent.click(screen.getByRole('button', { name: 'Ajouter une note à Balayer' }))
+  // Enter (submit) déclenche la mutation ; le blur qui suit repasse par sauverNote.
+  await userEvent.type(screen.getByPlaceholderText(/Une note/), 'coût : 12 $[Enter]')
+  await userEvent.tab()
+
+  await waitFor(() => expect(requetes).toBe(1))
+})
+
+test("une complétion d'hier affiche la date, pas l'heure", () => {
+  const hierIso = hier()
+  const instant = new Date(`${hierIso}T23:50:00`)
+  rendre(
+    <OccurrenceListe
+      occurrences={[
+        occurrence({
+          statut: 'Completee',
+          completeePar: ALAIN,
+          completeeLe: instant.toISOString(),
+        }),
+      ]}
+      vide="rien"
+    />,
+  )
+
+  // À 00 h 10, « bravo Alain ✓ 23 h 50 » mentirait sur la journée.
+  expect(screen.getByText(new RegExp(`✓ ${dateCourte(hierIso)}`))).toBeInTheDocument()
 })
 
 test('cliquer le titre ouvre la modification quand onModifier est fourni', async () => {

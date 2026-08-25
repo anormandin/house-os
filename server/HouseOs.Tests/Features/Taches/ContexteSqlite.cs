@@ -27,6 +27,10 @@ public class HouseOsDbContextSqlite(DbContextOptions<HouseOsDbContext> options)
                     texte, (JsonSerializerOptions?)null) ?? new Dictionary<string, string>());
         modelBuilder.Entity<EntreeJournal>().Property(j => j.CompleteeLe)
             .HasConversion(new DateTimeOffsetToBinaryConverter());
+        // Le tri des complétées (ListerOccurrencesAsync) ordonne par CompleteeLe :
+        // même limite Sqlite, même remède.
+        modelBuilder.Entity<Occurrence>().Property(o => o.CompleteeLe)
+            .HasConversion(new DateTimeOffsetToBinaryConverter());
     }
 }
 

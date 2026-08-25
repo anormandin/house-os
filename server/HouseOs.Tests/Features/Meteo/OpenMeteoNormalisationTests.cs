@@ -110,4 +110,75 @@ public class OpenMeteoNormalisationTests
         Assert.Equal(0, resultat.Heures[0].CodeMeteo);
         Assert.Equal(0, resultat.Jours[0].CodeMeteo);
     }
+
+    [Fact]
+    public void Normaliser_SerieTronquee_NeLevePas()
+    {
+        // Une réponse coupée en vol : la série présente est plus courte que time.
+        const string tronque = """
+            {
+              "hourly": {
+                "time": ["2026-08-24T13:00", "2026-08-24T14:00"],
+                "temperature_2m": [21.4]
+              },
+              "daily": { "time": ["2026-08-24"], "temperature_2m_max": [20.0] }
+            }
+            """;
+
+        var resultat = OpenMeteoNormalisation.Normaliser(tronque);
+
+        Assert.Equal(2, resultat.Heures.Count);
+        Assert.Equal(21.4, resultat.Heures[0].TemperatureC);
+        Assert.Equal(0, resultat.Heures[1].TemperatureC); // valeur par défaut, pas d'exception
+    }
+
+    [Fact]
+    public void Normaliser_LeverCoucherAbsents_ValeurParDefaut()
+    {
+        const string sansSoleil = """
+            {
+              "hourly": { "time": ["2026-08-24T13:00"] },
+              "daily": { "time": ["2026-08-24"] }
+            }
+            """;
+
+        var resultat = OpenMeteoNormalisation.Normaliser(sansSoleil);
+
+        Assert.Equal(TimeOnly.MinValue, resultat.Jours[0].Lever);
+        Assert.Equal(TimeOnly.MinValue, resultat.Jours[0].Coucher);
+    }
+
+    [Fact]
+    public void Normaliser_CorpsSansHourly_ErreurClaire()
+    {
+        // 200 avec un corps d'erreur Open-Meteo (ou la page d'un proxy) : erreur
+        // explicite, jamais une KeyNotFoundException.
+        var exception = Assert.Throws<FormatException>(() =>
+            OpenMeteoNormalisation.Normaliser("""{"error": true, "reason": "invalid"}"""));
+
+        Assert.Contains("hourly", exception.Message);
+    }
+
+    [Fact]
+    public void Normaliser_HeureMuraleDupliquee_EstDedoublonnee()
+    {
+        // Nuit du retour à l'heure normale : 01:00 existe deux fois en heure murale —
+        // sans dédoublonnage, l'index unique ferait échouer (et geler) l'ingestion.
+        const string retourHeureNormale = """
+            {
+              "hourly": {
+                "time": ["2026-11-01T00:00", "2026-11-01T01:00", "2026-11-01T01:00", "2026-11-01T02:00"],
+                "temperature_2m": [4.0, 3.5, 3.0, 2.5]
+              },
+              "daily": { "time": ["2026-11-01"], "temperature_2m_max": [6.0] }
+            }
+            """;
+
+        var resultat = OpenMeteoNormalisation.Normaliser(retourHeureNormale);
+
+        Assert.Equal(3, resultat.Heures.Count);
+        Assert.Equal(resultat.Heures.Count, resultat.Heures.Select(h => h.Heure).Distinct().Count());
+        // La première des deux 01:00 est conservée.
+        Assert.Equal(3.5, resultat.Heures.Single(h => h.Heure.Hour == 1).TemperatureC);
+    }
 }

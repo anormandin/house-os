@@ -25,11 +25,13 @@ function pluriel(n: number, mot: string): string {
 }
 
 export function phraseDuJour(faits: FaitsDuJour, date = new Date()): Phrase {
-  // Math.round, pas floor : le jour du passage à l'heure avancée, la journée locale
-  // fait 23 h et floor donnerait la même graine deux jours de suite.
+  // Minuit à minuit (l'heure du jour ne doit pas faire tourner la phrase en cours
+  // de journée), et Math.round, pas floor : le jour du passage à l'heure avancée,
+  // la journée locale fait 23 h et floor donnerait la même graine deux jours de suite.
+  const minuit = new Date(date.getFullYear(), date.getMonth(), date.getDate())
   const graine =
     date.getFullYear() * 366 +
-    Math.round((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86_400_000)
+    Math.round((minuit.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86_400_000)
   const demenagementProche =
     faits.dodosDemenagement !== null && faits.dodosDemenagement > 0 && faits.dodosDemenagement <= 60
 

@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: ccaeced
+verified-against: eb830ec
 tags: []
 ---
 
@@ -18,8 +18,9 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
 
 ## Comportement
 
-- Un document = un fichier (50 Mo max ; liste blanche PDF/JPEG/PNG/WebP/HEIC) +
-  titre + catégorie fixe
+- Un document = un fichier (50 Mo max — Kestrel monté à 51 Mo pour que la limite
+  soit atteignable ; liste blanche PDF/JPEG/PNG/WebP/HEIC, types MIME normalisés
+  casse/paramètres, alias `image/jpg` accepté) + titre + catégorie fixe
   ([[D-2026-08-24 Catégories Et Échéance De Document]]) + optionnels : lien vers
   un [[Équipements|équipement]] ou une zone, notes, date du document (facture,
   contrat…), échéance.
@@ -33,6 +34,12 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   de catégorie sinon), un **badge de type** (PDF, JPG…) et un **bouton de
   téléchargement direct** ; la fiche montre un aperçu cliquable pour les images
   (hauteur fixe, masqué si la miniature échoue).
+- Upload durci (2026-08-25) : toutes les validations (liens, longueurs) précèdent
+  l'écriture disque — jamais de fichier orphelin ; le nom disque = id + extension
+  **dérivée du MIME** (jamais celle du client), le nom d'affichage est assaini
+  (séparateurs de chemin, caractères de contrôle, 255 max) ; garde anti-bombe de
+  décompression sur les miniatures (dimensions lues dans l'en-tête avant tout
+  décodage) ; suppressions concurrentes → 404 ; `.tmp` du cache nettoyés.
   Miniatures : WebP ≤ 512 px générées à la demande et mises en cache serveur,
   pas d'aperçu pour PDF/HEIC ([[D-2026-08-25 Miniatures De Documents]]).
 - La **fiche équipement** montre ses documents liés (téléversement direct depuis

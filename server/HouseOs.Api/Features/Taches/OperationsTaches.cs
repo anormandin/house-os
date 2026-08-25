@@ -287,6 +287,17 @@ public static class OperationsTaches
         {
             return StatutAnnulation.PasLaDerniere;
         }
+        // Un « passer » postérieur a aussi fait avancer la chaîne (compléter → passer →
+        // suivante) : annuler supprimerait la suivante du passage — pas celle de cette
+        // complétion — et laisserait l'occurrence passée orpheline.
+        var passeesLe = await db.Occurrences
+            .Where(o => o.TacheId == tache.Id && o.Statut == StatutOccurrence.Passee)
+            .Select(o => o.PasseeLe)
+            .ToListAsync();
+        if (passeesLe.Any(p => p > entree.CompleteeLe))
+        {
+            return StatutAnnulation.ProchaineDejaTraitee;
+        }
 
         if (tache.Recurrence.Mode != ModeRecurrence.Ponctuelle)
         {

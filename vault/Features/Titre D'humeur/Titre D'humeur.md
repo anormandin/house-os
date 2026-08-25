@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: ccaeced
+verified-against: eb830ec
 tags: []
 ---
 
@@ -41,6 +41,12 @@ sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher
    `PhraseDuJour` (une ligne par date + moment). L'UI lit
    `GET /api/phrase-du-jour` ; clé absente ou appel/parse raté → couche 2 ;
    requête HTTP ratée côté web → banque client (`humeur.ts`), le repli ultime.
+   Le parse de la réponse LLM est défensif (durci 2026-08-25) : prose autour du
+   JSON, champs non textuels, réponse tronquée → repli, jamais d'exception. Le
+   signal météo est celui de la **date de la phrase** (au rattrapage de 3 h du
+   matin, le soir d'hier n'annonce pas les orages d'aujourd'hui) ; le réveil des
+   créneaux utilise l'offset de la date cible (changement d'heure) et un délai
+   plancher (une config farfelue ne tue pas le service).
    Contenu priorisé (2026-08-25) : tâches nommées d'abord (motivation, ce qui
    s'en vient), comptes à rebours ensuite, météo uniquement sur signal
    remarquable et en passant — pas d'assignations par personne (choix

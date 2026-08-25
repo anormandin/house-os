@@ -241,4 +241,20 @@ public class ReglesJourneeTests
         var verdict = new RegleAeration().Evaluer(Apercu(heures));
         Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
     }
+
+    [Fact]
+    public void Aeration_SansDonnees_Defavorable()
+    {
+        var verdict = new RegleAeration().Evaluer(Apercu([]));
+        Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
+        Assert.Contains("prévisions", verdict.Raison);
+    }
+
+    [Fact]
+    public void Dehors_SansDonnees_Defavorable()
+    {
+        var verdict = new RegleJourneeDehors().Evaluer(Apercu([]));
+        Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
+        Assert.Contains("prévisions", verdict.Raison);
+    }
 }

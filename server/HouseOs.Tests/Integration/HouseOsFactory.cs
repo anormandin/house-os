@@ -26,18 +26,25 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
     private readonly PostgreSqlContainer _postgres =
         new PostgreSqlBuilder("postgres:17-alpine").Build();
 
+    /// <summary>Dossier fichiers isolé : sans lui, les tests d'upload écriraient
+    /// dans donnees/fichiers du dépôt.</summary>
+    public string DossierFichiers { get; } =
+        Directory.CreateTempSubdirectory("houseos-fichiers-").FullName;
+
     public async Task InitializeAsync() => await _postgres.StartAsync();
 
     async Task IAsyncLifetime.DisposeAsync()
     {
         await base.DisposeAsync();
         await _postgres.DisposeAsync();
+        Directory.Delete(DossierFichiers, recursive: true);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("ConnectionStrings:HouseOs", _postgres.GetConnectionString());
         builder.UseSetting("Mcp:Cle", CleMcp);
+        builder.UseSetting("Fichiers:Chemin", DossierFichiers);
         builder.UseSetting("Seed:Utilisateurs:0:NomUtilisateur", "alain");
         builder.UseSetting("Seed:Utilisateurs:0:NomAffichage", "Alain");
         builder.UseSetting("Seed:Utilisateurs:0:MotDePasse", "test-alain");

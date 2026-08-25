@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: ccaeced
+verified-against: eb830ec
 tags: []
 ---
 
@@ -23,6 +23,12 @@ Première brique d'ingestion de données externes de la phase 2.
   sans clé) toutes les heures pour les coordonnées configurées
   (`Meteo:Latitude`/`Longitude`, pointées sur la nouvelle maison) et normalise le
   résultat dans les tables locales ([[D-2026-08-24 Tables Météo Normalisées]]).
+  La normalisation est défensive (durcie 2026-08-25) : réponses partielles ou
+  tronquées tolérées (série plus courte que `time`, `sunrise`/`sunset` absents),
+  corps sans `hourly`/`daily` → erreur claire, et **l'heure murale dupliquée de la
+  nuit du retour à l'heure normale est dédoublonnée** — sans quoi l'index unique
+  sur `Heure` ferait échouer (et geler) l'ingestion entière ; la cadence est
+  bornée au plancher (une config nulle ne tue pas le service).
 - Les règles « bonne journée pour… » sont des classes C# testables sur le modèle
   normalisé — elles ne voient jamais la forme de l'API. Règles v1 (choix
   utilisateur 2026-08-24) : **tonte**, **aération / fenêtres ouvertes**,

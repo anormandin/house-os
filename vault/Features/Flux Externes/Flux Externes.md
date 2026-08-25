@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: ccaeced
+verified-against: eb830ec
 tags: []
 ---
 
@@ -29,7 +29,15 @@ que [[Météo]].
   les 6 h ([[D-2026-08-24 Tables Flux Externes]],
   [[D-2026-08-23 Pas De N8n Dans Le Cœur]]) : Ical.Net expanse les récurrences
   sur hier → +60 jours, remplacement par flux en transaction ; échec → derniers
-  événements conservés, erreur affichée dans la gestion.
+  événements conservés, erreur affichée dans la gestion, et **isolé** — un flux
+  qui casse (même supprimé pendant le passage) n'empêche pas les suivants.
+- Lecture ICS (durcie 2026-08-25) : les heures **UTC (« …Z ») et TZID étrangers
+  sont converties au fuseau de la maison** (la norme chez Recollect et les
+  calendriers scolaires — sinon décalage de 4-5 h et bascule de date le soir) ;
+  les heures flottantes restent murales ; `EXDATE` et `RECURRENCE-ID` (collectes
+  décalées un férié) sont honorés ; `VTODO`/`VJOURNAL` ignorés.
+- Modifier l'URL d'un flux (PUT) **purge ses événements et recharge tout de
+  suite** — jamais jusqu'à 6 h de l'ancien calendrier sous le nouveau nom.
 - Les événements sont des faits, jamais des tâches : bandeau discret des
   événements du jour au-dessus de la liste d'Aujourd'hui, et fusion dans Cette
   semaine avec style distinct (italique + icône, non cochable).

@@ -87,6 +87,9 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             // Le journal survit à la suppression d'une tâche : pas de FK vers Tache/Occurrence,
             // les ids restent comme références historiques.
             j.HasIndex(x => x.TacheId);
+            // Une seule complétion par occurrence : ferme la course de double
+            // complétion d'une ponctuelle (aucune occurrence suivante n'y protège).
+            j.HasIndex(x => x.OccurrenceId).IsUnique();
         });
 
         modelBuilder.Entity<Zone>(z =>

@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: ccaeced
+verified-against: eb830ec
 tags: []
 ---
 
@@ -42,6 +42,16 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   [[D-2026-08-24 Clé API Partagée Et AgirComme]].
 - La validation référentielle est explicite : `zoneId`/`equipementId`/`assigneA`
   inconnus sont refusés avec un message qui pointe vers l'outil de listage.
+- **Garde-fous fiche partielle** (durcissement 2026-08-25, le client est un LLM) :
+  `gerer_tache modifier` refuse une fiche sans `recurrence` sur une tâche
+  récurrente (obtenir d'abord), conserve l'échéance en attente quand `echeance`
+  est omise (`'aucune'` pour l'effacer) ; `gerer_zone`/`gerer_comptes_a_rebours`
+  traitent un nom/titre vide comme « ne pas toucher ». Le paramètre `action` est
+  insensible à la casse et aux espaces (comme `agirComme`) ; un filtre de liste
+  inconnu est refusé au lieu de tout retourner ; les enums refusent les valeurs
+  numériques ; la liste d'icônes des messages d'erreur est dérivée de l'enum. Le
+  tout-ou-rien de `creer_taches` purge le change tracker (un SaveChanges ultérieur
+  du même scope ne flushe rien).
 - Claude Code se branche via `.mcp.json` (racine, committé) : URL
   `${HOUSEOS_MCP_URL:-http://localhost:5000/mcp}`, clé
   `${HOUSEOS_MCP_KEY:-<clé dev committée>}` ; en prod, les deux variables pointent

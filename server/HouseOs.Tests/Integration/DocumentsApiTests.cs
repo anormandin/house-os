@@ -1,0 +1,166 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using HouseOs.Api.Features.Documents;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace HouseOs.Tests.Integration;
+
+/// <summary>
+/// La tranche fichiers de bout en bout : upload multipart, validations avant écriture
+/// disque, miniatures, suppression — avec le dossier fichiers isolé du dépôt.
+/// </summary>
+[Collection("integration")]
+public class DocumentsApiTests(HouseOsFactory factory)
+{
+    private sealed record CorpsId(Guid Id);
+
+    private static byte[] PetitPng()
+    {
+        using var image = new Image<Rgba32>(4, 4);
+        using var memoire = new MemoryStream();
+        image.SaveAsPng(memoire);
+        return memoire.ToArray();
+    }
+
+    private static MultipartFormDataContent Formulaire(
+        byte[] contenu, string nomFichier, string typeMime,
+        (string Nom, string Valeur)[]? champs = null)
+    {
+        var fichier = new ByteArrayContent(contenu);
+        fichier.Headers.ContentType = MediaTypeHeaderValue.Parse(typeMime);
+        var formulaire = new MultipartFormDataContent { { fichier, "fichier", nomFichier } };
+        foreach (var (nom, valeur) in champs ?? [])
+        {
+            formulaire.Add(new StringContent(valeur), nom);
+        }
+        return formulaire;
+    }
+
+    private async Task<Guid> Televerser(HttpClient client, string nomFichier = "photo.png")
+    {
+        var reponse = await client.PostAsync(
+            "/api/documents", Formulaire(PetitPng(), nomFichier, "image/png"));
+        Assert.Equal(HttpStatusCode.Created, reponse.StatusCode);
+        return (await reponse.Content.ReadFromJsonAsync<CorpsId>())!.Id;
+    }
+
+    [Fact]
+    public async Task Upload_Telechargement_Miniature_Suppression_NettoientLeDisque()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await Televerser(client);
+
+        var fichier = await client.GetAsync($"/api/documents/{id}/fichier");
+        fichier.EnsureSuccessStatusCode();
+        var miniature = await client.GetAsync($"/api/documents/{id}/miniature");
+        miniature.EnsureSuccessStatusCode();
+        Assert.Equal("image/webp", miniature.Content.Headers.ContentType!.MediaType);
+
+        var suppression = await client.DeleteAsync($"/api/documents/{id}");
+        Assert.Equal(HttpStatusCode.NoContent, suppression.StatusCode);
+
+        // Le fichier ET sa miniature en cache disparaissent du disque.
+        Assert.Empty(Directory.GetFiles(factory.DossierFichiers)
+            .Where(f => Path.GetFileName(f).StartsWith(id.ToString("N"))));
+        Assert.Empty(Directory.GetFiles(Path.Combine(factory.DossierFichiers, "miniatures"))
+            .Where(f => Path.GetFileName(f).StartsWith(id.ToString("N"))));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync($"/api/documents/{id}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_FichierVide_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+
+        var reponse = await client.PostAsync(
+            "/api/documents", Formulaire([], "vide.png", "image/png"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_MimeEnMajusculesAvecParametres_EstAccepte()
+    {
+        var client = await factory.ClientConnecte();
+
+        // « IMAGE/PNG; charset=utf-8 » : les types MIME sont insensibles à la casse
+        // et peuvent porter des paramètres — un faux rejet punit un client légitime.
+        var reponse = await client.PostAsync(
+            "/api/documents", Formulaire(PetitPng(), "photo.png", "IMAGE/PNG; charset=utf-8"));
+
+        Assert.Equal(HttpStatusCode.Created, reponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_AvecEquipementInconnu_Repond400_SansFichierOrphelin()
+    {
+        var client = await factory.ClientConnecte();
+        var avant = Directory.GetFiles(factory.DossierFichiers).Length;
+
+        var reponse = await client.PostAsync("/api/documents", Formulaire(
+            PetitPng(), "photo.png", "image/png",
+            [("equipementId", Guid.NewGuid().ToString())]));
+
+        // La validation précède l'écriture disque : ni 500, ni fichier jamais réclamé.
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+        Assert.Equal(avant, Directory.GetFiles(factory.DossierFichiers).Length);
+    }
+
+    [Fact]
+    public async Task Upload_NomDeFichierAvecTraversee_EstNeutralise()
+    {
+        var client = await factory.ClientConnecte();
+
+        var id = await Televerser(client, nomFichier: @"..\..\etc\passwd.png");
+
+        // Le nom d'affichage perd ses séparateurs ; le nom disque est id + extension
+        // dérivée du MIME — jamais le nom du client.
+        var telechargement = await client.GetAsync($"/api/documents/{id}/fichier");
+        telechargement.EnsureSuccessStatusCode();
+        Assert.Equal("passwd.png", telechargement.Content.Headers.ContentDisposition!.FileNameStar);
+        Assert.True(File.Exists(Path.Combine(factory.DossierFichiers, id.ToString("N") + ".png")));
+    }
+
+    [Fact]
+    public async Task Upload_TitreTropLong_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+
+        var reponse = await client.PostAsync("/api/documents", Formulaire(
+            PetitPng(), "photo.png", "image/png",
+            [("titre", new string('t', 201))]));
+
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task FichierDisparuDuDisque_Repond404_SansPlanter()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await Televerser(client);
+        File.Delete(Path.Combine(factory.DossierFichiers, id.ToString("N") + ".png"));
+
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await client.GetAsync($"/api/documents/{id}/fichier")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await client.GetAsync($"/api/documents/{id}/miniature")).StatusCode);
+        // La suppression réussit quand même : la fiche ne doit pas devenir immortelle.
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.DeleteAsync($"/api/documents/{id}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task MiniatureDUnPdf_Repond404()
+    {
+        var client = await factory.ClientConnecte();
+        var pdf = "%PDF-1.4\n%%EOF"u8.ToArray();
+        var creation = await client.PostAsync(
+            "/api/documents", Formulaire(pdf, "manuel.pdf", "application/pdf"));
+        var id = (await creation.Content.ReadFromJsonAsync<CorpsId>())!.Id;
+
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await client.GetAsync($"/api/documents/{id}/miniature")).StatusCode);
+    }
+}

@@ -151,4 +151,45 @@ public class ConversionRecurrenceTests
         var (_, erreur) = OperationsTaches.ConvertirStrategie("AuHasard");
         Assert.NotNull(erreur);
     }
+
+    // --- Validation croisée spec × fenêtre : chaque champ peut être valide isolément
+    // alors que la combinaison ne planifie jamais rien (sinon : 500 à la création). ---
+
+    [Fact]
+    public void AnnuelleHorsDeLaFenetre_DonneErreur()
+    {
+        var (_, erreur) = OperationsTaches.ConvertirRecurrence(Dto(
+            fixeType: "Annuelle", moisAnnuel: 1, jourAnnuel: 15,
+            fenetreDebutMois: 5, fenetreDebutJour: 1, fenetreFinMois: 10, fenetreFinJour: 31));
+        Assert.NotNull(erreur);
+        Assert.Contains("jamais", erreur);
+    }
+
+    [Fact]
+    public void FenetreAvecJourInexistant_DonneErreur()
+    {
+        var (_, erreur) = OperationsTaches.ConvertirRecurrence(Dto(
+            mode: "Intervalle", intervalleJours: 7,
+            fenetreDebutMois: 4, fenetreDebutJour: 31, fenetreFinMois: 4, fenetreFinJour: 31));
+        Assert.NotNull(erreur);
+        Assert.Contains("n'existe pas", erreur);
+    }
+
+    [Fact]
+    public void Fenetre29Fevrier_EstAcceptee()
+    {
+        var (_, erreur) = OperationsTaches.ConvertirRecurrence(Dto(
+            mode: "Intervalle", intervalleJours: 7,
+            fenetreDebutMois: 2, fenetreDebutJour: 29, fenetreFinMois: 3, fenetreFinJour: 31));
+        Assert.Null(erreur);
+    }
+
+    [Fact]
+    public void AnnuelleDansLaFenetre_EstAcceptee()
+    {
+        var (_, erreur) = OperationsTaches.ConvertirRecurrence(Dto(
+            fixeType: "Annuelle", moisAnnuel: 6, jourAnnuel: 15,
+            fenetreDebutMois: 5, fenetreDebutJour: 1, fenetreFinMois: 10, fenetreFinJour: 31));
+        Assert.Null(erreur);
+    }
 }

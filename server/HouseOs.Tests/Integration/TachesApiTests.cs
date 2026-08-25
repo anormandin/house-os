@@ -199,4 +199,118 @@ public class TachesApiTests(HouseOsFactory factory)
         Assert.DoesNotContain(restantes!, o => o.TacheId == id);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/taches/{id}")).StatusCode);
     }
+
+    [Fact]
+    public async Task FiltreInconnu_Repond400_AuLieuDeToutRetourner()
+    {
+        var client = await factory.ClientConnecte();
+
+        var reponse = await client.GetAsync("/api/occurrences?filtre=pending");
+
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task FaitesSansBornes_Repond400_AuLieuDUnVideSilencieux()
+    {
+        var client = await factory.ClientConnecte();
+
+        // Avant la garde : SQL comparé à null → 200 avec une liste vide, indébogable.
+        var reponse = await client.GetAsync("/api/occurrences?filtre=faites");
+
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("POST", "/api/occurrences/{0}/completer")]
+    [InlineData("POST", "/api/occurrences/{0}/annuler-completion")]
+    [InlineData("POST", "/api/occurrences/{0}/passer")]
+    [InlineData("DELETE", "/api/taches/{0}")]
+    public async Task IdInconnu_Repond404(string methode, string gabarit)
+    {
+        var client = await factory.ClientConnecte();
+        var route = string.Format(gabarit, Guid.NewGuid());
+
+        var reponse = methode == "DELETE"
+            ? await client.DeleteAsync(route)
+            : await client.PostAsync(route, null);
+
+        Assert.Equal(HttpStatusCode.NotFound, reponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Bilan_LaBorneDeEstInclusive_EtLaBorneAExclusive()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await CreerTache(client, new CreerTacheRequete(
+            "Test bornes bilan", null, Aujourdhui, null, null, null, null, null));
+        var occurrence = await OccurrenceEnAttente(client, id);
+        (await client.PostAsync($"/api/occurrences/{occurrence.Id}/completer", null))
+            .EnsureSuccessStatusCode();
+        var completees = await client.GetFromJsonAsync<List<OccurrenceDto>>(
+            "/api/occurrences?filtre=completees");
+        var instant = completees!.Single(o => o.TacheId == id).CompleteeLe!.Value;
+
+        string Format(DateTimeOffset i) => Uri.EscapeDataString(i.ToString("o"));
+        var inclusDepuisLaBorne = await client.GetFromJsonAsync<List<DateTimeOffset>>(
+            $"/api/journal/bilan?de={Format(instant)}&a={Format(instant.AddMinutes(1))}");
+        var excluALaBorne = await client.GetFromJsonAsync<List<DateTimeOffset>>(
+            $"/api/journal/bilan?de={Format(instant.AddMinutes(-1))}&a={Format(instant)}");
+
+        // Sémantique [de, a) : une complétion à minuit pile compte dans UNE semaine.
+        Assert.Contains(instant, inclusDepuisLaBorne!);
+        Assert.DoesNotContain(instant, excluALaBorne!);
+    }
+
+    [Fact]
+    public async Task SupprimerUneTacheCompletee_LaisseLaCompletionDansLeBilan()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await CreerTache(client, new CreerTacheRequete(
+            "Test bilan survivant", null, Aujourdhui, null, null, null, null, null));
+        var occurrence = await OccurrenceEnAttente(client, id);
+        (await client.PostAsync($"/api/occurrences/{occurrence.Id}/completer", null))
+            .EnsureSuccessStatusCode();
+        var completees = await client.GetFromJsonAsync<List<OccurrenceDto>>(
+            "/api/occurrences?filtre=completees");
+        var instant = completees!.Single(o => o.TacheId == id).CompleteeLe!.Value;
+
+        (await client.DeleteAsync($"/api/taches/{id}")).EnsureSuccessStatusCode();
+
+        // Le journal n'a pas de FK et survit : le bilan garde la complétion, alors
+        // que le filtre « faites » (joint aux occurrences) ne la voit plus. Divergence
+        // assumée — l'histogramme compte le travail fait, même sur une tâche disparue.
+        string Format(DateTimeOffset i) => Uri.EscapeDataString(i.ToString("o"));
+        var bilan = await client.GetFromJsonAsync<List<DateTimeOffset>>(
+            $"/api/journal/bilan?de={Format(instant.AddSeconds(-1))}&a={Format(instant.AddSeconds(1))}");
+        Assert.Contains(instant, bilan!);
+    }
+
+    [Fact]
+    public async Task DeuxCompletionsParalleles_NeCreentQuUneSeuleSuivante()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await CreerTache(client, new CreerTacheRequete(
+            "Test course de complétion", null, Aujourdhui, null, null, null, "Fixe",
+            new RecurrenceDto("Intervalle", null, null, null, null, null, 7,
+                null, null, null, null, true)));
+        var occurrence = await OccurrenceEnAttente(client, id);
+
+        // Deux clics simultanés : l'index unique « une seule en attente par tâche »
+        // tranche — un 204, un 409, jamais deux journaux ni deux suivantes.
+        var (premiere, deuxieme) = (
+            client.PostAsync($"/api/occurrences/{occurrence.Id}/completer", null),
+            client.PostAsync($"/api/occurrences/{occurrence.Id}/completer", null));
+        await Task.WhenAll(premiere, deuxieme);
+
+        var statuts = new[] { premiere.Result.StatusCode, deuxieme.Result.StatusCode };
+        Assert.Single(statuts, s => s == HttpStatusCode.NoContent);
+        Assert.Single(statuts, s => s == HttpStatusCode.Conflict);
+
+        var suivante = await OccurrenceEnAttente(client, id); // Single → une seule en attente
+        Assert.Equal(Aujourdhui.AddDays(7), suivante.Echeance);
+        var faites = await client.GetFromJsonAsync<List<OccurrenceDto>>(
+            "/api/occurrences?filtre=completees");
+        Assert.Single(faites!, o => o.TacheId == id);
+    }
 }

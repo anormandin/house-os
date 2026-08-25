@@ -42,6 +42,48 @@ public class PolissageLlmTests
         Assert.Null(PolissageLlm.Extraire($$"""{"titre": "{{tropLong}}", "sousTitre": "ok"}"""));
     }
 
+    [Theory]
+    [InlineData("""{"titre": 5, "sousTitre": "ok"}""")]
+    [InlineData("""{"titre": "ok", "sousTitre": {"texte": "imbriqué"}}""")]
+    [InlineData("""{"titre": ["tableau"], "sousTitre": "ok"}""")]
+    [InlineData("""{"titre": true, "sousTitre": "ok"}""")]
+    public void Extraire_ChampNonTextuel_RendNull(string texte)
+    {
+        // Contrat « tout écart → null » : jamais d'exception qui sortirait du parse.
+        Assert.Null(PolissageLlm.Extraire(texte));
+    }
+
+    [Fact]
+    public void Extraire_TolereLaProseAvecAccolades_AutourDuJson()
+    {
+        var resultat = PolissageLlm.Extraire(
+            """Voici l'objet {titre, sousTitre} demandé : {"titre": "Bon matin.", "sousTitre": "Deux affaires au programme."} — bonne journée!""");
+
+        Assert.Equal(("Bon matin.", "Deux affaires au programme."), resultat);
+    }
+
+    [Fact]
+    public void Extraire_JsonTronque_RendNull()
+    {
+        // MaxTokens peut couper la réponse en plein vol.
+        Assert.Null(PolissageLlm.Extraire("""{"titre": "Coupé net.", "sousTi"""));
+    }
+
+    [Theory]
+    [InlineData(60, 180, true)]   // bornes exactes acceptées
+    [InlineData(61, 180, false)]  // titre juste trop long
+    [InlineData(60, 181, false)]  // sous-titre juste trop long
+    public void Extraire_BornesDeLongueur(int longueurTitre, int longueurSousTitre, bool accepte)
+    {
+        var titre = new string('t', longueurTitre);
+        var sousTitre = new string('s', longueurSousTitre);
+
+        var resultat = PolissageLlm.Extraire(
+            $$"""{"titre": "{{titre}}", "sousTitre": "{{sousTitre}}"}""");
+
+        Assert.Equal(accepte, resultat is not null);
+    }
+
     // --- Sérialisation de l'état (le contrat vu par le LLM) ---
 
     [Fact]

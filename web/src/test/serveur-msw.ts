@@ -30,9 +30,33 @@ export const TACHE_COMPLETE: TacheDetail = {
   recurrence: { mode: 'Ponctuelle' },
 }
 
+/** Détail récurrent — chaque champ de la récurrence non neutre : le test « rien ne
+ * se perd » ne peut pas attraper la perte d'une hebdo avec la seule ponctuelle. */
+export const TACHE_RECURRENTE: TacheDetail = {
+  id: 't-2',
+  titre: 'Sortir le recyclage',
+  description: 'Bac bleu au chemin',
+  echeance: '2026-09-02',
+  assigneAId: ARIANE.id,
+  zoneId: ZONES[0].id,
+  equipementId: null,
+  strategie: 'Alternance',
+  recurrence: {
+    mode: 'Fixe',
+    fixeType: 'JoursSemaine',
+    joursSemaine: [1, 3, 5],
+    fenetreDebutMois: 5,
+    fenetreDebutJour: 1,
+    fenetreFinMois: 10,
+    fenetreFinJour: 31,
+    rollover: true,
+  },
+}
+
 export const serveur = setupServer(
   http.get('/api/utilisateurs', () => HttpResponse.json([ALAIN, ARIANE])),
   http.get('/api/zones', () => HttpResponse.json(ZONES)),
   http.get('/api/equipements', () => HttpResponse.json([])),
-  http.get('/api/taches/:id', () => HttpResponse.json(TACHE_COMPLETE)),
+  http.get('/api/taches/:id', ({ params }) =>
+    HttpResponse.json(params.id === TACHE_RECURRENTE.id ? TACHE_RECURRENTE : TACHE_COMPLETE)),
 )
