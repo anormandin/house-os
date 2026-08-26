@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarPlus, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import ComptesAReboursGestion from '@/components/ComptesAReboursGestion'
 import FluxExternesGestion, { ICONES_FLUX } from '@/components/FluxExternesGestion'
 import { ICONES_COMPTE, MaisonSoleil } from '@/components/Illustrations'
 import MeteoCarte from '@/components/MeteoCarte'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import QuickAdd from '@/components/QuickAdd'
+import Ruban from '@/components/Ruban'
 import TacheEditeur from '@/components/TacheEditeur'
 import {
   api,
@@ -15,7 +16,7 @@ import {
   type EvenementExterne,
   type Occurrence,
 } from '@/lib/api'
-import { bornesJourneeLocale, dateCourte, dateLongue, dodosAvant, jourCourt } from '@/lib/format'
+import { bornesJourneeLocale, dateCourte, dateLongue, dodosAvant } from '@/lib/format'
 import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
 
 export default function Aujourdhui() {
@@ -37,6 +38,7 @@ export default function Aujourdhui() {
     queryKey: ['occurrences', 'en-attente'],
     queryFn: () => api.occurrences('en-attente'),
   })
+  const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
   const bornesBilan = bornesSemainesBilan()
   const { data: bilan } = useQuery({
     queryKey: ['journal', 'bilan', bornesBilan.de],
@@ -98,6 +100,15 @@ export default function Aujourdhui() {
         </div>
       </section>
 
+      <Ruban
+        occurrences={enAttente ?? []}
+        evenements={evenementsExternes ?? []}
+        zones={zones ?? []}
+        aujourdhui={aujourdhui}
+        onOuvrirTache={setEditeurTacheId}
+        onGererFlux={() => setGestionFluxOuverte(true)}
+      />
+
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         {/* Liste du jour */}
         <div className="flex flex-col gap-[11px]">
@@ -122,12 +133,6 @@ export default function Aujourdhui() {
         {/* Colonne latérale */}
         <div className="flex flex-col gap-[18px]">
           <MeteoCarte meteo={meteo} />
-          <CetteSemaine
-            enAttente={enAttente ?? []}
-            aujourdhui={aujourdhui}
-            evenements={evenementsExternes ?? []}
-            onGerer={() => setGestionFluxOuverte(true)}
-          />
           <Bilan instants={bilan ?? []} lundis={bornesBilan.lundis} />
           <ComptesARebours
             comptes={comptesARebours ?? []}
@@ -168,68 +173,6 @@ function EvenementsDuJour({ evenements }: { evenements: EvenementExterne[] }) {
         )
       })}
     </div>
-  )
-}
-
-function CetteSemaine({
-  enAttente,
-  aujourdhui,
-  evenements,
-  onGerer,
-}: {
-  enAttente: Occurrence[]
-  aujourdhui: string
-  evenements: EvenementExterne[]
-  onGerer: () => void
-}) {
-  const [annee, mois, jour] = aujourdhui.split('-').map(Number)
-  const dansSeptJours = dateLocaleIso(new Date(annee, mois - 1, jour + 7))
-  const taches = enAttente
-    .filter((o) => o.echeance !== null && o.echeance > aujourdhui && o.echeance <= dansSeptJours)
-    .map((o) => ({ cle: `t-${o.id}`, date: o.echeance!, titre: o.titre, type: null }))
-  const externes = evenements
-    .filter((e) => e.date > aujourdhui)
-    .map((e, i) => ({ cle: `e-${i}`, date: e.date, titre: e.titre, type: e.type }))
-  const semaine = [...taches, ...externes].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 7)
-
-  return (
-    <section className="rounded-3xl bg-carte px-6 py-5 shadow-carte">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-bold">Cette semaine</h2>
-        <button
-          type="button"
-          aria-label="Gérer les calendriers externes"
-          onClick={onGerer}
-          className="rounded-lg p-1.5 text-sourdine transition-colors hover:text-dore"
-        >
-          <CalendarPlus className="size-4" />
-        </button>
-      </div>
-      {semaine.length === 0 ? (
-        <p className="text-sm text-sourdine">Rien de prévu — belle semaine en vue.</p>
-      ) : (
-        <ul className="flex flex-col gap-[11px] text-sm">
-          {semaine.map((item) => {
-            const Icone = item.type === null ? null : ICONES_FLUX[item.type].Icone
-            return (
-              <li key={item.cle} className="flex items-center gap-2.5">
-                <span className="rounded-full bg-creux px-2.5 py-0.5 text-xs font-bold text-dore">
-                  {jourCourt(item.date)}
-                </span>
-                <span
-                  className={
-                    Icone === null ? 'min-w-0 truncate' : 'min-w-0 truncate italic text-dore'
-                  }
-                >
-                  {item.titre}
-                </span>
-                {Icone !== null && <Icone className="size-3.5 shrink-0 text-sourdine" />}
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </section>
   )
 }
 

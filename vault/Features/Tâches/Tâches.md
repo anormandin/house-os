@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-25
-verified-against: eb830ec
+verified-against: c7daa79
 tags: []
 ---
 
@@ -139,6 +139,26 @@ Implémenté (durcissement cas de bord, 2026-08-25, as-built) :
   plafond de 200) ; FK inexistantes (zone/équipement/assigné) et titres trop longs
   → 400 au lieu de 500.
 
+Implémenté (ruban des 7 prochains jours, 2026-08-25, as-built —
+[[D-2026-08-25 Ruban Des 7 Prochains Jours]]) :
+
+- **Ruban des 7 prochains jours** (`web/src/components/Ruban.tsx`), composant
+  canonique des tâches à venir : colonnes En retard · aujourd'hui (surligné) ·
+  6 jours (week-end teinté, jour vide = point) · « Plus tard → » (jours 7 à 30,
+  6 lignes max). Puces couleur-de-pièce + avatar, clic → éditeur ; max 3 puces
+  par jour puis « + n autres » dépliable sur place.
+- Sur **Aujourd'hui** : pleine largeur sous le héros ; remplace la carte « Cette
+  semaine » (code retiré) et absorbe les **événements externes** (italique doré
+  + icône, non cliquables) ; le bouton de gestion des flux vit dans son en-tête.
+- Sur **Pièces** : au-dessus de la grille ; choisir une pièce **estompe le reste
+  à 40 %** (événements externes compris).
+- **Horizon : un cycle d'avance, plafonné à 30 jours** — réduit côté client à
+  `échéance ≤ aujourd'hui + 30` (`web/src/lib/ruban.ts`), la matérialisation à
+  la complétion garantissant qu'une occurrence en attente est à au plus un cycle.
+  Aucun changement d'API, pas de parité MCP à toucher.
+- **Couleurs de pièces** : palette fixe de 6 teintes, attribution déterministe
+  par position dans la liste des zones (pas de colonne en base).
+
 ## Hors périmètre
 
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).
@@ -166,6 +186,9 @@ Implémenté (durcissement cas de bord, 2026-08-25, as-built) :
   place de L'équipe ; attribution individuelle conservée mais indicative.
 - [[D-2026-08-25 Invariants D'occurrence En Base]] — index uniques (une en-attente
   par tâche, une complétion par occurrence), courses converties en 409.
+- [[D-2026-08-25 Ruban Des 7 Prochains Jours]] — le ruban comme composant
+  canonique des tâches à venir ; horizon un-cycle plafonné à 30 jours ;
+  placement Aujourd'hui + Pièces (focus) ; couleurs de zones déterministes.
 
 ## Ancres de code
 
@@ -181,6 +204,8 @@ Implémenté (durcissement cas de bord, 2026-08-25, as-built) :
 - `web/src/components/TacheEditeur.tsx` — éditeur complet (récurrence en français),
   unique point d'entrée création/édition (`zoneInitialeId`, fermeture par Échap)
 - `web/src/pages/Pieces.tsx` — vue Pièces (fraîcheur, gestion des zones)
+- `web/src/components/Ruban.tsx`, `web/src/lib/ruban.ts` — ruban des 7 prochains
+  jours (groupement pur testé, couleurs de zones)
 - `web/src/pages/Aujourdhui.tsx`, `web/src/pages/Taches.tsx`, `web/src/components/QuickAdd.tsx` — UI
 - `web/src/components/OccurrenceListe.tsx` — rangées de tâches (retard, complétée,
   échéance, annuler/passer/reporter/notes)
@@ -207,3 +232,5 @@ Implémenté (durcissement cas de bord, 2026-08-25, as-built) :
 - 2026-08-25 Durcissement cas de bord — audit de couverture (artifact « Angles
   morts de House OS »), correctifs + tests, voir [[Suite De Tests]] et
   [[D-2026-08-25 Invariants D'occurrence En Base]].
+- [[Plan 2026-08-25 Ruban Des 7 Prochains Jours]] · [[Recap Ruban Des 7 Prochains Jours]]
+  — maquettes : artifact « Pièces à venir » (5 directions puis itération ruban).

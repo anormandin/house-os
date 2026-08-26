@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import OccurrenceListe from '@/components/OccurrenceListe'
+import Ruban from '@/components/Ruban'
 import TacheEditeur from '@/components/TacheEditeur'
 import { api, dateLocaleIso, type Occurrence, type Zone } from '@/lib/api'
 import { bornesJourneeLocale, dateLongue } from '@/lib/format'
@@ -58,6 +59,10 @@ export default function Pieces() {
   const { data: faites } = useQuery({
     queryKey: ['occurrences', 'faites', bornes.de],
     queryFn: () => api.occurrencesFaites(bornes.de, bornes.a),
+  })
+  const { data: evenementsExternes } = useQuery({
+    queryKey: ['evenements-externes'],
+    queryFn: () => api.evenementsExternes(7),
   })
 
   const invaliderZones = () => queryClient.invalidateQueries({ queryKey: ['zones'] })
@@ -119,6 +124,15 @@ export default function Pieces() {
         </div>
         <h1 className="mt-1 text-4xl font-bold">La maison, pièce par pièce</h1>
       </div>
+
+      <Ruban
+        occurrences={ouvertes}
+        evenements={evenementsExternes ?? []}
+        zones={zones ?? []}
+        aujourdhui={aujourdhui}
+        focusZone={zoneChoisie}
+        onOuvrirTache={(tacheId) => setEditeur({ tacheId })}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         {/* Grille des pièces */}
