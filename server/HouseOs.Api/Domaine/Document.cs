@@ -24,6 +24,10 @@ public class Document
     public CategorieDocument Categorie { get; set; }
     public Guid? EquipementId { get; set; }
     public Guid? ZoneId { get; set; }
+
+    /// <summary>Dossier libre de classement (« 17 rue de la Colline », « Déménagement »…).</summary>
+    public string? Dossier { get; set; }
+
     public string? Notes { get; set; }
 
     /// <summary>Date portée par le document (facture, signature de contrat…).</summary>

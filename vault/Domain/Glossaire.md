@@ -1,7 +1,7 @@
 ---
 type: domain
-last-verified: 2026-08-25
-verified-against: ccaeced
+last-verified: 2026-08-26
+verified-against: d52fad1
 tags: []
 ---
 
@@ -57,8 +57,16 @@ d'une tâche, combinable avec les modes fixe et intervalle.
 
 Un papier de la maison numérisé (acte, assurance, facture, manuel, photo…) :
 fichier sur disque + titre + catégorie fixe + liens optionnels vers un équipement
-ou une zone + échéance optionnelle. A absorbé l'ancienne « pièce jointe »
-d'équipement ([[D-2026-08-24 Document Unifié Sur Disque]]). Voir [[Documents]].
+ou une zone + dossier libre + échéance optionnelle. A absorbé l'ancienne « pièce
+jointe » d'équipement ([[D-2026-08-24 Document Unifié Sur Disque]]). Voir
+[[Documents]].
+
+## Dossier (document)
+
+Étiquette texte libre de classement d'un document (« 17 rue de la Colline »,
+« Déménagement »…), autocomplétée depuis les valeurs existantes. Pas une entité :
+pas de CRUD, « sans dossier » est un état légitime. Distinct de la Zone (pièce).
+Voir [[D-2026-08-26 Dossier De Document]].
 
 ## Compte à rebours
 

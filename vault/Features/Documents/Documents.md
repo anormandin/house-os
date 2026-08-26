@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-25
-verified-against: eb830ec
+last-verified: 2026-08-26
+verified-against: d52fad1
 tags: []
 ---
 
@@ -22,18 +22,31 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   soit atteignable ; liste blanche PDF/JPEG/PNG/WebP/HEIC, types MIME normalisés
   casse/paramètres, alias `image/jpg` accepté) + titre + catégorie fixe
   ([[D-2026-08-24 Catégories Et Échéance De Document]]) + optionnels : lien vers
-  un [[Équipements|équipement]] ou une zone, notes, date du document (facture,
-  contrat…), échéance.
-- **Page Documents** dans la nav : filtres par catégorie, recherche
-  titre/notes/nom de fichier, téléversement en un clic (titre déduit du nom de
-  fichier, catégorie du type MIME), fiche éditable ensuite (métadonnées),
-  téléchargement, suppression deux-clics. Les documents dont l'échéance tombe
-  dans les 60 jours **ou est déjà passée** (expirés en rouge, sans borne
-  d'ancienneté) sont mis en évidence en tête de page ; aucune tâche n'est générée.
-- Chaque rangée de liste montre une **vignette** (miniature pour les images, icône
-  de catégorie sinon), un **badge de type** (PDF, JPG…) et un **bouton de
-  téléchargement direct** ; la fiche montre un aperçu cliquable pour les images
-  (hauteur fixe, masqué si la miniature échoue).
+  un [[Équipements|équipement]] ou une zone, **dossier libre** (≤ 100, trim,
+  vide→null — [[D-2026-08-26 Dossier De Document]]), notes, date du document
+  (facture, contrat…), échéance.
+- **Page Documents** (réécrite 2026-08-26 —
+  [[D-2026-08-26 Navigation Documents Par Facettes]]) : barre latérale de
+  facettes à compteurs (Catégories, Lieux & dossiers avec « Sans dossier »,
+  Équipements — une sélection par bloc, combinées en ET, jetons orange +
+  « Effacer les filtres ») ; **table dense triable** (Titre, Catégorie en chip
+  colorée, Lié à = dossier → équipement → pièce, Daté du, Échéance colorée) avec
+  tri par défaut Daté du ↓ (dates nulles en fin) et **pagination client
+  25/page** ; recherche titre/notes/nom de fichier/dossier dans l'en-tête ;
+  téléversement en un clic (titre déduit du nom de fichier, catégorie du type
+  MIME). La **fiche éditable vit dans un tiroir** par-dessus le bord droit
+  (ouverture au clic de rangée, fermeture Échap/×, champ Dossier autocomplété
+  par datalist, suppression deux-clics). Le filtrage/tri/compteurs restent côté
+  client — l'API liste tout ; `GET /api/documents` accepte quand même un filtre
+  `dossier` (parité MCP).
+- Les documents dont l'échéance tombe dans les 60 jours **ou est déjà passée**
+  (expirés en rouge, sans borne d'ancienneté) sont épinglés dans le bloc
+  « Échéances proches » en tête de barre latérale (lignes cliquables → tiroir) ;
+  aucune tâche n'est générée. La colonne Échéance reprend le même code couleur
+  (rouge « Expirée · date », doré ≤ 60 jours).
+- Chaque rangée de table montre l'icône de catégorie, un **badge de type**
+  (PDF, JPG…) et un **bouton de téléchargement direct** ; le tiroir montre un
+  aperçu cliquable pour les images (hauteur fixe, masqué si la miniature échoue).
 - Upload durci (2026-08-25) : toutes les validations (liens, longueurs) précèdent
   l'écriture disque — jamais de fichier orphelin ; le nom disque = id + extension
   **dérivée du MIME** (jamais celle du client), le nom d'affichage est assaini
@@ -47,9 +60,10 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   modifiable).
 - Supprimer un équipement **délie** ses documents (ils survivent dans la page
   Documents) ; supprimer un document efface le fichier disque.
-- **MCP** ([[Serveur MCP]]) : `lister_documents` (filtres catégorie/équipement) et
-  `gerer_document` (modifier les métadonnées, supprimer) — l'ajout et le
-  téléchargement de fichiers restent dans l'interface web.
+- **MCP** ([[Serveur MCP]]) : `lister_documents` (filtres catégorie/équipement/
+  dossier) et `gerer_document` (modifier les métadonnées dossier inclus,
+  supprimer) — l'ajout et le téléchargement de fichiers restent dans l'interface
+  web.
 
 ## Hors périmètre
 
@@ -66,6 +80,9 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   échéance + rappel visuel 60 jours, page dédiée.
 - [[D-2026-08-25 Miniatures De Documents]] — miniatures WebP côté serveur, cache
   disque, ImageSharp 3.1, HEIC sans aperçu.
+- [[D-2026-08-26 Navigation Documents Par Facettes]] — facettes latérales +
+  table dense + tiroir de détail + pagination client.
+- [[D-2026-08-26 Dossier De Document]] — champ texte libre, pas d'entité.
 
 ## Ancres de code
 
@@ -81,4 +98,5 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
 
 ## Historique
 
-- [[Plan 2026-08-24 Documents V1]] · [[Recap Documents]]
+- [[Plan 2026-08-24 Documents V1]] · [[Plan 2026-08-26 Documents Facettes]] ·
+  [[Recap Documents]]

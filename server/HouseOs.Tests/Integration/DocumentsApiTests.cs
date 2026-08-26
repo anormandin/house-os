@@ -163,4 +163,61 @@ public class DocumentsApiTests(HouseOsFactory factory)
         Assert.Equal(HttpStatusCode.NotFound,
             (await client.GetAsync($"/api/documents/{id}/miniature")).StatusCode);
     }
+
+    private sealed record DocumentLu(Guid Id, string Titre, string? Dossier);
+
+    [Fact]
+    public async Task Dossier_UploadPutEtFiltre_FontLAllerRetour()
+    {
+        var client = await factory.ClientConnecte();
+        // Valeur unique par exécution : la base est partagée entre les tests.
+        var dossier = $"17 rue de la Colline {Guid.NewGuid():N}";
+
+        var creation = await client.PostAsync("/api/documents", Formulaire(
+            PetitPng(), "promesse.png", "image/png",
+            [("dossier", $"  {dossier}  ")]));
+        Assert.Equal(HttpStatusCode.Created, creation.StatusCode);
+        var id = (await creation.Content.ReadFromJsonAsync<CorpsId>())!.Id;
+
+        // Le trim est appliqué et la valeur ressort telle quelle du GET filtré.
+        var filtres = await client.GetFromJsonAsync<List<DocumentLu>>(
+            $"/api/documents?dossier={Uri.EscapeDataString(dossier)}");
+        var lu = Assert.Single(filtres!);
+        Assert.Equal(id, lu.Id);
+        Assert.Equal(dossier, lu.Dossier);
+
+        // Le PUT (fiche complète) remplace le dossier ; vide → null.
+        var modification = await client.PutAsJsonAsync($"/api/documents/{id}", new
+        {
+            titre = "Promesse d'achat",
+            categorie = "Contrat",
+            dossier = "   ",
+        });
+        Assert.Equal(HttpStatusCode.NoContent, modification.StatusCode);
+        Assert.Empty((await client.GetFromJsonAsync<List<DocumentLu>>(
+            $"/api/documents?dossier={Uri.EscapeDataString(dossier)}"))!);
+
+        await client.DeleteAsync($"/api/documents/{id}");
+    }
+
+    [Fact]
+    public async Task Dossier_TropLong_Repond400_AuPostEtAuPut()
+    {
+        var client = await factory.ClientConnecte();
+        var tropLong = new string('d', 101);
+
+        var creation = await client.PostAsync("/api/documents", Formulaire(
+            PetitPng(), "photo.png", "image/png", [("dossier", tropLong)]));
+        Assert.Equal(HttpStatusCode.BadRequest, creation.StatusCode);
+
+        var id = await Televerser(client);
+        var modification = await client.PutAsJsonAsync($"/api/documents/{id}", new
+        {
+            titre = "Photo",
+            categorie = "Photo",
+            dossier = tropLong,
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, modification.StatusCode);
+        await client.DeleteAsync($"/api/documents/{id}");
+    }
 }

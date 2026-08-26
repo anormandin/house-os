@@ -40,3 +40,24 @@ Déviations : aucune. À noter : la confirmation deux-clics se désarme après 4
   Équipements, aperçu cliquable dans la fiche.
 - Vérifié : 140 tests verts, build web propre. Parcours navigateur à refaire
   après redémarrage de l'API.
+
+## Incrément 2026-08-26 — navigation à facettes + champ dossier
+
+Exécute [[Plan 2026-08-26 Documents Facettes]] (maquettes → itération C choisie
+par Alain) :
+
+- Backend : champ `Document.Dossier` (≤ 100, trim, vide→null), migration
+  `AjouterDossierDocument` appliquée en dev ; DTO/PUT/POST + filtre `?dossier=` ;
+  MCP `lister_documents`/`gerer_document` à parité. 2 tests d'intégration
+  (aller-retour + 400 trop long).
+- Web : page Documents réécrite — facettes latérales à compteurs (Échéances
+  proches épinglées, Catégories, Lieux & dossiers, Équipements), jetons de
+  filtres, table dense triable (défaut Daté du ↓, nulles en fin), pagination
+  client 25/page, tiroir de détail (fiche complète + Dossier avec datalist,
+  Échap/×). 4 tests de page (invariant édition-sans-perte du tiroir, facettes
+  en ET, tri, pagination).
+- Vérifié : 341 tests backend + 48 web verts ; parcours navigateur réel
+  (assignation d'un dossier, facette, jeton, filtre).
+
+Déviations : le bloc « Lieux & dossiers » ne s'affiche que lorsqu'au moins un
+dossier existe (corrigé après le premier rendu réel) ; aucune autre.

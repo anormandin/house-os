@@ -15,6 +15,7 @@ public record DocumentDto(
     string? NomEquipement,
     Guid? ZoneId,
     string? NomZone,
+    string? Dossier,
     string? Notes,
     DateOnly? DateDocument,
     DateOnly? Echeance,
@@ -28,6 +29,7 @@ public record DocumentRequete(
     string Categorie,
     Guid? EquipementId,
     Guid? ZoneId,
+    string? Dossier,
     string? Notes,
     DateOnly? DateDocument,
     DateOnly? Echeance);
@@ -118,7 +120,8 @@ public static class DocumentsEndpoints
 
     public static IEndpointRouteBuilder MapDocuments(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/documents", async (string? categorie, Guid? equipementId, HouseOsDbContext db) =>
+        app.MapGet("/api/documents", async (
+            string? categorie, Guid? equipementId, string? dossier, HouseOsDbContext db) =>
         {
             var documents = db.Documents.AsNoTracking();
             if (string.IsNullOrWhiteSpace(categorie) == false)
@@ -133,6 +136,10 @@ public static class DocumentsEndpoints
             {
                 documents = documents.Where(d => d.EquipementId == equipementId);
             }
+            if (string.IsNullOrWhiteSpace(dossier) == false)
+            {
+                documents = documents.Where(d => d.Dossier == dossier);
+            }
 
             var liste = await documents
                 .OrderByDescending(d => d.CreeLe)
@@ -142,7 +149,7 @@ public static class DocumentsEndpoints
                     db.Equipements.Where(e => e.Id == d.EquipementId).Select(e => e.Nom).FirstOrDefault(),
                     d.ZoneId,
                     db.Zones.Where(z => z.Id == d.ZoneId).Select(z => z.Nom).FirstOrDefault(),
-                    d.Notes, d.DateDocument, d.Echeance,
+                    d.Dossier, d.Notes, d.DateDocument, d.Echeance,
                     d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
                 .ToListAsync();
             return Results.Ok(liste);
@@ -195,6 +202,11 @@ public static class DocumentsEndpoints
             {
                 return Erreur("notes", "Les notes ne peuvent pas dépasser 2000 caractères.");
             }
+            var dossier = Nettoyer(formulaire["dossier"]);
+            if (dossier?.Length > 100)
+            {
+                return Erreur("dossier", "Le dossier ne peut pas dépasser 100 caractères.");
+            }
             // Valider les liens avant d'écrire quoi que ce soit : une violation de FK
             // après l'écriture laisserait un fichier orphelin permanent sur disque.
             var equipementId = LireGuid(formulaire["equipementId"]);
@@ -215,6 +227,7 @@ public static class DocumentsEndpoints
                 Categorie = categorie,
                 EquipementId = equipementId,
                 ZoneId = zoneId,
+                Dossier = dossier,
                 Notes = notes,
                 DateDocument = LireDate(formulaire["dateDocument"]),
                 Echeance = LireDate(formulaire["echeance"]),
@@ -257,6 +270,11 @@ public static class DocumentsEndpoints
             {
                 return Erreur("categorie", "Catégorie inconnue.");
             }
+            var dossier = Nettoyer(requete.Dossier);
+            if (dossier?.Length > 100)
+            {
+                return Erreur("dossier", "Le dossier ne peut pas dépasser 100 caractères.");
+            }
             var document = await db.Documents.FindAsync(id);
             if (document is null)
             {
@@ -267,6 +285,7 @@ public static class DocumentsEndpoints
             document.Categorie = categorie;
             document.EquipementId = requete.EquipementId;
             document.ZoneId = requete.ZoneId;
+            document.Dossier = dossier;
             document.Notes = Nettoyer(requete.Notes);
             document.DateDocument = requete.DateDocument;
             document.Echeance = requete.Echeance;

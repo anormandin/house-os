@@ -30,6 +30,7 @@ public record DocumentDonnees(
         "PlanPermis, ImpotsTaxes ou Autre (requise).")] string Categorie,
     [property: Description("Id d'un équipement existant (via lister_equipements), ou null pour délier.")] Guid? EquipementId,
     [property: Description("Id d'une zone existante (via lister_zones), ou null pour délier.")] Guid? ZoneId,
+    [property: Description("Dossier libre de classement (« 17 rue de la Colline », « Déménagement »…), ou null.")] string? Dossier,
     string? Notes,
     [property: Description("Date portée par le document YYYY-MM-DD (facture, contrat…), ou null.")] string? DateDocument,
     [property: Description("Échéance YYYY-MM-DD (rappel visuel dans l'app), ou null.")] string? Echeance);
@@ -162,7 +163,8 @@ public static class OutilsMaison
         HouseOsDbContext db,
         [Description("Filtrer par catégorie : Manuel, Photo, Assurance, Facture, Garantie, " +
             "Contrat, PlanPermis, ImpotsTaxes ou Autre.")] string? categorie = null,
-        [Description("Filtrer par équipement lié.")] Guid? equipementId = null)
+        [Description("Filtrer par équipement lié.")] Guid? equipementId = null,
+        [Description("Filtrer par dossier de classement (valeur exacte).")] string? dossier = null)
     {
         var documents = db.Documents.AsNoTracking();
         if (string.IsNullOrWhiteSpace(categorie) == false)
@@ -177,6 +179,10 @@ public static class OutilsMaison
         {
             documents = documents.Where(d => d.EquipementId == equipementId);
         }
+        if (string.IsNullOrWhiteSpace(dossier) == false)
+        {
+            documents = documents.Where(d => d.Dossier == dossier);
+        }
         return await documents
             .OrderByDescending(d => d.CreeLe)
             .Select(d => new DocumentDto(
@@ -185,14 +191,14 @@ public static class OutilsMaison
                 db.Equipements.Where(e => e.Id == d.EquipementId).Select(e => e.Nom).FirstOrDefault(),
                 d.ZoneId,
                 db.Zones.Where(z => z.Id == d.ZoneId).Select(z => z.Nom).FirstOrDefault(),
-                d.Notes, d.DateDocument, d.Echeance,
+                d.Dossier, d.Notes, d.DateDocument, d.Echeance,
                 d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
             .ToListAsync();
     }
 
     [McpServerTool(Name = "gerer_document")]
     [Description("Modifier les métadonnées d'un document (remplace la fiche : titre, catégorie, " +
-        "liens équipement/zone, dates, notes) ou le supprimer (efface aussi le fichier disque). " +
+        "liens équipement/zone, dossier, dates, notes) ou le supprimer (efface aussi le fichier disque). " +
         "L'ajout d'un document n'est pas possible via MCP (interface web).")]
     public static async Task<object> GererDocument(
         HouseOsDbContext db,
@@ -230,10 +236,17 @@ public static class OutilsMaison
                     throw new McpException($"zoneId inconnu : {zoneId} (voir lister_zones).");
                 }
 
+                var dossier = string.IsNullOrWhiteSpace(donnees.Dossier) ? null : donnees.Dossier.Trim();
+                if (dossier?.Length > 100)
+                {
+                    throw new McpException("Le dossier ne peut pas dépasser 100 caractères.");
+                }
+
                 document.Titre = donnees.Titre.Trim();
                 document.Categorie = categorie;
                 document.EquipementId = donnees.EquipementId;
                 document.ZoneId = donnees.ZoneId;
+                document.Dossier = dossier;
                 document.Notes = string.IsNullOrWhiteSpace(donnees.Notes) ? null : donnees.Notes.Trim();
                 document.DateDocument = Conversions.ParserDate(donnees.DateDocument, "dateDocument");
                 document.Echeance = Conversions.ParserDate(donnees.Echeance, "echeance");

@@ -94,6 +94,7 @@ export type Document = {
   nomEquipement: string | null
   zoneId: string | null
   nomZone: string | null
+  dossier: string | null
   notes: string | null
   dateDocument: string | null
   echeance: string | null
@@ -108,6 +109,7 @@ export type DocumentDonnees = {
   categorie: CategorieDocument
   equipementId?: string | null
   zoneId?: string | null
+  dossier?: string | null
   notes?: string | null
   dateDocument?: string | null
   echeance?: string | null

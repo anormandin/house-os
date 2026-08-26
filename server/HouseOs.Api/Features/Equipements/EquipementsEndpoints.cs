@@ -129,7 +129,7 @@ public static class EquipementsEndpoints
                 d.Id, d.Titre, d.Categorie.ToString(),
                 d.EquipementId, equipement.Nom,
                 d.ZoneId, db.Zones.Where(z => z.Id == d.ZoneId).Select(z => z.Nom).FirstOrDefault(),
-                d.Notes, d.DateDocument, d.Echeance,
+                d.Dossier, d.Notes, d.DateDocument, d.Echeance,
                 d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
             .ToListAsync();
 

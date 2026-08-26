@@ -163,6 +163,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
         {
             d.Property(x => x.Titre).HasMaxLength(200);
             d.Property(x => x.Categorie).HasConversion<string>().HasMaxLength(20);
+            d.Property(x => x.Dossier).HasMaxLength(100);
             d.Property(x => x.Notes).HasMaxLength(2000);
             d.Property(x => x.NomFichier).HasMaxLength(255);
             d.Property(x => x.CheminDisque).HasMaxLength(255);
