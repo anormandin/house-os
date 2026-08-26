@@ -2,9 +2,10 @@ import { describe, expect, test } from 'vitest'
 import type { Recurrence, TacheResume } from '@/lib/api'
 import {
   chipsRecurrence,
-  construireAnnee,
+  construireRuban,
+  diffJours,
   grouperParRythme,
-  pctDansAnnee,
+  lundiDe,
   tonEcheance,
 } from '@/lib/taches-vues'
 
@@ -95,52 +96,98 @@ describe('tonEcheance', () => {
   })
 })
 
-describe('construireAnnee', () => {
-  test('chaque mode trouve sa géométrie et le tempo court récupère le reste', () => {
-    const annee = construireAnnee(
+describe('construireRuban', () => {
+  test('domaine du 1ᵉʳ du mois courant au 31 décembre, chaque mode à sa place', () => {
+    const ruban = construireRuban(
       [
         tache({ id: 'm', titre: 'Filtre', recurrence: MENSUELLE }),
-        tache({ id: 't', titre: 'Tondre', recurrence: TONTE }),
-        tache({ id: 'a', titre: 'Ramoner', recurrence: ANNUELLE }),
+        tache({ id: 't', titre: 'Tondre', recurrence: TONTE, echeance: '2026-08-28' }),
+        tache({ id: 'a', titre: 'Ramoner', recurrence: ANNUELLE, echeance: '2026-09-15' }),
         tache({ id: 'h', titre: 'Draps', recurrence: HEBDO }),
         tache({ id: 'i', titre: 'Litière', recurrence: { mode: 'Intervalle', intervalleJours: 2 } }),
-        tache({ id: 'p1', titre: 'Notaire', echeance: '2026-09-08' }),
-        tache({ id: 'p2', titre: 'SQCA', echeance: '2026-09-08' }),
-        tache({ id: 'p2b', titre: 'Postes Canada', echeance: '2026-09-10' }),
-        tache({ id: 'p3', titre: 'Hydro', echeance: '2026-09-22' }),
-        tache({ id: 'fait', titre: 'Déjà fait', echeance: '2026-09-08', completee: true }),
-        tache({ id: 'vieux', titre: 'Hors année', echeance: '2025-12-01' }),
+        tache({
+          id: 'long',
+          titre: 'Bassin',
+          recurrence: { mode: 'Intervalle', intervalleJours: 182 },
+          echeance: '2026-09-12',
+        }),
       ],
       AUJOURDHUI,
     )
 
-    // Ordre de lecture : mensuelles, fenêtres, annuelles.
-    expect(annee.lignes.map((l) => l.type)).toEqual(['mensuelle', 'fenetre', 'annuelle'])
+    expect(ruban.debutDomaine).toBe('2026-08-01')
+    expect(ruban.jours).toBe(153) // août → décembre
+    expect(ruban.aujourdhuiOffset).toBe(25)
+    expect(ruban.moisDomaine.map((m) => m.libelle)).toEqual(['Août', 'Sept', 'Oct', 'Nov', 'Déc'])
+    expect(ruban.moisDomaine[1]).toEqual({ libelle: 'Sept', offset: 31 })
 
-    const [mensuelle, fenetre, annuelle] = annee.lignes
-    expect(mensuelle.type === 'mensuelle' && mensuelle.points).toHaveLength(12)
+    // Ordre : mensuelle, fenêtre, annuelle, long intervalle ; tempo court pour le reste.
+    expect(ruban.lignes.map((l) => l.type)).toEqual([
+      'mensuelle',
+      'fenetre',
+      'annuelle',
+      'intervalle',
+    ])
+    expect(ruban.tempoCourt.map((t) => t.id)).toEqual(['h', 'i'])
+
+    const [mensuelle, fenetre, annuelle, long] = ruban.lignes
+    // Mensuelle : 5 points (août→déc), le 1ᵉʳ août déjà passé est estompé.
+    if (mensuelle.type === 'mensuelle') {
+      expect(mensuelle.points).toHaveLength(5)
+      expect(mensuelle.points[0]).toEqual({ offset: 0, libelle: 'fait', passe: true })
+      expect(mensuelle.points[1].libelle).toBe('mar 1ᵉʳ')
+    }
+    // Fenêtre mai→oct : clampée au domaine (débute à 0), en cours le 26 août.
     if (fenetre.type === 'fenetre') {
-      expect(fenetre.segments).toHaveLength(1)
-      expect(fenetre.enCours).toBe(true) // le 26 août est dans mai→oct
-      expect(fenetre.libelle).toBe('↻ aux 7 jours pendant la saison')
+      expect(fenetre.segments).toEqual([{ debut: 0, fin: diffJours('2026-10-31', '2026-08-01') + 1 }])
+      expect(fenetre.enCours).toBe(true)
+      expect(fenetre.libelle).toBe('☀ fenêtre du 1ᵉʳ mai au 31 oct')
+      expect(fenetre.vise).toEqual({ offset: 27, libelle: 'visé · ven 28 août', passe: false })
     }
     if (annuelle.type === 'annuelle') {
-      expect(annuelle.libelle).toBe('15 sept')
-      expect(annuelle.position).toBeCloseTo(pctDansAnnee('2026-09-15'))
+      expect(annuelle.point).toEqual({ offset: 45, libelle: 'mar 15 sept', passe: false })
     }
-
-    // Grappes : le 10 sept fusionne avec le 8 (même pixel à l'échelle de l'année),
-    // le 22 sept reste distinct ; la faite et celle hors année sont ignorées.
-    expect(annee.ponctuelles.map((g) => [g.date, g.taches.length])).toEqual([
-      ['2026-09-08', 3],
-      ['2026-09-22', 1],
-    ])
-    expect(annee.tempoCourt.map((t) => t.id)).toEqual(['h', 'i'])
-    expect(annee.aujourdhuiPct).toBeCloseTo(pctDansAnnee(AUJOURDHUI))
+    // Long intervalle : pastille au 12 sept, la suivante (mars 2027) déborde → note.
+    if (long.type === 'intervalle') {
+      expect(long.point?.offset).toBe(42)
+      expect(long.note).toContain('2027')
+    }
   })
 
-  test('une fenêtre qui chevauche l’an devient deux segments', () => {
-    const annee = construireAnnee(
+  test('grappes par jour avec voie basse pour les voisines, semaines et retards', () => {
+    const ruban = construireRuban(
+      [
+        tache({ id: 'r1', titre: 'Ménage frigo', echeance: '2026-08-23' }),
+        tache({ id: 'p1', titre: 'Notaire', echeance: '2026-08-31' }),
+        tache({ id: 'p2', titre: 'SQCA', echeance: '2026-09-01' }),
+        tache({ id: 'p3', titre: 'Hydro', echeance: '2026-09-08' }),
+        tache({ id: 'p4', titre: 'Postes', echeance: '2026-09-08' }),
+        tache({ id: 'fait', titre: 'Déjà fait', echeance: '2026-09-08', completee: true }),
+        tache({ id: 'sans', titre: 'Sans échéance' }),
+      ],
+      AUJOURDHUI,
+    )
+
+    // Le 1ᵉʳ sept est à 1 jour du 31 août : voie basse ; le mois change → libellé avec mois.
+    expect(ruban.grappes.map((g) => [g.date, g.taches.length, g.voie, g.libelle])).toEqual([
+      ['2026-08-23', 1, 0, '23 août'], // la première grappe porte son mois
+      ['2026-08-31', 1, 0, '31'],
+      ['2026-09-01', 1, 1, '1 sept'],
+      ['2026-09-08', 2, 0, '8'],
+    ])
+
+    // Bande : le retard sort des semaines ; la faite et la sans-échéance sont ignorées.
+    expect(ruban.enRetard.map((t) => t.id)).toEqual(['r1'])
+    expect(ruban.semaines.map((s) => [s.lundi, s.taches.length])).toEqual([
+      ['2026-08-31', 2],
+      ['2026-09-07', 2],
+    ])
+    expect(ruban.semaines[0].libelle).toBe('Semaine du 31 août')
+    expect(ruban.totalPonctuelles).toBe(5)
+  })
+
+  test('une fenêtre qui chevauche l’an est clampée au domaine en deux morceaux visibles', () => {
+    const ruban = construireRuban(
       [
         tache({
           id: 'd',
@@ -158,14 +205,23 @@ describe('construireAnnee', () => {
       AUJOURDHUI,
     )
 
-    const ligne = annee.lignes[0]
+    const ligne = ruban.lignes[0]
     if (ligne.type === 'fenetre') {
-      expect(ligne.segments).toHaveLength(2)
-      expect(ligne.segments[0].debut).toBe(0)
-      expect(ligne.segments[1].fin).toBe(100)
+      // Le morceau janv→mars est avant le domaine (août) : seul nov 15 → déc reste.
+      expect(ligne.segments).toEqual([
+        { debut: diffJours('2026-11-15', '2026-08-01'), fin: ruban.jours },
+      ])
       expect(ligne.enCours).toBe(false) // août est hors nov→mars
     } else {
       expect.unreachable('la fenêtre doit produire une ligne fenetre')
     }
+  })
+})
+
+describe('lundiDe', () => {
+  test('retourne le lundi local de la semaine', () => {
+    expect(lundiDe('2026-08-26')).toBe('2026-08-24') // mercredi → lundi
+    expect(lundiDe('2026-08-24')).toBe('2026-08-24')
+    expect(lundiDe('2026-08-30')).toBe('2026-08-24') // dimanche appartient à la semaine entamée
   })
 })

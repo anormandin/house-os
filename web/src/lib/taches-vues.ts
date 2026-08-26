@@ -3,6 +3,7 @@
 // vue Année. Même patron que ruban.ts — tout est testable sans DOM.
 
 import type { Recurrence, TacheResume } from '@/lib/api'
+import { dateCourte, jourCourt } from '@/lib/format'
 
 const JOURS_COURTS = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam']
 const MOIS_COURTS = [
@@ -156,32 +157,32 @@ export function pctDansAnnee(dateIso: string): number {
   return (jours / total) * 100
 }
 
-function pctMoisJour(annee: number, mois: number, jour: number): number {
+function iso(annee: number, mois: number, jour: number): string {
   const clampe = Math.min(jour, new Date(annee, mois, 0).getDate())
-  return pctDansAnnee(
-    `${annee}-${String(mois).padStart(2, '0')}-${String(clampe).padStart(2, '0')}`,
-  )
+  return `${annee}-${String(mois).padStart(2, '0')}-${String(clampe).padStart(2, '0')}`
 }
 
-export type LigneAnnee =
-  | { type: 'mensuelle'; tache: TacheResume; points: number[] }
-  | {
-      type: 'fenetre'
-      tache: TacheResume
-      segments: { debut: number; fin: number }[]
-      enCours: boolean
-      libelle: string
-    }
-  | { type: 'annuelle'; tache: TacheResume; position: number; libelle: string }
+function enDate(dateIso: string): Date {
+  const [a, m, j] = dateIso.split('-').map(Number)
+  return new Date(a, m - 1, j)
+}
 
-export type GrappePonctuelle = { date: string; position: number; taches: TacheResume[] }
+/** Écart en jours entre deux dates locales (a − b). */
+export function diffJours(a: string, b: string): number {
+  return Math.round((enDate(a).getTime() - enDate(b).getTime()) / 86_400_000)
+}
 
-export type VueAnnee = {
-  lignes: LigneAnnee[]
-  ponctuelles: GrappePonctuelle[]
-  /** Trop fréquentes pour l'échelle de l'année : hebdos et intervalles sans fenêtre. */
-  tempoCourt: TacheResume[]
-  aujourdhuiPct: number
+function plusJours(dateIso: string, jours: number): string {
+  const d = enDate(dateIso)
+  d.setDate(d.getDate() + jours)
+  return d.toLocaleDateString('fr-CA')
+}
+
+/** « mar 1ᵉʳ » (mensuelle) ou « jeu 15 oct » (avec le mois). */
+function libellePoint(dateIso: string, avecMois: boolean): string {
+  const [, mois, jour] = dateIso.split('-').map(Number)
+  const base = `${jourCourt(dateIso)} ${jourOrdinal(jour)}`
+  return avecMois ? `${base} ${MOIS_COURTS[mois - 1]}` : base
 }
 
 function dansFenetre(rec: Recurrence, mois: number, jour: number): boolean {
@@ -192,89 +193,240 @@ function dansFenetre(rec: Recurrence, mois: number, jour: number): boolean {
   return debut <= fin ? date >= debut && date <= fin : date >= debut || date <= fin
 }
 
-function segmentsFenetre(rec: Recurrence, annee: number): { debut: number; fin: number }[] {
-  const debut = pctMoisJour(annee, rec.fenetreDebutMois!, rec.fenetreDebutJour ?? 1)
-  const fin = pctMoisJour(annee, rec.fenetreFinMois!, rec.fenetreFinJour ?? 31)
-  return debut <= fin
-    ? [{ debut, fin }]
-    : [
-        { debut: 0, fin },
-        { debut, fin: 100 },
-      ]
+export type PointRuban = { offset: number; libelle: string; passe: boolean }
+
+export type LigneRuban =
+  | { type: 'mensuelle'; tache: TacheResume; points: PointRuban[] }
+  | {
+      type: 'fenetre'
+      tache: TacheResume
+      segments: { debut: number; fin: number }[]
+      enCours: boolean
+      libelle: string
+      vise: PointRuban | null
+    }
+  | { type: 'annuelle'; tache: TacheResume; point: PointRuban | null; note: string | null }
+  | { type: 'intervalle'; tache: TacheResume; point: PointRuban | null; note: string | null }
+
+export type GrappeJour = {
+  date: string
+  offset: number
+  libelle: string
+  /** 1 = décalée vers le bas quand la voisine de gauche est trop proche. */
+  voie: 0 | 1
+  taches: TacheResume[]
 }
 
-/** Construit la chronologie 12 mois de l'année d'aujourd'hui. */
-export function construireAnnee(taches: TacheResume[], aujourdhui: string): VueAnnee {
+export type SemainePonctuelles = { lundi: string; libelle: string; taches: TacheResume[] }
+
+export type Ruban = {
+  /** 1ᵉʳ du mois courant — le ruban ne remonte pas dans le passé. */
+  debutDomaine: string
+  /** Longueur du domaine en jours (jusqu'au 31 décembre inclus). */
+  jours: number
+  moisDomaine: { libelle: string; offset: number }[]
+  aujourdhuiOffset: number
+  lignes: LigneRuban[]
+  grappes: GrappeJour[]
+  /** Ponctuelles échues avant aujourd'hui (bloc « En retard » de la bande). */
+  enRetard: TacheResume[]
+  /** Semaines (lundi) à venir, semaine courante incluse. */
+  semaines: SemainePonctuelles[]
+  totalPonctuelles: number
+  /** Cadences ≤ 15 jours sans fenêtre : illisibles même à l'échelle du ruban. */
+  tempoCourt: TacheResume[]
+}
+
+const MOIS_TITRES = [
+  'Janv',
+  'Févr',
+  'Mars',
+  'Avr',
+  'Mai',
+  'Juin',
+  'Juil',
+  'Août',
+  'Sept',
+  'Oct',
+  'Nov',
+  'Déc',
+]
+
+/** Lundi de la semaine locale d'une date. */
+export function lundiDe(dateIso: string): string {
+  const d = enDate(dateIso)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return d.toLocaleDateString('fr-CA')
+}
+
+/**
+ * Le ruban défilant de la vue Année (D-2026-08-26 Vue Année Défilante) : domaine
+ * du 1ᵉʳ du mois courant au 31 décembre, positions en jours — la page multiplie
+ * par son échelle en px/jour.
+ */
+export function construireRuban(taches: TacheResume[], aujourdhui: string): Ruban {
   const [annee, moisAuj, jourAuj] = aujourdhui.split('-').map(Number)
-  const lignes: LigneAnnee[] = []
+  const debutDomaine = iso(annee, moisAuj, 1)
+  const finDomaine = iso(annee, 12, 31)
+  const jours = diffJours(finDomaine, debutDomaine) + 1
+  const offsetDe = (dateIso: string) => diffJours(dateIso, debutDomaine)
+  const dansDomaine = (dateIso: string) => dateIso >= debutDomaine && dateIso <= finDomaine
+
+  const lignes: LigneRuban[] = []
   const tempoCourt: TacheResume[] = []
   const parDate = new Map<string, TacheResume[]>()
+  const enRetard: TacheResume[] = []
 
   for (const tache of taches) {
     const rec = tache.recurrence
     if (rec.mode === 'Ponctuelle') {
-      if (tache.completee === false && tache.echeance?.startsWith(`${annee}-`)) {
+      if (tache.completee || tache.echeance === null) {
+        continue
+      }
+      if (tache.echeance < aujourdhui) {
+        enRetard.push(tache)
+      }
+      if (dansDomaine(tache.echeance)) {
         parDate.set(tache.echeance, [...(parDate.get(tache.echeance) ?? []), tache])
       }
       continue
     }
     if (aFenetre(rec)) {
+      const debut = iso(annee, rec.fenetreDebutMois!, rec.fenetreDebutJour ?? 1)
+      const fin = iso(annee, rec.fenetreFinMois!, rec.fenetreFinJour ?? 31)
+      // Fenêtre chevauchant l'an (nov→mars) : deux morceaux dans l'année civile.
+      const morceaux =
+        debut <= fin ? [[debut, fin]] : [[iso(annee, 1, 1), fin], [debut, finDomaine]]
+      const segments = morceaux
+        .map(([d, f]) => ({ debut: Math.max(0, offsetDe(d)), fin: Math.min(jours, offsetDe(f) + 1) }))
+        .filter((s) => s.fin > s.debut)
       lignes.push({
         type: 'fenetre',
         tache,
-        segments: segmentsFenetre(rec, annee),
+        segments,
         enCours: dansFenetre(rec, moisAuj, jourAuj),
-        libelle:
-          rec.mode === 'Intervalle'
-            ? `↻ aux ${rec.intervalleJours} jours pendant la saison`
-            : rec.fixeType === 'JoursSemaine'
-              ? '↻ hebdo pendant la saison'
-              : 'à faire dans la fenêtre',
+        libelle: `☀ fenêtre du ${jourOrdinal(rec.fenetreDebutJour ?? 1)} ${MOIS_COURTS[rec.fenetreDebutMois! - 1]} au ${jourOrdinal(rec.fenetreFinJour ?? 31)} ${MOIS_COURTS[rec.fenetreFinMois! - 1]}`,
+        vise:
+          tache.echeance !== null && dansDomaine(tache.echeance)
+            ? {
+                offset: offsetDe(tache.echeance),
+                libelle: `visé · ${libellePoint(tache.echeance, true)}`,
+                passe: tache.echeance < aujourdhui,
+              }
+            : null,
       })
       continue
     }
     if (rec.fixeType === 'JourDuMois' && rec.jourDuMois != null) {
-      lignes.push({
-        type: 'mensuelle',
-        tache,
-        points: Array.from({ length: 12 }, (_, m) => pctMoisJour(annee, m + 1, rec.jourDuMois!)),
-      })
+      const points: PointRuban[] = []
+      for (let m = moisAuj; m <= 12; m += 1) {
+        const date = iso(annee, m, rec.jourDuMois)
+        points.push({
+          offset: offsetDe(date),
+          libelle: date < aujourdhui ? 'fait' : libellePoint(date, false),
+          passe: date < aujourdhui,
+        })
+      }
+      lignes.push({ type: 'mensuelle', tache, points })
       continue
     }
     if (rec.fixeType === 'Annuelle' && rec.moisAnnuel != null) {
+      // L'échéance réelle (glissée par rollover/fenêtre) prime sur la date théorique.
+      const date =
+        tache.echeance !== null && dansDomaine(tache.echeance)
+          ? tache.echeance
+          : iso(annee, rec.moisAnnuel, rec.jourAnnuel ?? 1)
       lignes.push({
         type: 'annuelle',
         tache,
-        position: pctMoisJour(annee, rec.moisAnnuel, rec.jourAnnuel ?? 1),
-        libelle: `${jourOrdinal(rec.jourAnnuel ?? 1)} ${MOIS_COURTS[rec.moisAnnuel - 1]}`,
+        point: dansDomaine(date)
+          ? { offset: offsetDe(date), libelle: libellePoint(date, true), passe: date < aujourdhui }
+          : null,
+        note:
+          dansDomaine(date) || tache.echeance === null
+            ? null
+            : `prochaine · ${libellePoint(tache.echeance, true)} ${tache.echeance.slice(0, 4)} →`,
       })
+      continue
+    }
+    if (rec.mode === 'Intervalle' && (rec.intervalleJours ?? 0) > 15) {
+      const echeance = tache.echeance
+      let point: PointRuban | null = null
+      let note: string | null = null
+      if (echeance !== null && echeance <= finDomaine) {
+        const date = echeance < debutDomaine ? debutDomaine : echeance
+        point = {
+          offset: offsetDe(date),
+          libelle:
+            echeance < aujourdhui ? `retard · ${libellePoint(echeance, true)}` : libellePoint(echeance, true),
+          passe: echeance < aujourdhui,
+        }
+        const suivante = plusJours(echeance, rec.intervalleJours!)
+        if (suivante > finDomaine) {
+          note = `ensuite ≈ ${libellePoint(suivante, true)} ${suivante.slice(0, 4)} →`
+        }
+      } else if (echeance !== null) {
+        note = `prochaine · ${libellePoint(echeance, true)} ${echeance.slice(0, 4)} →`
+      }
+      lignes.push({ type: 'intervalle', tache, point, note })
       continue
     }
     tempoCourt.push(tache)
   }
 
-  // L'ordre de lecture de la maquette : mensuelles, fenêtres, annuelles.
-  const rang = { mensuelle: 0, fenetre: 1, annuelle: 2 }
+  // L'ordre de lecture de la maquette : mensuelles, fenêtres, annuelles, intervalles.
+  const rang = { mensuelle: 0, fenetre: 1, annuelle: 2, intervalle: 3 }
   lignes.sort((a, b) => rang[a.type] - rang[b.type])
 
-  // À l'échelle de l'année, deux dates à quelques jours d'écart occupent le même
-  // pixel : les grappes plus proches que la largeur d'un point fusionnent (le
-  // chiffre reste honnête, l'infobulle liste tout).
-  const grappes: GrappePonctuelle[] = []
+  // Grappes par jour ; une voisine à moins de ~2,5 jours descend sur la voie basse
+  // pour que chiffre et date restent lisibles.
+  const grappes: GrappeJour[] = []
+  let moisPrecedent = 0
   for (const [date, membres] of [...parDate.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
-    const position = pctDansAnnee(date)
-    const derniere = grappes.at(-1)
-    if (derniere !== undefined && position - derniere.position < 1.5) {
-      derniere.taches.push(...membres)
-    } else {
-      grappes.push({ date, position, taches: membres })
-    }
+    const offset = offsetDe(date)
+    const [, mois, jour] = date.split('-').map(Number)
+    const precedente = grappes.at(-1)
+    grappes.push({
+      date,
+      offset,
+      libelle:
+        mois === moisPrecedent ? String(jour) : `${jour} ${MOIS_COURTS[mois - 1]}`,
+      voie: precedente !== undefined && offset - precedente.offset < 2.5 && precedente.voie === 0 ? 1 : 0,
+      taches: membres,
+    })
+    moisPrecedent = mois
   }
 
+  // Bande semaine-par-semaine : les à-venir groupées par lundi local.
+  const parLundi = new Map<string, TacheResume[]>()
+  for (const [date, membres] of parDate) {
+    if (date < aujourdhui) {
+      continue
+    }
+    const lundi = lundiDe(date)
+    parLundi.set(lundi, [...(parLundi.get(lundi) ?? []), ...membres])
+  }
+  const semaines = [...parLundi.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([lundi, membres]) => ({
+      lundi,
+      libelle: `Semaine du ${dateCourte(lundi)}`,
+      taches: membres.sort((a, b) => (a.echeance! < b.echeance! ? -1 : 1)),
+    }))
+
   return {
+    debutDomaine,
+    jours,
+    moisDomaine: Array.from({ length: 13 - moisAuj }, (_, i) => ({
+      libelle: MOIS_TITRES[moisAuj - 1 + i],
+      offset: offsetDe(iso(annee, moisAuj + i, 1)),
+    })),
+    aujourdhuiOffset: offsetDe(aujourdhui),
     lignes,
-    ponctuelles: grappes,
+    grappes,
+    enRetard,
+    semaines,
+    totalPonctuelles: enRetard.length + semaines.reduce((n, s) => n + s.taches.length, 0),
     tempoCourt,
-    aujourdhuiPct: pctDansAnnee(aujourdhui),
   }
 }

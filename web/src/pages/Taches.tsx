@@ -1,23 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarRange, List, Paperclip, Plus } from 'lucide-react'
+import { CalendarRange, ChevronDown, ChevronUp, List, Paperclip, Plus } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import TacheEditeur, { editeurDejaOuvert } from '@/components/TacheEditeur'
-import { api, dateLocaleIso, type TacheResume } from '@/lib/api'
+import { api, dateLocaleIso, type CompteARebours, type TacheResume } from '@/lib/api'
 import { dateCourte, jourCourt } from '@/lib/format'
 import {
   chipsRecurrence,
-  construireAnnee,
+  construireRuban,
+  diffJours,
   grouperParRythme,
-  pctDansAnnee,
+  lundiDe,
   tonEcheance,
   type ChipRecurrence,
+  type GrappeJour,
+  type PointRuban,
 } from '@/lib/taches-vues'
 import { cn } from '@/lib/utils'
 
 // Console de gestion des définitions de tâches : vue Rythmes (défaut) et vue Année
 // derrière un commutateur binaire, dernier mode mémorisé — voir
-// vault/Decisions/D-2026-08-26 Page Tâches Rythmes Et Année.md (itération A).
+// vault/Decisions/D-2026-08-26 Page Tâches Rythmes Et Année.md (itération A) et
+// D-2026-08-26 Vue Année Défilante.md (ruban, option D de la ronde 3).
 
 type Vue = 'liste' | 'annee'
 
@@ -55,23 +59,25 @@ const COULEURS_CHIPS: Record<ChipRecurrence['classe'], string> = {
   saison: 'text-orange',
 }
 
-const MOIS_AXE = [
-  'Janv',
-  'Févr',
-  'Mars',
-  'Avr',
-  'Mai',
-  'Juin',
-  'Juil',
-  'Août',
-  'Sept',
-  'Oct',
-  'Nov',
-  'Déc',
-]
+/** Échelle du ruban (px par jour) et largeur de la colonne d'étiquettes sticky. */
+const PX_JOUR = 11
+const ETIQUETTE_PX = 224
 
-/** Marge gauche de la piste (px) : la colonne des étiquettes de la vue Année. */
-const ETIQUETTE_PX = 200
+const MINI_MOIS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+const MOIS_COURTS_NOTE = [
+  'janv',
+  'févr',
+  'mars',
+  'avr',
+  'mai',
+  'juin',
+  'juil',
+  'août',
+  'sept',
+  'oct',
+  'nov',
+  'déc',
+]
 
 function Chip({ chip }: { chip: ChipRecurrence }) {
   return (
@@ -147,10 +153,6 @@ export default function Taches() {
     return morceaux.length > 0 ? morceaux.join(' · ') : null
   }
 
-  const jalons = (comptes ?? [])
-    .filter((c) => c.dateCible.startsWith(aujourdhui.slice(0, 4)))
-    .map((c) => ({ ...c, position: pctDansAnnee(c.dateCible) }))
-
   return (
     <div className="mx-auto flex max-w-[1100px] flex-col gap-5">
       <div className="flex items-end justify-between gap-3">
@@ -200,10 +202,11 @@ export default function Taches() {
           onModifier={(tacheId) => setEditeur({ tacheId })}
         />
       ) : (
-        <VueAnnee
+        <VueRuban
           taches={taches!}
           aujourdhui={aujourdhui}
-          jalons={jalons}
+          comptes={comptes ?? []}
+          lieu={lieu}
           onModifier={(tacheId) => setEditeur({ tacheId })}
         />
       )}
@@ -291,183 +294,539 @@ function VueListe({
   )
 }
 
-function VueAnnee({
+// ————— Vue Année : ruban défilant (option D, ronde 3 des maquettes) —————
+
+function Pastille({
+  point,
+  mensuelle,
+  onClick,
+}: {
+  point: PointRuban
+  mensuelle?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'absolute top-2.5 flex -translate-x-1/2 flex-col items-center gap-1',
+        point.passe && 'opacity-35',
+      )}
+      style={{ left: point.offset * PX_JOUR + PX_JOUR / 2 }}
+    >
+      <span
+        className={cn('rounded-full', mensuelle ? 'size-2.5 bg-[#b9a8d1]' : 'size-3 bg-dore')}
+      />
+      <span
+        className={cn(
+          'text-[10px] font-extrabold whitespace-nowrap',
+          mensuelle ? 'text-sourdine' : 'text-dore',
+          point.libelle.startsWith('retard') && 'text-rouge',
+        )}
+      >
+        {point.libelle}
+      </span>
+    </button>
+  )
+}
+
+function EtiquetteRuban({
+  tache,
+  lieu,
+  onModifier,
+}: {
+  tache: TacheResume
+  lieu: (tache: TacheResume) => string | null
+  onModifier: (tacheId: string) => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onModifier(tache.id)}
+      className="sticky left-0 z-10 shrink-0 bg-carte px-4 py-2.5 text-left shadow-[10px_0_14px_-10px_rgba(84,84,100,0.22)]"
+      style={{ width: ETIQUETTE_PX }}
+    >
+      <span className="block text-[13.5px] leading-tight font-bold">{tache.titre}</span>
+      <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px] text-sourdine">
+        {chipsRecurrence(tache.recurrence).map((chip) => (
+          <Chip key={chip.libelle} chip={chip} />
+        ))}
+        {lieu(tache)}
+        {tache.assigneA !== null && <Avatar utilisateur={tache.assigneA} taille={18} />}
+      </span>
+    </button>
+  )
+}
+
+function VueRuban({
   taches,
   aujourdhui,
-  jalons,
+  comptes,
+  lieu,
   onModifier,
 }: {
   taches: TacheResume[]
   aujourdhui: string
-  jalons: { id: string; titre: string; dateCible: string; position: number }[]
+  comptes: CompteARebours[]
+  lieu: (tache: TacheResume) => string | null
   onModifier: (tacheId: string) => void
 }) {
-  const annee = construireAnnee(taches, aujourdhui)
-  const gauche = (pct: number) =>
-    `calc(${ETIQUETTE_PX}px + (100% - ${ETIQUETTE_PX}px) * ${pct / 100})`
+  const ruban = construireRuban(taches, aujourdhui)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const bandeRef = useRef<HTMLDivElement>(null)
+  const [fenetreMini, setFenetreMini] = useState<{ gauche: number; largeur: number } | null>(null)
+  const [bandeDepliee, setBandeDepliee] = useState(true)
+  const [toutDeplier, setToutDeplier] = useState(false)
+  const [semainesOuvertes, setSemainesOuvertes] = useState<string[]>([])
+
+  const largeurPiste = ruban.jours * PX_JOUR
+  const moisDebut = Number(ruban.debutDomaine.slice(5, 7))
+  // Part de l'année couverte par le domaine, pour projeter le ruban sur la mini-carte.
+  const anneeJours = diffJours(`${aujourdhui.slice(0, 4)}-12-31`, `${aujourdhui.slice(0, 4)}-01-01`) + 1
+  const domainePctDebut = ((anneeJours - ruban.jours) / anneeJours) * 100
+
+  const jalons = comptes
+    .filter((c) => c.dateCible >= ruban.debutDomaine && c.dateCible.startsWith(aujourdhui.slice(0, 4)))
+    .map((c) => ({ ...c, offset: diffJours(c.dateCible, ruban.debutDomaine) }))
+    .sort((a, b) => a.offset - b.offset)
+  // Deux voies d'étiquettes : une voisine à moins de ~16 jours descend sur la seconde.
+  const finVoie = [-Infinity, -Infinity]
+  const jalonsAvecVoie = jalons.map((jalon) => {
+    const voie = jalon.offset * PX_JOUR - finVoie[0] > 180 ? 0 : 1
+    finVoie[voie] = jalon.offset * PX_JOUR
+    return { ...jalon, voie }
+  })
+
+  // Au montage : aujourd'hui ancré à ~20 % du bord gauche de la fenêtre visible.
+  useEffect(() => {
+    const conteneur = scrollRef.current
+    if (conteneur === null || conteneur.clientWidth === 0) {
+      return
+    }
+    conteneur.scrollLeft = Math.max(
+      0,
+      ruban.aujourdhuiOffset * PX_JOUR - (conteneur.clientWidth - ETIQUETTE_PX) * 0.2,
+    )
+    surDefilement()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function surDefilement() {
+    const conteneur = scrollRef.current
+    if (conteneur === null || conteneur.clientWidth === 0) {
+      return
+    }
+    const visible = conteneur.clientWidth - ETIQUETTE_PX
+    const fraction = (100 - domainePctDebut) / largeurPiste
+    setFenetreMini({
+      gauche: domainePctDebut + conteneur.scrollLeft * fraction,
+      largeur: visible * fraction,
+    })
+  }
+
+  function teleporter(e: React.MouseEvent<HTMLDivElement>) {
+    const conteneur = scrollRef.current
+    if (conteneur === null) {
+      return
+    }
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pct = ((e.clientX - rect.left) / rect.width) * 100
+    const cible = ((pct - domainePctDebut) / (100 - domainePctDebut)) * largeurPiste
+    conteneur.scrollLeft = Math.max(0, cible - (conteneur.clientWidth - ETIQUETTE_PX) * 0.2)
+  }
+
+  function surGrappe(grappe: GrappeJour) {
+    if (grappe.taches.length === 1) {
+      onModifier(grappe.taches[0].id)
+      return
+    }
+    // Une grappe multiple renvoie à la bande semaine-par-semaine, dépliée au complet.
+    setBandeDepliee(true)
+    setToutDeplier(true)
+    if (typeof bandeRef.current?.scrollIntoView === 'function') {
+      bandeRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  const semaineCourante = lundiDe(aujourdhui)
+  const limiteDepliee = plusSemaines(semaineCourante, 3)
+  const semainesDepliees = toutDeplier
+    ? ruban.semaines
+    : ruban.semaines.filter((s) => s.lundi < limiteDepliee)
+  const semainesEnPilules = toutDeplier
+    ? []
+    : ruban.semaines.filter((s) => s.lundi >= limiteDepliee)
+  const nbAffichees =
+    ruban.enRetard.length + semainesDepliees.reduce((n, s) => n + s.taches.length, 0)
 
   return (
-    <div className="rounded-[20px] bg-carte px-6 pt-11 pb-4 shadow-carte">
-      <div className="relative">
-        {/* Ligne d'aujourd'hui et jalons des comptes à rebours, par-dessus toute la chronologie. */}
-        <div
-          className="absolute -top-6 bottom-0 z-10 w-0.5 bg-orange"
-          style={{ left: gauche(annee.aujourdhuiPct) }}
-        >
-          <span className="absolute -top-0.5 -left-8 rounded-full bg-orange px-2 py-px text-[10px] font-extrabold whitespace-nowrap text-carte">
-            Aujourd’hui
-          </span>
-        </div>
-        {jalons.map((jalon) => (
-          <div
-            key={jalon.id}
-            className="absolute -top-6 bottom-0 z-10 w-0.5"
-            style={{
-              left: gauche(jalon.position),
-              background: 'repeating-linear-gradient(to bottom, var(--rouge) 0 4px, transparent 4px 8px)',
-            }}
-          >
-            <span className="absolute -top-0.5 left-1.5 text-[10px] font-extrabold whitespace-nowrap text-rouge">
-              {jalon.titre} · {dateCourte(jalon.dateCible)}
+    <div className="flex flex-col gap-3">
+      {/* Mini-carte de l'année : situe la fenêtre visible, cliquer téléporte. */}
+      <div
+        className="relative h-9 cursor-pointer overflow-hidden rounded-xl bg-carte shadow-carte"
+        onClick={teleporter}
+        title="Cliquer pour se téléporter"
+      >
+        <div className="absolute inset-0 grid grid-cols-12">
+          {MINI_MOIS.map((m, i) => (
+            <span
+              key={`${m}-${i}`}
+              className="grid place-items-center border-l border-[#eee8c8] text-[9.5px] font-extrabold text-[#c9c1a2] uppercase first:border-l-0"
+            >
+              {m}
             </span>
-          </div>
-        ))}
-
-        <div
-          className="grid grid-cols-12 pb-1.5 text-[10.5px] font-extrabold tracking-wider text-tiret-texte uppercase"
-          style={{ marginLeft: ETIQUETTE_PX }}
-        >
-          {MOIS_AXE.map((mois) => (
-            <span key={mois}>{mois}</span>
           ))}
         </div>
-
-        {annee.lignes.map((ligne) => (
-          <button
-            key={ligne.tache.id}
-            type="button"
-            onClick={() => onModifier(ligne.tache.id)}
-            className="grid w-full items-center gap-3.5 border-t border-dashed border-tiret py-2 text-left hover:bg-creux/50"
-            style={{ gridTemplateColumns: `${ETIQUETTE_PX}px 1fr` }}
-          >
-            <span className="min-w-0">
-              <span className="block truncate text-[13px] font-bold">{ligne.tache.titre}</span>
-              <span className="mt-0.5 flex gap-1">
-                {chipsRecurrence(ligne.tache.recurrence).map((chip) => (
-                  <Chip key={chip.libelle} chip={chip} />
-                ))}
-              </span>
-            </span>
-            <span
-              className="relative h-6 rounded-md"
-              style={{
-                backgroundImage: 'linear-gradient(to right, #e9e2ba 1px, transparent 1px)',
-                backgroundSize: 'calc(100%/12) 100%',
-              }}
-            >
-              {ligne.type === 'mensuelle' &&
-                ligne.points.map((point) => (
-                  <span
-                    key={point}
-                    className="absolute top-2 size-2 rounded-full bg-[#b9a8d1]"
-                    style={{ left: `calc(${point}% - 4px)` }}
-                  />
-                ))}
-              {ligne.type === 'fenetre' &&
-                ligne.segments.map((segment) => (
-                  <span
-                    key={segment.debut}
-                    className={cn(
-                      'absolute top-[3px] flex h-[18px] items-center overflow-hidden rounded-full border px-2.5 text-[10.5px] font-extrabold whitespace-nowrap',
-                      ligne.enCours
-                        ? 'border-vert/45 bg-vert-fond text-vert'
-                        : 'border-jaune bg-[#f6efd6] text-dore',
-                    )}
-                    style={{
-                      left: `${segment.debut}%`,
-                      width: `${segment.fin - segment.debut}%`,
-                    }}
-                  >
-                    {ligne.libelle}
-                  </span>
-                ))}
-              {ligne.type === 'annuelle' && (
-                <>
-                  <span
-                    className="absolute top-1.5 size-3 rounded-full bg-dore"
-                    style={{ left: `calc(${ligne.position}% - 6px)` }}
-                  />
-                  <span
-                    className="absolute top-[5px] text-[10.5px] font-extrabold whitespace-nowrap text-dore"
-                    style={{ left: `calc(${ligne.position}% + 10px)` }}
-                  >
-                    {ligne.libelle}
-                  </span>
-                </>
-              )}
-            </span>
-          </button>
+        {moisDebut > 1 && (
+          <span className="absolute top-1/2 left-2 -translate-y-1/2 text-[9.5px] italic text-tiret-texte">
+            {moisDebut === 2
+              ? 'janv : rien à afficher'
+              : `janv → ${MOIS_COURTS_NOTE[moisDebut - 2]} : rien à afficher`}
+          </span>
+        )}
+        {jalons.map((jalon) => (
+          <span
+            key={jalon.id}
+            className="absolute bottom-0.5 size-[5px] rounded-full bg-rouge"
+            style={{ left: `${domainePctDebut + ((jalon.offset + 0.5) / ruban.jours) * (100 - domainePctDebut)}%` }}
+          />
         ))}
-
-        {annee.ponctuelles.length > 0 && (
+        {fenetreMini !== null && (
           <div
-            className="grid w-full items-center gap-3.5 border-t border-dashed border-tiret py-2"
-            style={{ gridTemplateColumns: `${ETIQUETTE_PX}px 1fr` }}
-          >
-            <span>
-              <span className="block text-[13px] font-bold">Ponctuelles</span>
-              <span className="text-[11px] text-sourdine">
-                le chiffre = combien ce jour-là
-              </span>
-            </span>
-            <span className="relative h-6">
-              {annee.ponctuelles.map((grappe) => (
-                <button
-                  key={grappe.date}
-                  type="button"
-                  title={grappe.taches.map((t) => t.titre).join('\n')}
-                  onClick={
-                    grappe.taches.length === 1 ? () => onModifier(grappe.taches[0].id) : undefined
-                  }
-                  className={cn(
-                    'absolute top-1 grid size-4 place-items-center rounded-full bg-orange text-[9.5px] font-extrabold text-carte',
-                    grappe.taches.length === 1 && 'cursor-pointer',
-                  )}
-                  style={{ left: `calc(${grappe.position}% - 8px)` }}
-                >
-                  {grappe.taches.length}
-                </button>
-              ))}
-            </span>
-          </div>
+            className="absolute top-0.5 bottom-0.5 rounded-lg border-2 border-orange bg-orange/10"
+            style={{ left: `${fenetreMini.gauche}%`, width: `${fenetreMini.largeur}%` }}
+          />
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-dashed border-tiret pt-3 text-[11px] text-sourdine">
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-6 rounded-full border border-vert/45 bg-vert-fond" /> fenêtre en cours
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-6 rounded-full border border-jaune bg-[#f6efd6]" /> fenêtre à venir
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-dore" /> annuelle
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-[#b9a8d1]" /> mensuelle
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-orange" /> ponctuelles
-        </span>
-        <span className="ml-auto italic">Cliquer une rangée ouvre l’éditeur</span>
+      {/* Le ruban : ~3-4 mois visibles, défilement horizontal, étiquettes sticky. */}
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          onScroll={surDefilement}
+          className="overflow-x-auto rounded-[20px] bg-carte py-3 shadow-carte"
+        >
+          <div className="relative w-max">
+            {/* Couche de fond : traits de mois et lignes de jalons pleine hauteur. */}
+            <div
+              className="pointer-events-none absolute top-16 bottom-0 z-0"
+              style={{ left: ETIQUETTE_PX, width: largeurPiste }}
+            >
+              {ruban.moisDomaine.slice(1).map((mois) => (
+                <span
+                  key={mois.libelle}
+                  className="absolute top-0 bottom-0 w-px bg-[#e9e2ba]"
+                  style={{ left: mois.offset * PX_JOUR }}
+                />
+              ))}
+              <span
+                className="absolute top-0 bottom-0 w-0.5 bg-orange"
+                style={{ left: ruban.aujourdhuiOffset * PX_JOUR + PX_JOUR / 2 }}
+              />
+              {jalonsAvecVoie.map((jalon) => (
+                <span
+                  key={jalon.id}
+                  className="absolute top-0 bottom-0 w-0.5"
+                  style={{
+                    left: jalon.offset * PX_JOUR + PX_JOUR / 2,
+                    background:
+                      'repeating-linear-gradient(to bottom, var(--rouge) 0 4px, transparent 4px 8px)',
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Rangée des mois. */}
+            <div className="flex">
+              <div className="sticky left-0 z-10 shrink-0 bg-carte" style={{ width: ETIQUETTE_PX }} />
+              <div className="relative h-6" style={{ width: largeurPiste }}>
+                {ruban.moisDomaine.map((mois) => (
+                  <b
+                    key={mois.libelle}
+                    className="absolute top-1 text-[10.5px] font-extrabold tracking-wider text-tiret-texte uppercase"
+                    style={{ left: mois.offset * PX_JOUR + 6 }}
+                  >
+                    {mois.libelle}
+                  </b>
+                ))}
+              </div>
+            </div>
+
+            {/* Étage des jalons : deux voies, jamais de chevauchement. */}
+            <div className="flex">
+              <div
+                className="sticky left-0 z-10 shrink-0 bg-carte px-4 pt-1 text-[10px] font-extrabold tracking-wider text-[#c9c1a2] uppercase"
+                style={{ width: ETIQUETTE_PX }}
+              >
+                Jalons
+              </div>
+              <div className="relative h-11" style={{ width: largeurPiste }}>
+                <span
+                  className="absolute top-0.5 -translate-x-1/2 rounded-full bg-orange px-2.5 py-px text-[10px] font-extrabold whitespace-nowrap text-carte"
+                  style={{ left: ruban.aujourdhuiOffset * PX_JOUR + PX_JOUR / 2 }}
+                >
+                  Aujourd’hui
+                </span>
+                {jalonsAvecVoie.map((jalon) => (
+                  <span
+                    key={jalon.id}
+                    className={cn(
+                      'absolute rounded-full border border-rouge bg-carte px-2.5 py-px text-[10px] font-extrabold whitespace-nowrap text-rouge',
+                      // Près du bord droit, l'étiquette s'aligne à gauche de sa ligne
+                      // au lieu d'être rognée par le conteneur défilant.
+                      jalon.offset * PX_JOUR > largeurPiste - 100
+                        ? '-translate-x-full'
+                        : '-translate-x-1/2',
+                    )}
+                    style={{
+                      left: jalon.offset * PX_JOUR + PX_JOUR / 2,
+                      top: jalon.voie === 0 ? 2 : 22,
+                    }}
+                  >
+                    {jalon.titre} · {dateCourte(jalon.dateCible)}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Une rangée riche par tâche. */}
+            {ruban.lignes.map((ligne) => (
+              <div key={ligne.tache.id} className="flex items-stretch border-t border-dashed border-tiret">
+                <EtiquetteRuban tache={ligne.tache} lieu={lieu} onModifier={onModifier} />
+                <div className="relative min-h-[62px]" style={{ width: largeurPiste }}>
+                  {ligne.type === 'mensuelle' &&
+                    ligne.points.map((point) => (
+                      <Pastille
+                        key={point.offset}
+                        point={point}
+                        mensuelle
+                        onClick={() => onModifier(ligne.tache.id)}
+                      />
+                    ))}
+                  {ligne.type === 'fenetre' && (
+                    <>
+                      {ligne.segments.map((segment) => (
+                        <button
+                          key={segment.debut}
+                          type="button"
+                          onClick={() => onModifier(ligne.tache.id)}
+                          className={cn(
+                            'absolute top-4 flex h-5 items-center overflow-hidden rounded-full border px-3 text-[10.5px] font-extrabold whitespace-nowrap',
+                            ligne.enCours
+                              ? 'border-vert/45 bg-vert-fond text-vert'
+                              : 'border-jaune bg-[#f6efd6] text-dore',
+                          )}
+                          style={{
+                            left: segment.debut * PX_JOUR,
+                            width: (segment.fin - segment.debut) * PX_JOUR,
+                          }}
+                        >
+                          {ligne.libelle}
+                        </button>
+                      ))}
+                      {ligne.vise !== null && (
+                        <button
+                          type="button"
+                          onClick={() => onModifier(ligne.tache.id)}
+                          className="absolute top-10 -translate-x-1/2 text-[10px] font-extrabold whitespace-nowrap text-dore"
+                          style={{ left: ligne.vise.offset * PX_JOUR + PX_JOUR / 2 }}
+                        >
+                          {ligne.vise.libelle}
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {(ligne.type === 'annuelle' || ligne.type === 'intervalle') && (
+                    <>
+                      {ligne.point !== null && (
+                        <Pastille point={ligne.point} onClick={() => onModifier(ligne.tache.id)} />
+                      )}
+                      {ligne.note !== null && (
+                        <span
+                          className="absolute top-5 text-[10.5px] font-bold whitespace-nowrap italic text-tiret-texte"
+                          style={{
+                            left:
+                              ligne.point !== null
+                                ? Math.min(ligne.point.offset * PX_JOUR + 90, largeurPiste - 180)
+                                : largeurPiste - 220,
+                          }}
+                        >
+                          {ligne.note}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Rangée des ponctuelles : grappes datées, détail dans la bande. */}
+            {ruban.grappes.length > 0 && (
+              <div className="flex items-stretch border-t border-dashed border-tiret">
+                <div
+                  className="sticky left-0 z-10 shrink-0 bg-carte px-4 py-2.5 shadow-[10px_0_14px_-10px_rgba(84,84,100,0.22)]"
+                  style={{ width: ETIQUETTE_PX }}
+                >
+                  <span className="block text-[13.5px] font-bold">Ponctuelles</span>
+                  <span className="mt-1 flex items-center gap-1.5 text-[11.5px] text-sourdine">
+                    <Chip
+                      chip={{ libelle: `${ruban.totalPonctuelles} à faire`, classe: 'saison' }}
+                    />
+                    détail ci-dessous ↓
+                  </span>
+                </div>
+                <div className="relative min-h-[68px]" style={{ width: largeurPiste }}>
+                  {ruban.grappes.map((grappe) => (
+                    <button
+                      key={grappe.date}
+                      type="button"
+                      title={grappe.taches.map((t) => t.titre).join('\n')}
+                      onClick={() => surGrappe(grappe)}
+                      className="absolute flex -translate-x-1/2 flex-col items-center gap-1"
+                      style={{
+                        left: grappe.offset * PX_JOUR + PX_JOUR / 2,
+                        top: grappe.voie === 0 ? 8 : 34,
+                      }}
+                    >
+                      <span
+                        className={cn(
+                          'grid place-items-center rounded-full bg-orange font-extrabold text-carte',
+                          grappe.taches.length >= 10
+                            ? 'size-6 text-[10.5px]'
+                            : grappe.taches.length >= 3
+                              ? 'size-[18px] text-[9.5px]'
+                              : 'size-[15px] text-[8.5px]',
+                        )}
+                      >
+                        {grappe.taches.length}
+                      </span>
+                      {grappe.voie === 0 && (
+                        <span className="text-[10px] font-extrabold whitespace-nowrap text-orange">
+                          {grappe.libelle}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Voile de droite : indique que le ruban continue. */}
+        <span className="pointer-events-none absolute top-0 right-0 bottom-3.5 w-12 rounded-r-[20px] bg-gradient-to-l from-carte to-transparent" />
       </div>
 
-      {annee.tempoCourt.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-creux px-4 py-3">
-          <span className="mr-1 text-[11px] font-extrabold tracking-wider text-tiret-texte uppercase">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1.5 text-[11.5px] text-sourdine">
+        <span className="flex items-center gap-1.5 font-bold">
+          <span className="h-3 w-6 rounded-full border border-vert/45 bg-vert-fond" /> fenêtre en
+          cours
+        </span>
+        <span className="flex items-center gap-1.5 font-bold">
+          <span className="h-3 w-6 rounded-full border border-jaune bg-[#f6efd6]" /> fenêtre à venir
+        </span>
+        <span className="flex items-center gap-1.5 font-bold">
+          <span className="size-2.5 rounded-full bg-dore" /> annuelle / long intervalle
+        </span>
+        <span className="flex items-center gap-1.5 font-bold">
+          <span className="size-2.5 rounded-full bg-[#b9a8d1]" /> mensuelle
+        </span>
+        <span className="flex items-center gap-1.5 font-bold">
+          <span className="size-2.5 rounded-full bg-orange" /> ponctuelles
+        </span>
+        <span className="ml-auto font-bold text-tiret-texte italic">
+          Cliquer une pastille ouvre l’éditeur · une grappe ouvre la liste
+        </span>
+      </div>
+
+      {/* Bande accordéon : les ponctuelles semaine par semaine. */}
+      {ruban.totalPonctuelles > 0 && (
+        <div ref={bandeRef} className="rounded-[20px] bg-carte px-5 py-4 shadow-carte">
+          <div className="flex items-baseline gap-3">
+            <h3 className="text-lg font-bold">
+              {toutDeplier
+                ? 'Les ponctuelles — semaine par semaine'
+                : 'Les ponctuelles — les 3 prochaines semaines'}
+            </h3>
+            <span className="rounded-full bg-creux px-2 text-xs font-bold text-dore">
+              {bandeDepliee ? `${nbAffichees} / ${ruban.totalPonctuelles}` : ruban.totalPonctuelles}
+            </span>
+            <button
+              type="button"
+              onClick={() => setBandeDepliee(bandeDepliee === false)}
+              className="ml-auto flex items-center gap-1 text-xs font-bold text-dore"
+            >
+              {bandeDepliee ? (
+                <>
+                  Replier <ChevronUp className="size-3.5" />
+                </>
+              ) : (
+                <>
+                  Déplier <ChevronDown className="size-3.5" />
+                </>
+              )}
+            </button>
+          </div>
+          {bandeDepliee && (
+            <>
+              <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2 lg:grid-cols-3">
+                {ruban.enRetard.length > 0 && (
+                  <SemaineBloc
+                    cle="retard"
+                    titre="En retard"
+                    taches={ruban.enRetard}
+                    retard
+                    ouverte={semainesOuvertes.includes('retard')}
+                    onOuvrir={() => setSemainesOuvertes([...semainesOuvertes, 'retard'])}
+                    onModifier={onModifier}
+                  />
+                )}
+                {semainesDepliees.map((semaine) => (
+                  <SemaineBloc
+                    key={semaine.lundi}
+                    cle={semaine.lundi}
+                    titre={semaine.libelle}
+                    taches={semaine.taches}
+                    ouverte={semainesOuvertes.includes(semaine.lundi)}
+                    onOuvrir={() => setSemainesOuvertes([...semainesOuvertes, semaine.lundi])}
+                    onModifier={onModifier}
+                  />
+                ))}
+              </div>
+              {semainesEnPilules.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-dashed border-tiret pt-3 text-xs">
+                  <span className="font-extrabold text-tiret-texte uppercase tracking-wider">
+                    Semaines suivantes :
+                  </span>
+                  {semainesEnPilules.map((semaine) => (
+                    <Chip
+                      key={semaine.lundi}
+                      chip={{
+                        libelle: `${dateCourte(semaine.lundi)} · ${semaine.taches.length}`,
+                        classe: 'saison',
+                      }}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setToutDeplier(true)}
+                    className="font-bold text-orange"
+                  >
+                    tout déplier
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {ruban.tempoCourt.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-carte px-4 py-3 shadow-carte">
+          <span className="mr-1 text-[11px] font-extrabold tracking-wider text-dore uppercase">
             Le tempo court
           </span>
-          {annee.tempoCourt.map((tache) => (
+          {ruban.tempoCourt.map((tache) => (
             <button key={tache.id} type="button" onClick={() => onModifier(tache.id)}>
               <Chip
                 chip={{
@@ -478,9 +837,73 @@ function VueAnnee({
             </button>
           ))}
           <span className="w-full text-[11px] text-sourdine">
-            Trop fréquentes pour l’échelle de l’année — cliquer une pilule ouvre l’éditeur.
+            Cadences de 15 jours et moins — les longs intervalles vivent sur la chronologie.
           </span>
         </div>
+      )}
+    </div>
+  )
+}
+
+/** Lundi + n semaines, en ISO local. */
+function plusSemaines(lundiIso: string, semaines: number): string {
+  const [a, m, j] = lundiIso.split('-').map(Number)
+  const d = new Date(a, m - 1, j + semaines * 7)
+  return d.toLocaleDateString('fr-CA')
+}
+
+function SemaineBloc({
+  cle,
+  titre,
+  taches,
+  retard = false,
+  ouverte,
+  onOuvrir,
+  onModifier,
+}: {
+  cle: string
+  titre: string
+  taches: TacheResume[]
+  retard?: boolean
+  ouverte: boolean
+  onOuvrir: () => void
+  onModifier: (tacheId: string) => void
+}) {
+  const visibles = ouverte ? taches : taches.slice(0, 4)
+  return (
+    <div key={cle}>
+      <h4
+        className={cn(
+          'mb-1 text-[13px] font-bold',
+          retard ? 'text-rouge' : 'text-encre',
+        )}
+      >
+        {titre} <span className="font-normal text-sourdine">· {taches.length}</span>
+      </h4>
+      {visibles.map((tache) => (
+        <button
+          key={tache.id}
+          type="button"
+          onClick={() => onModifier(tache.id)}
+          className="flex w-full items-center gap-2 border-t border-dashed border-tiret py-1.5 text-left text-[12.5px] first:border-t-0 hover:bg-creux/50"
+        >
+          <span className="min-w-0 flex-1 truncate">{tache.titre}</span>
+          <span
+            className={cn(
+              'shrink-0 text-[11px] font-bold tabular-nums',
+              retard ? 'text-rouge' : 'text-sourdine',
+            )}
+          >
+            {tache.echeance !== null &&
+              `${jourCourt(tache.echeance)} ${Number(tache.echeance.slice(8, 10))}`}
+          </span>
+          {tache.assigneA !== null && <Avatar utilisateur={tache.assigneA} taille={18} />}
+        </button>
+      ))}
+      {ouverte === false && taches.length > 4 && (
+        <button type="button" onClick={onOuvrir} className="mt-1 text-[11.5px] font-bold text-dore">
+          + {taches.length - 4} autres…
+        </button>
       )}
     </div>
   )

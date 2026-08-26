@@ -87,3 +87,23 @@ Déviations : fusion des grappes de ponctuelles ajoutée en cours de route (des
 échéances à 1-3 jours d'écart s'empilaient sur le même pixel à l'échelle de
 l'année) ; localStorage enveloppé de try/catch (absent du jsdom de Vitest, et
 navigation privée).
+
+## Incrément 2026-08-26 (soir) — vue Année défilante
+
+La vue Année 12-mois n'a pas survécu aux vraies données (jalons superposés,
+~57 ponctuelles écrasées, rangées maigres). Ronde 3 de maquettes (artifact
+« Année Tâches »), option D choisie — voir [[D-2026-08-26 Vue Année Défilante]] :
+
+- `construireRuban` remplace `construireAnnee` (offsets en jours, domaine
+  1ᵉʳ du mois courant → 31 déc, grappes par jour avec voie basse, semaines et
+  retards pour la bande, tempo court ≤ 15 jours, longs intervalles sur la
+  chronologie avec note de débordement).
+- `VueRuban` : scroll horizontal (~11 px/jour, étiquettes sticky, voile droit),
+  mini-carte synchronisée + téléportation, jalons sur deux voies (étiquette
+  bornée au bord droit), bande accordéon (En retard + 3 semaines + pilules).
+- Tests : lib réécrits +2 → 60 web au total ; vérifié dans Chrome (défilement,
+  sticky, téléporteur, bande, jalon Noël).
+
+Déviations : la première grappe porte son mois (« 23 août ») plutôt que le jour
+nu de la maquette — plus clair hors contexte. Tranche sans note de plan (la
+maquette D tenait lieu de plan).

@@ -179,12 +179,20 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
 - **Commutateur segmenté « Liste | Année »** à droite du titre ; le dernier mode
   est mémorisé (localStorage, accès protégé). Le filtre À faire/Complétées et la
   barre quick-add pointillée ont disparu (⌘K demeure).
-- Vue **Année** : chronologie 12 mois — points mensuels et annuels, barres de
-  fenêtres saisonnières (vert en cours / jaune à venir, chevauchement d'an en
-  deux segments), grappes de ponctuelles (fusionnées sous 1,5 % d'année, le
-  chiffre = combien), ligne Aujourd'hui, jalons tirés des
-  [[Comptes À Rebours|comptes à rebours]] de l'année courante, légende, bandeau
-  « Le tempo court » (hebdos et intervalles sans fenêtre) ; tout clic → éditeur.
+- Vue **Année** ([[D-2026-08-26 Vue Année Défilante]], révision du même jour —
+  la version 12-mois pleine largeur ne survivait pas aux vraies données) :
+  **ruban défilant** à ~11 px/jour, domaine du 1ᵉʳ du mois courant au 31 déc,
+  aujourd'hui ancré à ~20 % au montage, colonne d'étiquettes sticky (titre
+  complet, chips, lieu, avatar) ; **mini-carte** de l'année (fenêtre visible
+  synchronisée, tics de jalons, clic = téléportation) ; jalons des
+  [[Comptes À Rebours|comptes à rebours]] sur deux voies d'étiquettes ; points
+  mensuels (passés estompés) et annuels datés, barres de fenêtres saisonnières
+  (vert en cours / jaune à venir), **longs intervalles (> 15 j) sur la
+  chronologie** avec note « ensuite ≈ … » ; grappes de ponctuelles par jour
+  (voie basse pour les voisines), grappe multiple → **bande accordéon « Les
+  ponctuelles »** (En retard + 3 prochaines semaines dépliées, pilules-compteurs
+  ensuite, tout déplier/Replier) ; bandeau « Le tempo court » réduit aux
+  cadences ≤ 15 jours sans fenêtre ; tout clic → éditeur.
 - Nouveau contrat : `GET /api/taches` retourne les définitions
   (`TacheResumeDto` : récurrence complète, stratégie, échéance et assigné de
   l'occurrence en attente, `nbDocuments`, `completee`), tri échéance puis titre ;
@@ -226,6 +234,9 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
 - [[D-2026-08-26 Page Tâches Rythmes Et Année]] — la page Tâches comme console
   des définitions : vue Rythmes + bascule Année, axe Pièces écarté, filtre
   Complétées retiré, `GET /api/taches` + `lister_taches`.
+- [[D-2026-08-26 Vue Année Défilante]] — le ruban ~11 px/jour + mini-carte +
+  bande accordéon des ponctuelles (option D, ronde 3) ; longs intervalles sur
+  la chronologie, tempo court ≤ 15 jours.
 
 ## Ancres de code
 

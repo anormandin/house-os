@@ -29,11 +29,13 @@ function servirTaches(liste: TacheResume[]) {
   )
 }
 
-const HIER = (() => {
+function dansNJours(n: number): string {
   const d = new Date()
-  d.setDate(d.getDate() - 1)
+  d.setDate(d.getDate() + n)
   return d.toLocaleDateString('fr-CA')
-})()
+}
+
+const HIER = dansNJours(-1)
 
 const CORPUS: TacheResume[] = [
   resume({
@@ -49,7 +51,7 @@ const CORPUS: TacheResume[] = [
     recurrence: { mode: 'Intervalle', intervalleJours: 4 },
     echeance: HIER,
   }),
-  resume({ id: TACHE_COMPLETE.id, titre: 'Notaire — répartitions', echeance: '2026-08-31' }),
+  resume({ id: TACHE_COMPLETE.id, titre: 'Notaire — répartitions', echeance: dansNJours(5) }),
   resume({ id: 'p-faite', titre: 'Déjà réglée', completee: true }),
 ]
 
@@ -82,9 +84,11 @@ test('le commutateur bascule vers l’Année et le mode survit à une réouvertu
   await screen.findByText('Chaque semaine')
 
   await userEvent.click(screen.getByRole('button', { name: 'Année' }))
-  // La chronologie et son bandeau tempo court remplacent les groupes.
+  // Le ruban, sa bande de ponctuelles et le tempo court remplacent les groupes.
   expect(await screen.findByText('fenêtre en cours')).toBeInTheDocument()
   expect(screen.getByText('Le tempo court')).toBeInTheDocument()
+  expect(screen.getByText('Les ponctuelles — les 3 prochaines semaines')).toBeInTheDocument()
+  expect(screen.getByText('Jalons')).toBeInTheDocument()
   expect(screen.queryByText('Chaque semaine')).not.toBeInTheDocument()
 
   // Réouverture : la page se souvient du dernier mode.
