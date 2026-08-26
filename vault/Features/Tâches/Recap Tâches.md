@@ -60,3 +60,30 @@ demande d'Alain : plusieurs documents par tâche) :
   d'entretien créées le même jour en prod.
 
 Déviations : aucune.
+
+## Incrément 2026-08-26 — page Tâches : Rythmes ⇄ Année
+
+Exécute [[Plan 2026-08-26 Tâches Rythmes Et Année]]
+([[D-2026-08-26 Page Tâches Rythmes Et Année]], itération A des maquettes en deux
+rondes — artifacts « Maquettes Tâches » et « Itérations Tâches ») :
+
+- Backend : `GET /api/taches` (nouveau `TacheResumeDto` — récurrence, stratégie,
+  échéance/assigné de l'occurrence en attente, `nbDocuments`, `completee`) via
+  `OperationsTaches.ListerTachesAsync`, réutilisé par l'outil MCP `lister_taches`.
+  4 tests (2 opérations, 1 MCP exécuté, 1 intégration HTTP) → 347.
+- Web : `Taches.tsx` réécrite — commutateur segmenté « Liste | Année » (dernier
+  mode en localStorage, accès protégé), vue Rythmes (5 groupes, sous-titre
+  « n en retard », progression des ponctuelles), vue Année (points
+  mensuels/annuels, barres de fenêtres en cours/à venir avec chevauchement d'an,
+  grappes de ponctuelles fusionnées sous 1,5 % d'année, jalons des comptes à
+  rebours, ligne Aujourd'hui, bandeau « Le tempo court »), tout clic → éditeur,
+  ⌘K conservé. Logique pure dans `web/src/lib/taches-vues.ts`. 8 tests
+  (5 lib + 3 page) → 58. Le filtre À faire/Complétées et la barre quick-add
+  pointillée disparaissent de la page.
+- Vérifié visuellement dans Chrome (deux vues, données dev, éditeur depuis une
+  rangée Année).
+
+Déviations : fusion des grappes de ponctuelles ajoutée en cours de route (des
+échéances à 1-3 jours d'écart s'empilaient sur le même pixel à l'échelle de
+l'année) ; localStorage enveloppé de try/catch (absent du jsdom de Vitest, et
+navigation privée).

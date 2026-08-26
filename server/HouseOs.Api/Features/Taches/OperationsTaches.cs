@@ -693,13 +693,8 @@ public static class OperationsTaches
             : (StrategieAssignation.Fixe, $"Stratégie inconnue : {strategie}.");
     }
 
-    public static TacheDto VersTacheDto(Tache tache)
-    {
-        var r = tache.Recurrence;
-        var jours = r.JoursSemaineMasque is { } masque
-            ? Enumerable.Range(0, 7).Where(j => (masque >> j & 1) == 1).ToArray()
-            : null;
-        return new TacheDto(
+    public static TacheDto VersTacheDto(Tache tache) =>
+        new(
             tache.Id,
             tache.Titre,
             tache.Description,
@@ -708,19 +703,64 @@ public static class OperationsTaches
             tache.ZoneId,
             tache.EquipementId,
             tache.Strategie.ToString(),
-            new RecurrenceDto(
-                r.Mode.ToString(),
-                r.FixeType?.ToString(),
-                jours,
-                r.JourDuMois,
-                r.MoisAnnuel,
-                r.JourAnnuel,
-                r.IntervalleJours,
-                r.FenetreDebutMois,
-                r.FenetreDebutJour,
-                r.FenetreFinMois,
-                r.FenetreFinJour,
-                r.Rollover),
+            VersRecurrenceDto(tache.Recurrence),
             tache.Documents.Select(d => d.Id).ToArray());
+
+    private static RecurrenceDto VersRecurrenceDto(SpecRecurrence r)
+    {
+        var jours = r.JoursSemaineMasque is { } masque
+            ? Enumerable.Range(0, 7).Where(j => (masque >> j & 1) == 1).ToArray()
+            : null;
+        return new RecurrenceDto(
+            r.Mode.ToString(),
+            r.FixeType?.ToString(),
+            jours,
+            r.JourDuMois,
+            r.MoisAnnuel,
+            r.JourAnnuel,
+            r.IntervalleJours,
+            r.FenetreDebutMois,
+            r.FenetreDebutJour,
+            r.FenetreFinMois,
+            r.FenetreFinJour,
+            r.Rollover);
+    }
+
+    /// <summary>
+    /// Les définitions de tâches pour la console de gestion : récurrence, stratégie,
+    /// échéance et assigné de l'occurrence en attente, nombre de documents liés.
+    /// Une ponctuelle sans occurrence en attente est retournée `completee: true`.
+    /// </summary>
+    public static async Task<List<TacheResumeDto>> ListerTachesAsync(HouseOsDbContext db)
+    {
+        var taches = await db.Taches.AsNoTracking()
+            .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
+            .ThenInclude(o => o.AssigneA)
+            .Include(t => t.Documents)
+            .ToListAsync();
+
+        return taches
+            .Select(t =>
+            {
+                var enAttente = t.Occurrences.FirstOrDefault(o => o.Statut == StatutOccurrence.EnAttente);
+                return new TacheResumeDto(
+                    t.Id,
+                    t.Titre,
+                    t.Description,
+                    enAttente?.Echeance,
+                    enAttente?.AssigneA is { } assigne
+                        ? new UtilisateurDto(assigne.Id, assigne.NomUtilisateur, assigne.NomAffichage)
+                        : null,
+                    t.ZoneId,
+                    t.EquipementId,
+                    t.Strategie.ToString(),
+                    VersRecurrenceDto(t.Recurrence),
+                    t.Documents.Count,
+                    Completee: t.Recurrence.Mode == ModeRecurrence.Ponctuelle && enAttente is null);
+            })
+            .OrderBy(r => r.Echeance is null)
+            .ThenBy(r => r.Echeance)
+            .ThenBy(r => r.Titre)
+            .ToList();
     }
 }

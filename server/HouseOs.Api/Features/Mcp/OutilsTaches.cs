@@ -235,6 +235,14 @@ public static class OutilsTaches
         }
     }
 
+    [McpServerTool(Name = "lister_taches")]
+    [Description("Liste les définitions de tâches (la console de gestion) : récurrence complète, " +
+        "zone, équipement, stratégie d'assignation, échéance et assigné de l'occurrence en attente, " +
+        "nombre de documents liés. Une ponctuelle déjà faite sort avec completee=true et sans " +
+        "échéance. Tri par échéance puis titre. Pour les instances planifiées, voir lister_occurrences.")]
+    public static Task<List<TacheResumeDto>> ListerTaches(HouseOsDbContext db) =>
+        OperationsTaches.ListerTachesAsync(db);
+
     [McpServerTool(Name = "lister_occurrences")]
     [Description("Liste les occurrences (instances planifiées des tâches), 200 max, triées par " +
         "échéance. Filtres : 'aujourdhui' (en attente, échues à la date de référence ou avant), " +

@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-26
-verified-against: ac9dd96
+verified-against: 3ad570d
 tags: []
 ---
 
@@ -167,6 +167,30 @@ Implémenté (ruban des 7 prochains jours, 2026-08-25, as-built —
 - **Couleurs de pièces** : palette fixe de 6 teintes, attribution déterministe
   par position dans la liste des zones (pas de colonne en base).
 
+Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
+[[D-2026-08-26 Page Tâches Rythmes Et Année]]) :
+
+- La page Tâches est la **console des définitions** (Aujourd'hui reste la todo
+  list) : vue **Rythmes** par défaut — groupes Chaque semaine · Aux quelques
+  jours · Chaque mois · Chaque année & au fil des saisons · Ponctuelles (barre
+  de progression « X faites sur Y », les faites n'apparaissent plus) — avec
+  chips de récurrence en français, lieu (zone · équipement · n docs), échéance
+  colorée (retard rouge / ≤ 3 jours doré), avatar + stratégie ; rangée → éditeur.
+- **Commutateur segmenté « Liste | Année »** à droite du titre ; le dernier mode
+  est mémorisé (localStorage, accès protégé). Le filtre À faire/Complétées et la
+  barre quick-add pointillée ont disparu (⌘K demeure).
+- Vue **Année** : chronologie 12 mois — points mensuels et annuels, barres de
+  fenêtres saisonnières (vert en cours / jaune à venir, chevauchement d'an en
+  deux segments), grappes de ponctuelles (fusionnées sous 1,5 % d'année, le
+  chiffre = combien), ligne Aujourd'hui, jalons tirés des
+  [[Comptes À Rebours|comptes à rebours]] de l'année courante, légende, bandeau
+  « Le tempo court » (hebdos et intervalles sans fenêtre) ; tout clic → éditeur.
+- Nouveau contrat : `GET /api/taches` retourne les définitions
+  (`TacheResumeDto` : récurrence complète, stratégie, échéance et assigné de
+  l'occurrence en attente, `nbDocuments`, `completee`), tri échéance puis titre ;
+  parité MCP `lister_taches`. La logique des deux vues est pure et testée
+  (`web/src/lib/taches-vues.ts`, patron ruban).
+
 ## Hors périmètre
 
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).
@@ -199,6 +223,9 @@ Implémenté (ruban des 7 prochains jours, 2026-08-25, as-built —
   placement Aujourd'hui + Pièces (focus) ; couleurs de zones déterministes.
 - [[D-2026-08-26 Documents Liés Aux Tâches]] — jointure many-to-many
   `TacheDocuments`, sémantique null/[]/liste de `documentIds`.
+- [[D-2026-08-26 Page Tâches Rythmes Et Année]] — la page Tâches comme console
+  des définitions : vue Rythmes + bascule Année, axe Pièces écarté, filtre
+  Complétées retiré, `GET /api/taches` + `lister_taches`.
 
 ## Ancres de code
 
@@ -216,7 +243,9 @@ Implémenté (ruban des 7 prochains jours, 2026-08-25, as-built —
 - `web/src/pages/Pieces.tsx` — vue Pièces (fraîcheur, gestion des zones)
 - `web/src/components/Ruban.tsx`, `web/src/lib/ruban.ts` — ruban des 7 prochains
   jours (groupement pur testé, couleurs de zones)
-- `web/src/pages/Aujourdhui.tsx`, `web/src/pages/Taches.tsx`, `web/src/components/QuickAdd.tsx` — UI
+- `web/src/pages/Aujourdhui.tsx`, `web/src/components/QuickAdd.tsx` — UI
+- `web/src/pages/Taches.tsx`, `web/src/lib/taches-vues.ts` — console Rythmes ⇄
+  Année (groupement et géométrie purs testés)
 - `web/src/components/OccurrenceListe.tsx` — rangées de tâches (retard, complétée,
   échéance, annuler/passer/reporter/notes)
 - `web/src/components/ConfirmerSuppression.tsx` — suppression en deux temps « Vraiment ? »
@@ -247,3 +276,6 @@ Implémenté (ruban des 7 prochains jours, 2026-08-25, as-built —
 - [[Plan 2026-08-26 Documents Liés]] — documents de référence multiples par
   tâche (jointure), voir [[D-2026-08-26 Documents Liés Aux Tâches]] ; recap dans
   [[Recap Tâches]] (incrément 2026-08-26).
+- [[Plan 2026-08-26 Tâches Rythmes Et Année]] — refonte de la page Tâches
+  (itération A des maquettes « Maquettes Tâches » / « Itérations Tâches ») ;
+  recap dans [[Recap Tâches]] (incrément 2026-08-26).

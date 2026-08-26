@@ -48,6 +48,21 @@ export type TacheDetail = {
   documentIds: string[]
 }
 
+export type TacheResume = {
+  id: string
+  titre: string
+  description: string | null
+  echeance: string | null
+  assigneA: Utilisateur | null
+  zoneId: string | null
+  equipementId: string | null
+  strategie: 'Fixe' | 'Alternance' | 'MoinsLAFait'
+  recurrence: Recurrence
+  nbDocuments: number
+  /** Ponctuelle sans occurrence en attente : déjà faite. */
+  completee: boolean
+}
+
 export type TacheDonnees = {
   titre: string
   description?: string
@@ -322,6 +337,7 @@ export const api = {
       `/api/journal/bilan?de=${encodeURIComponent(de)}&a=${encodeURIComponent(a)}`,
     ),
 
+  taches: () => requete<TacheResume[]>('/api/taches'),
   tache: (id: string) => requete<TacheDetail>(`/api/taches/${id}`),
   creerTache: (donnees: TacheDonnees) =>
     requete<{ id: string }>('/api/taches', {

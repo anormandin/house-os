@@ -52,6 +52,27 @@ public class TachesApiTests(HouseOsFactory factory)
     }
 
     [Fact]
+    public async Task ListerLesTaches_RetourneLaDefinitionAvecSonOccurrenceEnAttente()
+    {
+        var client = await factory.ClientConnecte();
+        var echeance = Aujourdhui.AddDays(5);
+        var id = await CreerTache(client, new CreerTacheRequete(
+            $"Console gestion {Guid.NewGuid():N}", null, echeance, null, null, null, "Alternance",
+            new RecurrenceDto("Intervalle", null, null, null, null, null, 14,
+                5, 1, 10, 31, true)));
+
+        var resumes = await client.GetFromJsonAsync<List<TacheResumeDto>>("/api/taches");
+
+        var resume = Assert.Single(resumes!, r => r.Id == id);
+        Assert.Equal(echeance, resume.Echeance);
+        Assert.Equal("Alternance", resume.Strategie);
+        Assert.Equal("Intervalle", resume.Recurrence.Mode);
+        Assert.Equal(5, resume.Recurrence.FenetreDebutMois);
+        Assert.Equal(0, resume.NbDocuments);
+        Assert.False(resume.Completee);
+    }
+
+    [Fact]
     public async Task EditionSansModification_EstSansPerte()
     {
         var client = await factory.ClientConnecte();

@@ -198,6 +198,25 @@ public class OutilsTachesTests : TestAvecSqlite
     }
 
     [Fact]
+    public async Task Lister_taches_retourne_les_definitions_avec_echeance_en_attente()
+    {
+        var id = await CreerUne(Item(
+            "Tondre", assigneA: "alain",
+            recurrence: new RecurrenceDto("Intervalle", null, null, null, null, null, 7,
+                null, null, null, null, true)));
+
+        var resumes = await OutilsTaches.ListerTaches(Db);
+
+        var resume = Assert.Single(resumes);
+        Assert.Equal(id, resume.Id);
+        Assert.Equal("Intervalle", resume.Recurrence.Mode);
+        // Sans échéance de départ, la première occurrence tombe à aujourd'hui + intervalle.
+        Assert.Equal(Aujourdhui.AddDays(7), resume.Echeance);
+        Assert.Equal("alain", resume.AssigneA?.NomUtilisateur);
+        Assert.False(resume.Completee);
+    }
+
+    [Fact]
     public async Task AgirComme_inconnu_enumere_les_noms_valides()
     {
         var exception = await Assert.ThrowsAsync<McpException>(() =>

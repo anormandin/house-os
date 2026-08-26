@@ -526,4 +526,53 @@ public class OperationsTachesTests : TestAvecSqlite
         // Fenêtre vide → égalité → repli alternance : l'autre que le dernier compléteur.
         Assert.Equal(_ariane.Id, assigne);
     }
+
+    [Fact]
+    public async Task Lister_taches_expose_definition_et_occurrence_en_attente()
+    {
+        var tache = CreerIntervalle(jours: 7);
+        var document = new Document
+        {
+            Id = Guid.NewGuid(),
+            Titre = "Guide de la tondeuse",
+            NomFichier = "guide.pdf",
+            CheminDisque = "docs/guide.pdf",
+            TypeMime = "application/pdf",
+        };
+        Db.Documents.Add(document);
+        tache.Documents.Add(document);
+        Db.SaveChanges();
+
+        var resumes = await OperationsTaches.ListerTachesAsync(Db);
+
+        var resume = Assert.Single(resumes);
+        Assert.Equal(tache.Id, resume.Id);
+        Assert.Equal(Aujourdhui, resume.Echeance);
+        Assert.Equal(_alain.Id, resume.AssigneA?.Id);
+        Assert.Equal("Intervalle", resume.Recurrence.Mode);
+        Assert.Equal(7, resume.Recurrence.IntervalleJours);
+        Assert.Equal(1, resume.NbDocuments);
+        Assert.False(resume.Completee);
+    }
+
+    [Fact]
+    public async Task Lister_taches_marque_la_ponctuelle_faite_et_trie_par_echeance()
+    {
+        var faite = CreerPonctuelle(echeance: Aujourdhui.AddDays(1));
+        await OperationsTaches.CompleterAsync(Db, EnAttenteDe(faite).Id, _alain.Id, null, _maintenant);
+        var lointaine = CreerIntervalle(jours: 30);
+        EnAttenteDe(lointaine).Echeance = Aujourdhui.AddDays(30);
+        Db.SaveChanges();
+
+        var resumes = await OperationsTaches.ListerTachesAsync(Db);
+
+        Assert.Equal(2, resumes.Count);
+        // L'intervalle (échéance +30) passe devant : la ponctuelle faite n'a plus d'échéance.
+        Assert.Equal(lointaine.Id, resumes[0].Id);
+        Assert.False(resumes[0].Completee);
+        Assert.Equal(faite.Id, resumes[1].Id);
+        Assert.True(resumes[1].Completee);
+        Assert.Null(resumes[1].Echeance);
+        Assert.Null(resumes[1].AssigneA);
+    }
 }

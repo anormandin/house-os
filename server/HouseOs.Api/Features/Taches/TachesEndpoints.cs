@@ -64,6 +64,19 @@ public record OccurrenceDto(
     Guid? EquipementId,
     string ModeRecurrence);
 
+public record TacheResumeDto(
+    Guid Id,
+    string Titre,
+    string? Description,
+    DateOnly? Echeance,
+    UtilisateurDto? AssigneA,
+    Guid? ZoneId,
+    Guid? EquipementId,
+    string Strategie,
+    RecurrenceDto Recurrence,
+    int NbDocuments,
+    bool Completee);
+
 public record TacheDto(
     Guid Id,
     string Titre,
@@ -102,6 +115,9 @@ public static class TachesEndpoints
             await db.SaveChangesAsync();
             return Results.Created($"/api/taches/{tache!.Id}", new { tache.Id });
         });
+
+        app.MapGet("/api/taches", async (HouseOsDbContext db) =>
+            Results.Ok(await OperationsTaches.ListerTachesAsync(db)));
 
         app.MapGet("/api/taches/{id:guid}", async (Guid id, HouseOsDbContext db) =>
         {
