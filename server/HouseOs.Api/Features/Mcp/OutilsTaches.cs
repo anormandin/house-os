@@ -18,7 +18,8 @@ public record TacheAPlanifier(
     [property: Description("Id d'une zone existante (via lister_zones) — ne jamais inventer.")] Guid? ZoneId,
     [property: Description("Id d'un équipement existant (via lister_equipements) — ne jamais inventer.")] Guid? EquipementId,
     [property: Description("Stratégie d'assignation pour une tâche récurrente : Fixe (défaut), Alternance ou MoinsLAFait.")] string? Strategie,
-    [property: Description("Récurrence ; omise = tâche ponctuelle. mode: Ponctuelle|Fixe|Intervalle ; en mode Fixe, fixeType: JoursSemaine (+ joursSemaine 0=dimanche…6=samedi) | JourDuMois (+ jourDuMois 1-31) | Annuelle (+ moisAnnuel 1-12, jourAnnuel 1-31) ; en mode Intervalle, intervalleJours ≥ 1 (depuis la dernière complétion). Fenêtre saisonnière optionnelle : les 4 bornes fenetreDebutMois/fenetreDebutJour/fenetreFinMois/fenetreFinJour ensemble.")] RecurrenceDto? Recurrence);
+    [property: Description("Récurrence ; omise = tâche ponctuelle. mode: Ponctuelle|Fixe|Intervalle ; en mode Fixe, fixeType: JoursSemaine (+ joursSemaine 0=dimanche…6=samedi) | JourDuMois (+ jourDuMois 1-31) | Annuelle (+ moisAnnuel 1-12, jourAnnuel 1-31) ; en mode Intervalle, intervalleJours ≥ 1 (depuis la dernière complétion). Fenêtre saisonnière optionnelle : les 4 bornes fenetreDebutMois/fenetreDebutJour/fenetreFinMois/fenetreFinJour ensemble.")] RecurrenceDto? Recurrence,
+    [property: Description("Ids de documents existants (via lister_documents) à lier à la tâche — ne jamais inventer. En modification : omis = liens conservés, [] = tout délier, liste = remplacement complet.")] Guid[]? DocumentIds = null);
 
 /// <summary>Une semaine du bilan : lundi de la semaine (YYYY-MM-DD) et total complété.</summary>
 public record BilanSemaineDto(
@@ -99,7 +100,8 @@ public static class OutilsTaches
 
             var requete = new CreerTacheRequete(
                 item.Titre, item.Description, echeance, assigneAId,
-                item.ZoneId, item.EquipementId, item.Strategie, item.Recurrence);
+                item.ZoneId, item.EquipementId, item.Strategie, item.Recurrence,
+                item.DocumentIds);
             var (tache, erreur) = await OperationsTaches.PreparerTacheAsync(db, requete, createur.Id, maintenant, aujourdhui);
             if (erreur is not null)
             {
@@ -149,6 +151,7 @@ public static class OutilsTaches
             {
                 var existante = await db.Taches.AsNoTracking()
                     .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
+                    .Include(t => t.Documents)
                     .SingleOrDefaultAsync(t => t.Id == id);
                 return existante is null
                     ? throw new McpException($"Tâche introuvable : {id}.")
@@ -162,6 +165,7 @@ public static class OutilsTaches
                 }
                 var existante = await db.Taches
                     .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
+                    .Include(t => t.Documents)
                     .SingleOrDefaultAsync(t => t.Id == id);
                 if (existante is null)
                 {
@@ -204,7 +208,8 @@ public static class OutilsTaches
 
                 var requete = new ModifierTacheRequete(
                     tache.Titre, tache.Description, echeance, assigneAId,
-                    tache.ZoneId, tache.EquipementId, tache.Strategie, recurrence);
+                    tache.ZoneId, tache.EquipementId, tache.Strategie, recurrence,
+                    tache.DocumentIds);
                 var erreur = await OperationsTaches.ModifierTacheAsync(
                     db, existante, requete, DateOnly.FromDateTime(DateTime.Now));
                 if (erreur is not null)

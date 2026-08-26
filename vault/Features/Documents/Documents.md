@@ -59,7 +59,9 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   la fiche : catégorie déduite du type — PDF → Manuel, image → Photo — puis
   modifiable).
 - Supprimer un équipement **délie** ses documents (ils survivent dans la page
-  Documents) ; supprimer un document efface le fichier disque.
+  Documents) ; supprimer un document efface le fichier disque **et ses liens
+  vers des tâches** (jointure `TacheDocuments` — voir
+  [[D-2026-08-26 Documents Liés Aux Tâches]] et la spec [[Tâches]]).
 - **MCP** ([[Serveur MCP]]) : `lister_documents` (filtres catégorie/équipement/
   dossier) et `gerer_document` (modifier les métadonnées dossier inclus,
   supprimer) — l'ajout et le téléchargement de fichiers restent dans l'interface

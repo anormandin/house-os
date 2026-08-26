@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
-import type { TacheDetail, Utilisateur, Zone } from '@/lib/api'
+import type { Document, TacheDetail, Utilisateur, Zone } from '@/lib/api'
 
 export const ALAIN: Utilisateur = {
   id: 'u-alain',
@@ -17,6 +17,25 @@ export const ZONES: Zone[] = [
   { id: 'z-cuisine', nom: 'Cuisine', type: 'Interieur', ordre: 1 },
 ]
 
+/** Document liable dans l'éditeur de tâche. */
+export const DOCUMENT_REFERENCE: Document = {
+  id: 'd-rapport',
+  titre: 'Rapport d’inspection',
+  categorie: 'Autre',
+  equipementId: null,
+  nomEquipement: null,
+  zoneId: null,
+  nomZone: null,
+  dossier: '17 rue de la Colline',
+  notes: null,
+  dateDocument: '2026-03-11',
+  echeance: null,
+  nomFichier: 'rapport.pdf',
+  typeMime: 'application/pdf',
+  taille: 1024,
+  creeLe: '2026-08-01T12:00:00Z',
+}
+
 /** Détail complet — chaque champ non nul pour attraper un champ oublié au chargement. */
 export const TACHE_COMPLETE: TacheDetail = {
   id: 't-1',
@@ -28,6 +47,7 @@ export const TACHE_COMPLETE: TacheDetail = {
   equipementId: null,
   strategie: 'Fixe',
   recurrence: { mode: 'Ponctuelle' },
+  documentIds: [DOCUMENT_REFERENCE.id],
 }
 
 /** Détail récurrent — chaque champ de la récurrence non neutre : le test « rien ne
@@ -51,12 +71,14 @@ export const TACHE_RECURRENTE: TacheDetail = {
     fenetreFinJour: 31,
     rollover: true,
   },
+  documentIds: [],
 }
 
 export const serveur = setupServer(
   http.get('/api/utilisateurs', () => HttpResponse.json([ALAIN, ARIANE])),
   http.get('/api/zones', () => HttpResponse.json(ZONES)),
   http.get('/api/equipements', () => HttpResponse.json([])),
+  http.get('/api/documents', () => HttpResponse.json([DOCUMENT_REFERENCE])),
   http.get('/api/taches/:id', ({ params }) =>
     HttpResponse.json(params.id === TACHE_RECURRENTE.id ? TACHE_RECURRENTE : TACHE_COMPLETE)),
 )

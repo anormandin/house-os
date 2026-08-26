@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-25
-verified-against: c7daa79
+last-verified: 2026-08-26
+verified-against: ac9dd96
 tags: []
 ---
 
@@ -32,6 +32,14 @@ Implémenté (V0, as-built) :
   verte « bravo X ✓ 14 h 10 ») via le filtre API `faites` : le client fournit les
   bornes d'instants de sa journée locale (`de`/`a`), le serveur ne connaît pas le
   fuseau du client.
+- Une tâche peut être liée à **plusieurs [[Documents|documents]] de référence**
+  (jointure `TacheDocuments`, cascade du lien seulement — supprimer une tâche ou
+  un document n'efface jamais l'autre). `documentIds` dans le détail, le
+  POST/PUT et les outils MCP ; sémantique d'écriture : null = liens conservés,
+  `[]` = tout délier, liste = remplacement complet
+  ([[D-2026-08-26 Documents Liés Aux Tâches]]). L'éditeur montre la section
+  « Documents de référence » : chips cliquables vers le fichier, retrait ×,
+  ajout via select.
 - L'UI applique le design final [[D-2026-08-23 Direction Artistique Cuisine Chaleureuse]] :
   desktop d'abord (en-tête Maison + onglets), héros illustré avec titre d'humeur
   (repli client de [[Titre D'humeur]]), cartes Cette semaine / Bilan /
@@ -189,6 +197,8 @@ Implémenté (ruban des 7 prochains jours, 2026-08-25, as-built —
 - [[D-2026-08-25 Ruban Des 7 Prochains Jours]] — le ruban comme composant
   canonique des tâches à venir ; horizon un-cycle plafonné à 30 jours ;
   placement Aujourd'hui + Pièces (focus) ; couleurs de zones déterministes.
+- [[D-2026-08-26 Documents Liés Aux Tâches]] — jointure many-to-many
+  `TacheDocuments`, sémantique null/[]/liste de `documentIds`.
 
 ## Ancres de code
 
@@ -234,3 +244,6 @@ Implémenté (ruban des 7 prochains jours, 2026-08-25, as-built —
   [[D-2026-08-25 Invariants D'occurrence En Base]].
 - [[Plan 2026-08-25 Ruban Des 7 Prochains Jours]] · [[Recap Ruban Des 7 Prochains Jours]]
   — maquettes : artifact « Pièces à venir » (5 directions puis itération ruban).
+- [[Plan 2026-08-26 Documents Liés]] — documents de référence multiples par
+  tâche (jointure), voir [[D-2026-08-26 Documents Liés Aux Tâches]] ; recap dans
+  [[Recap Tâches]] (incrément 2026-08-26).

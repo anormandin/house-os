@@ -41,6 +41,7 @@ test('enregistrer sans rien modifier renvoie le détail tel quel (rien ne se per
     assigneAId: TACHE_COMPLETE.assigneAId,
     zoneId: TACHE_COMPLETE.zoneId,
     strategie: 'Fixe',
+    documentIds: TACHE_COMPLETE.documentIds,
   })
 })
 
@@ -69,6 +70,7 @@ test('une hebdo en saison se recharge et se réenregistre à l’identique', asy
     assigneAId: TACHE_RECURRENTE.assigneAId,
     zoneId: TACHE_RECURRENTE.zoneId,
     strategie: 'Alternance',
+    documentIds: [],
     recurrence: {
       mode: 'Fixe',
       fixeType: 'JoursSemaine',
@@ -80,6 +82,46 @@ test('une hebdo en saison se recharge et se réenregistre à l’identique', asy
       fenetreFinJour: 31,
     },
   })
+})
+
+test('le document lié s’affiche, se délie, et l’enregistrement envoie la liste à jour', async () => {
+  let corpsEnvoye: unknown = null
+  serveur.use(
+    http.put('/api/taches/:id', async ({ request }) => {
+      corpsEnvoye = await request.json()
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  rendre(<TacheEditeur tacheId={TACHE_COMPLETE.id} onFermer={() => {}} />)
+  const lien = await screen.findByRole('link', { name: 'Rapport d’inspection' })
+  expect(lien).toHaveAttribute('href', '/api/documents/d-rapport/fichier')
+
+  await userEvent.click(screen.getByRole('button', { name: 'Délier Rapport d’inspection' }))
+  expect(screen.queryByRole('link', { name: 'Rapport d’inspection' })).not.toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+  await waitFor(() => expect(corpsEnvoye).not.toBeNull())
+  expect((corpsEnvoye as { documentIds: string[] }).documentIds).toEqual([])
+})
+
+test('lier un document via le select l’ajoute à la liste envoyée', async () => {
+  let corpsEnvoye: unknown = null
+  serveur.use(
+    http.put('/api/taches/:id', async ({ request }) => {
+      corpsEnvoye = await request.json()
+      return new HttpResponse(null, { status: 204 })
+    }),
+    http.get('/api/taches/:id', () => HttpResponse.json({ ...TACHE_COMPLETE, documentIds: [] })),
+  )
+  rendre(<TacheEditeur tacheId={TACHE_COMPLETE.id} onFermer={() => {}} />)
+  await waitFor(() => expect(screen.getByLabelText('Titre')).toHaveValue(TACHE_COMPLETE.titre))
+
+  await userEvent.selectOptions(screen.getByLabelText('Lier un document'), 'd-rapport')
+  expect(await screen.findByRole('link', { name: 'Rapport d’inspection' })).toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+  await waitFor(() => expect(corpsEnvoye).not.toBeNull())
+  expect((corpsEnvoye as { documentIds: string[] }).documentIds).toEqual(['d-rapport'])
 })
 
 test('un refetch du détail n’écrase pas la saisie en cours', async () => {

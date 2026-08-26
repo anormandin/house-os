@@ -41,3 +41,22 @@ la vraie saisie (au plus tard au déploiement).
 
 Reste ouvert pour la V1 : moteur de récurrence (3 modes), zones, équipements, flux
 iCal, script de backup, déploiement Tailscale sur la machine de la nouvelle maison.
+
+## Incrément 2026-08-26 — documents liés aux tâches
+
+Exécute [[Plan 2026-08-26 Documents Liés]] ([[D-2026-08-26 Documents Liés Aux Tâches]],
+demande d'Alain : plusieurs documents par tâche) :
+
+- Backend : jointure `TacheDocuments` (migration `AjouterDocumentsDeTache`,
+  cascade du lien seulement), `documentIds` dans détail/POST/PUT et MCP
+  (`creer_taches`, `gerer_tache`) — null = conserver, [] = délier, liste =
+  remplacer ; ids validés. 2 tests d'intégration.
+- Web : section « Documents de référence » du `TacheEditeur` (chips cliquables
+  vers le fichier, retrait ×, select d'ajout) ; fixture `TACHE_COMPLETE` étendue,
+  invariant édition-sans-perte couvre `documentIds`. 2 tests de composant.
+- Vérifié : 343 backend + 50 web verts, aller-retour complet dans l'app dev
+  (lier → enregistrer → rouvrir → délier).
+- Après release : le rapport d'inspection de la Colline a été lié aux 9 tâches
+  d'entretien créées le même jour en prod.
+
+Déviations : aucune.

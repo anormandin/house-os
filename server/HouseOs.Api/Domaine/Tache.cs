@@ -22,6 +22,9 @@ public class Tache
     public Guid? EquipementId { get; set; }
     public Equipement? Equipement { get; set; }
 
+    /// <summary>Documents de référence (rapport, manuel, contrat…) — plusieurs par tâche.</summary>
+    public List<Document> Documents { get; } = [];
+
     public SpecRecurrence Recurrence { get; set; } = SpecRecurrence.Ponctuelle();
     public StrategieAssignation Strategie { get; set; } = StrategieAssignation.Fixe;
 

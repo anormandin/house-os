@@ -45,6 +45,7 @@ export type TacheDetail = {
   equipementId: string | null
   strategie: 'Fixe' | 'Alternance' | 'MoinsLAFait'
   recurrence: Recurrence
+  documentIds: string[]
 }
 
 export type TacheDonnees = {
@@ -56,6 +57,8 @@ export type TacheDonnees = {
   equipementId?: string
   strategie?: string
   recurrence?: Recurrence
+  /** Liste complète des documents liés — absente = liens conservés, [] = tout délier. */
+  documentIds?: string[]
 }
 
 export type Zone = {

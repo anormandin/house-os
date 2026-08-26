@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { FileText, X } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import { api, type Recurrence, type TacheDonnees } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -18,6 +19,7 @@ type Formulaire = {
   zoneId: string
   equipementId: string
   strategie: string
+  documentIds: string[]
   mode: 'Ponctuelle' | 'Fixe' | 'Intervalle'
   fixeType: 'JoursSemaine' | 'JourDuMois' | 'Annuelle'
   joursSemaine: number[]
@@ -41,6 +43,7 @@ const defaut: Formulaire = {
   zoneId: '',
   equipementId: '',
   strategie: 'Fixe',
+  documentIds: [],
   mode: 'Ponctuelle',
   fixeType: 'JoursSemaine',
   joursSemaine: [],
@@ -142,6 +145,7 @@ export default function TacheEditeur({
   const { data: utilisateurs } = useQuery({ queryKey: ['utilisateurs'], queryFn: api.utilisateurs })
   const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
   const { data: equipements } = useQuery({ queryKey: ['equipements'], queryFn: api.equipements })
+  const { data: documents } = useQuery({ queryKey: ['documents'], queryFn: () => api.documents() })
   const { data: tache } = useQuery({
     queryKey: ['tache', tacheId],
     queryFn: () => api.tache(tacheId!),
@@ -177,6 +181,7 @@ export default function TacheEditeur({
       zoneId: tache.zoneId ?? '',
       equipementId: tache.equipementId ?? '',
       strategie: tache.strategie,
+      documentIds: tache.documentIds,
       mode: r.mode,
       fixeType: r.fixeType ?? 'JoursSemaine',
       joursSemaine: r.joursSemaine ?? [],
@@ -209,6 +214,7 @@ export default function TacheEditeur({
         equipementId: f.equipementId || undefined,
         strategie: f.strategie,
         recurrence: versRecurrence(f),
+        documentIds: f.documentIds,
       }
       return tacheId === null
         ? api.creerTache(donnees).then(() => undefined)
@@ -292,6 +298,64 @@ export default function TacheEditeur({
               ))}
             </select>
           </label>
+        </div>
+
+        {/* Documents de référence */}
+        <div className="flex flex-col gap-2">
+          <span className={classeEtiquette}>Documents de référence</span>
+          {f.documentIds.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {f.documentIds.map((documentId) => {
+                const document = documents?.find((d) => d.id === documentId)
+                const titre = document?.titre ?? 'Document'
+                return (
+                  <span
+                    key={documentId}
+                    className="flex max-w-full items-center gap-1.5 rounded-full bg-creux py-1 pl-3 pr-1.5 text-xs font-bold"
+                  >
+                    <FileText className="size-3.5 shrink-0 text-dore" />
+                    <a
+                      href={`/api/documents/${documentId}/fichier`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="min-w-0 truncate text-texte hover:text-orange"
+                    >
+                      {titre}
+                    </a>
+                    <button
+                      type="button"
+                      aria-label={`Délier ${titre}`}
+                      onClick={() =>
+                        maj({ documentIds: f.documentIds.filter((id) => id !== documentId) })
+                      }
+                      className="grid size-4 shrink-0 place-items-center rounded-full text-sourdine hover:bg-carte hover:text-rouge"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          )}
+          <select
+            value=""
+            onChange={(e) => {
+              if (e.target.value.length > 0) {
+                maj({ documentIds: [...f.documentIds, e.target.value] })
+              }
+            }}
+            aria-label="Lier un document"
+            className={cn(classeChamp, 'max-w-72 text-sourdine')}
+          >
+            <option value="">Lier un document…</option>
+            {documents
+              ?.filter((d) => f.documentIds.includes(d.id) === false)
+              .map((d) => (
+                <option key={d.id} value={d.id}>
+                  {[d.titre, d.dossier].filter(Boolean).join(' · ')}
+                </option>
+              ))}
+          </select>
         </div>
 
         {/* Répétition */}

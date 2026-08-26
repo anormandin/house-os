@@ -313,4 +313,59 @@ public class TachesApiTests(HouseOsFactory factory)
             "/api/occurrences?filtre=completees");
         Assert.Single(faites!, o => o.TacheId == id);
     }
+
+    /// <summary>Téléverse un petit PDF et retourne son id (pour les liens tâche→document).</summary>
+    private static async Task<Guid> TeleverserDocument(HttpClient client)
+    {
+        var fichier = new ByteArrayContent("%PDF-1.4\n%%EOF"u8.ToArray());
+        fichier.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        var formulaire = new MultipartFormDataContent { { fichier, "fichier", "reference.pdf" } };
+        var reponse = await client.PostAsync("/api/documents", formulaire);
+        Assert.Equal(HttpStatusCode.Created, reponse.StatusCode);
+        return (await reponse.Content.ReadFromJsonAsync<CorpsId>())!.Id;
+    }
+
+    [Fact]
+    public async Task DocumentsLies_CreationPutEtSuppression_FontLAllerRetour()
+    {
+        var client = await factory.ClientConnecte();
+        var doc1 = await TeleverserDocument(client);
+        var doc2 = await TeleverserDocument(client);
+        var id = await CreerTache(client, new CreerTacheRequete(
+            "Tâche avec références", null, Aujourdhui, null, null, null, null, null, [doc1, doc2]));
+
+        var detail = await client.GetFromJsonAsync<TacheDto>($"/api/taches/{id}");
+        Assert.Equal(2, detail!.DocumentIds.Length);
+        Assert.Contains(doc1, detail.DocumentIds);
+        Assert.Contains(doc2, detail.DocumentIds);
+
+        // PUT sans documentIds (null) : les liens survivent.
+        var sansListe = await client.PutAsJsonAsync($"/api/taches/{id}", new ModifierTacheRequete(
+            "Tâche avec références", null, Aujourdhui, null, null, null, null, null));
+        Assert.Equal(HttpStatusCode.NoContent, sansListe.StatusCode);
+        detail = await client.GetFromJsonAsync<TacheDto>($"/api/taches/{id}");
+        Assert.Equal(2, detail!.DocumentIds.Length);
+
+        // Supprimer un document retire le lien sans toucher la tâche.
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/documents/{doc2}")).StatusCode);
+        detail = await client.GetFromJsonAsync<TacheDto>($"/api/taches/{id}");
+        Assert.Equal([doc1], detail!.DocumentIds);
+
+        // PUT avec [] : tout délier ; le document restant survit.
+        var deliaison = await client.PutAsJsonAsync($"/api/taches/{id}", new ModifierTacheRequete(
+            "Tâche avec références", null, Aujourdhui, null, null, null, null, null, []));
+        Assert.Equal(HttpStatusCode.NoContent, deliaison.StatusCode);
+        detail = await client.GetFromJsonAsync<TacheDto>($"/api/taches/{id}");
+        Assert.Empty(detail!.DocumentIds);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/documents/{doc1}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task DocumentsLies_IdInconnu_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+        var reponse = await client.PostAsJsonAsync("/api/taches", new CreerTacheRequete(
+            "Tâche au lien fantôme", null, null, null, null, null, null, null, [Guid.NewGuid()]));
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+    }
 }

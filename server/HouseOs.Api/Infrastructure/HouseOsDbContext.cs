@@ -44,6 +44,9 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.SetNull);
             t.HasOne(x => x.Equipement).WithMany().HasForeignKey(x => x.EquipementId)
                 .OnDelete(DeleteBehavior.SetNull);
+            // Jointure seule en cascade : supprimer une tâche ou un document
+            // n'efface jamais l'autre entité, seulement le lien.
+            t.HasMany(x => x.Documents).WithMany().UsingEntity("TacheDocuments");
             // La spec de récurrence vit dans les colonnes de la table Taches
             // (Mode/Rollover gardent leurs colonnes V0).
             t.OwnsOne(x => x.Recurrence, r =>

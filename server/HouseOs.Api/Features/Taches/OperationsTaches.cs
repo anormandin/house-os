@@ -68,6 +68,28 @@ public static class OperationsTaches
         return null;
     }
 
+    /// <summary>
+    /// Remplace les documents liés d'une tâche (chargée avec sa collection Documents) :
+    /// null = liens conservés, [] = tout délier, liste = remplacement complet.
+    /// </summary>
+    private static async Task<ErreurValidation?> AppliquerDocumentsAsync(
+        HouseOsDbContext db, Tache tache, Guid[]? documentIds)
+    {
+        if (documentIds is null)
+        {
+            return null;
+        }
+        var ids = documentIds.Distinct().ToArray();
+        var documents = await db.Documents.Where(d => ids.Contains(d.Id)).ToListAsync();
+        if (documents.Count != ids.Length)
+        {
+            return new ErreurValidation("documentIds", "Un des documents n'existe pas (ou plus).");
+        }
+        tache.Documents.Clear();
+        tache.Documents.AddRange(documents);
+        return null;
+    }
+
     private static ErreurValidation? ValiderTitre(string titre) =>
         string.IsNullOrWhiteSpace(titre)
             ? new ErreurValidation("titre", "Le titre est requis.")
@@ -115,6 +137,10 @@ public static class OperationsTaches
 
         tache.ZoneId = requete.ZoneId;
         tache.EquipementId = requete.EquipementId;
+        if (await AppliquerDocumentsAsync(db, tache, requete.DocumentIds) is { } erreurDocuments)
+        {
+            return (null, erreurDocuments);
+        }
 
         db.Taches.Add(tache);
         return (tache, null);
@@ -149,6 +175,10 @@ public static class OperationsTaches
             is { } erreurReference)
         {
             return erreurReference;
+        }
+        if (await AppliquerDocumentsAsync(db, tache, requete.DocumentIds) is { } erreurDocuments)
+        {
+            return erreurDocuments;
         }
 
         tache.Titre = requete.Titre!.Trim();
@@ -690,6 +720,7 @@ public static class OperationsTaches
                 r.FenetreDebutJour,
                 r.FenetreFinMois,
                 r.FenetreFinJour,
-                r.Rollover));
+                r.Rollover),
+            tache.Documents.Select(d => d.Id).ToArray());
     }
 }

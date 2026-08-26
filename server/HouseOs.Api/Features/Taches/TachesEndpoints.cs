@@ -28,7 +28,8 @@ public record CreerTacheRequete(
     Guid? ZoneId,
     Guid? EquipementId,
     string? Strategie,
-    RecurrenceDto? Recurrence);
+    RecurrenceDto? Recurrence,
+    Guid[]? DocumentIds = null);
 
 public record ModifierTacheRequete(
     string Titre,
@@ -38,7 +39,9 @@ public record ModifierTacheRequete(
     Guid? ZoneId,
     Guid? EquipementId,
     string? Strategie,
-    RecurrenceDto? Recurrence);
+    RecurrenceDto? Recurrence,
+    // null = liens conservés, [] = tout délier, liste = remplacement complet.
+    Guid[]? DocumentIds = null);
 
 public record CompleterRequete(string? Notes);
 
@@ -70,7 +73,8 @@ public record TacheDto(
     Guid? ZoneId,
     Guid? EquipementId,
     string Strategie,
-    RecurrenceDto Recurrence);
+    RecurrenceDto Recurrence,
+    Guid[] DocumentIds);
 
 public static class TachesEndpoints
 {
@@ -103,6 +107,7 @@ public static class TachesEndpoints
         {
             var tache = await db.Taches.AsNoTracking()
                 .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
+                .Include(t => t.Documents)
                 .SingleOrDefaultAsync(t => t.Id == id);
             return tache is null ? Results.NotFound() : Results.Ok(OperationsTaches.VersTacheDto(tache));
         });
@@ -114,6 +119,7 @@ public static class TachesEndpoints
         {
             var tache = await db.Taches
                 .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
+                .Include(t => t.Documents)
                 .SingleOrDefaultAsync(t => t.Id == id);
             if (tache is null)
             {
