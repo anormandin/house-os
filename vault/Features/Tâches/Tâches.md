@@ -189,9 +189,11 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   mensuels (passés estompés) et annuels datés, barres de fenêtres saisonnières
   (vert en cours / jaune à venir), **longs intervalles (> 15 j) sur la
   chronologie** avec note « ensuite ≈ … » ; grappes de ponctuelles par jour
-  (voie basse pour les voisines), grappe multiple → **bande accordéon « Les
-  ponctuelles »** (En retard + 3 prochaines semaines dépliées, pilules-compteurs
-  ensuite, tout déplier/Replier) ; bandeau « Le tempo court » réduit aux
+  (voie basse pour les voisines), grappe multiple → **bande « Les ponctuelles —
+  semaine par semaine »** (bloc En retard en rouge + toutes les semaines
+  entièrement dépliées — demande d'Alain du 2026-08-26, remplace l'accordéon
+  3-semaines de la décision ; « Replier » réduit à la barre-titre) ; bandeau
+  « Le tempo court » réduit aux
   cadences ≤ 15 jours sans fenêtre ; tout clic → éditeur.
 - Nouveau contrat : `GET /api/taches` retourne les définitions
   (`TacheResumeDto` : récurrence complète, stratégie, échéance et assigné de

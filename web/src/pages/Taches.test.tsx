@@ -87,7 +87,7 @@ test('le commutateur bascule vers l’Année et le mode survit à une réouvertu
   // Le ruban, sa bande de ponctuelles et le tempo court remplacent les groupes.
   expect(await screen.findByText('fenêtre en cours')).toBeInTheDocument()
   expect(screen.getByText('Le tempo court')).toBeInTheDocument()
-  expect(screen.getByText('Les ponctuelles — les 3 prochaines semaines')).toBeInTheDocument()
+  expect(screen.getByText('Les ponctuelles — semaine par semaine')).toBeInTheDocument()
   expect(screen.getByText('Jalons')).toBeInTheDocument()
   expect(screen.queryByText('Chaque semaine')).not.toBeInTheDocument()
 

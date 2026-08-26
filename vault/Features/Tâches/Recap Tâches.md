@@ -106,4 +106,8 @@ La vue Année 12-mois n'a pas survécu aux vraies données (jalons superposés,
 
 Déviations : la première grappe porte son mois (« 23 août ») plutôt que le jour
 nu de la maquette — plus clair hors contexte. Tranche sans note de plan (la
-maquette D tenait lieu de plan).
+maquette D tenait lieu de plan). Retouche du même soir, demandée par Alain
+(« ponctuelles should stay expanded ») : la bande n'est plus un accordéon
+3-semaines — toutes les semaines s'affichent entièrement dépliées (plus de
+pilules-compteurs ni de « + n autres… ») ; « Replier » réduit la bande à sa
+barre-titre.

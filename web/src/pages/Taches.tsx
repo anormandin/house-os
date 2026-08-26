@@ -10,7 +10,6 @@ import {
   construireRuban,
   diffJours,
   grouperParRythme,
-  lundiDe,
   tonEcheance,
   type ChipRecurrence,
   type GrappeJour,
@@ -377,8 +376,6 @@ function VueRuban({
   const bandeRef = useRef<HTMLDivElement>(null)
   const [fenetreMini, setFenetreMini] = useState<{ gauche: number; largeur: number } | null>(null)
   const [bandeDepliee, setBandeDepliee] = useState(true)
-  const [toutDeplier, setToutDeplier] = useState(false)
-  const [semainesOuvertes, setSemainesOuvertes] = useState<string[]>([])
 
   const largeurPiste = ruban.jours * PX_JOUR
   const moisDebut = Number(ruban.debutDomaine.slice(5, 7))
@@ -441,24 +438,12 @@ function VueRuban({
       onModifier(grappe.taches[0].id)
       return
     }
-    // Une grappe multiple renvoie à la bande semaine-par-semaine, dépliée au complet.
+    // Une grappe multiple renvoie à la bande semaine-par-semaine.
     setBandeDepliee(true)
-    setToutDeplier(true)
     if (typeof bandeRef.current?.scrollIntoView === 'function') {
       bandeRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
-
-  const semaineCourante = lundiDe(aujourdhui)
-  const limiteDepliee = plusSemaines(semaineCourante, 3)
-  const semainesDepliees = toutDeplier
-    ? ruban.semaines
-    : ruban.semaines.filter((s) => s.lundi < limiteDepliee)
-  const semainesEnPilules = toutDeplier
-    ? []
-    : ruban.semaines.filter((s) => s.lundi >= limiteDepliee)
-  const nbAffichees =
-    ruban.enRetard.length + semainesDepliees.reduce((n, s) => n + s.taches.length, 0)
 
   return (
     <div className="flex flex-col gap-3">
@@ -743,13 +728,9 @@ function VueRuban({
       {ruban.totalPonctuelles > 0 && (
         <div ref={bandeRef} className="rounded-[20px] bg-carte px-5 py-4 shadow-carte">
           <div className="flex items-baseline gap-3">
-            <h3 className="text-lg font-bold">
-              {toutDeplier
-                ? 'Les ponctuelles — semaine par semaine'
-                : 'Les ponctuelles — les 3 prochaines semaines'}
-            </h3>
+            <h3 className="text-lg font-bold">Les ponctuelles — semaine par semaine</h3>
             <span className="rounded-full bg-creux px-2 text-xs font-bold text-dore">
-              {bandeDepliee ? `${nbAffichees} / ${ruban.totalPonctuelles}` : ruban.totalPonctuelles}
+              {ruban.totalPonctuelles}
             </span>
             <button
               type="button"
@@ -768,55 +749,24 @@ function VueRuban({
             </button>
           </div>
           {bandeDepliee && (
-            <>
-              <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2 lg:grid-cols-3">
-                {ruban.enRetard.length > 0 && (
-                  <SemaineBloc
-                    cle="retard"
-                    titre="En retard"
-                    taches={ruban.enRetard}
-                    retard
-                    ouverte={semainesOuvertes.includes('retard')}
-                    onOuvrir={() => setSemainesOuvertes([...semainesOuvertes, 'retard'])}
-                    onModifier={onModifier}
-                  />
-                )}
-                {semainesDepliees.map((semaine) => (
-                  <SemaineBloc
-                    key={semaine.lundi}
-                    cle={semaine.lundi}
-                    titre={semaine.libelle}
-                    taches={semaine.taches}
-                    ouverte={semainesOuvertes.includes(semaine.lundi)}
-                    onOuvrir={() => setSemainesOuvertes([...semainesOuvertes, semaine.lundi])}
-                    onModifier={onModifier}
-                  />
-                ))}
-              </div>
-              {semainesEnPilules.length > 0 && (
-                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-dashed border-tiret pt-3 text-xs">
-                  <span className="font-extrabold text-tiret-texte uppercase tracking-wider">
-                    Semaines suivantes :
-                  </span>
-                  {semainesEnPilules.map((semaine) => (
-                    <Chip
-                      key={semaine.lundi}
-                      chip={{
-                        libelle: `${dateCourte(semaine.lundi)} · ${semaine.taches.length}`,
-                        classe: 'saison',
-                      }}
-                    />
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setToutDeplier(true)}
-                    className="font-bold text-orange"
-                  >
-                    tout déplier
-                  </button>
-                </div>
+            <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2 lg:grid-cols-3">
+              {ruban.enRetard.length > 0 && (
+                <SemaineBloc
+                  titre="En retard"
+                  taches={ruban.enRetard}
+                  retard
+                  onModifier={onModifier}
+                />
               )}
-            </>
+              {ruban.semaines.map((semaine) => (
+                <SemaineBloc
+                  key={semaine.lundi}
+                  titre={semaine.libelle}
+                  taches={semaine.taches}
+                  onModifier={onModifier}
+                />
+              ))}
+            </div>
           )}
         </div>
       )}
@@ -845,33 +795,19 @@ function VueRuban({
   )
 }
 
-/** Lundi + n semaines, en ISO local. */
-function plusSemaines(lundiIso: string, semaines: number): string {
-  const [a, m, j] = lundiIso.split('-').map(Number)
-  const d = new Date(a, m - 1, j + semaines * 7)
-  return d.toLocaleDateString('fr-CA')
-}
-
 function SemaineBloc({
-  cle,
   titre,
   taches,
   retard = false,
-  ouverte,
-  onOuvrir,
   onModifier,
 }: {
-  cle: string
   titre: string
   taches: TacheResume[]
   retard?: boolean
-  ouverte: boolean
-  onOuvrir: () => void
   onModifier: (tacheId: string) => void
 }) {
-  const visibles = ouverte ? taches : taches.slice(0, 4)
   return (
-    <div key={cle}>
+    <div>
       <h4
         className={cn(
           'mb-1 text-[13px] font-bold',
@@ -880,7 +816,7 @@ function SemaineBloc({
       >
         {titre} <span className="font-normal text-sourdine">· {taches.length}</span>
       </h4>
-      {visibles.map((tache) => (
+      {taches.map((tache) => (
         <button
           key={tache.id}
           type="button"
@@ -900,11 +836,6 @@ function SemaineBloc({
           {tache.assigneA !== null && <Avatar utilisateur={tache.assigneA} taille={18} />}
         </button>
       ))}
-      {ouverte === false && taches.length > 4 && (
-        <button type="button" onClick={onOuvrir} className="mt-1 text-[11.5px] font-bold text-dore">
-          + {taches.length - 4} autres…
-        </button>
-      )}
     </div>
   )
 }
