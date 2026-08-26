@@ -747,6 +747,7 @@ public static class OperationsTaches
                     t.Id,
                     t.Titre,
                     t.Description,
+                    enAttente?.Id,
                     enAttente?.Echeance,
                     enAttente?.AssigneA is { } assigne
                         ? new UtilisateurDto(assigne.Id, assigne.NomUtilisateur, assigne.NomAffichage)

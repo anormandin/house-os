@@ -10,6 +10,7 @@ import { rendre } from '@/test/rendre'
 function resume(partiel: Partial<TacheResume> & { id: string; titre: string }): TacheResume {
   return {
     description: null,
+    occurrenceId: `o-${partiel.id}`,
     echeance: null,
     assigneA: null,
     zoneId: null,
@@ -52,7 +53,7 @@ const CORPUS: TacheResume[] = [
     echeance: HIER,
   }),
   resume({ id: TACHE_COMPLETE.id, titre: 'Notaire — répartitions', echeance: dansNJours(5) }),
-  resume({ id: 'p-faite', titre: 'Déjà réglée', completee: true }),
+  resume({ id: 'p-faite', titre: 'Déjà réglée', completee: true, occurrenceId: null }),
 ]
 
 // L'environnement jsdom de Vitest n'expose pas localStorage : stub en mémoire,
@@ -96,6 +97,24 @@ test('le commutateur bascule vers l’Année et le mode survit à une réouvertu
   servirTaches(CORPUS)
   rendre(<Taches />)
   expect(await screen.findByText('fenêtre en cours')).toBeInTheDocument()
+})
+
+test('la case complète l’occurrence sans ouvrir l’éditeur', async () => {
+  servirTaches(CORPUS)
+  let complete: string | null = null
+  serveur.use(
+    http.post('/api/occurrences/:id/completer', ({ params }) => {
+      complete = params.id as string
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  rendre(<Taches />)
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Compléter Changer les draps' }))
+
+  await waitFor(() => expect(complete).toBe('o-r-1'))
+  // La complétion ne doit pas ouvrir l'éditeur en passant.
+  expect(screen.queryByLabelText('Titre')).not.toBeInTheDocument()
 })
 
 test('cliquer une rangée ouvre l’éditeur de la tâche', async () => {

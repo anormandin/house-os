@@ -52,6 +52,8 @@ export type TacheResume = {
   id: string
   titre: string
   description: string | null
+  /** Occurrence en attente — permet de compléter depuis la console. */
+  occurrenceId: string | null
   echeance: string | null
   assigneA: Utilisateur | null
   zoneId: string | null

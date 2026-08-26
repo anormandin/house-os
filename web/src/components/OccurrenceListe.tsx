@@ -48,6 +48,8 @@ export default function OccurrenceListe({
     queryClient.invalidateQueries({ queryKey: ['occurrences'] })
     // Compléter/annuler touche le journal, donc le bilan hebdo.
     queryClient.invalidateQueries({ queryKey: ['journal'] })
+    // …et la console des définitions (échéance/assigné en attente, progression).
+    queryClient.invalidateQueries({ queryKey: ['taches'] })
   }
 
   // Éditeurs inline, un seul ouvert à la fois (id d'occurrence concerné).

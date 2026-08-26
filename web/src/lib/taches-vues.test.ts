@@ -14,6 +14,7 @@ const AUJOURDHUI = '2026-08-26'
 function tache(partiel: Partial<TacheResume> & { id: string; titre: string }): TacheResume {
   return {
     description: null,
+    occurrenceId: null,
     echeance: null,
     assigneA: null,
     zoneId: null,

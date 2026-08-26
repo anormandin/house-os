@@ -68,6 +68,8 @@ public record TacheResumeDto(
     Guid Id,
     string Titre,
     string? Description,
+    // Occurrence en attente : son id permet de compléter depuis la console.
+    Guid? OccurrenceId,
     DateOnly? Echeance,
     UtilisateurDto? AssigneA,
     Guid? ZoneId,

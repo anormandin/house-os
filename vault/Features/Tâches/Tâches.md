@@ -196,10 +196,16 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   « Le tempo court » réduit aux
   cadences ≤ 15 jours sans fenêtre ; tout clic → éditeur.
 - Nouveau contrat : `GET /api/taches` retourne les définitions
-  (`TacheResumeDto` : récurrence complète, stratégie, échéance et assigné de
-  l'occurrence en attente, `nbDocuments`, `completee`), tri échéance puis titre ;
-  parité MCP `lister_taches`. La logique des deux vues est pure et testée
-  (`web/src/lib/taches-vues.ts`, patron ruban).
+  (`TacheResumeDto` : récurrence complète, stratégie, `occurrenceId`, échéance
+  et assigné de l'occurrence en attente, `nbDocuments`, `completee`), tri
+  échéance puis titre ; parité MCP `lister_taches`. La logique des deux vues est
+  pure et testée (`web/src/lib/taches-vues.ts`, patron ruban).
+- **Compléter depuis la console** (2026-08-26) : case à cocher sur chaque rangée
+  de la vue Liste et de la bande semaine-par-semaine (via `occurrenceId`) — on
+  peut prendre de l'avance, le moteur matérialisant la suivante à partir de
+  max(complétion, échéance). L'annulation reste sur Aujourd'hui (rangée verte
+  du jour). Compléter/annuler depuis Aujourd'hui invalide aussi la requête
+  `taches` de la console.
 
 ## Hors périmètre
 

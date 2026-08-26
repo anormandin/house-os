@@ -547,6 +547,7 @@ public class OperationsTachesTests : TestAvecSqlite
 
         var resume = Assert.Single(resumes);
         Assert.Equal(tache.Id, resume.Id);
+        Assert.Equal(EnAttenteDe(tache).Id, resume.OccurrenceId);
         Assert.Equal(Aujourdhui, resume.Echeance);
         Assert.Equal(_alain.Id, resume.AssigneA?.Id);
         Assert.Equal("Intervalle", resume.Recurrence.Mode);
@@ -572,6 +573,7 @@ public class OperationsTachesTests : TestAvecSqlite
         Assert.False(resumes[0].Completee);
         Assert.Equal(faite.Id, resumes[1].Id);
         Assert.True(resumes[1].Completee);
+        Assert.Null(resumes[1].OccurrenceId);
         Assert.Null(resumes[1].Echeance);
         Assert.Null(resumes[1].AssigneA);
     }

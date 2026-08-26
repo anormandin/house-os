@@ -111,3 +111,14 @@ maquette D tenait lieu de plan). Retouche du même soir, demandée par Alain
 3-semaines — toutes les semaines s'affichent entièrement dépliées (plus de
 pilules-compteurs ni de « + n autres… ») ; « Replier » réduit la bande à sa
 barre-titre.
+
+## Incrément 2026-08-26 (soir) — compléter depuis la console
+
+Demande d'Alain : cocher une tâche ailleurs que sur Aujourd'hui (faire des
+tâches d'avance). `TacheResumeDto` expose `occurrenceId` (l'occurrence en
+attente) ; case à cocher sur les rangées de la vue Liste et de la bande
+semaine-par-semaine (rouge quand en retard, absente si rien en attente), un
+clic = POST completer, invalidation croisée `taches`/`occurrences`/`journal`
+dans les deux sens (OccurrenceListe invalide aussi `taches`). Tests :
+backend 347 (2 asserts ajoutés), web 60 → 61 ; complétion + annulation
+vérifiées de bout en bout dans l'app dev. Déviations : aucune.

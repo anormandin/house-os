@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarRange, ChevronDown, ChevronUp, List, Paperclip, Plus } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import TacheEditeur, { editeurDejaOuvert } from '@/components/TacheEditeur'
@@ -77,6 +77,50 @@ const MOIS_COURTS_NOTE = [
   'nov',
   'déc',
 ]
+
+/** Compléter une occurrence depuis la console — on peut prendre de l'avance :
+ * le moteur matérialise la suivante à partir de max(complétion, échéance). */
+function useCompleter() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (occurrenceId: string) => api.completer(occurrenceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['taches'] })
+      queryClient.invalidateQueries({ queryKey: ['occurrences'] })
+      queryClient.invalidateQueries({ queryKey: ['journal'] })
+    },
+  })
+}
+
+function CaseCompleter({
+  tache,
+  aujourdhui,
+  taille = 20,
+  completer,
+}: {
+  tache: TacheResume
+  aujourdhui: string
+  taille?: number
+  completer: ReturnType<typeof useCompleter>
+}) {
+  if (tache.occurrenceId === null) {
+    return null
+  }
+  const enRetard = tache.echeance !== null && tache.echeance < aujourdhui
+  return (
+    <button
+      type="button"
+      aria-label={`Compléter ${tache.titre}`}
+      disabled={completer.isPending}
+      onClick={() => completer.mutate(tache.occurrenceId!)}
+      className={cn(
+        'shrink-0 rounded-[7px] border-[2.5px] transition-colors hover:border-vert hover:bg-vert-fond',
+        enRetard ? 'border-rouge' : 'border-coche',
+      )}
+      style={{ width: taille, height: taille }}
+    />
+  )
+}
 
 function Chip({ chip }: { chip: ChipRecurrence }) {
   return (
@@ -229,6 +273,7 @@ function VueListe({
   onModifier: (tacheId: string) => void
 }) {
   const { groupes, progression } = grouperParRythme(taches, aujourdhui)
+  const completer = useCompleter()
 
   return (
     <div className="flex flex-col gap-4">
@@ -258,33 +303,40 @@ function VueListe({
           )}
           <div>
             {groupe.taches.map((tache) => (
-              <button
+              <div
                 key={tache.id}
-                type="button"
-                onClick={() => onModifier(tache.id)}
-                className="flex w-full items-center gap-2.5 border-t border-dashed border-tiret py-2 text-left text-sm first:border-t-0 hover:bg-creux/50"
+                className="flex w-full items-center gap-2.5 border-t border-dashed border-tiret py-2 text-sm first:border-t-0 hover:bg-creux/50"
               >
-                <span className="min-w-0 truncate font-bold">{tache.titre}</span>
-                {chipsRecurrence(tache.recurrence).map((chip) => (
-                  <Chip key={chip.libelle} chip={chip} />
-                ))}
-                {lieu(tache) !== null && (
-                  <span className="shrink-0 text-xs text-sourdine">{lieu(tache)}</span>
-                )}
-                {tache.nbDocuments > 0 && (
-                  <span className="flex shrink-0 items-center gap-0.5 text-xs text-sourdine">
-                    <Paperclip className="size-3" />
-                    {tache.nbDocuments}
+                <CaseCompleter tache={tache} aujourdhui={aujourdhui} completer={completer} />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onModifier(tache.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && onModifier(tache.id)}
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5"
+                >
+                  <span className="min-w-0 truncate font-bold">{tache.titre}</span>
+                  {chipsRecurrence(tache.recurrence).map((chip) => (
+                    <Chip key={chip.libelle} chip={chip} />
+                  ))}
+                  {lieu(tache) !== null && (
+                    <span className="shrink-0 text-xs text-sourdine">{lieu(tache)}</span>
+                  )}
+                  {tache.nbDocuments > 0 && (
+                    <span className="flex shrink-0 items-center gap-0.5 text-xs text-sourdine">
+                      <Paperclip className="size-3" />
+                      {tache.nbDocuments}
+                    </span>
+                  )}
+                  <span className="ml-auto w-36 shrink-0 text-right text-xs">
+                    <LibelleEcheance echeance={tache.echeance} aujourdhui={aujourdhui} />
                   </span>
-                )}
-                <span className="ml-auto w-36 shrink-0 text-right text-xs">
-                  <LibelleEcheance echeance={tache.echeance} aujourdhui={aujourdhui} />
-                </span>
-                <span className="flex w-32 shrink-0 items-center justify-end gap-2 text-xs text-sourdine">
-                  {tache.assigneA !== null && <Avatar utilisateur={tache.assigneA} taille={22} />}
-                  {tache.recurrence.mode === 'Ponctuelle' ? '' : STRATEGIES[tache.strategie]}
-                </span>
-              </button>
+                  <span className="flex w-32 shrink-0 items-center justify-end gap-2 text-xs text-sourdine">
+                    {tache.assigneA !== null && <Avatar utilisateur={tache.assigneA} taille={22} />}
+                    {tache.recurrence.mode === 'Ponctuelle' ? '' : STRATEGIES[tache.strategie]}
+                  </span>
+                </div>
+              </div>
             ))}
           </div>
         </section>
@@ -372,6 +424,7 @@ function VueRuban({
   onModifier: (tacheId: string) => void
 }) {
   const ruban = construireRuban(taches, aujourdhui)
+  const completer = useCompleter()
   const scrollRef = useRef<HTMLDivElement>(null)
   const bandeRef = useRef<HTMLDivElement>(null)
   const [fenetreMini, setFenetreMini] = useState<{ gauche: number; largeur: number } | null>(null)
@@ -755,6 +808,8 @@ function VueRuban({
                   titre="En retard"
                   taches={ruban.enRetard}
                   retard
+                  aujourdhui={aujourdhui}
+                  completer={completer}
                   onModifier={onModifier}
                 />
               )}
@@ -763,6 +818,8 @@ function VueRuban({
                   key={semaine.lundi}
                   titre={semaine.libelle}
                   taches={semaine.taches}
+                  aujourdhui={aujourdhui}
+                  completer={completer}
                   onModifier={onModifier}
                 />
               ))}
@@ -799,11 +856,15 @@ function SemaineBloc({
   titre,
   taches,
   retard = false,
+  aujourdhui,
+  completer,
   onModifier,
 }: {
   titre: string
   taches: TacheResume[]
   retard?: boolean
+  aujourdhui: string
+  completer: ReturnType<typeof useCompleter>
   onModifier: (tacheId: string) => void
 }) {
   return (
@@ -817,24 +878,31 @@ function SemaineBloc({
         {titre} <span className="font-normal text-sourdine">· {taches.length}</span>
       </h4>
       {taches.map((tache) => (
-        <button
+        <div
           key={tache.id}
-          type="button"
-          onClick={() => onModifier(tache.id)}
-          className="flex w-full items-center gap-2 border-t border-dashed border-tiret py-1.5 text-left text-[12.5px] first:border-t-0 hover:bg-creux/50"
+          className="flex w-full items-center gap-2 border-t border-dashed border-tiret py-1.5 text-[12.5px] first:border-t-0 hover:bg-creux/50"
         >
-          <span className="min-w-0 flex-1 truncate">{tache.titre}</span>
-          <span
-            className={cn(
-              'shrink-0 text-[11px] font-bold tabular-nums',
-              retard ? 'text-rouge' : 'text-sourdine',
-            )}
+          <CaseCompleter tache={tache} aujourdhui={aujourdhui} taille={16} completer={completer} />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => onModifier(tache.id)}
+            onKeyDown={(e) => e.key === 'Enter' && onModifier(tache.id)}
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
           >
-            {tache.echeance !== null &&
-              `${jourCourt(tache.echeance)} ${Number(tache.echeance.slice(8, 10))}`}
-          </span>
-          {tache.assigneA !== null && <Avatar utilisateur={tache.assigneA} taille={18} />}
-        </button>
+            <span className="min-w-0 flex-1 truncate">{tache.titre}</span>
+            <span
+              className={cn(
+                'shrink-0 text-[11px] font-bold tabular-nums',
+                retard ? 'text-rouge' : 'text-sourdine',
+              )}
+            >
+              {tache.echeance !== null &&
+                `${jourCourt(tache.echeance)} ${Number(tache.echeance.slice(8, 10))}`}
+            </span>
+            {tache.assigneA !== null && <Avatar utilisateur={tache.assigneA} taille={18} />}
+          </div>
+        </div>
       ))}
     </div>
   )
