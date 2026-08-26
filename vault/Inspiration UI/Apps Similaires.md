@@ -62,4 +62,5 @@ Entretien récurrent et tâches ponctuelles : fusionnés dans Aujourd'hui *avec 
 traitements visuels distincts* (gradient de fraîcheur vs date), gérés séparément.
 Alimente la spec [[Tâches]] (V1 : le moteur les distingue déjà par le mode).
 
-Liens : [[Inspiration UI]] · [[Directions Artistiques]] · [[Patterns Vue Aujourd'hui]].
+Liens : [[Inspiration UI]] · [[Directions Artistiques]] · [[Patterns Vue Aujourd'hui]] ·
+[[Banque D'idées]] (balayage du marché 2026-08-26 : features et monétisation, pas l'UI).

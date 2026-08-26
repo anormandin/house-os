@@ -49,6 +49,8 @@ Recherche initiale : `docs/research/` (3 rapports, 2026-08-23).
 
 ### Référence
 - [[Architecture]] — stack, structure du monorepo, feuille de route par phases.
+- [[Banque D'idées]] — sac d'idées de features tiré du balayage du marché
+  (110 apps notées, catalogue par catégorie, leçons de monétisation).
 
 ### Inspiration UI
 - [[Inspiration UI]] — index du dossier : directions artistiques, patterns, e-ink,
