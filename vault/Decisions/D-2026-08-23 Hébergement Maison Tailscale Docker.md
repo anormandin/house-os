@@ -1,8 +1,9 @@
 ---
 type: decision
-status: accepted
+status: superseded
 date: 2026-08-23
 feature:
+superseded-by: "[[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]"
 tags: []
 ---
 

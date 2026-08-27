@@ -14,7 +14,7 @@ public class FluxIcalApiTests(HouseOsFactory factory)
 {
     private static readonly DateOnly Aujourdhui = DateOnly.FromDateTime(DateTime.Now);
 
-    private sealed record MonFlux(string Chemin);
+    private sealed record MonFlux(string Chemin, string? UrlPublique);
     private sealed record CorpsId(Guid Id);
 
     private static async Task<string> FluxDe(HttpClient client)
@@ -30,6 +30,37 @@ public class FluxIcalApiTests(HouseOsFactory factory)
             titre, null, echeance, assigneAId, null, null, null, null));
         Assert.Equal(HttpStatusCode.Created, reponse.StatusCode);
         return (await reponse.Content.ReadFromJsonAsync<CorpsId>())!.Id;
+    }
+
+    [Fact]
+    public async Task RotationDuJeton_RevoqueLAncienneUrl_EtSertLaNouvelle()
+    {
+        var client = await factory.ClientConnecte("ariane");
+        var ancien = await client.GetFromJsonAsync<MonFlux>("/api/ical/mon-flux");
+
+        var rotation = await client.PostAsync("/api/ical/rotation", null);
+        rotation.EnsureSuccessStatusCode();
+        var nouveau = await rotation.Content.ReadFromJsonAsync<MonFlux>();
+
+        // La rotation est la seule révocation possible d'un jeton fuité : l'ancien
+        // flux doit mourir immédiatement, le nouveau servir tout de suite.
+        Assert.NotEqual(ancien!.Chemin, nouveau!.Chemin);
+        var anonyme = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.NotFound, (await anonyme.GetAsync(ancien.Chemin)).StatusCode);
+        (await anonyme.GetAsync(nouveau.Chemin)).EnsureSuccessStatusCode();
+
+        var relu = await client.GetFromJsonAsync<MonFlux>("/api/ical/mon-flux");
+        Assert.Equal(nouveau.Chemin, relu!.Chemin);
+    }
+
+    [Fact]
+    public async Task SansConfigPublique_MonFluxNaPasDUrlPublique()
+    {
+        var client = await factory.ClientConnecte();
+
+        var monFlux = await client.GetFromJsonAsync<MonFlux>("/api/ical/mon-flux");
+
+        Assert.Null(monFlux!.UrlPublique);
     }
 
     [Fact]

@@ -30,3 +30,26 @@ http→301→https, manifest PWA 200, `date` du conteneur en EDT, météo ingér
 
 Déviations : aucune. Reste côté Alain : réservation DHCP de l'IP du LXC dans
 UniFi ; mise à jour = `git pull && docker compose up -d --build` dans le LXC.
+
+## Volet Flux iCal public (2026-08-27 — [[Plan 2026-08-27 Flux iCal Public]])
+
+Exposition du seul chemin `/ical` sur Internet pour l'abonnement Google Agenda
+([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]) :
+
+- Sidecar `tailscale/tailscale` dans le compose (profil `funnel`, userspace,
+  état en volume), `infra/tailscale-serve.json` monte `/ical` → `app:8080/ical`
+  et rien d'autre ; `.env.example` : `COMPOSE_PROFILES`, `TS_AUTHKEY`,
+  `ICAL_URL_PUBLIQUE_BASE`.
+- Rotation self-service du jeton : `POST /api/ical/rotation`, helper partagé
+  `JetonIcal` (génération + réponse chemin/urlPublique), parité MCP
+  (`mon_flux_ical` gagne `regenerer`), bouton « Régénérer » à deux temps dans
+  « Mon calendrier », qui affiche désormais les deux URLs étiquetées.
+- Tests : backend 398 → 403 (rotation révoque l'ancienne URL, composition de
+  l'URL publique), web 67 → 69 (deux URLs affichées, rotation confirmée remplace
+  l'URL).
+
+Déviation : la config publique n'est pas testée via la factory d'intégration
+(elle resterait figée pour toute la collection) — composition couverte en
+unitaire, défaut null en intégration. Reste côté Alain : attribut `funnel` dans
+la policy du tailnet + auth key taguée dans `/opt/house-os/.env`, puis
+vérification curl du strip de préfixe des mounts serve au premier déploiement.

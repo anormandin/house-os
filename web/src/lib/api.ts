@@ -220,6 +220,12 @@ export type MeteoMaintenant = {
   codeMeteo: number
 }
 
+export type FluxIcal = {
+  chemin: string
+  // URL Funnel du flux — absente quand l'exposition publique n'est pas configurée.
+  urlPublique: string | null
+}
+
 export type Meteo = {
   misAJourLe: string | null
   maintenant: MeteoMaintenant | null
@@ -583,7 +589,8 @@ export const api = {
     return requete<RapportImport>('/api/budget/import', { method: 'POST', body: formulaire })
   },
 
-  monFluxIcal: () => requete<{ chemin: string }>('/api/ical/mon-flux'),
+  monFluxIcal: () => requete<FluxIcal>('/api/ical/mon-flux'),
+  rotationFluxIcal: () => requete<FluxIcal>('/api/ical/rotation', { method: 'POST' }),
 
   meteo: () => requete<Meteo>('/api/meteo'),
 

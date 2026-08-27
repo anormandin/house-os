@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Check, Copy, LogOut } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CalendarDays, Check, Copy, LogOut, RefreshCw } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import Avatar from '@/components/Avatar'
 import { api, type Utilisateur } from '@/lib/api'
@@ -18,7 +18,8 @@ const onglets = [
 export default function Layout({ moi }: { moi: Utilisateur }) {
   const queryClient = useQueryClient()
   const [calendrierOuvert, setCalendrierOuvert] = useState(false)
-  const [copie, setCopie] = useState(false)
+  const [copie, setCopie] = useState<string | null>(null)
+  const [confirmerRotation, setConfirmerRotation] = useState(false)
 
   const { data: utilisateurs } = useQuery({
     queryKey: ['utilisateurs'],
@@ -30,15 +31,45 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
     enabled: calendrierOuvert,
   })
 
-  const urlFlux = monFlux === undefined ? null : new URL(monFlux.chemin, window.location.origin).href
+  // L'interne (même origine) reste la plus fiable pour les appareils sur
+  // Tailscale ; la publique (Funnel) est la seule que Google Agenda peut lire.
+  const flux =
+    monFlux === undefined
+      ? []
+      : [
+          ...(monFlux.urlPublique === null
+            ? []
+            : [
+                {
+                  cle: 'publique',
+                  libelle: 'Pour Google Agenda (publique)',
+                  url: monFlux.urlPublique,
+                },
+              ]),
+          {
+            cle: 'interne',
+            libelle: 'Sur Tailscale (interne)',
+            url: new URL(monFlux.chemin, window.location.origin).href,
+          },
+        ]
 
-  async function copier() {
-    if (urlFlux === null) {
-      return
-    }
-    await navigator.clipboard.writeText(urlFlux)
-    setCopie(true)
-    setTimeout(() => setCopie(false), 2000)
+  const rotation = useMutation({
+    mutationFn: api.rotationFluxIcal,
+    onSuccess: (nouveau) => {
+      queryClient.setQueryData(['mon-flux-ical'], nouveau)
+      setConfirmerRotation(false)
+    },
+  })
+
+  async function copier(cle: string, url: string) {
+    await navigator.clipboard.writeText(url)
+    setCopie(cle)
+    setTimeout(() => setCopie(null), 2000)
+  }
+
+  function fermerCalendrier() {
+    setCalendrierOuvert(false)
+    setConfirmerRotation(false)
   }
 
   async function deconnecter() {
@@ -107,7 +138,7 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
       {calendrierOuvert && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-encre/30 p-4"
-          onClick={() => setCalendrierOuvert(false)}
+          onClick={fermerCalendrier}
         >
           <div
             className="flex w-full max-w-lg flex-col gap-3 rounded-[28px] bg-carte p-7 shadow-carte-lg"
@@ -119,25 +150,51 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
               échéance — et celles que personne n’a prises — apparaîtront dans ton
               app de calendrier. L’URL est secrète, garde-la pour toi.
             </p>
-            <div className="flex items-center gap-2 rounded-xl bg-creux px-3 py-2.5">
-              <span className="min-w-0 flex-1 truncate text-sm text-dore">
-                {urlFlux ?? 'Chargement…'}
+            {flux.length === 0 && (
+              <div className="rounded-xl bg-creux px-3 py-2.5 text-sm text-dore">Chargement…</div>
+            )}
+            {flux.map(({ cle, libelle, url }) => (
+              <div key={cle} className="flex flex-col gap-1">
+                <span className="text-xs font-bold text-sourdine">{libelle}</span>
+                <div className="flex items-center gap-2 rounded-xl bg-creux px-3 py-2.5">
+                  <span className="min-w-0 flex-1 truncate text-sm text-dore">{url}</span>
+                  <button
+                    type="button"
+                    onClick={() => copier(cle, url)}
+                    aria-label={`Copier l'URL (${libelle})`}
+                    className="flex items-center gap-1.5 rounded-full bg-orange px-3 py-1.5 text-xs font-bold text-carte"
+                  >
+                    {copie === cle ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                    {copie === cle ? 'Copiée!' : 'Copier'}
+                  </button>
+                </div>
+              </div>
+            ))}
+            <p className="text-xs text-sourdine">
+              iPhone : Réglages → Calendrier → Comptes → Ajouter un abonnement.
+              Google Agenda : Autres agendas → S’abonner par URL (utiliser la publique).
+            </p>
+            <div className="flex items-center justify-between gap-3 border-t border-creux pt-3">
+              <span className="text-xs text-sourdine">
+                {confirmerRotation
+                  ? 'Les abonnements existants casseront — il faudra se réabonner.'
+                  : 'URL fuitée? Régénère le jeton pour révoquer l’ancienne.'}
               </span>
               <button
                 type="button"
-                onClick={copier}
-                disabled={urlFlux === null}
-                aria-label="Copier l'URL"
-                className="flex items-center gap-1.5 rounded-full bg-orange px-3 py-1.5 text-xs font-bold text-carte disabled:opacity-40"
+                onClick={() =>
+                  confirmerRotation ? rotation.mutate() : setConfirmerRotation(true)
+                }
+                disabled={flux.length === 0 || rotation.isPending}
+                className={cn(
+                  'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold disabled:opacity-40',
+                  confirmerRotation ? 'bg-orange text-carte' : 'bg-creux text-texte',
+                )}
               >
-                {copie ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                {copie ? 'Copiée!' : 'Copier'}
+                <RefreshCw className={cn('size-3.5', rotation.isPending && 'animate-spin')} />
+                {confirmerRotation ? 'Confirmer la rotation' : 'Régénérer'}
               </button>
             </div>
-            <p className="text-xs text-sourdine">
-              iPhone : Réglages → Calendrier → Comptes → Ajouter un abonnement.
-              Google Agenda : Autres agendas → Importer par URL.
-            </p>
           </div>
         </div>
       )}

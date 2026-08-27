@@ -42,11 +42,38 @@ services:
       # des utilisateurs (base vierge) ; en changer ensuite = SQL.
       Seed__Utilisateurs__0__MotDePasse: ${SEED_MDP_ALAIN:-45234523}
       Seed__Utilisateurs__1__MotDePasse: ${SEED_MDP_ARIANE:-45234523}
+      # Base de l'URL publique du flux iCal (Funnel) — vide = l'UI n'affiche que
+      # l'URL interne.
+      Ical__UrlPubliqueBase: ${ICAL_URL_PUBLIQUE_BASE:-}
     ports:
       - "8080:8080"
     volumes:
       - fichiers:/app/donnees/fichiers   # manuels et photos des équipements (inclus au backup)
 
+  # Seule exposition publique du système : Funnel publie /ical (et rien d'autre —
+  # voir infra/tailscale-serve.json) sur https://houseos.<tailnet>.ts.net pour que
+  # Google Agenda puisse s'abonner au flux. Démarre seulement avec
+  # COMPOSE_PROFILES=funnel (défini dans le .env du serveur, absent en dev).
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: houseos-tailscale
+    restart: unless-stopped
+    profiles: ["funnel"]
+    hostname: houseos
+    depends_on:
+      - app
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_SERVE_CONFIG: /config/tailscale-serve.json
+      # Userspace : pas de /dev/net/tun requis (Docker dans un LXC) ; le proxy
+      # serve sort vers app:8080 par le réseau compose, ça suffit.
+      TS_USERSPACE: "true"
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./infra/tailscale-serve.json:/config/tailscale-serve.json:ro
+
 volumes:
   postgres-data:
   fichiers:
+  tailscale-state:

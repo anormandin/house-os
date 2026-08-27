@@ -87,8 +87,20 @@ export const BUDGET_VIDE = {
   nbTransactionsNouvelles: 0,
 }
 
+export const FLUX_ICAL = {
+  chemin: '/ical/jeton-initial.ics',
+  urlPublique: 'https://houseos.tailnet.ts.net/ical/jeton-initial.ics',
+}
+
+export const FLUX_ICAL_TOURNE = {
+  chemin: '/ical/jeton-neuf.ics',
+  urlPublique: 'https://houseos.tailnet.ts.net/ical/jeton-neuf.ics',
+}
+
 export const serveur = setupServer(
   http.get('/api/utilisateurs', () => HttpResponse.json([ALAIN, ARIANE])),
+  http.get('/api/ical/mon-flux', () => HttpResponse.json(FLUX_ICAL)),
+  http.post('/api/ical/rotation', () => HttpResponse.json(FLUX_ICAL_TOURNE)),
   http.get('/api/budget', () => HttpResponse.json(BUDGET_VIDE)),
   http.get('/api/budget/transactions', () => HttpResponse.json([])),
   http.get('/api/zones', () => HttpResponse.json(ZONES)),

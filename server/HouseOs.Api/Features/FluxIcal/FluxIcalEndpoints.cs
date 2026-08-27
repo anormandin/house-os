@@ -75,7 +75,8 @@ public static class IcalEndpoints
         // L'URL du flux de la personne connectée (affichée dans la section Calendrier).
         app.MapGet("/api/ical/mon-flux", async (
             System.Security.Claims.ClaimsPrincipal principal,
-            HouseOsDbContext db) =>
+            HouseOsDbContext db,
+            IConfiguration config) =>
         {
             var id = principal.IdUtilisateur();
             var jeton = await db.Utilisateurs.AsNoTracking()
@@ -84,7 +85,21 @@ public static class IcalEndpoints
                 .SingleOrDefaultAsync();
             return jeton is null
                 ? Results.NotFound()
-                : Results.Ok(new { chemin = $"/ical/{jeton}.ics" });
+                : Results.Ok(JetonIcal.ReponseFlux(jeton, config));
+        });
+
+        // Rotation du jeton — chacun régénère le sien seulement. L'ancien flux
+        // meurt immédiatement : les abonnements existants sont à refaire.
+        app.MapPost("/api/ical/rotation", async (
+            System.Security.Claims.ClaimsPrincipal principal,
+            HouseOsDbContext db,
+            IConfiguration config) =>
+        {
+            var id = principal.IdUtilisateur();
+            var utilisateur = await db.Utilisateurs.SingleAsync(u => u.Id == id);
+            utilisateur.JetonIcal = JetonIcal.Generer();
+            await db.SaveChangesAsync();
+            return Results.Ok(JetonIcal.ReponseFlux(utilisateur.JetonIcal, config));
         });
 
         return app;

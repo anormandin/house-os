@@ -40,18 +40,15 @@ public static class AmorcageDb
         // Chaque compte reçoit un jeton iCal secret (URL du flux personnel).
         foreach (var utilisateur in await db.Utilisateurs.ToListAsync())
         {
-            utilisateur.JetonIcal ??= GenererJeton();
+            utilisateur.JetonIcal ??= Features.FluxIcal.JetonIcal.Generer();
         }
         foreach (var utilisateur in db.ChangeTracker.Entries<Utilisateur>()
                      .Where(e => e.State == EntityState.Added)
                      .Select(e => e.Entity))
         {
-            utilisateur.JetonIcal ??= GenererJeton();
+            utilisateur.JetonIcal ??= Features.FluxIcal.JetonIcal.Generer();
         }
 
         await db.SaveChangesAsync();
     }
-
-    private static string GenererJeton() =>
-        Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24));
 }

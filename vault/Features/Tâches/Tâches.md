@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-26
-verified-against: 3ad570d
+last-verified: 2026-08-27
+verified-against: 1dbd83e
 tags: []
 ---
 
@@ -77,6 +77,11 @@ Implémenté (V1 « Emménagement », as-built) :
   recharger avant d'enregistrer, voir la tranche éditeur du 2026-08-25).
 - **Flux iCal par personne** ([[D-2026-08-23 Flux iCal Par Personne]]) : jeton
   secret, occurrences assignées + non-assignées, URL copiable dans « Mon calendrier ».
+  Depuis le 2026-08-27 : **rotation self-service** du jeton (POST authentifié,
+  bouton « Régénérer » avec confirmation — l'ancienne URL meurt immédiatement,
+  parité MCP via `regenerer` sur `mon_flux_ical`) et **URL publique** (Funnel)
+  affichée à côté de l'interne quand configurée
+  ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]).
 
 Implémenté (cycle de vie des occurrences, 2026-08-24, as-built —
 [[D-2026-08-24 Annulation Et Passage D'occurrences]]) :
@@ -210,10 +215,6 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
 ## Hors périmètre
 
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).
-- **Rotation du jeton iCal** — dette assumée : le jeton par personne est généré une
-  fois et n'est pas révocable sans SQL manuel ; un jeton fuité donne un accès
-  lecture permanent au flux. À trancher (endpoint de rotation) avant toute
-  exposition hors Tailscale.
 - Sous-tâches et projets multi-étapes (module Projets, v2+).
 - Notifications push (v1 = flux iCal seulement).
 - **Documents liés à une tâche** (« fermer le spa → guide ») — besoin exprimé le
@@ -226,6 +227,8 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   journal séparé, stratégies d'assignation.
 - [[D-2026-08-23 Notifications Par Flux iCal]] — canal de rappel v1.
 - [[D-2026-08-23 Flux iCal Par Personne]] — structure des flux (jeton par compte).
+- [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]] — exposition publique du
+  flux + rotation du jeton.
 - [[D-2026-08-23 Zones Plates]] — zones = liste plate CRUD.
 - [[D-2026-08-23 Auth Simple Deux Comptes]] — attribution des complétions.
 - [[D-2026-08-24 Annulation Et Passage D'occurrences]] — annuler/passer/reporter,
