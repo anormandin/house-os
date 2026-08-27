@@ -81,6 +81,42 @@ suivi par l'app : URL + fenêtre de lecture, rafraîchi par worker. Ses **évén
 externes** sont affichés seulement — jamais couplés aux tâches
 ([[D-2026-08-24 Flux ICS Dans L'app Affichage Seul]]). Voir [[Flux Externes]].
 
+## Fonds de prévoyance
+
+Le compte bancaire réel dédié à l'argent de la maison (`CompteBudget`) : dépôt
+mensuel, retraits pour taxes, équipements et projets. Un seul en v1 ; solde
+courant dérivé du solde initial ancré + transactions importées. Voir [[Budget]].
+
+## Enveloppe
+
+Partition virtuelle du fonds de prévoyance : type `Equipement` | `Taxes` |
+`Projet` | `Reserve`, cible optionnelle, lien optionnel vers une tâche ou un
+équipement (échéance alors dérivée). Solde = Σ mouvements. Invariant : solde du
+compte = Σ enveloppes + non affecté. Voir [[Budget]].
+
+## Mouvement d'enveloppe
+
+Écriture datée et signée du journal d'une enveloppe (`Provision` | `Retrait` |
+`Ajustement` | `Transfert`), avec liens optionnels vers une transaction
+bancaire et une entrée de journal de complétion. Jamais un solde muté.
+
+## Transaction bancaire
+
+Ligne importée du compte fonds de prévoyance (CSV/OFX en v1) : `Nouvelle`
+jusqu'au rapprochement (`Liee`) ou au rejet (`Ignoree`) ; dédupliquée par
+FITID/hash.
+
+## Rapprochement
+
+L'acte de lier une transaction bancaire à une enveloppe (créant le mouvement
+correspondant) et, optionnellement, à une entrée du journal de complétion.
+
+## Provision
+
+Montant mensuel suggéré pour une enveloppe, toujours calculé à la lecture par
+`MoteurProvision` — jamais stocké. La somme des provisions donne le virement
+mensuel suggéré.
+
 ## Appareil
 
 (Phase 3) Un device IoT enregistré — capteur, bouton, écran — découvert via MQTT.

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Features.Budget;
 using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
@@ -34,6 +35,38 @@ public record DocumentDonnees(
     string? Notes,
     [property: Description("Date portée par le document YYYY-MM-DD (facture, contrat…), ou null.")] string? DateDocument,
     [property: Description("Échéance YYYY-MM-DD (rappel visuel dans l'app), ou null.")] string? Echeance);
+
+/// <summary>Fiche du compte fonds de prévoyance (dates en chaînes YYYY-MM-DD).</summary>
+public record CompteBudgetDonnees(
+    [property: Description("Nom du compte (requis).")] string Nom,
+    string? Institution,
+    [property: Description("Solde au moment de l'ancrage.")] decimal SoldeInitial,
+    [property: Description("Date d'ancrage YYYY-MM-DD (requise).")] string? DateAncrage,
+    [property: Description("Id de la tâche récurrente de virement mensuel (via lister_taches), " +
+        "ou null.")] Guid? TacheVirementId);
+
+/// <summary>Versement daté d'un échéancier de taxes.</summary>
+public record VersementDonnees(
+    [property: Description("Date YYYY-MM-DD.")] string Date,
+    decimal Montant);
+
+/// <summary>Fiche d'une enveloppe budgétaire (remplace la fiche complète).</summary>
+public record EnveloppeDonnees(
+    [property: Description("Nom (requis).")] string Nom,
+    [property: Description("Equipement, Taxes, Projet ou Reserve (requis).")] string Type,
+    [property: Description("Montant cible en dollars, ou null (Reserve).")] decimal? MontantCible,
+    [property: Description("Date cible YYYY-MM-DD — ignorée si une tâche est liée " +
+        "(l'échéance dérive de sa prochaine occurrence).")] string? DateCible,
+    [property: Description("Id d'une tâche liée (exclusif avec equipementId).")] Guid? TacheId,
+    [property: Description("Id d'un équipement lié (exclusif avec tacheId).")] Guid? EquipementId,
+    [property: Description("Échéancier de versements (type Taxes seulement).")]
+    List<VersementDonnees>? Echeancier);
+
+/// <summary>Part d'une ventilation de dépôt (ou l'unique enveloppe d'un retrait).</summary>
+public record VentilationDonnees(
+    Guid EnveloppeId,
+    [property: Description("Part positive en dollars. Pour un retrait : la valeur absolue " +
+        "du montant de la transaction.")] decimal Montant);
 
 [McpServerToolType]
 public static class OutilsMaison
@@ -316,6 +349,251 @@ public static class OutilsMaison
                 throw new McpException($"Action inconnue : '{action}' (lister, creer, modifier ou supprimer).");
         }
     }
+
+    [McpServerTool(Name = "bilan_budget")]
+    [Description("Bilan du fonds de prévoyance : compte (solde courant, ancrage, tâche de " +
+        "virement), enveloppes (solde = Σ mouvements, provision mensuelle calculée, échéance " +
+        "dérivée de la tâche liée), invariant solde = enveloppes + non affecté, virement " +
+        "mensuel suggéré, sorties prévues et transactions à rapprocher. Avec enveloppeId : " +
+        "détail d'une enveloppe (échéancier + mouvements avec solde après chacun).")]
+    public static async Task<object> BilanBudget(
+        HouseOsDbContext db,
+        [Description("Id d'une enveloppe pour son détail, ou null pour le bilan complet.")]
+        Guid? enveloppeId = null,
+        [Description("Date du jour YYYY-MM-DD (défaut : aujourd'hui, heure du serveur).")]
+        string? date = null)
+    {
+        var aujourdhui = Conversions.ParserDate(date, "date") ?? BudgetEndpoints.Aujourdhui();
+        if (enveloppeId is { } id)
+        {
+            return await BudgetEndpoints.ChargerEnveloppeDetailAsync(db, id, aujourdhui)
+                ?? throw new McpException($"Enveloppe introuvable : {id}.");
+        }
+        return new
+        {
+            Resume = await BudgetEndpoints.ChargerResumeAsync(db, aujourdhui),
+            TransactionsARapprocher = await BudgetEndpoints.ChargerTransactionsAsync(
+                db, StatutTransaction.Nouvelle, aujourdhui),
+        };
+    }
+
+    [McpServerTool(Name = "gerer_budget")]
+    [Description("Gérer le fonds de prévoyance. Actions : ancrer_compte, modifier_compte " +
+        "(fiche compte), creer_enveloppe, modifier_enveloppe (fiche enveloppe), " +
+        "fermer_enveloppe (exige un solde à zéro), ajouter_mouvement (typeMouvement " +
+        "Provision|Retrait|Ajustement, montant signé), transferer (deEnveloppeId → " +
+        "versEnveloppeId, montant positif), lier_transaction (retrait : une seule part ; " +
+        "dépôt : ventilation multi-enveloppes, le reste demeure non affecté), " +
+        "ignorer_transaction. L'import de fichiers CSV/OFX passe par l'interface web, " +
+        "pas par MCP.")]
+    public static async Task<object> GererBudget(
+        HouseOsDbContext db,
+        [Description("ancrer_compte, modifier_compte, creer_enveloppe, modifier_enveloppe, " +
+            "fermer_enveloppe, ajouter_mouvement, transferer, lier_transaction ou " +
+            "ignorer_transaction.")] string action,
+        [Description("Id de l'enveloppe (modifier/fermer/ajouter_mouvement) ou de la " +
+            "transaction (lier/ignorer).")] Guid? id = null,
+        [Description("Fiche du compte (requise pour ancrer_compte et modifier_compte).")]
+        CompteBudgetDonnees? compte = null,
+        [Description("Fiche de l'enveloppe (requise pour creer_enveloppe et modifier_enveloppe).")]
+        EnveloppeDonnees? enveloppe = null,
+        [Description("Provision, Retrait ou Ajustement (ajouter_mouvement).")]
+        string? typeMouvement = null,
+        [Description("Montant signé (ajouter_mouvement : retrait négatif) ou positif (transferer).")]
+        decimal? montant = null,
+        [Description("Date du mouvement YYYY-MM-DD (défaut : aujourd'hui).")] string? date = null,
+        [Description("Note libre du mouvement ou de la liaison.")] string? note = null,
+        [Description("Enveloppe source (transferer).")] Guid? deEnveloppeId = null,
+        [Description("Enveloppe destination (transferer).")] Guid? versEnveloppeId = null,
+        [Description("Parts de la liaison (lier_transaction) : une seule pour un retrait, " +
+            "plusieurs pour ventiler un dépôt.")] List<VentilationDonnees>? ventilation = null,
+        [Description("Entrée du journal de complétion à lier (retrait seulement).")]
+        Guid? entreeJournalId = null)
+    {
+        switch (Conversions.NormaliserAction(action))
+        {
+            case "ancrer_compte":
+            {
+                if (await db.ComptesBudget.AnyAsync())
+                {
+                    throw new McpException("Le compte est déjà ancré (action modifier_compte).");
+                }
+                var nouveau = new CompteBudget
+                {
+                    Id = Guid.NewGuid(),
+                    Nom = string.Empty,
+                    CreeLe = DateTimeOffset.UtcNow,
+                };
+                await AppliquerCompteBudget(db, nouveau, compte);
+                db.ComptesBudget.Add(nouveau);
+                await db.SaveChangesAsync();
+                return new { id = nouveau.Id };
+            }
+            case "modifier_compte":
+            {
+                var existant = await db.ComptesBudget.FirstOrDefaultAsync()
+                    ?? throw new McpException("Aucun compte ancré (action ancrer_compte).");
+                await AppliquerCompteBudget(db, existant, compte);
+                await db.SaveChangesAsync();
+                return new { modifie = true, id = existant.Id };
+            }
+            case "creer_enveloppe":
+            {
+                var nouvelle = new Enveloppe
+                {
+                    Id = Guid.NewGuid(),
+                    Nom = string.Empty,
+                    CreeLe = DateTimeOffset.UtcNow,
+                };
+                await AppliquerEnveloppeBudget(db, nouvelle, enveloppe);
+                db.Enveloppes.Add(nouvelle);
+                await db.SaveChangesAsync();
+                return new { id = nouvelle.Id };
+            }
+            case "modifier_enveloppe":
+            {
+                var existante = await TrouverEnveloppe(db, id);
+                await AppliquerEnveloppeBudget(db, existante, enveloppe);
+                await db.SaveChangesAsync();
+                return new { modifie = true, id = existante.Id };
+            }
+            case "fermer_enveloppe":
+            {
+                var existante = await TrouverEnveloppe(db, id);
+                var solde = await BudgetEndpoints.SoldeEnveloppeAsync(db, existante.Id);
+                try
+                {
+                    existante.Fermer(solde);
+                }
+                catch (InvalidOperationException e)
+                {
+                    throw new McpException(e.Message);
+                }
+                await db.SaveChangesAsync();
+                return new { fermee = true, id = existante.Id };
+            }
+            case "ajouter_mouvement":
+            {
+                var existante = await TrouverEnveloppe(db, id);
+                var requete = new MouvementRequete(
+                    typeMouvement ?? "",
+                    montant ?? throw new McpException("Le paramètre montant est requis."),
+                    Conversions.ParserDate(date, "date"),
+                    note);
+                if (BudgetEndpoints.ValiderMouvement(requete, existante, out var type) is { } erreur)
+                {
+                    throw new McpException(erreur.Message);
+                }
+                db.MouvementsEnveloppe.Add(new MouvementEnveloppe
+                {
+                    Id = Guid.NewGuid(),
+                    EnveloppeId = existante.Id,
+                    Date = requete.Date ?? BudgetEndpoints.Aujourdhui(),
+                    Montant = requete.Montant,
+                    Type = type,
+                    Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+                    CreeLe = DateTimeOffset.UtcNow,
+                });
+                await db.SaveChangesAsync();
+                return new { ajoute = true, enveloppeId = existante.Id };
+            }
+            case "transferer":
+            {
+                var requete = new TransfertRequete(
+                    deEnveloppeId ?? throw new McpException("deEnveloppeId est requis."),
+                    versEnveloppeId ?? throw new McpException("versEnveloppeId est requis."),
+                    montant ?? throw new McpException("Le paramètre montant est requis."),
+                    note);
+                var erreur = await BudgetEndpoints.TransfererAsync(
+                    db, requete, Conversions.ParserDate(date, "date") ?? BudgetEndpoints.Aujourdhui());
+                if (erreur is not null)
+                {
+                    throw new McpException(erreur);
+                }
+                await db.SaveChangesAsync();
+                return new { transfere = true };
+            }
+            case "lier_transaction":
+            {
+                var transaction = await db.TransactionsBancaires.FindAsync(RequisId(id))
+                    ?? throw new McpException($"Transaction introuvable : {id}.");
+                if (transaction.Statut != StatutTransaction.Nouvelle)
+                {
+                    throw new McpException("Transaction déjà traitée.");
+                }
+                var lignes = ventilation?.Select(v => new VentilationLigne(v.EnveloppeId, v.Montant)).ToList()
+                    ?? throw new McpException("Le paramètre ventilation est requis.");
+                var erreur = await BudgetEndpoints.CreerLiaisonAsync(
+                    db, transaction, new LierRequete(lignes, entreeJournalId, note));
+                if (erreur is { } e)
+                {
+                    throw new McpException(e.Message);
+                }
+                await db.SaveChangesAsync();
+                return new { liee = true, id = transaction.Id };
+            }
+            case "ignorer_transaction":
+            {
+                var transaction = await db.TransactionsBancaires.FindAsync(RequisId(id))
+                    ?? throw new McpException($"Transaction introuvable : {id}.");
+                if (transaction.Statut != StatutTransaction.Nouvelle)
+                {
+                    throw new McpException("Transaction déjà traitée.");
+                }
+                transaction.Statut = StatutTransaction.Ignoree;
+                await db.SaveChangesAsync();
+                return new { ignoree = true, id = transaction.Id };
+            }
+            default:
+                throw new McpException($"Action inconnue : '{action}' (ancrer_compte, " +
+                    "modifier_compte, creer_enveloppe, modifier_enveloppe, fermer_enveloppe, " +
+                    "ajouter_mouvement, transferer, lier_transaction ou ignorer_transaction).");
+        }
+    }
+
+    private static async Task AppliquerCompteBudget(
+        HouseOsDbContext db, CompteBudget cible, CompteBudgetDonnees? donnees)
+    {
+        if (donnees is null)
+        {
+            throw new McpException("Le paramètre compte est requis pour cette action.");
+        }
+        var requete = new CompteBudgetRequete(
+            donnees.Nom, donnees.Institution, donnees.SoldeInitial,
+            Conversions.ParserDate(donnees.DateAncrage, "dateAncrage"),
+            donnees.TacheVirementId);
+        if (await BudgetEndpoints.AppliquerCompte(requete, cible, db) is { } erreur)
+        {
+            throw new McpException(erreur.Message);
+        }
+    }
+
+    private static async Task AppliquerEnveloppeBudget(
+        HouseOsDbContext db, Enveloppe cible, EnveloppeDonnees? donnees)
+    {
+        if (donnees is null)
+        {
+            throw new McpException("Le paramètre enveloppe est requis pour cette action.");
+        }
+        var echeancier = donnees.Echeancier?
+            .Select(v => new Versement(
+                Conversions.ParserDate(v.Date, "echeancier.date")
+                    ?? throw new McpException("Chaque versement exige une date YYYY-MM-DD."),
+                v.Montant))
+            .ToList();
+        var requete = new EnveloppeRequete(
+            donnees.Nom, donnees.Type, donnees.MontantCible,
+            Conversions.ParserDate(donnees.DateCible, "dateCible"),
+            donnees.TacheId, donnees.EquipementId, echeancier);
+        if (await BudgetEndpoints.AppliquerEnveloppe(requete, cible, db) is { } erreur)
+        {
+            throw new McpException(erreur.Message);
+        }
+    }
+
+    private static async Task<Enveloppe> TrouverEnveloppe(HouseOsDbContext db, Guid? id) =>
+        await db.Enveloppes.FindAsync(RequisId(id))
+            ?? throw new McpException($"Enveloppe introuvable : {id}.");
 
     private static Guid RequisId(Guid? id) =>
         id ?? throw new McpException("Le paramètre id est requis pour cette action.");

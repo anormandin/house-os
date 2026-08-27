@@ -21,6 +21,10 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<PhraseDuJour> PhrasesDuJour => Set<PhraseDuJour>();
     public DbSet<FluxExterne> FluxExternes => Set<FluxExterne>();
     public DbSet<EvenementExterne> EvenementsExternes => Set<EvenementExterne>();
+    public DbSet<CompteBudget> ComptesBudget => Set<CompteBudget>();
+    public DbSet<Enveloppe> Enveloppes => Set<Enveloppe>();
+    public DbSet<MouvementEnveloppe> MouvementsEnveloppe => Set<MouvementEnveloppe>();
+    public DbSet<TransactionBancaire> TransactionsBancaires => Set<TransactionBancaire>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -160,6 +164,59 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             p.Property(x => x.Moment).HasConversion<string>().HasMaxLength(10);
             p.Property(x => x.Source).HasConversion<string>().HasMaxLength(10);
             p.HasIndex(x => new { x.Date, x.Moment }).IsUnique();
+        });
+
+        modelBuilder.Entity<CompteBudget>(c =>
+        {
+            c.Property(x => x.Nom).HasMaxLength(200);
+            c.Property(x => x.Institution).HasMaxLength(100);
+            c.Property(x => x.SoldeInitial).HasPrecision(12, 2);
+            c.HasOne(x => x.TacheVirement).WithMany().HasForeignKey(x => x.TacheVirementId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Enveloppe>(e =>
+        {
+            e.Property(x => x.Nom).HasMaxLength(200);
+            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Statut).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.MontantCible).HasPrecision(12, 2);
+            e.Property(x => x.Echeancier).HasColumnType("jsonb");
+            // Le lien survit dans l'autre sens : supprimer la tâche ou l'équipement lié
+            // rompt le lien (l'enveloppe reste, sans date dérivée → pas de provision).
+            e.HasOne(x => x.Tache).WithMany().HasForeignKey(x => x.TacheId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Equipement).WithMany().HasForeignKey(x => x.EquipementId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<MouvementEnveloppe>(m =>
+        {
+            m.Property(x => x.Montant).HasPrecision(12, 2);
+            m.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+            m.Property(x => x.Note).HasMaxLength(300);
+            // Une enveloppe ne se supprime jamais (fermeture seulement) : le journal
+            // de mouvements est protégé au niveau du schéma aussi.
+            m.HasOne(x => x.Enveloppe).WithMany().HasForeignKey(x => x.EnveloppeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            m.HasOne(x => x.TransactionBancaire).WithMany().HasForeignKey(x => x.TransactionBancaireId)
+                .OnDelete(DeleteBehavior.SetNull);
+            m.HasIndex(x => x.EnveloppeId);
+            m.HasIndex(x => x.TransactionBancaireId);
+        });
+
+        modelBuilder.Entity<TransactionBancaire>(t =>
+        {
+            t.Property(x => x.Description).HasMaxLength(300);
+            t.Property(x => x.IdExterne).HasMaxLength(100);
+            t.Property(x => x.CleDedup).HasMaxLength(100);
+            t.Property(x => x.Montant).HasPrecision(12, 2);
+            t.Property(x => x.Statut).HasConversion<string>().HasMaxLength(20);
+            t.HasOne(x => x.CompteBudget).WithMany().HasForeignKey(x => x.CompteBudgetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // La dédup d'import : réimporter le même fichier est sans effet.
+            t.HasIndex(x => new { x.CompteBudgetId, x.CleDedup }).IsUnique();
+            t.HasIndex(x => x.Statut);
         });
 
         modelBuilder.Entity<Document>(d =>

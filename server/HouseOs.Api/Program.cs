@@ -1,4 +1,5 @@
 using HouseOs.Api.Features.Auth;
+using HouseOs.Api.Features.Budget;
 using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
@@ -65,6 +66,8 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AjouterMcp();
 
+builder.Services.AddSingleton<IFournisseurTransactions, FournisseurFichier>();
+
 builder.Services.AddAntiforgery();
 builder.Services.AddHostedService<RolloverService>();
 
@@ -101,6 +104,8 @@ app.MapZones();
 app.MapComptesARebours();
 app.MapEquipements();
 app.MapDocuments();
+app.MapBudget();
+app.MapImportTransactions();
 app.MapIcal();
 app.MapMeteo();
 app.MapHumeur();

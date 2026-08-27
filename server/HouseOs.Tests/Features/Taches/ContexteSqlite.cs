@@ -25,6 +25,12 @@ public class HouseOsDbContextSqlite(DbContextOptions<HouseOsDbContext> options)
                 specs => JsonSerializer.Serialize(specs, (JsonSerializerOptions?)null),
                 texte => JsonSerializer.Deserialize<Dictionary<string, string>>(
                     texte, (JsonSerializerOptions?)null) ?? new Dictionary<string, string>());
+        // Même remède pour l'échéancier jsonb des enveloppes budgétaires.
+        modelBuilder.Entity<Enveloppe>().Property(e => e.Echeancier)
+            .HasColumnType("TEXT")
+            .HasConversion(
+                echeancier => JsonSerializer.Serialize(echeancier, (JsonSerializerOptions?)null),
+                texte => JsonSerializer.Deserialize<List<Versement>>(texte, (JsonSerializerOptions?)null));
         modelBuilder.Entity<EntreeJournal>().Property(j => j.CompleteeLe)
             .HasConversion(new DateTimeOffsetToBinaryConverter());
         // Le tri des complétées (ListerOccurrencesAsync) ordonne par CompleteeLe :

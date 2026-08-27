@@ -33,6 +33,17 @@ export function heureQuebec(instant: string): string {
   return `${heures} h ${minutes}`
 }
 
+/** « 12 480 $ » (entier par défaut) ou « −84,12 $ » avec cents — format québécois. */
+export function dollars(montant: number, cents = false): string {
+  return new Intl.NumberFormat('fr-CA', {
+    style: 'currency',
+    currency: 'CAD',
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: cents ? 2 : 0,
+    maximumFractionDigits: cents ? 2 : 0,
+  }).format(montant)
+}
+
 /** Nombre de dodos (nuits) entre aujourd'hui et une date locale. */
 export function dodosAvant(dateIso: string): number {
   const [annee, mois, jour] = dateIso.split('-').map(Number)

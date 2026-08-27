@@ -228,6 +228,58 @@ agents) — les URL font foi.
 - **Le foyer comme unité** (OneHaus, AnyList) — un abonnement/une config pour la
   maisonnée ; rôles éditeur/lecteur suffisent (HomyScan).
 
+### Argent de la maison (idée d'Alain, 2026-08-26)
+
+> [!note] Devenue une feature : voir [[Budget]] (spec approuvée + plan + 4 décisions).
+
+Le plan d'Alain : **un compte bancaire réel dédié au fonds de prévoyance** —
+dépôt mensuel, retraits pour les taxes et pour les équipements à réparer ou
+remplacer (ex. repeindre la toiture métallique), plus des **projets** vers
+lesquels mettre de l'argent (rénover une pièce). Modèle qui en découle :
+
+- **Un compte réel, des enveloppes virtuelles** — invariant de rapprochement :
+  solde du compte synchronisé = somme des enveloppes (équipements, taxes,
+  projets) ; tout écart est visible.
+- **Contribution dérivée du moteur de récurrence** — « repeindre la toiture :
+  tous les ~10 ans, ~4 500 $ » → l'enveloppe connaît sa cible et son échéance
+  depuis la tâche récurrente elle-même, la provision mensuelle se calcule
+  seule ; pareil pour tout gros entretien cyclique.
+- **Taxes = enveloppes à échéancier connu** — municipales (versements datés) et
+  scolaires : cible et dates certaines, provision lissée sur l'année.
+- **Projets = enveloppes libres** — cible définie par le projet (rénover une
+  pièce), on y met de l'argent, les dépenses du projet s'y rattachent.
+- **Le virement mensuel comme tâche House OS** — « virer X $ au fonds » le
+  1ᵉʳ du mois, X = somme des provisions courantes ; complétée quand la
+  transaction synchronisée apparaît.
+
+Idées du marché à l'appui :
+
+- **Le Journal comme grand livre** — chaque complétion porte déjà un coût ; les
+  roll-ups par équipement/projet/catégorie sont la fondation naturelle d'un
+  module budget (voir coût de possession, plus haut).
+- **Fonds de prévoyance par équipement** (HomeManager, HomeZada) — provision
+  mensuelle calculée : (coût de remplacement − épargné) ÷ mois de vie utile
+  restants, par gros item (toiture, thermopompe, chauffe-eau) ; coût de
+  remplacement distinct du prix d'achat.
+- **Budget de projet : estimé / engagé / réel** (HomeZada, Billdr, micasa) —
+  soumissions comparées, « change orders » comme delta tracé contre le budget
+  d'origine plutôt qu'édition silencieuse, paiements par jalons.
+- **Dépenses rattachées aux entités du foyer** (Homechart, KitchenOwl,
+  Flatastic) — le budget vit dans le même graphe que tâches/équipements/projets,
+  pas dans une app à part.
+- **Renouvellements et abonnements avec rappels** (Wallos, OneHaus) — déjà noté
+  côté documents/contrats ; c'est aussi une ligne budgétaire récurrente.
+- **Compte dédié synchronisé** (hors balayage : Actual Budget, Firefly III) —
+  un vrai compte « maison » dont les transactions entrent seules :
+  **SimpleFIN Bridge** (~15 $US/an) couvre les banques canadiennes, dont
+  Desjardins, avec un rafraîchissement quotidien ; GoCardless côté UE. Pour
+  House OS : un BackgroundService d'ingestion de plus (même patron que
+  météo/HQ), tables normalisées, puis **rapprochement transaction ↔ maison**
+  (règles par marchand + suggestion LLM via MCP : « Canadian Tire 84,12 $ →
+  lier au journal “Huile à souffleuse” ? »).
+- **Benchmarks de coûts** (Houzz Real Cost Finder, Thumbtack price index) —
+  comparer le coût réel du journal à la norme régionale.
+
 ### Démarrage à froid et déménagement
 
 - **Gabarit à rebours depuis une date** (MoveAdvisor, Moved) — la date du
@@ -411,6 +463,8 @@ agents) — les URL font foi.
 |---|---|---|---|
 | [Wallos](https://github.com/ellite/Wallos) | 5 | gratuit, OSS | Abonnements/renouvellements du foyer avec rappels ; logos auto |
 | [Monica](https://www.monicahq.com/) | 3 | open core | Rappels attachés à une personne ; timeline mixte journal+événements |
+| [Actual Budget](https://actualbudget.org/) | — | gratuit, OSS (ajout hors balayage) | Enveloppes/fonds de prévoyance ; sync bancaire SimpleFIN (~15 $US/an, banques CA dont Desjardins) |
+| [Firefly III](https://www.firefly-iii.org/) | — | gratuit, OSS (ajout hors balayage) | Finances personnelles API-first ; Data Importer (CSV, GoCardless, SaltEdge) |
 
 ## Leçons de marché
 

@@ -74,8 +74,23 @@ export const TACHE_RECURRENTE: TacheDetail = {
   documentIds: [],
 }
 
+/** Résumé Budget neutre (aucun compte ancré) — les tests le remplacent au besoin. */
+export const BUDGET_VIDE = {
+  compte: null,
+  soldeCourant: 0,
+  totalEnveloppes: 0,
+  nonAffecte: 0,
+  virementSuggere: 0,
+  occurrenceVirementId: null,
+  enveloppes: [],
+  sorties: [],
+  nbTransactionsNouvelles: 0,
+}
+
 export const serveur = setupServer(
   http.get('/api/utilisateurs', () => HttpResponse.json([ALAIN, ARIANE])),
+  http.get('/api/budget', () => HttpResponse.json(BUDGET_VIDE)),
+  http.get('/api/budget/transactions', () => HttpResponse.json([])),
   http.get('/api/zones', () => HttpResponse.json(ZONES)),
   http.get('/api/equipements', () => HttpResponse.json([])),
   http.get('/api/documents', () => HttpResponse.json([DOCUMENT_REFERENCE])),

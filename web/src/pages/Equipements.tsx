@@ -4,7 +4,7 @@ import { Download, FileText, Plus, X } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
 import { api, type EquipementDonnees } from '@/lib/api'
-import { dateLisible, heureQuebec } from '@/lib/format'
+import { dateLisible, dollars, heureQuebec } from '@/lib/format'
 import { dateLocaleIso } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -49,6 +49,10 @@ export default function Equipements() {
 
   const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
   const { data: equipements } = useQuery({ queryKey: ['equipements'], queryFn: api.equipements })
+  const { data: budget } = useQuery({ queryKey: ['budget'], queryFn: api.budget })
+  const enveloppeLiee = budget?.enveloppes.find(
+    (e) => e.equipementId === choisiId && e.statut === 'Active',
+  )
   const { data: detail } = useQuery({
     queryKey: ['equipement', choisiId],
     queryFn: () => api.equipement(choisiId!),
@@ -380,6 +384,39 @@ export default function Equipements() {
                       </div>
                     )}
                   </div>
+
+                  {/* Enveloppe budgétaire liée (fonds de prévoyance) */}
+                  {enveloppeLiee !== undefined && (
+                    <div className="border-t border-barre-piste pt-4">
+                      <div className="mb-2 flex items-baseline justify-between">
+                        <span className="text-sm font-bold text-dore">Fonds de prévoyance</span>
+                        {enveloppeLiee.provision > 0 && (
+                          <span className="text-xs font-extrabold text-dore tabular-nums">
+                            +&nbsp;{dollars(enveloppeLiee.provision)}/mois
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 rounded-xl bg-creux px-3 py-2.5 text-sm">
+                        <span className="min-w-0 flex-1 truncate font-bold">{enveloppeLiee.nom}</span>
+                        {enveloppeLiee.montantCible !== null && (
+                          <span className="h-[7px] w-32 overflow-hidden rounded-full bg-barre-piste">
+                            <i
+                              className="block h-full rounded-full bg-vert"
+                              style={{
+                                width: `${Math.min(100, Math.max(0, (enveloppeLiee.solde / enveloppeLiee.montantCible) * 100))}%`,
+                              }}
+                            />
+                          </span>
+                        )}
+                        <span className="text-xs text-sourdine tabular-nums">
+                          <b className={cn('text-[13px]', enveloppeLiee.solde < 0 ? 'text-rouge' : 'text-encre')}>
+                            {dollars(enveloppeLiee.solde)}
+                          </b>
+                          {enveloppeLiee.montantCible !== null && <> / {dollars(enveloppeLiee.montantCible)}</>}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Historique d'entretien */}
                   {detail.entretiens.length > 0 && (

@@ -253,6 +253,103 @@ export type EvenementExterne = {
   heure: string | null
 }
 
+export type TypeEnveloppe = 'Equipement' | 'Taxes' | 'Projet' | 'Reserve'
+export type TypeMouvement = 'Provision' | 'Retrait' | 'Ajustement' | 'Transfert'
+
+export type Versement = { date: string; montant: number }
+
+export type CompteBudget = {
+  id: string
+  nom: string
+  institution: string | null
+  soldeInitial: number
+  dateAncrage: string
+  tacheVirementId: string | null
+  titreTacheVirement: string | null
+}
+
+export type EnveloppeBudget = {
+  id: string
+  nom: string
+  type: TypeEnveloppe
+  montantCible: number | null
+  dateCible: string | null
+  /** Échéance retenue : occurrence de la tâche liée, prochain versement, ou date saisie. */
+  dateEffective: string | null
+  tacheId: string | null
+  titreTache: string | null
+  equipementId: string | null
+  nomEquipement: string | null
+  echeancier: Versement[] | null
+  statut: 'Active' | 'Fermee'
+  solde: number
+  provision: number
+  enRetard: boolean
+  echeancierARenouveler: boolean
+}
+
+export type SortiePrevue = { date: string; nom: string; montant: number; enveloppeId: string }
+
+export type ResumeBudget = {
+  compte: CompteBudget | null
+  soldeCourant: number
+  totalEnveloppes: number
+  nonAffecte: number
+  virementSuggere: number
+  occurrenceVirementId: string | null
+  enveloppes: EnveloppeBudget[]
+  sorties: SortiePrevue[]
+  nbTransactionsNouvelles: number
+}
+
+export type TransactionBudget = {
+  id: string
+  date: string
+  montant: number
+  description: string
+  statut: 'Nouvelle' | 'Liee' | 'Ignoree'
+  suggestionEnveloppeId: string | null
+  suggestionNom: string | null
+  suggererVentilation: boolean
+}
+
+export type MouvementBudget = {
+  id: string
+  date: string
+  montant: number
+  type: TypeMouvement
+  note: string | null
+  transactionBancaireId: string | null
+  descriptionTransaction: string | null
+  entreeJournalId: string | null
+  soldeApres: number
+}
+
+export type EnveloppeBudgetDetail = {
+  enveloppe: EnveloppeBudget
+  mouvements: MouvementBudget[]
+}
+
+export type RapportImport = { importees: number; doublons: number; anterieures: number }
+
+export type CompteBudgetDonnees = {
+  nom: string
+  institution?: string | null
+  soldeInitial: number
+  dateAncrage: string
+  tacheVirementId?: string | null
+}
+
+export type EnveloppeBudgetDonnees = {
+  nom: string
+  type: TypeEnveloppe
+  montantCible?: number | null
+  dateCible?: string | null
+  tacheId?: string | null
+  equipementId?: string | null
+  echeancier?: Versement[] | null
+}
+
 export type PhraseDuJour = {
   titre: string
   sousTitre: string
@@ -427,6 +524,64 @@ export const api = {
     }),
   supprimerCompteARebours: (id: string) =>
     requete<void>(`/api/comptes-a-rebours/${id}`, { method: 'DELETE' }),
+
+  budget: () => requete<ResumeBudget>(`/api/budget?date=${dateLocaleIso()}`),
+  ancrerCompteBudget: (donnees: CompteBudgetDonnees) =>
+    requete<{ id: string }>('/api/budget/compte', {
+      method: 'POST',
+      body: JSON.stringify(donnees),
+    }),
+  modifierCompteBudget: (donnees: CompteBudgetDonnees) =>
+    requete<void>('/api/budget/compte', { method: 'PUT', body: JSON.stringify(donnees) }),
+  creerEnveloppe: (donnees: EnveloppeBudgetDonnees) =>
+    requete<{ id: string }>('/api/budget/enveloppes', {
+      method: 'POST',
+      body: JSON.stringify(donnees),
+    }),
+  modifierEnveloppe: (id: string, donnees: EnveloppeBudgetDonnees) =>
+    requete<void>(`/api/budget/enveloppes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(donnees),
+    }),
+  enveloppeDetail: (id: string) =>
+    requete<EnveloppeBudgetDetail>(`/api/budget/enveloppes/${id}?date=${dateLocaleIso()}`),
+  fermerEnveloppe: (id: string) =>
+    requete<void>(`/api/budget/enveloppes/${id}/fermer`, { method: 'POST' }),
+  ajouterMouvement: (
+    enveloppeId: string,
+    donnees: { type: TypeMouvement; montant: number; date?: string; note?: string },
+  ) =>
+    requete<void>(`/api/budget/enveloppes/${enveloppeId}/mouvements`, {
+      method: 'POST',
+      body: JSON.stringify(donnees),
+    }),
+  transferer: (donnees: {
+    deEnveloppeId: string
+    versEnveloppeId: string
+    montant: number
+    note?: string
+  }) =>
+    requete<void>('/api/budget/transferts', { method: 'POST', body: JSON.stringify(donnees) }),
+  transactionsBudget: (statut: 'Nouvelle' | 'Liee' | 'Ignoree' = 'Nouvelle') =>
+    requete<TransactionBudget[]>(
+      `/api/budget/transactions?statut=${statut}&date=${dateLocaleIso()}`,
+    ),
+  lierTransaction: (
+    id: string,
+    ventilation: { enveloppeId: string; montant: number }[],
+    entreeJournalId?: string,
+  ) =>
+    requete<void>(`/api/budget/transactions/${id}/lier`, {
+      method: 'POST',
+      body: JSON.stringify({ ventilation, entreeJournalId: entreeJournalId ?? null }),
+    }),
+  ignorerTransaction: (id: string) =>
+    requete<void>(`/api/budget/transactions/${id}/ignorer`, { method: 'POST' }),
+  importerReleve: (fichier: File) => {
+    const formulaire = new FormData()
+    formulaire.append('fichier', fichier)
+    return requete<RapportImport>('/api/budget/import', { method: 'POST', body: formulaire })
+  },
 
   monFluxIcal: () => requete<{ chemin: string }>('/api/ical/mon-flux'),
 
