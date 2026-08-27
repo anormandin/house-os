@@ -1,6 +1,6 @@
 ---
 type: plan
-status: approved
+status: executed
 date: 2026-08-27
 feature: "[[Déploiement]]"
 tags: []
@@ -46,21 +46,30 @@ Gouverné par [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]].
   hostname `houseos`, `TS_AUTHKEY` depuis `.env`, état dans un volume nommé,
   config serve montée (`infra/tailscale-serve.json`) : Funnel 443, unique handler
   `/ical` → `http://app:8080/ical`.
-- [ ] Vérifier le comportement de préfixe des mounts serve (strip du chemin) avec
+- [x] Vérifier le comportement de préfixe des mounts serve (strip du chemin) avec
   un curl au déploiement ; corriger la cible si besoin.
 - [x] `.env.example` : `TS_AUTHKEY`, `ICAL_URL_PUBLIQUE_BASE`
   (`https://houseos.<tailnet>.ts.net`).
-- [ ] **Manuel (Alain)** : activer Funnel dans la policy du tailnet (attribut
+- [x] **Manuel (Alain)** : activer Funnel dans la policy du tailnet (attribut
   `funnel` sur le tag du nœud) + générer une auth key taguée, la mettre dans
   `/opt/house-os/.env`.
 
 ### Déploiement et vérification
 
-- [ ] Push GitHub, `git pull && docker compose up -d --build` dans le LXC.
-- [ ] `curl https://houseos.<tailnet>.ts.net/ical/<jeton>.ics` → 200 `text/calendar`
+- [x] Push GitHub, `git pull && docker compose up -d --build` dans le LXC.
+- [x] `curl https://houseos.<tailnet>.ts.net/ical/<jeton>.ics` → 200 `text/calendar`
   depuis un réseau hors tailnet ; jeton bidon → 404 ; `/` et `/api` → non servis.
-- [ ] Abonner Google Calendar à l'URL publique et confirmer l'apparition des
+- [x] Abonner Google Calendar à l'URL publique et confirmer l'apparition des
   évènements.
+- [x] (2026-08-27, correctif) L'enregistrement DNS public de
+  `houseos.taila5ccb5.ts.net` n'est pas créé par le control plane Tailscale
+  (>1 h, NXDOMAIN aux 4 autoritaires dnsimple ; cert émis, Funnel on,
+  IngressEnabled true, chemin complet vérifié 200 via le tailnet — symptôme
+  identique à tailscale/tailscale#18652, côté serveur). Surveillance en
+  cours ; si rien après ~4 h : re-toggle Funnel, sinon support Tailscale.
+  **Résolu tout seul** : enregistrement publié ~2 h 20 après l'activation
+  (ingress 199.38.181.54/209.177.145.137 + IPv6) ; chemin public vérifié
+  (TLS ingress → app, 404 jeton bidon, racine non servie).
 
 ### Clôture vault
 

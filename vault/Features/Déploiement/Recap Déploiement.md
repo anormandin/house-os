@@ -50,6 +50,16 @@ Exposition du seul chemin `/ical` sur Internet pour l'abonnement Google Agenda
 
 Déviation : la config publique n'est pas testée via la factory d'intégration
 (elle resterait figée pour toute la collection) — composition couverte en
-unitaire, défaut null en intégration. Reste côté Alain : attribut `funnel` dans
-la policy du tailnet + auth key taguée dans `/opt/house-os/.env`, puis
-vérification curl du strip de préfixe des mounts serve au premier déploiement.
+unitaire, défaut null en intégration.
+
+Déployé et vérifié en prod le 2026-08-27 : policy + auth key faits par Alain,
+sidecar en ligne (tagué, cert émis), flux servi 200/65 évènements par le chemin
+complet, préfixe `/ical` intact, racine et `/api` non servis. Seul accroc : le
+control plane Tailscale a mis **~2 h 20** (doc : ~10 min) à publier le DNS
+public du nom Funnel — résolu sans intervention (symptôme de
+tailscale/tailscale#18652). En chemin, la clé du nœud `pve` (subnet router)
+s'était avérée expirée depuis 3 jours — ré-authentifiée ; désactiver
+l'expiration de clé sur pve reste à faire côté Alain. Google Agenda abonné le
+jour même, et le flux se rend jusqu'au **Skylight** du foyer via Google — un
+affichage mural du calendrier maison sans intégration à écrire (contexte utile
+pour l'écran mural de la phase 3).
