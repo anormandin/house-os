@@ -230,8 +230,10 @@ export type Ruban = {
   grappes: GrappeJour[]
   /** Ponctuelles échues avant aujourd'hui (bloc « En retard » de la bande). */
   enRetard: TacheResume[]
-  /** Semaines (lundi) à venir, semaine courante incluse. */
+  /** Semaines (lundi) à venir, semaine courante incluse — l'an prochain aussi. */
   semaines: SemainePonctuelles[]
+  /** « prochaine · … → » quand des ponctuelles échoient après le 31 décembre. */
+  noteAnProchain: string | null
   totalPonctuelles: number
   /** Cadences ≤ 15 jours sans fenêtre : illisibles même à l'échelle du ruban. */
   tempoCourt: TacheResume[]
@@ -276,6 +278,7 @@ export function construireRuban(taches: TacheResume[], aujourdhui: string): Ruba
   const tempoCourt: TacheResume[] = []
   const parDate = new Map<string, TacheResume[]>()
   const enRetard: TacheResume[] = []
+  const apresDomaine: TacheResume[] = []
 
   for (const tache of taches) {
     const rec = tache.recurrence
@@ -288,6 +291,10 @@ export function construireRuban(taches: TacheResume[], aujourdhui: string): Ruba
       }
       if (dansDomaine(tache.echeance)) {
         parDate.set(tache.echeance, [...(parDate.get(tache.echeance) ?? []), tache])
+      } else if (tache.echeance > finDomaine) {
+        // Échue après le 31 décembre : hors du ruban mais pas invisible — note
+        // « prochaine → » sur la rangée et bloc dans la bande, comme les annuelles.
+        apresDomaine.push(tache)
       }
       continue
     }
@@ -321,10 +328,14 @@ export function construireRuban(taches: TacheResume[], aujourdhui: string): Ruba
       const points: PointRuban[] = []
       for (let m = moisAuj; m <= 12; m += 1) {
         const date = iso(annee, m, rec.jourDuMois)
+        const passe = date < aujourdhui
+        // Un passage n'est « fait » que si l'échéance en attente est plus tard ;
+        // sinon l'occurrence traîne encore et le point est en retard.
+        const fait = tache.echeance === null || tache.echeance > date
         points.push({
           offset: offsetDe(date),
-          libelle: date < aujourdhui ? 'fait' : libellePoint(date, false),
-          passe: date < aujourdhui,
+          libelle: passe ? (fait ? 'fait' : 'retard') : libellePoint(date, false),
+          passe,
         })
       }
       lignes.push({ type: 'mensuelle', tache, points })
@@ -406,6 +417,11 @@ export function construireRuban(taches: TacheResume[], aujourdhui: string): Ruba
     const lundi = lundiDe(date)
     parLundi.set(lundi, [...(parLundi.get(lundi) ?? []), ...membres])
   }
+  apresDomaine.sort((a, b) => (a.echeance! < b.echeance! ? -1 : 1))
+  for (const tache of apresDomaine) {
+    const lundi = lundiDe(tache.echeance!)
+    parLundi.set(lundi, [...(parLundi.get(lundi) ?? []), tache])
+  }
   const semaines = [...parLundi.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([lundi, membres]) => ({
@@ -426,6 +442,10 @@ export function construireRuban(taches: TacheResume[], aujourdhui: string): Ruba
     grappes,
     enRetard,
     semaines,
+    noteAnProchain:
+      apresDomaine.length === 0
+        ? null
+        : `prochaine · ${libellePoint(apresDomaine[0].echeance!, true)} ${apresDomaine[0].echeance!.slice(0, 4)} →`,
     totalPonctuelles: enRetard.length + semaines.reduce((n, s) => n + s.taches.length, 0),
     tempoCourt,
   }

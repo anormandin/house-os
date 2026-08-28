@@ -339,15 +339,18 @@ public static class OutilsTaches
     [Description("Agit sur une occurrence : 'annuler-completion' défait la complétion la plus " +
         "récente d'une tâche (le journal est effacé, l'occurrence suivante matérialisée est " +
         "supprimée — refusé si une complétion plus récente existe ou si la suivante a déjà été " +
-        "traitée) ; 'passer' saute une occurrence récurrente sans la marquer faite (aucun journal, " +
-        "la suivante est créée comme après une complétion aujourd'hui) ; 'reporter' glisse " +
+        "traitée) ; 'passer' saute une occurrence récurrente sans la marquer faite (aucun journal ; " +
+        "la suivante conserve l'assigné de l'occurrence sautée — les stratégies tournantes " +
+        "n'avancent pas d'un tour — et seule son échéance est calculée comme après une " +
+        "complétion aujourd'hui) ; 'reporter' glisse " +
         "l'échéance de l'occurrence en attente sans toucher la définition de la tâche.")]
     public static async Task<object> GererOccurrence(
         HouseOsDbContext db,
         [Description("annuler-completion, passer ou reporter.")] string action,
         [Description("Id de l'occurrence (via lister_occurrences).")] Guid occurrenceId,
-        [Description("Requis pour passer : au nom de qui ('alain' ou 'ariane') — alimente la " +
-            "stratégie d'assignation de la suivante. Demander si ambigu.")] string? agirComme = null,
+        [Description("Requis pour passer : au nom de qui ('alain' ou 'ariane') — le tour n'est " +
+            "pas pris : l'assigné de la suivante reste celui de l'occurrence sautée. " +
+            "Demander si ambigu.")] string? agirComme = null,
         [Description("Requis pour reporter : nouvelle échéance YYYY-MM-DD (aujourd'hui ou plus tard).")]
         string? echeance = null)
     {

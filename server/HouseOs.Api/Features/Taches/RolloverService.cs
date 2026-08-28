@@ -7,7 +7,11 @@ namespace HouseOs.Api.Features.Taches;
 /// <summary>
 /// Glisse les occurrences fixes manquées vers leur prochaine date planifiée
 /// (flag rollover : jamais d'empilement, jamais de culpabilisation). Les tâches à
-/// intervalle ne glissent pas — « tondre » reste dû tant que ce n'est pas fait.
+/// intervalle ne glissent pas tant que leur fenêtre saisonnière est ouverte —
+/// « tondre » reste dû tant que ce n'est pas fait — mais une fois la fenêtre
+/// refermée, l'occurrence échue glisse au début de la prochaine fenêtre au lieu
+/// de rester « en retard » toute la morte-saison (décision T7, 2026-08-28),
+/// indépendamment du flag rollover (réservé au mode fixe).
 /// Tourne au démarrage puis une fois par jour.
 /// </summary>
 public class RolloverService(IServiceScopeFactory scopeFactory, ILogger<RolloverService> logger)
@@ -58,9 +62,11 @@ public class RolloverService(IServiceScopeFactory scopeFactory, ILogger<Rollover
     }
 
     /// <summary>
-    /// Le cœur du glissement, extrait pour les tests : seules les occurrences fixes,
-    /// rollover actif, à échéance strictement passée, glissent vers la prochaine date
-    /// planifiée. Fait SaveChanges. Retourne le nombre d'occurrences glissées.
+    /// Le cœur du glissement, extrait pour les tests. Glissent, à échéance strictement
+    /// passée : les occurrences fixes à rollover actif (vers la prochaine date
+    /// planifiée) et les occurrences à intervalle dont la fenêtre saisonnière s'est
+    /// refermée (vers le début de la prochaine fenêtre — décision T7, indépendante du
+    /// flag rollover). Fait SaveChanges. Retourne le nombre d'occurrences glissées.
     /// </summary>
     internal static async Task<int> GlisserOccurrencesManquees(
         HouseOsDbContext db,
@@ -77,12 +83,21 @@ public class RolloverService(IServiceScopeFactory scopeFactory, ILogger<Rollover
         foreach (var occurrence in manquees)
         {
             var spec = occurrence.Tache!.Recurrence;
-            if (spec.Mode != ModeRecurrence.Fixe || spec.Rollover == false)
+            if (spec.Mode == ModeRecurrence.Fixe && spec.Rollover)
             {
-                continue;
+                occurrence.Echeance = MoteurRecurrence.ProchainePlanifiee(spec, aujourdhui);
+                glissees++;
             }
-            occurrence.Echeance = MoteurRecurrence.ProchainePlanifiee(spec, aujourdhui);
-            glissees++;
+            else if (spec.Mode == ModeRecurrence.Intervalle && spec.AFenetre
+                && spec.DansFenetre(aujourdhui) == false)
+            {
+                // La fenêtre s'est refermée sur une occurrence échue : elle glisse au
+                // début de la prochaine fenêtre (décision T7, 2026-08-28) — « en
+                // retard » tout l'hiver ne mènerait à rien. Tant que la fenêtre est
+                // ouverte, elle reste due.
+                occurrence.Echeance = MoteurRecurrence.DebutProchaineFenetre(spec, aujourdhui);
+                glissees++;
+            }
         }
 
         if (glissees > 0)

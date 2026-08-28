@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-26
-verified-against: 7eba036
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 tags: []
 ---
 
@@ -27,8 +27,12 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
   jamais saisi après l'ancrage.
 - L'ancrage (solde initial + date) reste **éditable** — c'est un point de
   départ, le solde courant se redérive. À l'import, une transaction datée avant
-  l'ancrage est **écartée** et comptée dans le rapport d'import. Sans compte,
-  la page Budget affiche le formulaire d'ancrage.
+  l'ancrage est **écartée** et comptée dans le rapport d'import. Ré-ancrer à
+  une date qui rendrait des transactions **liées** antérieures est refusé
+  (400 : les délier d'abord — sinon les soldes d'enveloppes divergent du
+  compte, QA 2026-08-28). Sans compte, la page Budget affiche le formulaire
+  d'ancrage. Le résumé (solde courant, compteur de nouvelles) filtre par
+  compte, comme l'import.
 - Le compte porte un lien optionnel `TacheVirementId` vers la tâche récurrente
   de virement mensuel (sélecteur dans la page) ; sans lien, aucune suggestion
   de complétion.
@@ -52,7 +56,8 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
   complétion, note. Un transfert entre enveloppes = deux mouvements opposés.
 - Fermer une enveloppe exige un solde à zéro (transférer d'abord le reste).
   Une enveloppe ne se **supprime** jamais — le journal de mouvements est de
-  l'historique.
+  l'historique. Une **fermée est figée** : mouvements ET fiche (nom, type,
+  cible, liens, échéancier) refusés ; pas de réouverture (QA 2026-08-28).
 - Un solde d'enveloppe **négatif est permis** (lier un retrait plus gros que le
   solde) : affiché en rouge, le Non affecté encaisse la différence, l'invariant
   tient. La fermeture, elle, exige toujours zéro.
@@ -87,14 +92,25 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
 
 - Import manuel de fichiers CSV/OFX exportés de la banque, **web seulement** ;
   formats visés : OFX standard (FITID) et CSV AccWeb Desjardins, testés sur
-  fichiers d'exemple ; déduplication par FITID (OFX) ou hash (date, montant,
-  description) — le réimport du même fichier est sans effet
-  ([[D-2026-08-26 Import Manuel D'abord Sync Ensuite]]). Le parsing passe par
-  l'abstraction `IFournisseurTransactions` (SimpleFIN plus tard, par config).
+  fichiers d'exemple ; déduplication par FITID (OFX — hashé au-delà de 100
+  caractères) ou hash invariant-culture (date, montant, description, numéro de
+  séquence AccWeb quand présent ; sinon rang d'occurrence intra-fichier — deux
+  transactions identiques le même jour survivent toutes les deux) — le réimport
+  du même fichier est sans effet
+  ([[D-2026-08-26 Import Manuel D'abord Sync Ensuite]]). Encodage : UTF-8
+  strict avec repli Windows-1252. Un CSV à deux colonnes ambigu
+  (« montant, solde » vs « retrait, dépôt ») est détecté par le comportement
+  cumulatif de la 2ᵉ colonne ; indécidable → refus avec message clair (durci
+  QA 2026-08-28). Le parsing passe par l'abstraction
+  `IFournisseurTransactions` (SimpleFIN plus tard, par config).
 - Une transaction importée est `Nouvelle` jusqu'à être `Liee` (rapprochée) ou
-  `Ignoree`. L'inbox de rapprochement liste les nouvelles ; lier un **retrait**
-  crée le mouvement d'enveloppe correspondant (mono-enveloppe) et,
+  `Ignoree` — une ignorée se **restaure** (retour à `Nouvelle`, REST + MCP,
+  QA 2026-08-28). L'inbox de rapprochement liste les nouvelles ; lier un
+  **retrait** crée le mouvement d'enveloppe correspondant (mono-enveloppe,
+  montant exigé égal à la valeur absolue de la transaction) et,
   optionnellement, le lie à une entrée de journal de complétion existante.
+  « Lier » réclame la transaction atomiquement (UPDATE conditionnel sur
+  `Nouvelle`) : un rejeu ou une course répond 409 sans doubler les mouvements.
 - Lier un **dépôt** ouvre une ventilation multi-enveloppes pré-remplie par les
   provisions suggérées ; la confirmation crée N mouvements `Provision`
   pointant la même transaction, le reste demeure en Non affecté

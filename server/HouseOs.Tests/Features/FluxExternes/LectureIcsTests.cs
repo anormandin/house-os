@@ -123,6 +123,77 @@ public class LectureIcsTests
     }
 
     [Fact]
+    public void SummaryTropLong_TronqueALaLongueurDuSchema()
+    {
+        // Un vrai calendrier peut mettre un paragraphe entier en SUMMARY : sans
+        // troncature, « value too long » tuait le flux entier toutes les 6 h.
+        var titre = new string('a', 500);
+        var ics = $"""
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//test//FR
+            BEGIN:VEVENT
+            UID:verbeux@test
+            DTSTART;VALUE=DATE:20260910
+            SUMMARY:{titre}
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var e = Assert.Single(LectureIcs.Normaliser(ics, Debut, Fin));
+
+        Assert.Equal(200, e.Titre.Length);
+        Assert.Equal(titre[..200], e.Titre);
+    }
+
+    [Fact]
+    public void UidTropLong_TronqueEnGardantLeSuffixeDate()
+    {
+        var uid = new string('u', 400);
+        var ics = $"""
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//test//FR
+            BEGIN:VEVENT
+            UID:{uid}
+            DTSTART;VALUE=DATE:20260910
+            SUMMARY:Uid interminable
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var e = Assert.Single(LectureIcs.Normaliser(ics, Debut, Fin));
+
+        Assert.True(e.Uid.Length <= 300);
+        // Le suffixe date reste : c'est lui qui rend l'Uid unique par occurrence.
+        Assert.EndsWith(":2026-09-10", e.Uid);
+    }
+
+    [Fact]
+    public void RecurrenceInfinieSansCountNiUntil_SArreteALaFinDeLaFenetre()
+    {
+        // La norme chez Recollect : RRULE sans COUNT ni UNTIL. L'expansion doit
+        // s'arrêter à la fenêtre — pas boucler, pas déborder.
+        const string ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//test//FR
+            BEGIN:VEVENT
+            UID:quotidien@test
+            DTSTART;VALUE=DATE:20260901
+            RRULE:FREQ=DAILY
+            SUMMARY:Chaque jour
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var evenements = LectureIcs.Normaliser(ics, Debut, Fin);
+
+        Assert.Equal(30, evenements.Count); // tout septembre, rien d'octobre
+        Assert.Equal(new DateOnly(2026, 9, 30), evenements[^1].Date);
+    }
+
+    [Fact]
     public void ContenuSansCalendrier_ErreurClaire()
     {
         var ex = Assert.Throws<FormatException>(

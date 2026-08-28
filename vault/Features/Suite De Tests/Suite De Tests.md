@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-25
-verified-against: eb830ec
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 ---
 
 # Suite de tests
@@ -33,16 +33,32 @@ déjà rencontrée a une couche qui l'attrape avant le push-and-release.
   occurrence ; annuler ; passer ; reporter (passé → 400) ; notes post-hoc ;
   **courses de complétion** tranchées par les index uniques
   ([[D-2026-08-25 Invariants D'occurrence En Base]]).
-- **Fumée E2E** : login → créer une tâche → l'éditer sans perte → la compléter.
+- **E2E** (3 parcours, réécrits/ajoutés à la ronde QA 2026-08-28 avec l'aide
+  partagée `web/e2e/aide.ts`) : fumée (login → créer → éditer sans perte →
+  compléter depuis la console → annuler sur Aujourd'hui → supprimer) ;
+  récurrence (créer une intervalle → compléter → la prochaine occurrence se
+  matérialise) ; budget (ancrage → enveloppe → ajustement → import CSV AccWeb →
+  lier le retrait → fermeture à solde zéro, qui prouve le débit exact).
 
 ## Campagne cas de bord (2026-08-25)
 
 Audit de couverture par balayage complet (rapport : artifact « Angles morts de
 House OS ») → ~30 bogues latents corrigés puis figés par **+170 tests backend**
-(339 au total) et **+26 tests frontend** (36) : moteur/fenêtres/rollover, cycle
-de vie complet, outils MCP exécutés pour vrai, workers météo/flux (fixtures DST,
-ICS en UTC), tranches Auth/Zones/iCal/Comptes/Documents/Équipements en
-intégration, et `web/src/lib/` (format, humeur, erreurs API) en Vitest.
+(339 à ce moment) et **+26 tests frontend** (36) : moteur/fenêtres/rollover,
+cycle de vie complet, outils MCP exécutés pour vrai, workers météo/flux
+(fixtures DST, ICS en UTC), tranches Auth/Zones/iCal/Comptes/Documents/
+Équipements en intégration, et `web/src/lib/` (format, humeur, erreurs API) en
+Vitest.
+
+## Ronde QA (2026-08-28)
+
+Revue complète par lots (8 agents) → 55 issues GitHub (`qa-2026-08`), toutes
+corrigées la même semaine avec tests de non-régression. Trous comblés :
+intégration pour les 4 groupes d'endpoints qui n'en avaient aucun (santé,
+humeur, flux externes, import de transactions), Comptes à rebours étoffé,
+`budget-vues`/`aujourdhui-vues`/`pieces-vues`/`documents-vues`/`query-client`
+extraits et testés côté web, garde SSRF et magic bytes testés sans réseau.
+Totaux au 2026-08-28 : **523 backend**, **125 frontend**, **3 parcours E2E**.
 
 ## Conventions
 
@@ -57,14 +73,6 @@ intégration, et `web/src/lib/` (format, humeur, erreurs API) en Vitest.
   humeur, stratégies) se testent directement.
 - Frontend : MSW intercepte au niveau réseau — ne jamais mocker `@/lib/api` ;
   sous fake timers, préférer `fireEvent` à `userEvent`.
-- E2E hors du `npm test` par défaut (exige la pile `demarrer`).
-
-## Conventions
-
-- Intégration : services d'arrière-plan (météo, humeur, flux externes, rollover)
-  retirés de l'hôte de test ; deux comptes seedés par la config de test ; le
-  cookie de session vient d'un vrai POST login.
-- Frontend : MSW intercepte au niveau réseau — ne jamais mocker `@/lib/api`.
 - E2E hors du `npm test` par défaut (exige la pile `demarrer`).
 
 ## Décisions liées

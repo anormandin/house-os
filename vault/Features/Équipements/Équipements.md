@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-25
-verified-against: ccaeced
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 tags: []
 ---
 
@@ -20,7 +20,10 @@ maison en s'installant.
 
 - Quand un utilisateur crée un équipement, il peut le situer dans une zone et lui
   attacher marque/modèle/série, date d'achat, fin de garantie, notes, et des specs
-  libres clé/valeur (JSONB — taille de filtre, code de peinture…).
+  libres clé/valeur (JSONB — taille de filtre, code de peinture…). Validations
+  (QA 2026-08-28, REST et MCP via le même `ValiderAsync`) : fin de garantie ≥
+  date d'achat ; specs bornées à 100 entrées, clé ≤ 100 caractères, valeur
+  ≤ 1000.
 - **Documents liés** ([[D-2026-08-24 Document Unifié Sur Disque]], depuis
   2026-08-24) : manuels PDF et photos = des [[Documents]] rattachés à
   l'équipement, téléversés depuis la fiche (catégorie déduite du type). Chaque
@@ -36,6 +39,9 @@ maison en s'installant.
   préservés, même idiome que les listes de tâches).
 - L'onglet Équipements groupe la liste par zone (avec compteur de documents par
   équipement) ; la fiche est éditable en place.
+- Quand une enveloppe [[Budget]] de type Équipement est liée à l'équipement
+  (lien exclusif posé côté Budget), la fiche l'affiche avec son solde — livré
+  avec le module Budget (2026-08-27).
 - **MCP** ([[Serveur MCP]]) : `lister_equipements`, `obtenir_equipement` et
   `gerer_equipement` (modifier = remplacement complet de la fiche ; supprimer
   délie les documents) — les fichiers restent dans l'interface web.
@@ -67,4 +73,5 @@ maison en s'installant.
 
 ## Historique
 
-<!-- Plans et recaps à venir (V1). -->
+Livré au fil des plans de [[Tâches]] (V1 « Emménagement ») et de [[Documents]]
+(documents liés) — pas de plan dédié ; l'enveloppe liée vient du plan [[Budget]].

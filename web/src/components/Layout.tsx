@@ -3,8 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Check, Copy, LogOut, RefreshCw } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import Avatar from '@/components/Avatar'
-import { api, type Utilisateur } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { api, ApiError, type Utilisateur } from '@/lib/api'
+import { signalerErreur } from '@/lib/erreurs'
+import { cn, copierDansPressePapiers } from '@/lib/utils'
 
 const onglets = [
   { vers: '/', libelle: "Aujourd'hui" },
@@ -62,7 +63,11 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
   })
 
   async function copier(cle: string, url: string) {
-    await navigator.clipboard.writeText(url)
+    const reussi = await copierDansPressePapiers(url)
+    if (reussi === false) {
+      signalerErreur('Impossible de copier automatiquement — sélectionne l’URL et copie-la à la main.')
+      return
+    }
     setCopie(cle)
     setTimeout(() => setCopie(null), 2000)
   }
@@ -73,8 +78,20 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
   }
 
   async function deconnecter() {
-    await api.deconnexion()
-    queryClient.setQueryData(['moi'], undefined)
+    try {
+      await api.deconnexion()
+    } catch (erreur) {
+      // Une session déjà expirée (401) est une déconnexion réussie.
+      const dejaExpiree = erreur instanceof ApiError && erreur.statut === 401
+      if (dejaExpiree === false) {
+        signalerErreur('La déconnexion a échoué — réessaie.')
+        return
+      }
+    }
+    // clear() seul ne notifie pas l'observateur actif de `moi` (v5) : l'app
+    // garderait son instantané. Le reset le notifie (moi → undefined → écran de
+    // connexion) ; le clear() qui suit purge les données de l'utilisateur.
+    await queryClient.resetQueries({ queryKey: ['moi'], exact: true })
     queryClient.clear()
   }
 

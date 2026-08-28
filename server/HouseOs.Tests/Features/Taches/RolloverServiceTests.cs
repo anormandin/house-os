@@ -75,6 +75,58 @@ public class RolloverServiceTests : TestAvecSqlite
         Assert.Equal(Aujourdhui.AddDays(-3), occurrence.Echeance);
     }
 
+    /// <summary>Tondre aux 7 jours, fenêtre mai–octobre — le cas type de la décision T7.</summary>
+    private static SpecRecurrence TondreMaiOctobre(bool rollover = false) => new()
+    {
+        Mode = ModeRecurrence.Intervalle,
+        IntervalleJours = 7,
+        FenetreDebutMois = 5,
+        FenetreDebutJour = 1,
+        FenetreFinMois = 10,
+        FenetreFinJour = 31,
+        Rollover = rollover,
+    };
+
+    [Fact]
+    public async Task Une_intervalle_echue_HorsFenetre_glisse_au_debut_de_la_prochaine_fenetre()
+    {
+        // Décision T7 (2026-08-28) : échue le 28 octobre, jamais tondue, on est en
+        // novembre — la fenêtre est refermée, l'occurrence glisse au 1ᵉʳ mai au lieu
+        // de rester « en retard » tout l'hiver.
+        var occurrence = Creer(TondreMaiOctobre(), new DateOnly(2026, 10, 28));
+
+        var glissees = await RolloverService.GlisserOccurrencesManquees(Db, new DateOnly(2026, 11, 5));
+
+        Assert.Equal(1, glissees);
+        Assert.Equal(new DateOnly(2027, 5, 1), occurrence.Echeance);
+    }
+
+    [Fact]
+    public async Task Le_glissement_HorsFenetre_d_une_intervalle_ignore_le_flag_rollover()
+    {
+        // Décision T7 : ce glissement est indépendant du flag rollover, réservé au
+        // mode fixe (T9).
+        var occurrence = Creer(TondreMaiOctobre(rollover: true), new DateOnly(2026, 10, 28));
+
+        var glissees = await RolloverService.GlisserOccurrencesManquees(Db, new DateOnly(2026, 11, 5));
+
+        Assert.Equal(1, glissees);
+        Assert.Equal(new DateOnly(2027, 5, 1), occurrence.Echeance);
+    }
+
+    [Fact]
+    public async Task Une_intervalle_echue_dont_la_fenetre_est_encore_ouverte_reste_due()
+    {
+        // Tant que la fenêtre est ouverte, « tondre » reste dû (la décision T7 ne
+        // joue qu'à la fermeture).
+        var occurrence = Creer(TondreMaiOctobre(), new DateOnly(2026, 10, 20));
+
+        var glissees = await RolloverService.GlisserOccurrencesManquees(Db, new DateOnly(2026, 10, 30));
+
+        Assert.Equal(0, glissees);
+        Assert.Equal(new DateOnly(2026, 10, 20), occurrence.Echeance);
+    }
+
     [Fact]
     public async Task Le_flag_desactive_laisse_l_occurrence_en_retard()
     {

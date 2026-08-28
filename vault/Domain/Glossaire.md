@@ -1,7 +1,7 @@
 ---
 type: domain
-last-verified: 2026-08-26
-verified-against: d52fad1
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 tags: []
 ---
 
@@ -80,6 +80,14 @@ Un calendrier ICS du monde extérieur (collectes Recollect, calendrier scolaire�
 suivi par l'app : URL + fenêtre de lecture, rafraîchi par worker. Ses **événements
 externes** sont affichés seulement — jamais couplés aux tâches
 ([[D-2026-08-24 Flux ICS Dans L'app Affichage Seul]]). Voir [[Flux Externes]].
+
+## Jeton iCal
+
+Secret de 48 caractères hexadécimaux (192 bits) qui protège le flux iCal d'une
+personne : il EST l'URL (`/ical/{jeton}.ics`), seule surface exposée à Internet
+([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]). Rotation self-service
+depuis « Mon calendrier » ou l'outil `mon_flux_ical` (action `regenerer`) :
+l'ancienne URL meurt immédiatement.
 
 ## Fonds de prévoyance
 

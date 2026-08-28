@@ -1,7 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
+using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Auth;
+using HouseOs.Api.Features.FluxIcal;
 using HouseOs.Api.Features.Taches;
+using HouseOs.Api.Infrastructure;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HouseOs.Tests.Integration;
 
@@ -118,6 +124,80 @@ public class FluxIcalApiTests(HouseOsFactory factory)
         // Sans échappement, la virgule et le point-virgule cassent le VEVENT et
         // l'abonnement du téléphone échoue en entier.
         Assert.Contains(@"Épicerie\, IGA\; 2 sacs", ics);
+    }
+
+    [Fact]
+    public async Task LeFlux_InterditToutCachePartage()
+    {
+        var client = await factory.ClientConnecte();
+
+        var reponse = await factory.CreateClient().GetAsync(await FluxDe(client));
+
+        // Le jeton secret est dans l'URL : un cache (NPM, proxy Funnel) qui garderait
+        // la réponse la servirait à n'importe qui.
+        reponse.EnsureSuccessStatusCode();
+        var cacheControl = reponse.Headers.CacheControl!;
+        Assert.True(cacheControl.Private);
+        Assert.True(cacheControl.NoStore);
+    }
+
+    [Fact]
+    public async Task LesDescriptionsAvecPonctuationIcs_SontEchappees()
+    {
+        var client = await factory.ClientConnecte();
+        var marqueur = Guid.NewGuid().ToString("N");
+        var reponse = await client.PostAsJsonAsync("/api/taches", new CreerTacheRequete(
+            $"Tâche décrite {marqueur}",
+            "Acheter : sacs, gants; puis\nranger",
+            Aujourdhui.AddDays(1), null, null, null, null, null));
+        Assert.Equal(HttpStatusCode.Created, reponse.StatusCode);
+
+        var ics = await factory.CreateClient().GetStringAsync(await FluxDe(client));
+
+        // Même contrat que Summary : virgule, point-virgule et retour de ligne
+        // doivent sortir échappés, sinon le VEVENT casse chez l'abonné.
+        Assert.Contains(@"sacs\, gants\;", ics);
+        Assert.Contains(@"puis\nranger", ics);
+    }
+
+    [Fact]
+    public async Task Rotation_CompteDisparu_Repond401_EtPurgeLeCookie()
+    {
+        // Compte jetable créé directement en base (aucune API de création de compte),
+        // supprimé pendant que sa session est encore vivante.
+        var id = Guid.NewGuid();
+        var nom = $"fantome{id:N}";
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseOsDbContext>();
+            var fantome = new Utilisateur
+            {
+                Id = id,
+                NomUtilisateur = nom,
+                NomAffichage = "Fantôme",
+                MotDePasseHash = string.Empty,
+                JetonIcal = JetonIcal.Generer(),
+            };
+            fantome.MotDePasseHash =
+                new PasswordHasher<Utilisateur>().HashPassword(fantome, "test-fantome");
+            db.Utilisateurs.Add(fantome);
+            await db.SaveChangesAsync();
+        }
+        var client = factory.CreateClient();
+        (await client.PostAsJsonAsync("/api/auth/connexion",
+            new ConnexionRequete(nom, "test-fantome"))).EnsureSuccessStatusCode();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HouseOsDbContext>();
+            await db.Utilisateurs.Where(u => u.Id == id).ExecuteDeleteAsync();
+        }
+
+        var reponse = await client.PostAsync("/api/ical/rotation", null);
+
+        // Aligné sur /api/auth/moi : 401 + purge du cookie, jamais un 500 SingleAsync.
+        Assert.Equal(HttpStatusCode.Unauthorized, reponse.StatusCode);
+        Assert.Contains(reponse.Headers.GetValues("Set-Cookie"),
+            c => c.StartsWith("houseos_session=;"));
     }
 
     [Fact]

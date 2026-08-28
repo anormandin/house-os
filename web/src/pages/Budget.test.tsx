@@ -222,6 +222,84 @@ test('ventiler un dépôt préremplit les provisions et peut compléter le virem
   await waitFor(() => expect(virementComplete).toBe(true))
 })
 
+test('compléter le virement depuis la ventilation invalide tâches, occurrences et journal', async () => {
+  servirBudget()
+  serveur.use(
+    http.post('/api/budget/transactions/tx-depot/lier', () => new HttpResponse(null, { status: 204 })),
+    http.post('/api/occurrences/o-vir/completer', () => new HttpResponse(null, { status: 204 })),
+  )
+  const { client } = rendre(<Budget />)
+
+  const rangee = (await screen.findByText('VIR INTERAC DEPOT')).closest('div')!
+  await userEvent.click(within(rangee).getByRole('button', { name: 'Lier' }))
+  const modal = (await screen.findByText('Ventiler le dépôt')).closest('div')!
+  const espion = vi.spyOn(client, 'invalidateQueries')
+
+  await userEvent.click(within(modal).getByRole('button', { name: 'Lier' }))
+
+  // Convention d'invalidation croisée : l'occurrence complétée doit disparaître
+  // d'Aujourd'hui et de la console Tâches, pas seulement des clés budget.
+  await waitFor(() => {
+    const cles = espion.mock.calls.map(([filtre]) => (filtre?.queryKey ?? [])[0])
+    expect(cles).toEqual(
+      expect.arrayContaining(['budget', 'budget-transactions', 'taches', 'occurrences', 'journal']),
+    )
+  })
+})
+
+test('un échec de la complétion rafraîchit quand même l’inbox (liaison déjà réussie)', async () => {
+  servirBudget()
+  serveur.use(
+    http.post('/api/budget/transactions/tx-depot/lier', () => new HttpResponse(null, { status: 204 })),
+    http.post('/api/occurrences/o-vir/completer', () => new HttpResponse(null, { status: 500 })),
+  )
+  const { client } = rendre(<Budget />)
+
+  const rangee = (await screen.findByText('VIR INTERAC DEPOT')).closest('div')!
+  await userEvent.click(within(rangee).getByRole('button', { name: 'Lier' }))
+  const modal = (await screen.findByText('Ventiler le dépôt')).closest('div')!
+  const espion = vi.spyOn(client, 'invalidateQueries')
+
+  await userEvent.click(within(modal).getByRole('button', { name: 'Lier' }))
+
+  // La liaison a réussi côté serveur : l'invalidation (onSettled) doit passer
+  // malgré l'échec du completer, sinon la transaction resterait re-liable.
+  await waitFor(() => {
+    const cles = espion.mock.calls.map(([filtre]) => (filtre?.queryKey ?? [])[0])
+    expect(cles).toEqual(expect.arrayContaining(['budget', 'budget-transactions', 'occurrences']))
+  })
+  // Le modal reste ouvert : la mutation a échoué, rien ne se ferme en douce.
+  expect(screen.getByText('Ventiler le dépôt')).toBeInTheDocument()
+})
+
+test('la saisie dans l’éditeur d’enveloppe survit à un refetch du détail', async () => {
+  servirBudget()
+  serveur.use(
+    http.get('/api/budget/enveloppes/:id', () =>
+      HttpResponse.json({ enveloppe: ENVELOPPES[0], mouvements: [] })),
+    http.get('/api/taches', () => HttpResponse.json([])),
+  )
+  const { client } = rendre(<Budget />)
+
+  await userEvent.click(await screen.findByRole('button', { name: /Taxes municipales/ }))
+  const nom = await screen.findByLabelText('Nom')
+  expect(nom).toHaveValue('Taxes municipales')
+
+  await userEvent.clear(nom)
+  await userEvent.type(nom, 'Nom en cours de frappe')
+  // Le serveur répond désormais autre chose (invalidation d'une autre mutation).
+  serveur.use(
+    http.get('/api/budget/enveloppes/:id', () =>
+      HttpResponse.json({
+        enveloppe: { ...ENVELOPPES[0], nom: 'Écrasé par le serveur' },
+        mouvements: [],
+      })),
+  )
+  await client.refetchQueries({ queryKey: ['budget-enveloppe'] })
+
+  expect(nom).toHaveValue('Nom en cours de frappe')
+})
+
 test('sans compte ancré, la page offre le formulaire d’ancrage', async () => {
   rendre(<Budget />)
 

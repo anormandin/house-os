@@ -17,6 +17,13 @@ public class FluxExternesRafraichissement(
     : BackgroundService
 {
     public const int FenetreJours = 60;
+
+    /// <summary>Client HTTP nommé (Program.cs) : plafond mémoire, timeout, garde SSRF.</summary>
+    public const string NomClientHttp = "flux-externes";
+
+    /// <summary>Plafond du corps ICS téléchargé — au-delà, ce n'est pas un calendrier.</summary>
+    public const long TailleMaxIcs = 4 * 1024 * 1024;
+
     private static readonly TimeSpan Cadence = TimeSpan.FromHours(6);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -38,23 +45,43 @@ public class FluxExternesRafraichissement(
         }
     }
 
-    private async Task RafraichirTous(CancellationToken ct)
+    /// <summary>Un passage complet. Public : le test du passage multi-flux le pilote.</summary>
+    public async Task RafraichirTous(CancellationToken ct)
     {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<HouseOsDbContext>();
-        var flux = await db.FluxExternes.Where(f => f.Actif).ToListAsync(ct);
+        List<(Guid Id, string Nom)> flux;
+        await using (var scopeListe = scopeFactory.CreateAsyncScope())
+        {
+            var dbListe = scopeListe.ServiceProvider.GetRequiredService<HouseOsDbContext>();
+            flux = (await dbListe.FluxExternes.AsNoTracking()
+                    .Where(f => f.Actif)
+                    .OrderBy(f => f.Nom) // ordre déterministe (logs, tests)
+                    .Select(f => new { f.Id, f.Nom })
+                    .ToListAsync(ct))
+                .Select(f => (f.Id, f.Nom))
+                .ToList();
+        }
 
-        foreach (var abonnement in flux)
+        foreach (var (id, nom) in flux)
         {
             try
             {
-                await Rafraichir(db, abonnement, httpFactory.CreateClient(), ct);
+                // Un scope (donc un DbContext) par flux : le nettoyage du change
+                // tracker d'un flux en erreur ne peut plus détacher les entités des
+                // flux suivants et geler leurs statuts.
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var db = scope.ServiceProvider.GetRequiredService<HouseOsDbContext>();
+                var abonnement = await db.FluxExternes.SingleOrDefaultAsync(f => f.Id == id, ct);
+                if (abonnement is null)
+                {
+                    continue; // supprimé pendant le passage
+                }
+                await Rafraichir(db, abonnement, httpFactory.CreateClient(NomClientHttp), ct);
             }
             // Ceinture : un flux qui échoue (même dans sa gestion d'erreur) ne doit
             // jamais priver les flux suivants de leur rafraîchissement pendant 6 h.
             catch (Exception ex) when (ct.IsCancellationRequested == false)
             {
-                logger.LogError(ex, "Flux externes : échec isolé du flux {Nom}.", abonnement.Nom);
+                logger.LogError(ex, "Flux externes : échec isolé du flux {Nom}.", nom);
             }
         }
     }

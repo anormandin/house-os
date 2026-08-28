@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-08-25
-verified-against: ccaeced
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 tags: []
 ---
 
@@ -16,9 +16,12 @@ Un monolithe .NET 10 ([[D-2026-08-23 Monolithe Modulaire Tranches Verticales]]) 
 l'API ; une app web React française ([[D-2026-08-23 Frontend Vite React PWA]]),
 **desktop d'abord** avec une future vue e-ink distincte
 ([[D-2026-08-23 Interface Desktop Et Écran E-ink]]), est la première interface ; PostgreSQL ([[D-2026-08-23 PostgreSQL]]) stocke tout. Le tout
-tourne en Docker Compose sur une machine maison, joignable via Tailscale
-([[D-2026-08-23 Hébergement Maison Tailscale Docker]]), dans un monorepo unique
-([[D-2026-08-23 Monorepo]]).
+tourne en Docker Compose sur une machine maison, joignable via Tailscale, avec
+une unique exception au « jamais exposé » : le flux iCal publié par Tailscale
+Funnel ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]], qui supersède
+[[D-2026-08-23 Hébergement Maison Tailscale Docker]]), dans un monorepo unique
+([[D-2026-08-23 Monorepo]]). Un healthcheck anonyme `GET /api/sante`
+(`server/HouseOs.Api/Features/Sante/SanteEndpoint.cs`) répond au monitoring.
 
 ## Structure du monorepo
 
@@ -34,7 +37,8 @@ tourne en Docker Compose sur une machine maison, joignable via Tailscale
 - `web/e2e/` — fumée E2E Playwright (Chromium) ; voir [[Suite De Tests]].
 - `scripts/backup.sh` — backup quotidien (pg_dump + volume fichiers).
 - `Dockerfile`, `docker-compose.yml`, `.env.example` — conteneurisation et prod
-  ([[Déploiement]]).
+  ([[Déploiement]]) ; sidecar `tailscale` (profil compose `funnel`, absent en
+  dev) et `infra/tailscale-serve.json` qui ne publie que `/ical`.
 - `design/` — maquettes retenues (canvas Artifact publié).
 - `firmware/`, `hardware/cad`, `hardware/pcb` — phase 3 (vides pour l'instant).
 - `vault/`, `docs/research/` — connaissance.
@@ -76,5 +80,7 @@ tap-pour-compléter ; e-ink et panneaux openHASP ensuite. Détails :
    la maison).
 3. **Phase 2** (entamée) : météo + règles ([[Météo]]), [[Titre D'humeur]]
    serveur (Haiku 4.5), calendriers ICS ([[Flux Externes]]) et classeur
-   [[Documents]] — livrés 2026-08-24 ; reste : Hydro-Québec, consommables.
+   [[Documents]] — livrés 2026-08-24 ; module [[Budget]] (fonds de prévoyance
+   en enveloppes virtuelles, import CSV/OFX) — livré 2026-08-27, et flux iCal
+   public via Funnel le même jour ; reste : Hydro-Québec, consommables.
 4. **Phase 3** : IoT (hub MQTT, affichages, capteurs).

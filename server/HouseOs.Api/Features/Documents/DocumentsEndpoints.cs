@@ -109,6 +109,35 @@ public static class DocumentsEndpoints
         }
     }
 
+    /// <summary>Le contenu correspond-il au type MIME annoncé ? Le Content-Type client
+    /// est déclaratif : on renifle les magic bytes des seuls formats permis plutôt que
+    /// de le croire sur parole (un HTML « image/png » finirait servi depuis l'app).</summary>
+    public static bool ContenuCorrespondAuType(ReadOnlySpan<byte> entete, string typeMime) =>
+        typeMime switch
+        {
+            "application/pdf" => entete.StartsWith("%PDF-"u8),
+            "image/jpeg" => entete.StartsWith((ReadOnlySpan<byte>)[0xFF, 0xD8, 0xFF]),
+            "image/png" => entete.StartsWith((ReadOnlySpan<byte>)[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+            "image/webp" => entete.Length >= 12
+                && entete[..4].SequenceEqual("RIFF"u8)
+                && entete[8..12].SequenceEqual("WEBP"u8),
+            "image/heic" => EstHeic(entete),
+            _ => false,
+        };
+
+    private static bool EstHeic(ReadOnlySpan<byte> entete)
+    {
+        // Conteneur ISO-BMFF : boîte « ftyp » à l'offset 4, marque de format à l'offset 8.
+        if (entete.Length < 12 || entete[4..8].SequenceEqual("ftyp"u8) == false)
+        {
+            return false;
+        }
+        var marque = entete[8..12];
+        return marque.SequenceEqual("heic"u8) || marque.SequenceEqual("heix"u8)
+            || marque.SequenceEqual("heif"u8) || marque.SequenceEqual("hevc"u8)
+            || marque.SequenceEqual("mif1"u8) || marque.SequenceEqual("msf1"u8);
+    }
+
     /// <summary>Catégorie déduite du type MIME quand l'utilisateur n'en fournit pas.</summary>
     public static CategorieDocument CategorieParDefaut(string typeMime) =>
         typeMime switch
@@ -126,7 +155,7 @@ public static class DocumentsEndpoints
             var documents = db.Documents.AsNoTracking();
             if (string.IsNullOrWhiteSpace(categorie) == false)
             {
-                if (Enum.TryParse<CategorieDocument>(categorie, out var cat) == false)
+                if (Mcp.Conversions.ParserEnum(categorie, out CategorieDocument cat) == false)
                 {
                     return Erreur("categorie", "Catégorie inconnue.");
                 }
@@ -178,11 +207,22 @@ public static class DocumentsEndpoints
             {
                 return Erreur("fichier", "Type non permis (PDF ou image).");
             }
+            var entete = new byte[12];
+            int octetsLus;
+            await using (var lecture = fichier.OpenReadStream())
+            {
+                octetsLus = await lecture.ReadAtLeastAsync(entete, entete.Length, throwOnEndOfStream: false);
+            }
+            if (ContenuCorrespondAuType(entete.AsSpan(0, octetsLus), typeMime) == false)
+            {
+                return Erreur("fichier",
+                    "Le contenu du fichier ne correspond pas à son type annoncé (PDF ou image).");
+            }
 
             var categorie = CategorieParDefaut(typeMime);
             var categorieBrute = formulaire["categorie"].ToString();
             if (string.IsNullOrWhiteSpace(categorieBrute) == false
-                && Enum.TryParse(categorieBrute, out categorie) == false)
+                && Mcp.Conversions.ParserEnum(categorieBrute, out categorie) == false)
             {
                 return Erreur("categorie", "Catégorie inconnue.");
             }
@@ -209,15 +249,36 @@ public static class DocumentsEndpoints
             }
             // Valider les liens avant d'écrire quoi que ce soit : une violation de FK
             // après l'écriture laisserait un fichier orphelin permanent sur disque.
-            var equipementId = LireGuid(formulaire["equipementId"]);
+            var (equipementId, equipementValide) = LireGuid(formulaire["equipementId"]);
+            if (equipementValide == false)
+            {
+                return Erreur("equipementId",
+                    $"equipementId invalide : '{formulaire["equipementId"]}' (Guid attendu).");
+            }
             if (equipementId is { } eq && await db.Equipements.AnyAsync(e => e.Id == eq) == false)
             {
                 return Erreur("equipementId", "Cet équipement n'existe pas (ou plus).");
             }
-            var zoneId = LireGuid(formulaire["zoneId"]);
+            var (zoneId, zoneValide) = LireGuid(formulaire["zoneId"]);
+            if (zoneValide == false)
+            {
+                return Erreur("zoneId", $"zoneId invalide : '{formulaire["zoneId"]}' (Guid attendu).");
+            }
             if (zoneId is { } z && await db.Zones.AnyAsync(x => x.Id == z) == false)
             {
                 return Erreur("zoneId", "Cette pièce n'existe pas (ou plus).");
+            }
+            var (dateDocument, dateDocumentValide) = LireDate(formulaire["dateDocument"]);
+            if (dateDocumentValide == false)
+            {
+                return Erreur("dateDocument", $"dateDocument invalide : '{formulaire["dateDocument"]}' " +
+                    "— format attendu YYYY-MM-DD (ex. 2026-10-06).");
+            }
+            var (echeance, echeanceValide) = LireDate(formulaire["echeance"]);
+            if (echeanceValide == false)
+            {
+                return Erreur("echeance", $"echeance invalide : '{formulaire["echeance"]}' " +
+                    "— format attendu YYYY-MM-DD (ex. 2026-10-06).");
             }
 
             var document = new Document
@@ -229,8 +290,8 @@ public static class DocumentsEndpoints
                 ZoneId = zoneId,
                 Dossier = dossier,
                 Notes = notes,
-                DateDocument = LireDate(formulaire["dateDocument"]),
-                Echeance = LireDate(formulaire["echeance"]),
+                DateDocument = dateDocument,
+                Echeance = echeance,
                 NomFichier = nomFichier,
                 CheminDisque = string.Empty,
                 TypeMime = typeMime,
@@ -262,18 +323,38 @@ public static class DocumentsEndpoints
 
         app.MapPut("/api/documents/{id:guid}", async (Guid id, DocumentRequete requete, HouseOsDbContext db) =>
         {
+            // Mêmes règles que le POST : sans elles, un lien inexistant ou une
+            // longueur hors colonne remonte une erreur Postgres brute (500).
             if (string.IsNullOrWhiteSpace(requete.Titre))
             {
                 return Erreur("titre", "Le titre est requis.");
             }
-            if (Enum.TryParse<CategorieDocument>(requete.Categorie, out var categorie) == false)
+            var titre = requete.Titre.Trim();
+            if (titre.Length > 200)
+            {
+                return Erreur("titre", "Le titre ne peut pas dépasser 200 caractères.");
+            }
+            if (Mcp.Conversions.ParserEnum(requete.Categorie, out CategorieDocument categorie) == false)
             {
                 return Erreur("categorie", "Catégorie inconnue.");
+            }
+            var notes = Nettoyer(requete.Notes);
+            if (notes?.Length > 2000)
+            {
+                return Erreur("notes", "Les notes ne peuvent pas dépasser 2000 caractères.");
             }
             var dossier = Nettoyer(requete.Dossier);
             if (dossier?.Length > 100)
             {
                 return Erreur("dossier", "Le dossier ne peut pas dépasser 100 caractères.");
+            }
+            if (requete.EquipementId is { } eq && await db.Equipements.AnyAsync(e => e.Id == eq) == false)
+            {
+                return Erreur("equipementId", "Cet équipement n'existe pas (ou plus).");
+            }
+            if (requete.ZoneId is { } z && await db.Zones.AnyAsync(x => x.Id == z) == false)
+            {
+                return Erreur("zoneId", "Cette pièce n'existe pas (ou plus).");
             }
             var document = await db.Documents.FindAsync(id);
             if (document is null)
@@ -281,12 +362,12 @@ public static class DocumentsEndpoints
                 return Results.NotFound();
             }
 
-            document.Titre = requete.Titre.Trim();
+            document.Titre = titre;
             document.Categorie = categorie;
             document.EquipementId = requete.EquipementId;
             document.ZoneId = requete.ZoneId;
             document.Dossier = dossier;
-            document.Notes = Nettoyer(requete.Notes);
+            document.Notes = notes;
             document.DateDocument = requete.DateDocument;
             document.Echeance = requete.Echeance;
             await db.SaveChangesAsync();
@@ -409,12 +490,28 @@ public static class DocumentsEndpoints
         _ => ".bin",
     };
 
-    private static Guid? LireGuid(string? valeur) =>
-        Guid.TryParse(valeur, out var id) ? id : null;
+    /// <summary>Guid nullable d'un champ de formulaire : vide → null ; Valide=false
+    /// si une valeur non vide est imparsable — jamais avalée en silence.</summary>
+    private static (Guid? Valeur, bool Valide) LireGuid(string? valeur)
+    {
+        if (string.IsNullOrWhiteSpace(valeur))
+        {
+            return (null, true);
+        }
+        return Guid.TryParse(valeur, out var id) ? (id, true) : (null, false);
+    }
 
-    private static DateOnly? LireDate(string? valeur) =>
-        DateOnly.TryParseExact(valeur, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-            DateTimeStyles.None, out var date) ? date : null;
+    /// <summary>Date « YYYY-MM-DD » nullable d'un champ de formulaire, même contrat
+    /// que <see cref="LireGuid"/> (aligné sur Conversions.ParserDate du MCP).</summary>
+    private static (DateOnly? Valeur, bool Valide) LireDate(string? valeur)
+    {
+        if (string.IsNullOrWhiteSpace(valeur))
+        {
+            return (null, true);
+        }
+        return DateOnly.TryParseExact(valeur.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out var date) ? (date, true) : (null, false);
+    }
 
     private static string? Nettoyer(string? valeur) =>
         string.IsNullOrWhiteSpace(valeur) ? null : valeur.Trim();

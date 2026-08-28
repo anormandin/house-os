@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-25
-verified-against: eb830ec
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 tags: []
 ---
 
@@ -22,15 +22,21 @@ que [[Météo]].
 - Les abonnements sont gérés dans l'app
   ([[D-2026-08-24 Flux ICS Dans L'app Affichage Seul]]) :
   modal « Calendriers externes » (bouton calendrier dans
-  l'en-tête de Cette semaine) — nom, URL, type (`Collecte`/`Ecole`/`Autre`).
+  l'en-tête du ruban des 7 jours) — nom, URL, type (`Collecte`/`Ecole`/`Autre`).
   La création télécharge le flux une fois pour valider l'URL (422 avec message
   clair sinon).
 - Un `BackgroundService` rafraîchit chaque flux actif au démarrage puis toutes
   les 6 h ([[D-2026-08-24 Tables Flux Externes]],
   [[D-2026-08-23 Pas De N8n Dans Le Cœur]]) : Ical.Net expanse les récurrences
   sur hier → +60 jours, remplacement par flux en transaction ; échec → derniers
-  événements conservés, erreur affichée dans la gestion, et **isolé** — un flux
-  qui casse (même supprimé pendant le passage) n'empêche pas les suivants.
+  événements conservés, erreur affichée dans la gestion, et **isolé** — chaque
+  flux a son propre scope DbContext (QA 2026-08-28) : un flux qui casse (même
+  supprimé pendant le passage) n'empêche ni les suivants ni leurs horodatages.
+- Téléchargement durci (QA 2026-08-28) : réponse plafonnée à 4 Mo, timeout
+  30 s, redirections bornées (3) re-validées à chaque saut, et garde SSRF —
+  les hôtes loopback/RFC1918/link-local/multicast sont refusés avec un message
+  clair (`GardeSsrf`) ; titres et UID tronqués aux longueurs du schéma pour
+  qu'un SUMMARY interminable ne tue pas le flux.
 - Lecture ICS (durcie 2026-08-25) : les heures **UTC (« …Z ») et TZID étrangers
   sont converties au fuseau de la maison** (la norme chez Recollect et les
   calendriers scolaires — sinon décalage de 4-5 h et bascule de date le soir) ;
@@ -39,8 +45,8 @@ que [[Météo]].
 - Modifier l'URL d'un flux (PUT) **purge ses événements et recharge tout de
   suite** — jamais jusqu'à 6 h de l'ancien calendrier sous le nouveau nom.
 - Les événements sont des faits, jamais des tâches : bandeau discret des
-  événements du jour au-dessus de la liste d'Aujourd'hui, et fusion dans Cette
-  semaine avec style distinct (italique + icône, non cochable).
+  événements du jour au-dessus de la liste d'Aujourd'hui, et fusion dans le
+  ruban des 7 jours avec style distinct (italique + icône, non cochable).
 - L'UI lit uniquement les tables locales (`GET /api/evenements-externes`).
 
 ## Hors périmètre

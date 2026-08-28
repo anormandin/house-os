@@ -58,6 +58,22 @@ public class ZonesApiTests(HouseOsFactory factory)
     }
 
     [Fact]
+    public async Task ModifierUneZone_SansType_ConserveLeType()
+    {
+        var client = await factory.ClientConnecte();
+        var zone = await CreerZone(client, $"Cour arrière {Guid.NewGuid():N}", type: "Exterieur");
+
+        // Même famille que « l'éditeur charge tous les champs » : un PUT qui ne
+        // renomme que la zone ne doit pas la repasser en Interieur (le MCP conserve
+        // déjà — même sémantique des deux côtés).
+        var put = await client.PutAsJsonAsync($"/api/zones/{zone.Id}", new { nom = zone.Nom });
+        Assert.Equal(HttpStatusCode.NoContent, put.StatusCode);
+
+        var zones = await client.GetFromJsonAsync<List<ZoneDto>>("/api/zones");
+        Assert.Equal("Exterieur", zones!.Single(z => z.Id == zone.Id).Type);
+    }
+
+    [Fact]
     public async Task LesZones_SortentTrieesParOrdrePuisNom()
     {
         var client = await factory.ClientConnecte();

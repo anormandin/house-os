@@ -82,7 +82,9 @@ public static class ZonesEndpoints
                 ["nom"] = ["Le nom ne peut pas dépasser 100 caractères."],
             }));
         }
-        var type = TypeZone.Interieur;
+        // Type omis = conserver l'existant, comme Ordre et comme le MCP ; à la
+        // création, le défaut de l'entité (Interieur) s'applique.
+        var type = zone.Type;
         if (requete.Type is not null && Mcp.Conversions.ParserEnum(requete.Type, out type) == false)
         {
             return (zone, Results.ValidationProblem(new Dictionary<string, string[]>

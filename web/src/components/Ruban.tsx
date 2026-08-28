@@ -205,9 +205,11 @@ export default function Ruban({
                     onOuvrir={onOuvrirTache}
                   />
                 ))}
-                {jour.evenements.map((e) => (
+                {jour.evenements.map((e, j) => (
                   <PuceEvenement
-                    key={`${e.titre}-${e.date}`}
+                    // Pas d'id d'événement et deux flux peuvent publier le même
+                    // titre le même jour — l'index garantit l'unicité.
+                    key={`${e.titre}-${e.date}-${j}`}
                     evenement={e}
                     estompee={focusZone != null}
                   />

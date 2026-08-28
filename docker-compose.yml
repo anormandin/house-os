@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: houseos
       POSTGRES_USER: houseos
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-houseos-dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (dans le .env)}
     ports:
       # 127.0.0.1 seulement : l'app passe par le réseau compose, le port hôte ne
       # sert qu'à l'admin local. (5433 : 5432 est pris par un autre projet en dev.)
@@ -27,21 +27,25 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      ConnectionStrings__HouseOs: "Host=postgres;Port=5432;Database=houseos;Username=houseos;Password=${POSTGRES_PASSWORD:-houseos-dev}"
+      ConnectionStrings__HouseOs: "Host=postgres;Port=5432;Database=houseos;Username=houseos;Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (dans le .env)}"
       Fichiers__Chemin: /app/donnees/fichiers
       # Le code vit en heure locale (récurrence, humeur, rollover) : fuseau requis.
       TZ: America/Toronto
-      # Derrière NPM (HTTPS → HTTP interne) : X-Forwarded-Proto → cookie Secure.
-      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      # Derrière NPM (HTTPS → HTTP interne) : X-Forwarded-* n'est honoré QUE depuis
+      # ces proxys (IPs ou CIDR, séparés par des virgules) — défaut : le NPM du LAN.
+      # Si le cookie Secure ne se pose pas au login HTTPS, Docker réécrit
+      # probablement l'IP source : ajouter le sous-réseau du compose (CIDR).
+      Reseau__ProxiesConnus: ${RESEAU_PROXIES_CONNUS:-192.168.4.50}
       # Clé du endpoint /mcp — obligatoire en prod, à définir dans le .env du serveur
       # (générer avec : openssl rand -hex 32)
       Mcp__Cle: ${HOUSEOS_MCP_KEY:?HOUSEOS_MCP_KEY requis (openssl rand -hex 32, dans le .env)}
       # Titre d'humeur (facultatif : repli sur la banque de phrases si absent)
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Mots de passe initiaux des comptes — appliqués seulement à la création
-      # des utilisateurs (base vierge) ; en changer ensuite = SQL.
-      Seed__Utilisateurs__0__MotDePasse: ${SEED_MDP_ALAIN:-45234523}
-      Seed__Utilisateurs__1__MotDePasse: ${SEED_MDP_ARIANE:-45234523}
+      # des utilisateurs (base vierge) ; en changer ensuite = SQL. Exigés : un .env
+      # incomplet ne doit jamais retomber en silence sur un mot de passe du repo.
+      Seed__Utilisateurs__0__MotDePasse: ${SEED_MDP_ALAIN:?SEED_MDP_ALAIN requis (dans le .env)}
+      Seed__Utilisateurs__1__MotDePasse: ${SEED_MDP_ARIANE:?SEED_MDP_ARIANE requis (dans le .env)}
       # Base de l'URL publique du flux iCal (Funnel) — vide = l'UI n'affiche que
       # l'URL interne.
       Ical__UrlPubliqueBase: ${ICAL_URL_PUBLIQUE_BASE:-}
@@ -49,13 +53,22 @@ services:
       - "8080:8080"
     volumes:
       - fichiers:/app/donnees/fichiers   # manuels et photos des équipements (inclus au backup)
+    healthcheck:
+      # /api/sante sonde la DB : 503 (curl -f → échec) si elle est inaccessible.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/sante"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # Seule exposition publique du système : Funnel publie /ical (et rien d'autre —
   # voir infra/tailscale-serve.json) sur https://houseos.<tailnet>.ts.net pour que
   # Google Agenda puisse s'abonner au flux. Démarre seulement avec
   # COMPOSE_PROFILES=funnel (défini dans le .env du serveur, absent en dev).
   tailscale:
-    image: tailscale/tailscale:latest
+    # Épinglé (pas latest) : un funnel qui casse à un pull silencieux serait
+    # invisible jusqu'à ce que Google Agenda arrête de se rafraîchir.
+    image: tailscale/tailscale:v1.102.3
     container_name: houseos-tailscale
     restart: unless-stopped
     profiles: ["funnel"]

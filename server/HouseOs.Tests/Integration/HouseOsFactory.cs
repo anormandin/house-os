@@ -51,6 +51,10 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
         builder.UseSetting("Seed:Utilisateurs:1:NomUtilisateur", "ariane");
         builder.UseSetting("Seed:Utilisateurs:1:NomAffichage", "Ariane");
         builder.UseSetting("Seed:Utilisateurs:1:MotDePasse", "test-ariane");
+        // La suite entière se connecte depuis la « même IP » (TestServer) : limite
+        // haute pour ne pas déclencher le rate limiter — le test du 429 la rabaisse
+        // dans son propre hôte dérivé.
+        builder.UseSetting("Auth:LimiteConnexion:Tentatives", "100000");
 
         builder.ConfigureTestServices(services =>
         {

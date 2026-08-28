@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Budget;
+using HouseOs.Api.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HouseOs.Tests.Integration;
 
@@ -114,6 +117,172 @@ public class BudgetApiTests(HouseOsFactory factory)
         Assert.Equal(0, second.Importees);
         Assert.Equal(2, second.Doublons);
         Assert.Equal(soldeApres, (await ResumeAsync(client)).SoldeCourant);
+    }
+
+    [Fact]
+    public async Task LierUnRetrait_MontantDeVentilationDifferent_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var enveloppeId = await CreerEnveloppeAsync(client,
+            new { nom = $"Stricte {Guid.NewGuid():N}", type = "Reserve" });
+        var description = $"QUINCAILLERIE {Guid.NewGuid():N}";
+        await ImporterAsync(client, Csv(("2026-08-22", description, -700m)));
+        var transaction = await TransactionParDescription(client, description);
+
+        // Le montant de la ligne doit égaler la valeur absolue du retrait — un écart
+        // n'est plus silencieusement ignoré.
+        var liaison = await client.PostAsJsonAsync($"/api/budget/transactions/{transaction.Id}/lier",
+            new { ventilation = new[] { new { enveloppeId, montant = 650m } } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, liaison.StatusCode);
+        // Rien n'a été lié : la transaction demeure dans l'inbox.
+        Assert.Equal("Nouvelle", (await TransactionParDescription(client, description)).Statut);
+    }
+
+    [Fact]
+    public async Task LierDeuxFois_LaSecondeLiaison_Repond409_SansDoublerLesMouvements()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var enveloppeId = await CreerEnveloppeAsync(client,
+            new { nom = $"Rejeu {Guid.NewGuid():N}", type = "Reserve" });
+        var description = $"REJEU MCP {Guid.NewGuid():N}";
+        await ImporterAsync(client, Csv(("2026-08-22", description, -40m)));
+        var transaction = await TransactionParDescription(client, description);
+        var corps = new { ventilation = new[] { new { enveloppeId, montant = 40m } } };
+
+        var premiere = await client.PostAsJsonAsync($"/api/budget/transactions/{transaction.Id}/lier", corps);
+        var seconde = await client.PostAsJsonAsync($"/api/budget/transactions/{transaction.Id}/lier", corps);
+
+        Assert.Equal(HttpStatusCode.NoContent, premiere.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, seconde.StatusCode);
+        var detail = await client.GetFromJsonAsync<EnveloppeDetailDto>(
+            $"/api/budget/enveloppes/{enveloppeId}");
+        Assert.Single(detail!.Mouvements);
+    }
+
+    [Fact]
+    public async Task Restaurer_RamenUneIgnoreeDansLInbox_EtRefuseUneLiee()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var enveloppeId = await CreerEnveloppeAsync(client,
+            new { nom = $"Retour {Guid.NewGuid():N}", type = "Reserve" });
+        var description = $"MAUVAIS CLIC {Guid.NewGuid():N}";
+        await ImporterAsync(client, Csv(("2026-08-22", description, -25m)));
+        var transaction = await TransactionParDescription(client, description);
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PostAsync($"/api/budget/transactions/{transaction.Id}/ignorer", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PostAsync($"/api/budget/transactions/{transaction.Id}/restaurer", null)).StatusCode);
+
+        // De retour en Nouvelle : le rapprochement redevient possible.
+        Assert.Equal("Nouvelle", (await TransactionParDescription(client, description)).Statut);
+        var liaison = await client.PostAsJsonAsync($"/api/budget/transactions/{transaction.Id}/lier",
+            new { ventilation = new[] { new { enveloppeId, montant = 25m } } });
+        Assert.Equal(HttpStatusCode.NoContent, liaison.StatusCode);
+
+        // Une liée ne se restaure pas — l'historique de mouvements resterait orphelin.
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await client.PostAsync($"/api/budget/transactions/{transaction.Id}/restaurer", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task ModifierUneEnveloppeFermee_Repond400_HistoriqueFige()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var nom = $"Figée {Guid.NewGuid():N}";
+        var enveloppeId = await CreerEnveloppeAsync(client, new { nom, type = "Reserve" });
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PostAsync($"/api/budget/enveloppes/{enveloppeId}/fermer", null)).StatusCode);
+
+        var modification = await client.PutAsJsonAsync($"/api/budget/enveloppes/{enveloppeId}",
+            new { nom = "Renommée", type = "Projet", montantCible = 999m });
+
+        Assert.Equal(HttpStatusCode.BadRequest, modification.StatusCode);
+        var resume = await ResumeAsync(client);
+        var enveloppe = Assert.Single(resume.Enveloppes, e => e.Id == enveloppeId);
+        Assert.Equal(nom, enveloppe.Nom);
+        Assert.Equal("Reserve", enveloppe.Type);
+    }
+
+    [Fact]
+    public async Task ReancrerApresDesTransactionsLiees_Repond400_AvecLeCompte()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var enveloppeId = await CreerEnveloppeAsync(client,
+            new { nom = $"Ancrage {Guid.NewGuid():N}", type = "Reserve" });
+        var description = $"AVANT REANCRAGE {Guid.NewGuid():N}";
+        await ImporterAsync(client, Csv(("2026-08-10", description, -30m)));
+        var transaction = await TransactionParDescription(client, description);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PostAsJsonAsync($"/api/budget/transactions/{transaction.Id}/lier",
+                new { ventilation = new[] { new { enveloppeId, montant = 30m } } })).StatusCode);
+
+        // Avancer l'ancrage au-delà de la liée créerait un « non affecté » fantôme.
+        var reancrage = await client.PutAsJsonAsync("/api/budget/compte", new
+        {
+            nom = "Fonds de prévoyance",
+            institution = "Desjardins",
+            soldeInitial = 10_000m,
+            dateAncrage = "2026-09-01",
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, reancrage.StatusCode);
+        Assert.Contains("liée", await reancrage.Content.ReadAsStringAsync());
+
+        // L'ancrage d'origine, lui, se resauvegarde librement.
+        var inchange = await client.PutAsJsonAsync("/api/budget/compte", new
+        {
+            nom = "Fonds de prévoyance",
+            institution = "Desjardins",
+            soldeInitial = 10_000m,
+            dateAncrage = "2026-01-01",
+        });
+        Assert.Equal(HttpStatusCode.NoContent, inchange.StatusCode);
+    }
+
+    [Fact]
+    public async Task Resume_IgnoreLesTransactionsDUnAutreCompte()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var avant = await ResumeAsync(client);
+
+        // Un second compte (le schéma le permet) : ses transactions ne doivent
+        // peser ni dans le solde ni dans le compteur de l'inbox du premier.
+        using (var portee = factory.Services.CreateScope())
+        {
+            var db = portee.ServiceProvider.GetRequiredService<HouseOsDbContext>();
+            var autreCompte = new CompteBudget
+            {
+                Id = Guid.NewGuid(),
+                Nom = "Autre compte",
+                SoldeInitial = 99_999m,
+                DateAncrage = new DateOnly(2026, 1, 1),
+                CreeLe = DateTimeOffset.UtcNow,
+            };
+            db.ComptesBudget.Add(autreCompte);
+            db.TransactionsBancaires.Add(new TransactionBancaire
+            {
+                Id = Guid.NewGuid(),
+                CompteBudgetId = autreCompte.Id,
+                Date = new DateOnly(2026, 8, 1),
+                Montant = 123.45m,
+                Description = $"AUTRE COMPTE {Guid.NewGuid():N}",
+                CleDedup = $"hash:{Guid.NewGuid():N}",
+                ImporteeLe = DateTimeOffset.UtcNow,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var apres = await ResumeAsync(client);
+
+        Assert.Equal(avant.SoldeCourant, apres.SoldeCourant);
+        Assert.Equal(avant.NbTransactionsNouvelles, apres.NbTransactionsNouvelles);
     }
 
     [Fact]
@@ -268,6 +437,51 @@ public class BudgetApiTests(HouseOsFactory factory)
         Assert.NotNull(enveloppe.DateEffective);
         Assert.Equal(6, enveloppe.DateEffective!.Value.Month);
         Assert.True(enveloppe.Provision > 0);
+    }
+
+    [Fact]
+    public async Task FiltreStatut_RefuseLesNumeriques_TolereLaCasse()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+
+        // « 999 » passerait Enum.TryParse et filtrerait sur un statut inexistant
+        // (200 avec liste vide, silencieux).
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.GetAsync("/api/budget/transactions?statut=999")).StatusCode);
+        (await client.GetAsync("/api/budget/transactions?statut=liee")).EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task CreerUneEnveloppe_TypeNumeriqueRefuse_MinusculeAccepte()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+
+        // « 2 » créerait une enveloppe Projet par casting accidentel de l'enum.
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/budget/enveloppes",
+            new { nom = $"Bizarre {Guid.NewGuid():N}", type = "999" })).StatusCode);
+
+        var enveloppeId = await CreerEnveloppeAsync(client,
+            new { nom = $"Minuscule {Guid.NewGuid():N}", type = "reserve" });
+        var resume = await ResumeAsync(client);
+        Assert.Equal("Reserve", Assert.Single(resume.Enveloppes, e => e.Id == enveloppeId).Type);
+    }
+
+    [Fact]
+    public async Task AjouterUnMouvement_TypeNumeriqueRefuse_MinusculeAccepte()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var enveloppeId = await CreerEnveloppeAsync(client,
+            new { nom = $"TypeStrict {Guid.NewGuid():N}", type = "Reserve" });
+
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.PostAsJsonAsync($"/api/budget/enveloppes/{enveloppeId}/mouvements",
+                new { type = "999", montant = 5m })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PostAsJsonAsync($"/api/budget/enveloppes/{enveloppeId}/mouvements",
+                new { type = "ajustement", montant = 5m })).StatusCode);
     }
 
     [Fact]

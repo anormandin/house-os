@@ -2,6 +2,7 @@ using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace HouseOs.Api.Features.Taches;
 
@@ -33,7 +34,7 @@ public static class OperationsTaches
 
     /// <summary>
     /// Valide le filtre de liste : filtre inconnu refusé (sinon il retournerait tout,
-    /// silencieusement), « faites » exige ses deux bornes.
+    /// silencieusement), « faites » exige ses deux bornes, dans l'ordre.
     /// </summary>
     public static ErreurValidation? ValiderFiltre(string? filtre, DateTimeOffset? de, DateTimeOffset? a)
     {
@@ -42,9 +43,17 @@ public static class OperationsTaches
             return new ErreurValidation("filtre",
                 $"Filtre inconnu : {filtre}. Valides : {string.Join(", ", FiltresConnus)} (ou aucun).");
         }
-        if (filtre == "faites" && (de is null || a is null))
+        if (filtre == "faites")
         {
-            return new ErreurValidation("de", "Le filtre « faites » exige les bornes de et a.");
+            if (de is null || a is null)
+            {
+                return new ErreurValidation("de", "Le filtre « faites » exige les bornes de et a.");
+            }
+            // Bornes inversées ou fenêtre vide : un 200 [] silencieux cacherait l'erreur du client.
+            if (de >= a)
+            {
+                return new ErreurValidation("de", "Le filtre « faites » exige de avant a (fenêtre [de, a)).");
+            }
         }
         return null;
     }
@@ -110,7 +119,7 @@ public static class OperationsTaches
             return (null, erreurTitre);
         }
 
-        var (spec, erreur) = ConvertirRecurrence(requete.Recurrence);
+        var (spec, erreur) = ConvertirRecurrence(requete.Recurrence, aujourdhui);
         if (erreur is not null)
         {
             return (null, new ErreurValidation("recurrence", erreur));
@@ -161,7 +170,7 @@ public static class OperationsTaches
             return erreurTitre;
         }
 
-        var (spec, erreur) = ConvertirRecurrence(requete.Recurrence);
+        var (spec, erreur) = ConvertirRecurrence(requete.Recurrence, aujourdhui);
         if (erreur is not null)
         {
             return new ErreurValidation("recurrence", erreur);
@@ -252,7 +261,8 @@ public static class OperationsTaches
         var tache = occurrence.Tache!;
         if (tache.Recurrence.Mode != ModeRecurrence.Ponctuelle)
         {
-            var assigne = await ChoisirProchainAssigne(db, tache, utilisateurId, maintenant);
+            var assigne = await ChoisirProchainAssigne(
+                db, tache, utilisateurId, maintenant, completionEnVol: true);
             prochaine = tache.GenererProchaineOccurrence(
                 DateOnly.FromDateTime(maintenant.LocalDateTime), occurrence.Echeance, assigne);
             if (prochaine is not null)
@@ -265,7 +275,7 @@ public static class OperationsTaches
         {
             await db.SaveChangesAsync();
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (EstViolationUnicite(ex))
         {
             // Course entre deux complétions : l'index unique « une seule occurrence en
             // attente par tâche » a refusé la seconde matérialisation — l'autre a gagné.
@@ -342,14 +352,29 @@ public static class OperationsTaches
 
         occurrence.AnnulerCompletion();
         db.Journal.Remove(entree);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (EstViolationUnicite(ex))
+        {
+            // Course avec une complétion/un passage concurrent : la suivante a avancé
+            // pendant l'annulation et l'index unique « une seule occurrence en attente
+            // par tâche » a refusé la réactivation — même contrat d'erreur que
+            // Completer/Passer (409, jamais un 500 brut).
+            db.ChangeTracker.Clear();
+            return StatutAnnulation.ProchaineDejaTraitee;
+        }
         return StatutAnnulation.Ok;
     }
 
     /// <summary>
     /// Saute une occurrence récurrente sans la marquer faite : statut Passee (trace
-    /// datée), aucune entrée de journal, prochaine occurrence matérialisée comme après
-    /// une complétion aujourd'hui (même stratégie d'assignation). Fait SaveChanges.
+    /// datée), aucune entrée de journal, prochaine occurrence matérialisée avec les
+    /// échéances d'une complétion aujourd'hui. Passer ne prend pas le tour (décision
+    /// T8, 2026-08-28) : les stratégies tournantes conservent l'assigné de l'occurrence
+    /// passée — utilisateurId (qui a cliqué) n'influence pas l'assignation. Fait
+    /// SaveChanges.
     /// </summary>
     public static async Task<ResultatPasse> PasserAsync(
         HouseOsDbContext db,
@@ -377,7 +402,11 @@ public static class OperationsTaches
 
         occurrence.Passer(maintenant);
 
-        var assigne = await ChoisirProchainAssigne(db, tache, utilisateurId, maintenant);
+        // Le tour n'a pas été pris : les stratégies tournantes gardent l'assigné de
+        // l'occurrence passée (décision T8) ; la stratégie fixe suit la tâche.
+        var assigne = tache.Strategie == StrategieAssignation.Fixe
+            ? tache.AssigneAId
+            : occurrence.AssigneAId;
         var prochaine = tache.GenererProchaineOccurrence(
             DateOnly.FromDateTime(maintenant.LocalDateTime), occurrence.Echeance, assigne);
         if (prochaine is not null)
@@ -389,7 +418,7 @@ public static class OperationsTaches
         {
             await db.SaveChangesAsync();
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (EstViolationUnicite(ex))
         {
             // Même course que la complétion : l'index unique a tranché.
             db.ChangeTracker.Clear();
@@ -524,12 +553,21 @@ public static class OperationsTaches
             .Select(j => j.CompleteeLe)
             .ToListAsync();
 
+    /// <summary>
+    /// Vraie violation d'unicité (l'index « une seule occurrence en attente par
+    /// tâche ») — toute autre erreur de sauvegarde doit remonter au lieu d'être
+    /// maquillée en conflit de course.
+    /// </summary>
+    private static bool EstViolationUnicite(DbUpdateException ex) =>
+        ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
+
     /// <summary>Applique la stratégie d'assignation pour la prochaine occurrence.</summary>
     internal static async Task<Guid?> ChoisirProchainAssigne(
         HouseOsDbContext db,
         Tache tache,
         Guid dernierCompleteurId,
-        DateTimeOffset maintenant)
+        DateTimeOffset maintenant,
+        bool completionEnVol = false)
     {
         if (tache.Strategie == StrategieAssignation.Fixe)
         {
@@ -547,6 +585,13 @@ public static class OperationsTaches
             .GroupBy(j => j.UtilisateurId)
             .Select(g => new { UtilisateurId = g.Key, Nombre = g.Count() })
             .ToDictionaryAsync(x => x.UtilisateurId, x => x.Nombre);
+        if (completionEnVol)
+        {
+            // L'entrée de journal de la complétion en cours n'est pas encore sauvegardée,
+            // donc invisible de la requête : sans ce complément, MoinsLAFait réassignerait
+            // le compléteur une fois sur deux.
+            completions[dernierCompleteurId] = completions.GetValueOrDefault(dernierCompleteurId) + 1;
+        }
 
         return Assignation.ChoisirAssigne(
             tache.Strategie, tache.AssigneAId, dernierCompleteurId, utilisateurs, completions);
@@ -572,10 +617,15 @@ public static class OperationsTaches
         return MoteurRecurrence.PremiereEcheance(spec, aujourdhui);
     }
 
-    public static (SpecRecurrence Spec, string? Erreur) ConvertirRecurrence(RecurrenceDto? dto)
+    public static (SpecRecurrence Spec, string? Erreur) ConvertirRecurrence(
+        RecurrenceDto? dto, DateOnly aujourdhui)
     {
         if (dto is null || dto.Mode == nameof(ModeRecurrence.Ponctuelle))
         {
+            if (dto?.Rollover == true)
+            {
+                return (SpecRecurrence.Ponctuelle(), "Le rollover ne s'applique qu'au mode fixe.");
+            }
             return (SpecRecurrence.Ponctuelle(), null);
         }
         if (Enum.TryParse<ModeRecurrence>(dto.Mode, out var mode) == false)
@@ -586,7 +636,10 @@ public static class OperationsTaches
         var spec = new SpecRecurrence
         {
             Mode = mode,
-            Rollover = dto.Rollover ?? true,
+            // Le flag est réservé au mode fixe : ailleurs il est inopérant (accepté
+            // silencieusement, il laisserait croire qu'une intervalle glisse) — refusé
+            // plus bas s'il est demandé, et jamais exposé (VersRecurrenceDto).
+            Rollover = mode == ModeRecurrence.Fixe && (dto.Rollover ?? true),
         };
 
         // Fenêtre : complète ou absente.
@@ -607,12 +660,16 @@ public static class OperationsTaches
 
         if (mode == ModeRecurrence.Intervalle)
         {
+            if (dto.Rollover == true)
+            {
+                return (spec, "Le rollover ne s'applique qu'au mode fixe.");
+            }
             if (dto.IntervalleJours is null or < 1)
             {
                 return (spec, "IntervalleJours requis (≥ 1) en mode intervalle.");
             }
             spec.IntervalleJours = dto.IntervalleJours;
-            return (spec, ValiderCoherence(spec));
+            return (spec, ValiderCoherence(spec, aujourdhui));
         }
 
         // Mode fixe
@@ -647,7 +704,7 @@ public static class OperationsTaches
                 spec.JourAnnuel = dto.JourAnnuel;
                 break;
         }
-        return (spec, ValiderCoherence(spec));
+        return (spec, ValiderCoherence(spec, aujourdhui));
     }
 
     /// <summary>
@@ -655,7 +712,7 @@ public static class OperationsTaches
     /// que la combinaison ne planifie jamais rien — sans cette garde, le moteur boucle
     /// 1500 jours puis lève, et la création répond 500 au lieu de 400.
     /// </summary>
-    private static string? ValiderCoherence(SpecRecurrence spec)
+    private static string? ValiderCoherence(SpecRecurrence spec, DateOnly aujourdhui)
     {
         if (spec.AFenetre)
         {
@@ -670,13 +727,18 @@ public static class OperationsTaches
         {
             try
             {
-                // Sonde déterministe : la date de départ n'importe pas, le balayage
-                // couvre plus de 4 ans.
-                MoteurRecurrence.ProchainePlanifiee(spec, new DateOnly(2026, 1, 1));
+                // Sonde en deux temps, ancrée sur aujourd'hui (une date en dur vieillit
+                // mal) : la première date planifiée doit exister, et une complétion ce
+                // jour-là doit pouvoir calculer la suivante. « Lundi + fenêtre
+                // 14/09–14/09 » trouve un lundi 14 septembre, mais le suivant est dans
+                // plus de dix ans : accepté, ce serait un 500 à la complétion — et la
+                // complétion perdue.
+                var premiere = MoteurRecurrence.ProchainePlanifiee(spec, aujourdhui);
+                MoteurRecurrence.ProchainePlanifiee(spec, premiere.AddDays(1));
             }
             catch (InvalidOperationException)
             {
-                return "Cette récurrence ne tombe jamais dans la fenêtre saisonnière.";
+                return "Cette récurrence ne tombe jamais, ou trop rarement, dans la fenêtre saisonnière.";
             }
         }
         return null;
@@ -723,7 +785,9 @@ public static class OperationsTaches
             r.FenetreDebutJour,
             r.FenetreFinMois,
             r.FenetreFinJour,
-            r.Rollover);
+            // Le flag n'existe que pour le mode fixe : l'exposer ailleurs laisserait
+            // croire qu'il y agit.
+            r.Mode == ModeRecurrence.Fixe ? r.Rollover : null);
     }
 
     /// <summary>

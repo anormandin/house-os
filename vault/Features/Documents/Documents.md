@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-26
-verified-against: d52fad1
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 tags: []
 ---
 
@@ -24,7 +24,12 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   ([[D-2026-08-24 Catégories Et Échéance De Document]]) + optionnels : lien vers
   un [[Équipements|équipement]] ou une zone, **dossier libre** (≤ 100, trim,
   vide→null — [[D-2026-08-26 Dossier De Document]]), notes, date du document
-  (facture, contrat…), échéance.
+  (facture, contrat…), échéance. Durci QA 2026-08-28 : le PUT valide FK et
+  longueurs comme le POST ; les champs de formulaire d'upload malformés
+  répondent 400 au lieu d'être avalés ; le contenu image/PDF est vérifié par
+  magic bytes à l'upload ; les catégories tolèrent la casse et refusent les
+  numériques (REST et MCP) ; le téléchargement sert `Content-Disposition:
+  attachment`.
 - **Page Documents** (réécrite 2026-08-26 —
   [[D-2026-08-26 Navigation Documents Par Facettes]]) : barre latérale de
   facettes à compteurs (Catégories, Lieux & dossiers avec « Sans dossier »,

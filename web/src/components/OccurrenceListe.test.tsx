@@ -1,12 +1,16 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { expect, test } from 'vitest'
+import { afterEach, expect, test } from 'vitest'
 import OccurrenceListe from '@/components/OccurrenceListe'
+import ToastConfirmation from '@/components/ToastConfirmation'
 import { dateLocaleIso, type Occurrence } from '@/lib/api'
 import { dateCourte } from '@/lib/format'
+import { effacerToast } from '@/lib/toast'
 import { rendre } from '@/test/rendre'
 import { ALAIN, serveur } from '@/test/serveur-msw'
+
+afterEach(effacerToast)
 
 function occurrence(champs: Partial<Occurrence>): Occurrence {
   return {
@@ -60,6 +64,65 @@ test('cocher une occurrence appelle la complétion', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Compléter Balayer' }))
 
   await waitFor(() => expect(complete).toBe(true))
+})
+
+test('compléter affiche un toast dont « Annuler » défait la complétion (issue #60)', async () => {
+  let annulations = 0
+  serveur.use(
+    http.post('/api/occurrences/o-1/completer', () => new HttpResponse(null, { status: 204 })),
+    http.post('/api/occurrences/o-1/annuler-completion', () => {
+      annulations++
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  rendre(
+    <>
+      <OccurrenceListe occurrences={[occurrence({})]} vide="rien" />
+      <ToastConfirmation />
+    </>,
+  )
+
+  await userEvent.click(screen.getByRole('button', { name: 'Compléter Balayer' }))
+
+  const toast = await screen.findByRole('status')
+  expect(toast).toHaveTextContent('Tâche complétée')
+  await userEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+
+  await waitFor(() => expect(annulations).toBe(1))
+})
+
+test('annuler une complétion affiche un toast dont « Refaire » recomplète (issue #60)', async () => {
+  let completions = 0
+  serveur.use(
+    http.post('/api/occurrences/o-1/annuler-completion', () => new HttpResponse(null, { status: 204 })),
+    http.post('/api/occurrences/o-1/completer', () => {
+      completions++
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  rendre(
+    <>
+      <OccurrenceListe
+        occurrences={[
+          occurrence({
+            statut: 'Completee',
+            completeePar: ALAIN,
+            completeeLe: new Date().toISOString(),
+          }),
+        ]}
+        vide="rien"
+      />
+      <ToastConfirmation />
+    </>,
+  )
+
+  await userEvent.click(screen.getByRole('button', { name: 'Annuler la complétion de Balayer' }))
+
+  const toast = await screen.findByRole('status')
+  expect(toast).toHaveTextContent('Complétion annulée')
+  await userEvent.click(screen.getByRole('button', { name: 'Refaire' }))
+
+  await waitFor(() => expect(completions).toBe(1))
 })
 
 test('une rangée faite accepte une note post-hoc', async () => {

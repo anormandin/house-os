@@ -59,7 +59,7 @@ public class TachesApiTests(HouseOsFactory factory)
         var id = await CreerTache(client, new CreerTacheRequete(
             $"Console gestion {Guid.NewGuid():N}", null, echeance, null, null, null, "Alternance",
             new RecurrenceDto("Intervalle", null, null, null, null, null, 14,
-                5, 1, 10, 31, true)));
+                5, 1, 10, 31, null)));
 
         var resumes = await client.GetFromJsonAsync<List<TacheResumeDto>>("/api/taches");
 
@@ -138,8 +138,9 @@ public class TachesApiTests(HouseOsFactory factory)
         var client = await factory.ClientConnecte();
         var id = await CreerTache(client, new CreerTacheRequete(
             "Test récurrence intervalle", null, Aujourdhui, null, null, null, "Fixe",
+            // Rollover null : le flag est réservé au mode fixe (T9, issue #53).
             new RecurrenceDto("Intervalle", null, null, null, null, null, 7,
-                null, null, null, null, true)));
+                null, null, null, null, null)));
         var occurrence = await OccurrenceEnAttente(client, id);
 
         var completer = await client.PostAsync($"/api/occurrences/{occurrence.Id}/completer", null);
@@ -313,8 +314,9 @@ public class TachesApiTests(HouseOsFactory factory)
         var client = await factory.ClientConnecte();
         var id = await CreerTache(client, new CreerTacheRequete(
             "Test course de complétion", null, Aujourdhui, null, null, null, "Fixe",
+            // Rollover null : le flag est réservé au mode fixe (T9, issue #53).
             new RecurrenceDto("Intervalle", null, null, null, null, null, 7,
-                null, null, null, null, true)));
+                null, null, null, null, null)));
         var occurrence = await OccurrenceEnAttente(client, id);
 
         // Deux clics simultanés : l'index unique « une seule en attente par tâche »

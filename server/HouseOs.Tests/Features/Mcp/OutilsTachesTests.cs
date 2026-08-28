@@ -202,8 +202,9 @@ public class OutilsTachesTests : TestAvecSqlite
     {
         var id = await CreerUne(Item(
             "Tondre", assigneA: "alain",
+            // Rollover null : le flag est réservé au mode fixe (T9, issue #53).
             recurrence: new RecurrenceDto("Intervalle", null, null, null, null, null, 7,
-                null, null, null, null, true)));
+                null, null, null, null, null)));
 
         var resumes = await OutilsTaches.ListerTaches(Db);
 

@@ -13,15 +13,34 @@ RETENTION_JOURS=30
 
 mkdir -p "$DESTINATION"
 
-# 1. Dump de la base (format custom : restaurable sélectivement avec pg_restore)
-docker exec houseos-postgres pg_dump -U houseos -d houseos -Fc \
-  > "$DESTINATION/houseos-$HORODATAGE.dump"
+# 1. Dump de la base (format custom : restaurable sélectivement avec pg_restore).
+#    Écrit dans le conteneur, vérifié par pg_restore --list (un dump tronqué ne se
+#    liste pas), puis déplacé en place d'un coup : jamais de fichier partiel
+#    d'apparence valide dans $DESTINATION.
+TMP_CONTENEUR=/tmp/houseos-backup.dump
+docker exec houseos-postgres sh -c \
+  "pg_dump -U houseos -d houseos -Fc -f '$TMP_CONTENEUR' \
+   && pg_restore --list '$TMP_CONTENEUR' > /dev/null"
+docker cp "houseos-postgres:$TMP_CONTENEUR" "$DESTINATION/.houseos-$HORODATAGE.dump.tmp"
+docker exec houseos-postgres rm -f "$TMP_CONTENEUR"
+mv "$DESTINATION/.houseos-$HORODATAGE.dump.tmp" "$DESTINATION/houseos-$HORODATAGE.dump"
 
-# 2. Archive du volume de fichiers (manuels et photos des équipements)
+# 2. Archive du volume de fichiers (manuels et photos des équipements). Le nom du
+#    volume est dérivé du conteneur app (dépend du nom du projet compose) ; repli
+#    sur le nom historique si l'app ne tourne pas. Même patron tmp+mv que le dump.
+VOLUME_FICHIERS="$(docker inspect houseos-app --format \
+  '{{ range .Mounts }}{{ if eq .Destination "/app/donnees/fichiers" }}{{ .Name }}{{ end }}{{ end }}' \
+  2>/dev/null || true)"
+: "${VOLUME_FICHIERS:=house-os_fichiers}"
 docker run --rm \
-  -v house-os_fichiers:/fichiers:ro \
+  -v "$VOLUME_FICHIERS":/fichiers:ro \
   -v "$DESTINATION":/backup \
-  alpine tar czf "/backup/fichiers-$HORODATAGE.tar.gz" -C /fichiers .
+  alpine tar czf "/backup/.fichiers-$HORODATAGE.tar.gz.tmp" -C /fichiers .
+mv "$DESTINATION/.fichiers-$HORODATAGE.tar.gz.tmp" "$DESTINATION/fichiers-$HORODATAGE.tar.gz"
+
+# NB : dump et tar ne sont pas simultanés — un upload entre les deux peut donner un
+# fichier sans fiche (ou l'inverse). Acceptable pour un foyer ; la restauration
+# tolère les orphelins.
 
 # 3. Rétention : purge des backups de plus de RETENTION_JOURS jours
 find "$DESTINATION" -name 'houseos-*.dump' -mtime +"$RETENTION_JOURS" -delete

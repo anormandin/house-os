@@ -43,6 +43,20 @@ function servirDocuments(liste: Document[]) {
   serveur.use(http.get('/api/documents', () => HttpResponse.json(liste)))
 }
 
+test('une erreur de chargement s’affiche comme telle — jamais comme un classeur vide', async () => {
+  serveur.use(
+    http.get('/api/documents', () => new HttpResponse(null, { status: 500 }), { once: true }),
+  )
+  rendre(<Documents />)
+
+  expect(await screen.findByText(/Impossible de charger les documents/)).toBeInTheDocument()
+  expect(screen.queryByText(/Aucun document encore/)).not.toBeInTheDocument()
+
+  // Réessayer repart la requête — le handler par défaut répond cette fois.
+  await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }))
+  expect(await screen.findByText('Rapport d’inspection')).toBeInTheDocument()
+})
+
 test('le tiroir charge tous les champs et n’en perd aucun à l’enregistrement', async () => {
   servirDocuments([DOCUMENT_COMPLET])
   let corpsEnvoye: unknown = null

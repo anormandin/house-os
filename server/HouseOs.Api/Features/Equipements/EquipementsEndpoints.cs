@@ -63,7 +63,7 @@ public static class EquipementsEndpoints
         {
             if (await ValiderAsync(requete, db) is { } erreur)
             {
-                return erreur;
+                return Erreur(erreur.Champ, erreur.Message);
             }
 
             var equipement = new Equipement
@@ -82,7 +82,7 @@ public static class EquipementsEndpoints
         {
             if (await ValiderAsync(requete, db) is { } erreur)
             {
-                return erreur;
+                return Erreur(erreur.Champ, erreur.Message);
             }
             var equipement = await db.Equipements.FindAsync(id);
             if (equipement is null)
@@ -164,33 +164,53 @@ public static class EquipementsEndpoints
     }
 
     /// <summary>
-    /// Validations partagées POST/PUT : longueurs de colonnes, zone existante, specs
-    /// acceptables par jsonb — sans elles, Postgres répond par un 500.
+    /// Validations partagées POST/PUT/MCP : longueurs de colonnes, zone existante,
+    /// cohérence des dates, specs bornées et acceptables par jsonb — sans elles,
+    /// Postgres répond par un 500. Null = valide.
     /// </summary>
-    private static async Task<IResult?> ValiderAsync(EquipementRequete requete, HouseOsDbContext db)
+    internal static async Task<(string Champ, string Message)?> ValiderAsync(
+        EquipementRequete requete, HouseOsDbContext db)
     {
         if (string.IsNullOrWhiteSpace(requete.Nom))
         {
-            return Erreur("nom", "Le nom est requis.");
+            return ("nom", "Le nom est requis.");
         }
         if (requete.Nom.Trim().Length > 200)
         {
-            return Erreur("nom", "Le nom ne peut pas dépasser 200 caractères.");
+            return ("nom", "Le nom ne peut pas dépasser 200 caractères.");
         }
         if (requete.Marque?.Trim().Length > 100 || requete.Modele?.Trim().Length > 100
             || requete.NumeroSerie?.Trim().Length > 100)
         {
-            return Erreur("equipement", "Marque, modèle et numéro de série sont limités à 100 caractères.");
+            return ("equipement", "Marque, modèle et numéro de série sont limités à 100 caractères.");
+        }
+        if (requete.DateAchat is { } achat && requete.FinGarantie is { } fin && fin < achat)
+        {
+            return ("finGarantie", "La fin de garantie ne peut pas précéder la date d'achat.");
         }
         if (requete.ZoneId is { } zoneId && await db.Zones.AnyAsync(z => z.Id == zoneId) == false)
         {
-            return Erreur("zoneId", "Cette pièce n'existe pas (ou plus).");
+            return ("zoneId", "Cette pièce n'existe pas (ou plus).");
         }
-        // Postgres refuse le caractère nul dans un jsonb (erreur 22P05).
-        if (requete.Specs is not null
-            && requete.Specs.Any(s => s.Key.Contains('\0') || s.Value.Contains('\0')))
+        if (requete.Specs is { } specs)
         {
-            return Erreur("specs", "Les specs ne peuvent pas contenir de caractère nul.");
+            if (specs.Count > 100)
+            {
+                return ("specs", "Les specs sont limitées à 100 entrées.");
+            }
+            if (specs.Keys.Any(cle => cle.Length > 100))
+            {
+                return ("specs", "Chaque clé de spec est limitée à 100 caractères.");
+            }
+            if (specs.Values.Any(valeur => valeur.Length > 1000))
+            {
+                return ("specs", "Chaque valeur de spec est limitée à 1000 caractères.");
+            }
+            // Postgres refuse le caractère nul dans un jsonb (erreur 22P05).
+            if (specs.Any(s => s.Key.Contains('\0') || s.Value.Contains('\0')))
+            {
+                return ("specs", "Les specs ne peuvent pas contenir de caractère nul.");
+            }
         }
         return null;
     }

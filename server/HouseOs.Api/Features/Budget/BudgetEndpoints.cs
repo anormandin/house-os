@@ -91,6 +91,14 @@ public record VentilationLigne(Guid EnveloppeId, decimal Montant);
 
 public record LierRequete(List<VentilationLigne> Ventilation, Guid? EntreeJournalId, string? Note);
 
+/// <summary>Issue d'une restauration de transaction ignorée.</summary>
+public enum StatutRestauration
+{
+    Restauree,
+    Introuvable,
+    PasIgnoree,
+}
+
 public static class BudgetEndpoints
 {
     public static IEndpointRouteBuilder MapBudget(this IEndpointRouteBuilder app)
@@ -121,7 +129,7 @@ public static class BudgetEndpoints
 
         app.MapPut("/api/budget/compte", async (CompteBudgetRequete requete, HouseOsDbContext db) =>
         {
-            var compte = await db.ComptesBudget.FirstOrDefaultAsync();
+            var compte = await db.ComptesBudget.OrderBy(c => c.CreeLe).FirstOrDefaultAsync();
             if (compte is null)
             {
                 return Results.NotFound();
@@ -236,7 +244,7 @@ public static class BudgetEndpoints
         {
             var statutFiltre = StatutTransaction.Nouvelle;
             if (string.IsNullOrWhiteSpace(statut) == false
-                && Enum.TryParse(statut, ignoreCase: true, out statutFiltre) == false)
+                && Mcp.Conversions.ParserEnum(statut, out statutFiltre) == false)
             {
                 return Erreur("statut", "Statut inconnu (Nouvelle, Liee ou Ignoree).");
             }
@@ -247,12 +255,7 @@ public static class BudgetEndpoints
             Guid id, LierRequete requete, HouseOsDbContext db) =>
         {
             var erreur = await LierAsync(db, id, requete);
-            if (erreur is not null)
-            {
-                return erreur;
-            }
-            await db.SaveChangesAsync();
-            return Results.NoContent();
+            return erreur ?? Results.NoContent();
         });
 
         app.MapPost("/api/budget/transactions/{id:guid}/ignorer", async (Guid id, HouseOsDbContext db) =>
@@ -271,10 +274,37 @@ public static class BudgetEndpoints
             return Results.NoContent();
         });
 
+        app.MapPost("/api/budget/transactions/{id:guid}/restaurer", async (Guid id, HouseOsDbContext db) =>
+            await RestaurerAsync(db, id) switch
+            {
+                StatutRestauration.Introuvable => Results.NotFound(),
+                StatutRestauration.PasIgnoree =>
+                    Results.Conflict(new { message = "Seule une transaction ignorée se restaure." }),
+                _ => Results.NoContent(),
+            });
+
         return app;
     }
 
     public static DateOnly Aujourdhui() => DateOnly.FromDateTime(DateTime.Now);
+
+    /// <summary>Restaure une transaction ignorée vers Nouvelle (web et MCP) —
+    /// Ignoree est le seul statut restaurable. Fait SaveChanges.</summary>
+    public static async Task<StatutRestauration> RestaurerAsync(HouseOsDbContext db, Guid id)
+    {
+        var transaction = await db.TransactionsBancaires.FindAsync(id);
+        if (transaction is null)
+        {
+            return StatutRestauration.Introuvable;
+        }
+        if (transaction.Statut != StatutTransaction.Ignoree)
+        {
+            return StatutRestauration.PasIgnoree;
+        }
+        transaction.Statut = StatutTransaction.Nouvelle;
+        await db.SaveChangesAsync();
+        return StatutRestauration.Restauree;
+    }
 
     /// <summary>Le résumé complet de la page Budget — partagé avec l'outil MCP bilan_budget.</summary>
     public static async Task<ResumeBudgetDto> ChargerResumeAsync(HouseOsDbContext db, DateOnly aujourdhui)
@@ -282,6 +312,7 @@ public static class BudgetEndpoints
         var compte = await db.ComptesBudget
             .Include(c => c.TacheVirement)
             .AsNoTracking()
+            .OrderBy(c => c.CreeLe)
             .FirstOrDefaultAsync();
 
         // Filtre sur l'ancrage : l'import écarte déjà les antérieures, mais un
@@ -291,7 +322,7 @@ public static class BudgetEndpoints
             : MoteurProvision.SoldeCompte(
                 compte.SoldeInitial,
                 await db.TransactionsBancaires
-                    .Where(t => t.Date >= compte.DateAncrage)
+                    .Where(t => t.CompteBudgetId == compte.Id && t.Date >= compte.DateAncrage)
                     .Select(t => t.Montant)
                     .ToListAsync());
 
@@ -335,7 +366,10 @@ public static class BudgetEndpoints
             occurrenceVirementId,
             enveloppes,
             sorties.OrderBy(s => s.Date).ToList(),
-            await db.TransactionsBancaires.CountAsync(t => t.Statut == StatutTransaction.Nouvelle));
+            compte is null
+                ? 0
+                : await db.TransactionsBancaires.CountAsync(t =>
+                    t.CompteBudgetId == compte.Id && t.Statut == StatutTransaction.Nouvelle));
     }
 
     /// <summary>Inbox de rapprochement avec suggestions — partagé avec bilan_budget.</summary>
@@ -414,7 +448,10 @@ public static class BudgetEndpoints
         return new EnveloppeDetailDto(enveloppe, dtos);
     }
 
-    /// <summary>Lie une transaction (retrait mono-enveloppe, dépôt ventilé). Null = succès.</summary>
+    /// <summary>Lie une transaction (retrait mono-enveloppe, dépôt ventilé) et sauvegarde.
+    /// La réclamation du statut est un UPDATE conditionnel sous transaction : un rejeu
+    /// concurrent (timeout MCP, deux navigateurs) obtient un conflit au lieu de doubler
+    /// les mouvements. Null = succès.</summary>
     public static async Task<IResult?> LierAsync(HouseOsDbContext db, Guid id, LierRequete requete)
     {
         var transaction = await db.TransactionsBancaires.FindAsync(id);
@@ -426,8 +463,22 @@ public static class BudgetEndpoints
         {
             return Results.Conflict(new { message = "Transaction déjà traitée." });
         }
+        await using var portee = await db.Database.BeginTransactionAsync();
+        var reclamees = await db.TransactionsBancaires
+            .Where(t => t.Id == id && t.Statut == StatutTransaction.Nouvelle)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Statut, StatutTransaction.Liee));
+        if (reclamees == 0)
+        {
+            return Results.Conflict(new { message = "Transaction déjà traitée." });
+        }
         var erreur = await CreerLiaisonAsync(db, transaction, requete);
-        return erreur is { } e ? Erreur(e.Champ, e.Message) : null;
+        if (erreur is { } e)
+        {
+            return Erreur(e.Champ, e.Message); // rollback à la sortie de la portée
+        }
+        await db.SaveChangesAsync();
+        await portee.CommitAsync();
+        return null;
     }
 
     /// <summary>Cœur de la liaison, partagé avec le MCP. Null = valide (mouvements ajoutés).</summary>
@@ -460,6 +511,11 @@ public static class BudgetEndpoints
             if (ventilation.Count != 1)
             {
                 return ("ventilation", "Un retrait se lie à une seule enveloppe.");
+            }
+            if (ventilation[0].Montant != -transaction.Montant)
+            {
+                return ("ventilation",
+                    "Le montant de la ventilation doit égaler celui du retrait (valeur absolue).");
             }
             if (requete.EntreeJournalId is { } journalId
                 && await db.Journal.AnyAsync(j => j.Id == journalId) == false)
@@ -575,6 +631,11 @@ public static class BudgetEndpoints
     public static async Task<(string Champ, string Message)?> AppliquerEnveloppe(
         EnveloppeRequete requete, Enveloppe enveloppe, HouseOsDbContext db)
     {
+        if (enveloppe.Statut == StatutEnveloppe.Fermee)
+        {
+            return ("enveloppe",
+                "Une enveloppe fermée ne se modifie plus — son historique est figé.");
+        }
         if (string.IsNullOrWhiteSpace(requete.Nom))
         {
             return ("nom", "Le nom est requis.");
@@ -583,7 +644,7 @@ public static class BudgetEndpoints
         {
             return ("nom", "Le nom ne peut pas dépasser 200 caractères.");
         }
-        if (Enum.TryParse<TypeEnveloppe>(requete.Type, out var type) == false)
+        if (Mcp.Conversions.ParserEnum(requete.Type, out TypeEnveloppe type) == false)
         {
             return ("type", "Type inconnu (Equipement, Taxes, Projet ou Reserve).");
         }
@@ -643,6 +704,18 @@ public static class BudgetEndpoints
         {
             return ("tacheVirementId", "Cette tâche n'existe pas (ou plus).");
         }
+        // Avancer l'ancrage au-delà de transactions déjà liées laisserait leurs
+        // mouvements d'enveloppe orphelins du solde — « non affecté » fantôme.
+        var lieesAnterieures = await db.TransactionsBancaires.CountAsync(t =>
+            t.CompteBudgetId == compte.Id
+            && t.Statut == StatutTransaction.Liee
+            && t.Date < requete.DateAncrage.Value);
+        if (lieesAnterieures > 0)
+        {
+            return ("dateAncrage",
+                $"{lieesAnterieures} transaction(s) liée(s) deviendraient antérieures au nouvel " +
+                "ancrage — les délier d'abord ou choisir une date plus ancienne.");
+        }
         compte.Nom = requete.Nom.Trim();
         compte.Institution = Nettoyer(requete.Institution);
         compte.SoldeInitial = requete.SoldeInitial;
@@ -660,7 +733,7 @@ public static class BudgetEndpoints
         {
             return ("enveloppe", "Une enveloppe fermée ne reçoit plus de mouvements.");
         }
-        if (Enum.TryParse(requete.Type, out type) == false || type == TypeMouvement.Transfert)
+        if (Mcp.Conversions.ParserEnum(requete.Type, out type) == false || type == TypeMouvement.Transfert)
         {
             return ("type", "Type inconnu (Provision, Retrait ou Ajustement — " +
                 "un transfert passe par le transfert dédié).");

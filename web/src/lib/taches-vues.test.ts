@@ -101,7 +101,8 @@ describe('construireRuban', () => {
   test('domaine du 1ᵉʳ du mois courant au 31 décembre, chaque mode à sa place', () => {
     const ruban = construireRuban(
       [
-        tache({ id: 'm', titre: 'Filtre', recurrence: MENSUELLE }),
+        // Complétée pour août : la prochaine occurrence attend au 1ᵉʳ septembre.
+        tache({ id: 'm', titre: 'Filtre', recurrence: MENSUELLE, echeance: '2026-09-01' }),
         tache({ id: 't', titre: 'Tondre', recurrence: TONTE, echeance: '2026-08-28' }),
         tache({ id: 'a', titre: 'Ramoner', recurrence: ANNUELLE, echeance: '2026-09-15' }),
         tache({ id: 'h', titre: 'Draps', recurrence: HEBDO }),
@@ -132,7 +133,8 @@ describe('construireRuban', () => {
     expect(ruban.tempoCourt.map((t) => t.id)).toEqual(['h', 'i'])
 
     const [mensuelle, fenetre, annuelle, long] = ruban.lignes
-    // Mensuelle : 5 points (août→déc), le 1ᵉʳ août déjà passé est estompé.
+    // Mensuelle : 5 points (août→déc), le 1ᵉʳ août complété (échéance au 1ᵉʳ sept)
+    // est estompé et marqué fait.
     if (mensuelle.type === 'mensuelle') {
       expect(mensuelle.points).toHaveLength(5)
       expect(mensuelle.points[0]).toEqual({ offset: 0, libelle: 'fait', passe: true })
@@ -185,6 +187,54 @@ describe('construireRuban', () => {
     ])
     expect(ruban.semaines[0].libelle).toBe('Semaine du 31 août')
     expect(ruban.totalPonctuelles).toBe(5)
+  })
+
+  test('une mensuelle passée non complétée est marquée retard, pas fait', () => {
+    const ruban = construireRuban(
+      // Due le 1ᵉʳ août, jamais complétée : l'échéance en attente est le 1ᵉʳ août.
+      [tache({ id: 'm', titre: 'Filtre', recurrence: MENSUELLE, echeance: '2026-08-01' })],
+      AUJOURDHUI,
+    )
+
+    const ligne = ruban.lignes[0]
+    if (ligne.type === 'mensuelle') {
+      expect(ligne.points[0]).toEqual({ offset: 0, libelle: 'retard', passe: true })
+      // Les passages futurs restent des dates normales.
+      expect(ligne.points[1].libelle).toBe('mar 1ᵉʳ')
+    } else {
+      expect.unreachable('la mensuelle doit produire une ligne mensuelle')
+    }
+
+    // Sans échéance connue, on ne peut pas accuser de retard : fait par défaut.
+    const sans = construireRuban(
+      [tache({ id: 's', titre: 'Filtre', recurrence: MENSUELLE })],
+      AUJOURDHUI,
+    ).lignes[0]
+    if (sans.type === 'mensuelle') {
+      expect(sans.points[0].libelle).toBe('fait')
+    }
+  })
+
+  test('une ponctuelle échue après le 31 décembre garde une note et compte dans le total', () => {
+    const ruban = construireRuban(
+      [
+        tache({ id: 'passeport', titre: 'Renouveler le passeport', echeance: '2027-01-15' }),
+        tache({ id: 'impots', titre: 'Impôts', echeance: '2027-04-30' }),
+        tache({ id: 'notaire', titre: 'Notaire', echeance: '2026-08-31' }),
+      ],
+      AUJOURDHUI,
+    )
+
+    // Pas de grappe hors domaine, mais la note pointe la plus proche…
+    expect(ruban.grappes.map((g) => g.date)).toEqual(['2026-08-31'])
+    expect(ruban.noteAnProchain).toBe('prochaine · ven 15 janv 2027 →')
+    // …et la bande semaine-par-semaine les liste, comptées dans le total.
+    expect(ruban.semaines.map((s) => [s.lundi, s.taches.map((t) => t.id)])).toEqual([
+      ['2026-08-31', ['notaire']],
+      ['2027-01-11', ['passeport']],
+      ['2027-04-26', ['impots']],
+    ])
+    expect(ruban.totalPonctuelles).toBe(3)
   })
 
   test('une fenêtre qui chevauche l’an est clampée au domaine en deux morceaux visibles', () => {

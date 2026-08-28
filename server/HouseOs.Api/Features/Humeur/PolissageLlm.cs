@@ -46,9 +46,15 @@ public static class PolissageLlm
         {"titre": "Petit train va loin.", "sousTitre": "2 choses au programme ce soir, rien qui presse — 12 dodos avant le grand départ."}
         """;
 
+    /// <summary>Plafond de l'appel : le ct reçu est le jeton d'arrêt du service — sans
+    /// délai propre, un appel qui traîne bloquerait le rattrapage du créneau.</summary>
+    public static readonly TimeSpan DelaiMax = TimeSpan.FromSeconds(30);
+
     public static async Task<(string Titre, string SousTitre)?> Polir(
         EtatMaison etat, string cleApi, string modele, CancellationToken ct)
     {
+        using var delai = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        delai.CancelAfter(DelaiMax);
         AnthropicClient client = new() { ApiKey = cleApi };
         var reponse = await client.Messages.Create(new MessageCreateParams
         {
@@ -56,7 +62,7 @@ public static class PolissageLlm
             MaxTokens = 300,
             System = PromptSysteme,
             Messages = [new() { Role = Role.User, Content = SerialiserEtat(etat) }],
-        }, cancellationToken: ct);
+        }, cancellationToken: delai.Token);
 
         var texte = reponse.Content
             .Select(b => b.Value)

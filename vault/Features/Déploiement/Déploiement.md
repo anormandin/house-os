@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-27
-verified-against: 1dbd83e
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 tags: []
 ---
 
@@ -19,9 +19,14 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 
 - **Image unique** : Dockerfile multi-étages (build web Vite → `wwwroot`, publish
   .NET) ; l'API sert la SPA, applique les migrations et le seed au démarrage.
+  Depuis la ronde QA 2026-08-28 : conteneur **non-root** (`USER $APP_UID`) et
+  image tailscale **épinglée** (plus de `:latest`).
 - **`docker compose up -d --build`** dans le LXC `house-os` sur `pve` : Postgres 17
   + app (port 8080), volumes nommés (`postgres-data`, `fichiers`), redémarrage
-  automatique, `TZ=America/Toronto`, en-têtes proxy activés
+  automatique, `TZ=America/Toronto`, en-têtes proxy restreints aux proxys connus
+  (`RESEAU_PROXIES_CONNUS`, défaut l'IP du NPM — remplace l'ancien
+  `ASPNETCORE_FORWARDEDHEADERS_ENABLED` tous-azimuts), healthcheck compose sur
+  `/api/sante` (qui sonde la DB)
   ([[D-2026-08-24 Prod LXC Proxmox NPM GitHub]]).
 - **Accès** : `https://houseos.alainnormandin.dev` (NPM, cert wildcard) — app
   installable (manifest seulement, sans service worker :
@@ -42,7 +47,20 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   vers NPM.
 - **Secrets** : `.env` sur le serveur seulement (`.env.example` committé) —
   mot de passe Postgres, clé MCP, clé Anthropic, mots de passe initiaux des
-  2 comptes.
+  2 comptes. Depuis la ronde QA 2026-08-28, le compose **refuse de démarrer**
+  sans `POSTGRES_PASSWORD`, `SEED_MDP_ALAIN`, `SEED_MDP_ARIANE` (syntaxe `:?`,
+  comme la clé MCP) — plus aucun repli committé ; les valeurs dev vivent dans
+  `appsettings.Development.json`. Cookie : `SecurePolicy.SameAsRequest`
+  (Secure via NPM/HTTPS ; l'accès http direct sur le LAN reste un risque
+  résiduel accepté — foyer de 2, trafic Tailscale chiffré).
+
+> [!warning] Premier déploiement après la ronde QA 2026-08-28
+> 1. Compléter le `.env` du LXC (`POSTGRES_PASSWORD` — la valeur historique
+>    effective était le repli `houseos-dev` —, `SEED_MDP_*`,
+>    `RESEAU_PROXIES_CONNUS` si le réseau docker réécrit l'IP source).
+> 2. `chown` unique du volume fichiers (conteneur désormais non-root) :
+>    `docker run --rm -v house-os_fichiers:/f mcr.microsoft.com/dotnet/aspnet:10.0 chown -R 1654:1654 /f`
+>    (commande aussi en commentaire du `Dockerfile`).
 - **Backups** : `scripts/backup.sh` en cron quotidien dans le LXC (dumps +
   archive fichiers, rétention 30 j) + snapshot PBS nocturne du LXC.
 - **Code** : GitHub privé `anormandin/house-os` ; mise à jour par

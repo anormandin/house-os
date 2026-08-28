@@ -94,6 +94,23 @@ public class DocumentsApiTests(HouseOsFactory factory)
     }
 
     [Fact]
+    public async Task Upload_ContenuQuiNeCorrespondPasAuType_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+
+        // Le Content-Type client est déclaratif : un PNG annoncé PDF (ou du HTML
+        // annoncé PNG) doit être refusé aux magic bytes, pas cru sur parole.
+        var pngEnPdf = await client.PostAsync(
+            "/api/documents", Formulaire(PetitPng(), "manuel.pdf", "application/pdf"));
+        var htmlEnPng = await client.PostAsync(
+            "/api/documents", Formulaire("<html>salut</html>"u8.ToArray(), "photo.png", "image/png"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, pngEnPdf.StatusCode);
+        Assert.Contains("ne correspond pas", await pngEnPdf.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, htmlEnPng.StatusCode);
+    }
+
+    [Fact]
     public async Task Upload_AvecEquipementInconnu_Repond400_SansFichierOrphelin()
     {
         var client = await factory.ClientConnecte();
@@ -197,6 +214,96 @@ public class DocumentsApiTests(HouseOsFactory factory)
         Assert.Empty((await client.GetFromJsonAsync<List<DocumentLu>>(
             $"/api/documents?dossier={Uri.EscapeDataString(dossier)}"))!);
 
+        await client.DeleteAsync($"/api/documents/{id}");
+    }
+
+    [Fact]
+    public async Task Telechargement_ServiEnAttachment_AvecLeTypeMime()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await Televerser(client, nomFichier: "recu.png");
+
+        var reponse = await client.GetAsync($"/api/documents/{id}/fichier");
+
+        // Le contrat de téléchargement : type MIME stocké et attachment forcé
+        // (jamais de rendu inline d'un contenu téléversé).
+        reponse.EnsureSuccessStatusCode();
+        Assert.Equal("image/png", reponse.Content.Headers.ContentType!.MediaType);
+        var disposition = reponse.Content.Headers.ContentDisposition!;
+        Assert.Equal("attachment", disposition.DispositionType);
+        Assert.Equal("recu.png", disposition.FileNameStar);
+        await client.DeleteAsync($"/api/documents/{id}");
+    }
+
+    [Fact]
+    public async Task Upload_ChampsMalformes_Repondent400_AuLieuDEtreAvales()
+    {
+        var client = await factory.ClientConnecte();
+
+        // Avant : equipementId=abc ou echeance=06/10/2026 étaient silencieusement
+        // remplacés par null — document créé sans lien ni échéance, donnée perdue.
+        var guid = await client.PostAsync("/api/documents", Formulaire(
+            PetitPng(), "photo.png", "image/png", [("equipementId", "abc")]));
+        Assert.Equal(HttpStatusCode.BadRequest, guid.StatusCode);
+
+        var date = await client.PostAsync("/api/documents", Formulaire(
+            PetitPng(), "photo.png", "image/png", [("echeance", "06/10/2026")]));
+        Assert.Equal(HttpStatusCode.BadRequest, date.StatusCode);
+        Assert.Contains("YYYY-MM-DD", await date.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Put_AvecLienInconnu_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await Televerser(client);
+
+        // Sans validation des FK, la violation de contrainte remonterait un 500.
+        var equipement = await client.PutAsJsonAsync($"/api/documents/{id}",
+            new { titre = "Photo", categorie = "Photo", equipementId = Guid.NewGuid() });
+        Assert.Equal(HttpStatusCode.BadRequest, equipement.StatusCode);
+
+        var zone = await client.PutAsJsonAsync($"/api/documents/{id}",
+            new { titre = "Photo", categorie = "Photo", zoneId = Guid.NewGuid() });
+        Assert.Equal(HttpStatusCode.BadRequest, zone.StatusCode);
+        await client.DeleteAsync($"/api/documents/{id}");
+    }
+
+    [Fact]
+    public async Task Put_TitreOuNotesTropLongs_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await Televerser(client);
+
+        // Mêmes bornes que le POST (colonnes varchar) : 400 clair, jamais 500.
+        var titre = await client.PutAsJsonAsync($"/api/documents/{id}",
+            new { titre = new string('t', 201), categorie = "Photo" });
+        Assert.Equal(HttpStatusCode.BadRequest, titre.StatusCode);
+
+        var notes = await client.PutAsJsonAsync($"/api/documents/{id}",
+            new { titre = "Photo", categorie = "Photo", notes = new string('n', 2001) });
+        Assert.Equal(HttpStatusCode.BadRequest, notes.StatusCode);
+        await client.DeleteAsync($"/api/documents/{id}");
+    }
+
+    [Fact]
+    public async Task Categorie_NumeriqueRefusee_MinusculeAcceptee()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await Televerser(client);
+
+        // « 999 » passerait Enum.TryParse et serait persisté puis affiché tel quel.
+        var numerique = await client.PutAsJsonAsync($"/api/documents/{id}",
+            new { titre = "Photo", categorie = "999" });
+        Assert.Equal(HttpStatusCode.BadRequest, numerique.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.GetAsync("/api/documents?categorie=999")).StatusCode);
+
+        // La casse, elle, est tolérée — même contrat que Zones et Icônes.
+        var minuscule = await client.PutAsJsonAsync($"/api/documents/{id}",
+            new { titre = "Photo", categorie = "contrat" });
+        Assert.Equal(HttpStatusCode.NoContent, minuscule.StatusCode);
+        (await client.GetAsync("/api/documents?categorie=contrat")).EnsureSuccessStatusCode();
         await client.DeleteAsync($"/api/documents/{id}");
     }
 

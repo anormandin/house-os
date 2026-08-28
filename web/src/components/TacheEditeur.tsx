@@ -72,7 +72,8 @@ function versRecurrence(f: Formulaire): Recurrence | undefined {
       }
     : {}
   if (f.mode === 'Intervalle') {
-    return { mode: 'Intervalle', intervalleJours: f.intervalleJours, rollover: f.rollover, ...fenetre }
+    // Rollover réservé au mode fixe : le serveur refuse le flag ailleurs (T9).
+    return { mode: 'Intervalle', intervalleJours: f.intervalleJours, ...fenetre }
   }
   return {
     mode: 'Fixe',
@@ -129,6 +130,7 @@ export default function TacheEditeur({
   const [f, setF] = useState<Formulaire>({ ...defaut, zoneId: zoneInitialeId ?? '' })
   const jeton = useRef(Symbol('editeur'))
   const initialiseePour = useRef<string | null>(null)
+  const champsSaisis = useRef(new Set<keyof Formulaire>())
 
   useEffect(() => {
     const present = jeton.current
@@ -140,7 +142,12 @@ export default function TacheEditeur({
       }
     }
   }, [])
-  const maj = (champ: Partial<Formulaire>) => setF((ancien) => ({ ...ancien, ...champ }))
+  const maj = (champ: Partial<Formulaire>) => {
+    for (const cle of Object.keys(champ) as (keyof Formulaire)[]) {
+      champsSaisis.current.add(cle)
+    }
+    setF((ancien) => ({ ...ancien, ...champ }))
+  }
 
   const { data: utilisateurs } = useQuery({ queryKey: ['utilisateurs'], queryFn: api.utilisateurs })
   const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
@@ -166,41 +173,54 @@ export default function TacheEditeur({
 
   useEffect(() => {
     // Initialiser le formulaire une seule fois par tâche : un refetch (retour
-    // d'onglet, invalidation) ne doit jamais écraser une saisie en cours.
+    // d'onglet, invalidation) ne doit jamais écraser une saisie en cours. Une
+    // saisie commencée avant l'arrivée du détail prime champ par champ — le
+    // reste de la fiche se charge quand même (un PUT partiel l'effacerait).
     if (tache === undefined || initialiseePour.current === tache.id) {
       return
     }
     initialiseePour.current = tache.id
     const r = tache.recurrence
-    setF({
-      ...defaut,
-      titre: tache.titre,
-      description: tache.description ?? '',
-      echeance: tache.echeance ?? '',
-      assigneAId: tache.assigneAId ?? '',
-      zoneId: tache.zoneId ?? '',
-      equipementId: tache.equipementId ?? '',
-      strategie: tache.strategie,
-      documentIds: tache.documentIds,
-      mode: r.mode,
-      fixeType: r.fixeType ?? 'JoursSemaine',
-      joursSemaine: r.joursSemaine ?? [],
-      jourDuMois: r.jourDuMois ?? 1,
-      moisAnnuel: r.moisAnnuel ?? 5,
-      jourAnnuel: r.jourAnnuel ?? 1,
-      intervalleJours: r.intervalleJours ?? 7,
-      enSaison: r.fenetreDebutMois !== null && r.fenetreDebutMois !== undefined,
-      fenetreDebutMois: r.fenetreDebutMois ?? 5,
-      fenetreDebutJour: r.fenetreDebutJour ?? 1,
-      fenetreFinMois: r.fenetreFinMois ?? 10,
-      fenetreFinJour: r.fenetreFinJour ?? 31,
-      rollover: r.rollover ?? true,
+    setF((saisie) => {
+      const chargee: Formulaire = {
+        ...defaut,
+        titre: tache.titre,
+        description: tache.description ?? '',
+        echeance: tache.echeance ?? '',
+        assigneAId: tache.assigneAId ?? '',
+        zoneId: tache.zoneId ?? '',
+        equipementId: tache.equipementId ?? '',
+        strategie: tache.strategie,
+        documentIds: tache.documentIds,
+        mode: r.mode,
+        fixeType: r.fixeType ?? 'JoursSemaine',
+        joursSemaine: r.joursSemaine ?? [],
+        jourDuMois: r.jourDuMois ?? 1,
+        moisAnnuel: r.moisAnnuel ?? 5,
+        jourAnnuel: r.jourAnnuel ?? 1,
+        intervalleJours: r.intervalleJours ?? 7,
+        enSaison: r.fenetreDebutMois !== null && r.fenetreDebutMois !== undefined,
+        fenetreDebutMois: r.fenetreDebutMois ?? 5,
+        fenetreDebutJour: r.fenetreDebutJour ?? 1,
+        fenetreFinMois: r.fenetreFinMois ?? 10,
+        fenetreFinJour: r.fenetreFinJour ?? 31,
+        rollover: r.rollover ?? true,
+      }
+      const conservee = Object.fromEntries(
+        [...champsSaisis.current].map((cle) => [cle, saisie[cle]]),
+      ) as Partial<Formulaire>
+      return { ...chargee, ...conservee }
     })
   }, [tache])
 
   const invalider = () => {
-    queryClient.invalidateQueries({ queryKey: ['occurrences'] })
+    // Invalidation croisée taches/occurrences/journal — ['tache'] ne couvre pas
+    // la liste ['taches'] ; le budget dérive des tâches liées et des occurrences.
+    queryClient.invalidateQueries({ queryKey: ['taches'] })
     queryClient.invalidateQueries({ queryKey: ['tache'] })
+    queryClient.invalidateQueries({ queryKey: ['occurrences'] })
+    queryClient.invalidateQueries({ queryKey: ['journal'] })
+    queryClient.invalidateQueries({ queryKey: ['budget'] })
   }
 
   const enregistrer = useMutation({

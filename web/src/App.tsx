@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { api } from '@/lib/api'
 import BanniereErreur from '@/components/BanniereErreur'
 import Layout from '@/components/Layout'
+import ToastConfirmation from '@/components/ToastConfirmation'
 import Connexion from '@/pages/Connexion'
 import Aujourdhui from '@/pages/Aujourdhui'
 import Budget from '@/pages/Budget'
@@ -47,6 +48,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
+      <ToastConfirmation />
       <BanniereErreur />
     </>
   )

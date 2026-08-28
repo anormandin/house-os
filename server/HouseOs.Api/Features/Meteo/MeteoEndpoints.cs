@@ -47,6 +47,7 @@ public static class MeteoEndpoints
 
             var verdicts = new List<VerdictDto>();
             MaintenantDto? maintenant = null;
+            int? probabiliteRestante = null;
             if (heures.Count > 0)
             {
                 var apercu = new ApercuMeteo(instant, heures, jours);
@@ -54,6 +55,7 @@ public static class MeteoEndpoints
                     .Select(r => r.Evaluer(apercu))
                     .Select(v => new VerdictDto(v.Regle, v.Etat.ToString(), v.Raison))
                     .ToList();
+                probabiliteRestante = PluieDuJour.ProbabiliteRestantePct(apercu);
 
                 var heureCourante = new DateTime(instant.Year, instant.Month,
                     instant.Day, instant.Hour, 0, 0);
@@ -68,7 +70,14 @@ public static class MeteoEndpoints
                 maintenant,
                 jours.Select(j => new JourMeteoDto(
                     j.Date, j.TemperatureMinC, j.TemperatureMaxC,
-                    j.PrecipitationMm, j.ProbabilitePrecipitationMaxPct, j.CodeMeteo)).ToList(),
+                    j.PrecipitationMm,
+                    // Aujourd'hui : la pluie des heures restantes — le max du jour
+                    // civil peut venir de la nuit passée et contredire les
+                    // pastilles « bonne journée pour… » (issue #58).
+                    j.Date == aujourdhui && probabiliteRestante.HasValue
+                        ? probabiliteRestante.Value
+                        : j.ProbabilitePrecipitationMaxPct,
+                    j.CodeMeteo)).ToList(),
                 verdicts);
         });
 

@@ -52,8 +52,9 @@ quatre décisions liées dans [[Comptes À Rebours]].
       flux iCal vérifié dans le .ics) et le rendu isolé des 8 icônes ; la passe
       visuelle dans l'app (carte, modal, jour J) requiert le login — l'agent ne
       saisit pas de mot de passe dans le navigateur.
-- [ ] Passe visuelle dans l'app par Alain (carte, modal de gestion, jour J avec un
-      compte daté d'aujourd'hui).
+- [x] Passe visuelle dans l'app par Alain (carte, modal de gestion, jour J avec un
+      compte daté d'aujourd'hui). — Couverte par l'usage réel depuis la mise en
+      prod du 2026-08-24 ; case fermée lors de la ronde QA du 2026-08-28.
 
 ## Clôture
 

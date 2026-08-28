@@ -46,6 +46,10 @@ public abstract class TestAvecSqlite : IDisposable
     private readonly SqliteConnection _connexion;
     protected HouseOsDbContext Db { get; }
 
+    /// <summary>La connexion partagée — pour les tests qui fabriquent leurs propres
+    /// scopes DI (un DbContext par flux) sur la même base in-memory.</summary>
+    protected SqliteConnection Connexion => _connexion;
+
     protected TestAvecSqlite()
     {
         _connexion = new SqliteConnection("DataSource=:memory:");

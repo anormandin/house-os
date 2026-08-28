@@ -26,6 +26,12 @@ type: meta
 - Pas de liens markdown dans le vault. Les pointeurs vers le code sont en texte brut
   `chemin/vers/fichier.ext:ligne`.
 
+## Plans exécutés
+
+Un plan `status: executed` est une archive : ses pointeurs de code ne sont pas
+re-vérifiés par `/vault sync` (le code bouge, l'archive reste). Seules les notes
+vivantes (feature/reference/domain) portent l'obligation de fraîcheur.
+
 ## Faits
 
 - Tout fait stocké est intemporel, daté `(as of YYYY-MM)`, ou un pointeur vers le code.

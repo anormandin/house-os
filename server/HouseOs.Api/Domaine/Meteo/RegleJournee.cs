@@ -26,13 +26,24 @@ public abstract class RegleJournee
     public static readonly IReadOnlyList<RegleJournee> Toutes =
         [new RegleTonte(), new RegleAeration(), new RegleJourneeDehors()];
 
-    /// <summary>Les heures dans [maintenant − avant ; maintenant + après].</summary>
-    protected static List<PrevisionHoraire> Fenetre(ApercuMeteo apercu, int heuresAvant, int heuresApres) =>
-        apercu.Heures
-            .Where(h => h.Heure >= apercu.Maintenant.AddHours(-heuresAvant)
-                && h.Heure <= apercu.Maintenant.AddHours(heuresApres))
+    /// <summary>Le début de l'heure en cours — l'ancre des fenêtres : à 13 h 30,
+    /// la ligne horaire de 13 h décrit le moment présent et doit compter.</summary>
+    protected static DateTime HeureCourante(ApercuMeteo apercu) =>
+        apercu.Maintenant.Date.AddHours(apercu.Maintenant.Hour);
+
+    /// <summary>Les heures dans [heure courante − avant ; heure courante + après].
+    /// Ancré sur le début de l'heure en cours : sinon, une fenêtre « à venir »
+    /// excluait l'heure en train de se passer — il pleuvait dehors et la règle
+    /// regardait à partir de la prochaine heure pleine (issue #58).</summary>
+    protected static List<PrevisionHoraire> Fenetre(ApercuMeteo apercu, int heuresAvant, int heuresApres)
+    {
+        var ancre = HeureCourante(apercu);
+        return apercu.Heures
+            .Where(h => h.Heure >= ancre.AddHours(-heuresAvant)
+                && h.Heure <= ancre.AddHours(heuresApres))
             .OrderBy(h => h.Heure)
             .ToList();
+    }
 
     protected VerdictRegle SansDonnees() =>
         new(Nom, EtatVerdict.Defavorable, "Pas encore de prévisions.");

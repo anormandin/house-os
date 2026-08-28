@@ -117,6 +117,42 @@ test('la case complète l’occurrence sans ouvrir l’éditeur', async () => {
   expect(screen.queryByLabelText('Titre')).not.toBeInTheDocument()
 })
 
+test('la complétion invalide aussi le budget (case virement, échéance dérivée)', async () => {
+  servirTaches(CORPUS)
+  serveur.use(
+    http.post('/api/occurrences/:id/completer', () => new HttpResponse(null, { status: 204 })),
+  )
+  const { client } = rendre(<Taches />)
+  await screen.findByText('Chaque semaine')
+  const espion = vi.spyOn(client, 'invalidateQueries')
+
+  await userEvent.click(screen.getByRole('button', { name: 'Compléter Changer les draps' }))
+
+  // occurrenceVirementId et dateEffective dérivent des occurrences : sans
+  // ['budget'], la case « Compléter la tâche de virement » resterait proposée.
+  await waitFor(() => {
+    const cles = espion.mock.calls.map(([filtre]) => (filtre?.queryKey ?? [])[0])
+    expect(cles).toEqual(expect.arrayContaining(['taches', 'occurrences', 'journal', 'budget']))
+  })
+})
+
+test('la mini-carte de la vue Année s’active au clavier', async () => {
+  servirTaches(CORPUS)
+  rendre(<Taches />)
+  await screen.findByText('Chaque semaine')
+  await userEvent.click(screen.getByRole('button', { name: 'Année' }))
+  await screen.findByText('fenêtre en cours')
+
+  const carte = screen.getByRole('button', { name: /Mini-carte de l’année/ })
+  expect(carte).toHaveAttribute('tabindex', '0')
+  carte.focus()
+  await userEvent.keyboard('{Enter}')
+
+  // Entrée ramène la fenêtre visible à aujourd'hui : le ruban a défilé.
+  const conteneur = document.querySelector('.overflow-x-auto')!
+  expect(conteneur.scrollLeft).toBeGreaterThan(0)
+})
+
 test('cliquer une rangée ouvre l’éditeur de la tâche', async () => {
   servirTaches(CORPUS)
   rendre(<Taches />)

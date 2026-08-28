@@ -4,6 +4,7 @@ import { CalendarClock, Check, MessageSquare, MessageSquarePlus, Repeat, SkipFor
 import Avatar from '@/components/Avatar'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import { api, dateLocaleIso, type Occurrence } from '@/lib/api'
+import { invaliderAutourOccurrences, useCompletionAvecUndo } from '@/lib/completion'
 import { dateCourte, heureQuebec, jourCourt } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -44,26 +45,13 @@ export default function OccurrenceListe({
   onModifier?: (tacheId: string) => void
 }) {
   const queryClient = useQueryClient()
-  const invalider = () => {
-    queryClient.invalidateQueries({ queryKey: ['occurrences'] })
-    // Compléter/annuler touche le journal, donc le bilan hebdo.
-    queryClient.invalidateQueries({ queryKey: ['journal'] })
-    // …et la console des définitions (échéance/assigné en attente, progression).
-    queryClient.invalidateQueries({ queryKey: ['taches'] })
-  }
+  const invalider = () => invaliderAutourOccurrences(queryClient)
 
   // Éditeurs inline, un seul ouvert à la fois (id d'occurrence concerné).
   const [reportOuvert, setReportOuvert] = useState<string | null>(null)
   const [noteEnEdition, setNoteEnEdition] = useState<{ id: string; texte: string } | null>(null)
 
-  const completer = useMutation({
-    mutationFn: (id: string) => api.completer(id),
-    onSuccess: invalider,
-  })
-  const annuler = useMutation({
-    mutationFn: (id: string) => api.annulerCompletion(id),
-    onSuccess: invalider,
-  })
+  const { completer, annuler } = useCompletionAvecUndo()
   const passer = useMutation({
     mutationFn: (id: string) => api.passer(id),
     onSuccess: invalider,

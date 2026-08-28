@@ -39,7 +39,7 @@ public class Occurrence
             OccurrenceId = Id,
             UtilisateurId = utilisateurId,
             CompleteeLe = maintenant,
-            Notes = notes,
+            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
         };
     }
 

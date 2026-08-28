@@ -45,6 +45,9 @@ export default function FluxExternesGestion({ onFermer }: { onFermer: () => void
       viderFormulaire()
     },
     onError: (e) => setErreur(e instanceof ApiError ? e.message : 'Erreur inattendue.'),
+    // Affichée dans le modal — le MutationCache global ne doit pas la doubler
+    // dans la bannière.
+    meta: { erreurLocale: true },
   })
 
   const supprimer = useMutation({

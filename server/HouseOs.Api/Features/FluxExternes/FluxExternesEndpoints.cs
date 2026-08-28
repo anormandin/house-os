@@ -53,7 +53,8 @@ public static class FluxExternesEndpoints
             db.FluxExternes.Add(flux);
             await db.SaveChangesAsync(ct);
 
-            await FluxExternesRafraichissement.Rafraichir(db, flux, httpFactory.CreateClient(), ct);
+            await FluxExternesRafraichissement.Rafraichir(
+                db, flux, httpFactory.CreateClient(FluxExternesRafraichissement.NomClientHttp), ct);
             if (flux.DerniereErreur is not null)
             {
                 // URL invalide : on ne garde pas l'abonnement mort.
@@ -101,7 +102,8 @@ public static class FluxExternesEndpoints
                 // suite et recharger — sinon jusqu'à 6 h de faux événements sous le
                 // nouveau nom. Un échec s'affiche dans la gestion (DerniereErreur).
                 await db.EvenementsExternes.Where(e => e.FluxExterneId == flux.Id).ExecuteDeleteAsync(ct);
-                await FluxExternesRafraichissement.Rafraichir(db, flux, httpFactory.CreateClient(), ct);
+                await FluxExternesRafraichissement.Rafraichir(
+                    db, flux, httpFactory.CreateClient(FluxExternesRafraichissement.NomClientHttp), ct);
             }
             return Results.NoContent();
         });

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import ComptesAReboursGestion from '@/components/ComptesAReboursGestion'
+import ErreurChargement from '@/components/ErreurChargement'
 import FluxExternesGestion, { ICONES_FLUX } from '@/components/FluxExternesGestion'
 import { ICONES_COMPTE, MaisonSoleil } from '@/components/Illustrations'
 import MeteoCarte from '@/components/MeteoCarte'
@@ -16,16 +17,27 @@ import {
   type EvenementExterne,
   type Occurrence,
 } from '@/lib/api'
+import { bornesSemainesBilan, comptesParSemaine } from '@/lib/aujourdhui-vues'
 import { bornesJourneeLocale, dateCourte, dateLongue, dodosAvant } from '@/lib/format'
 import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
 
 export default function Aujourdhui() {
   const [editeurTacheId, setEditeurTacheId] = useState<string | null>(null)
-  const { data: ouvertes, isLoading: chargementOuvertes } = useQuery({
+  const {
+    data: ouvertes,
+    isLoading: chargementOuvertes,
+    isError: erreurOuvertes,
+    refetch: rechargerOuvertes,
+  } = useQuery({
     queryKey: ['occurrences', 'aujourdhui'],
     queryFn: () => api.occurrences('aujourdhui'),
   })
-  const { data: faites, isLoading: chargementFaites } = useQuery({
+  const {
+    data: faites,
+    isLoading: chargementFaites,
+    isError: erreurFaites,
+    refetch: rechargerFaites,
+  } = useQuery({
     queryKey: ['occurrences', 'faites'],
     // Bornes calculées à l'exécution, pas au montage : un tableau de bord laissé
     // ouvert la nuit doit interroger la nouvelle journée à son prochain refetch.
@@ -66,6 +78,7 @@ export default function Aujourdhui() {
   const [gestionComptesOuverte, setGestionComptesOuverte] = useState(false)
 
   const chargement = chargementOuvertes || chargementFaites
+  const erreurJour = erreurOuvertes || erreurFaites
   const aujourdhui = dateLocaleIso()
   const dodosDemenagement = dodosAvant(DATE_DEMENAGEMENT)
 
@@ -117,6 +130,14 @@ export default function Aujourdhui() {
           />
           {chargement ? (
             <p className="py-8 text-center text-sm text-sourdine">Chargement…</p>
+          ) : erreurJour ? (
+            <ErreurChargement
+              quoi="les tâches du jour"
+              onReessayer={() => {
+                rechargerOuvertes()
+                rechargerFaites()
+              }}
+            />
           ) : (
             <OccurrenceListe
               occurrences={listeDuJour}
@@ -160,11 +181,13 @@ function EvenementsDuJour({ evenements }: { evenements: EvenementExterne[] }) {
   }
   return (
     <div className="flex flex-wrap gap-2">
-      {evenements.map((e) => {
+      {evenements.map((e, i) => {
         const { Icone } = ICONES_FLUX[e.type]
         return (
           <span
-            key={`${e.titre}-${e.date}`}
+            // L'événement n'a pas d'id et deux flux peuvent publier le même titre
+            // le même jour — l'index garantit l'unicité.
+            key={`${e.titre}-${e.date}-${i}`}
             className="flex items-center gap-2 rounded-full bg-carte px-4 py-2 text-sm font-bold shadow-carte"
           >
             <Icone className="size-4 text-orange" />
@@ -176,55 +199,8 @@ function EvenementsDuJour({ evenements }: { evenements: EvenementExterne[] }) {
   )
 }
 
-/* Bilan du ménage : total complété par semaine, sans égard à qui a cliqué —
-   l'attribution individuelle est indicative, le foyer compte ensemble. */
-const NB_SEMAINES_BILAN = 8
-
-function bornesSemainesBilan(date = new Date()): { de: string; a: string; lundis: string[] } {
-  const jour = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const lundiCourant = new Date(
-    jour.getFullYear(),
-    jour.getMonth(),
-    jour.getDate() - ((jour.getDay() + 6) % 7),
-  )
-  const lundis: string[] = []
-  for (let i = NB_SEMAINES_BILAN - 1; i >= 0; i--) {
-    lundis.push(
-      dateLocaleIso(
-        new Date(
-          lundiCourant.getFullYear(),
-          lundiCourant.getMonth(),
-          lundiCourant.getDate() - 7 * i,
-        ),
-      ),
-    )
-  }
-  const debut = new Date(`${lundis[0]}T00:00:00`)
-  const fin = new Date(
-    lundiCourant.getFullYear(),
-    lundiCourant.getMonth(),
-    lundiCourant.getDate() + 7,
-  )
-  return { de: debut.toISOString(), a: fin.toISOString(), lundis }
-}
-
 function Bilan({ instants, lundis }: { instants: string[]; lundis: string[] }) {
-  const indexParLundi = new Map(lundis.map((lundi, i) => [lundi, i]))
-  const comptes = lundis.map(() => 0)
-  for (const instant of instants) {
-    const local = new Date(instant)
-    const lundi = dateLocaleIso(
-      new Date(
-        local.getFullYear(),
-        local.getMonth(),
-        local.getDate() - ((local.getDay() + 6) % 7),
-      ),
-    )
-    const i = indexParLundi.get(lundi)
-    if (i !== undefined) {
-      comptes[i] += 1
-    }
-  }
+  const comptes = comptesParSemaine(instants, lundis)
   const maximum = Math.max(1, ...comptes)
   const cetteSemaine = comptes[comptes.length - 1]
 

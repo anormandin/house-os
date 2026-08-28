@@ -27,3 +27,5 @@ vault/.obsidian/workspace.json
 vault/.obsidian/workspace-mobile.json
 backups/
 server/HouseOs.Api/donnees/
+web/test-results/
+web/playwright-report/

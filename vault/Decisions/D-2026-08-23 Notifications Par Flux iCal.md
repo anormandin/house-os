@@ -36,5 +36,8 @@ l'utilisateur.
 
 ## Confirmation
 
-Endpoint `/calendars/*.ics` dans le serveur ; paquet NuGet `Ical.Net` référencé ;
-aucun code web-push/VAPID en v1.
+Endpoint `/ical/{jeton}.ics` dans le serveur
+(`server/HouseOs.Api/Features/FluxIcal/FluxIcalEndpoints.cs`) ; paquet NuGet
+`Ical.Net` référencé ; aucun code web-push/VAPID en v1. (Confirmation réécrite
+le 2026-08-28 : le chemin `/calendars/*.ics` avait été écrit avant
+l'implémentation — la décision elle-même est inchangée.)

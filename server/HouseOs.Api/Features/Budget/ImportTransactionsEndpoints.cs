@@ -23,7 +23,7 @@ public static class ImportTransactionsEndpoints
             HouseOsDbContext db,
             IFournisseurTransactions fournisseur) =>
         {
-            var compte = await db.ComptesBudget.FirstOrDefaultAsync();
+            var compte = await db.ComptesBudget.OrderBy(c => c.CreeLe).FirstOrDefaultAsync();
             if (compte is null)
             {
                 return Results.Conflict(new { message = "Ancrer le compte avant d'importer." });
@@ -37,9 +37,10 @@ public static class ImportTransactionsEndpoints
             }
 
             string contenu;
-            using (var lecteur = new StreamReader(fichier.OpenReadStream(), Encoding.UTF8))
+            using (var memoire = new MemoryStream())
             {
-                contenu = await lecteur.ReadToEndAsync();
+                await fichier.CopyToAsync(memoire);
+                contenu = DecoderContenu(memoire.ToArray());
             }
 
             IReadOnlyList<TransactionImportee> lues;
@@ -60,7 +61,34 @@ public static class ImportTransactionsEndpoints
         return app;
     }
 
-    /// <summary>Dédup + écart des antérieures à l'ancrage ; ne sauvegarde pas.</summary>
+    /// <summary>UTF-8 strict d'abord ; les exports bancaires québécois sont souvent en
+    /// Windows-1252 — sans repli, « DÉPÔT » deviendrait « D�P�T » jusque dans la clé de dédup.</summary>
+    internal static string DecoderContenu(byte[] octets)
+    {
+        try
+        {
+            return new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true)
+                .GetString(octets)
+                .TrimStart('\uFEFF');
+        }
+        catch (DecoderFallbackException)
+        {
+            return Windows1252.GetString(octets);
+        }
+    }
+
+    private static readonly Encoding Windows1252 = ChargerWindows1252();
+
+    private static Encoding ChargerWindows1252()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        return Encoding.GetEncoding(1252);
+    }
+
+    /// <summary>Dédup + écart des antérieures à l'ancrage ; ne sauvegarde pas.
+    /// Deux transactions légitimes identiques le même jour survivent : le numéro de
+    /// séquence CSV (ou, à défaut, le rang du doublon dans le fichier) entre dans la
+    /// clé — réimporter le même fichier reste sans effet.</summary>
     public static async Task<RapportImportDto> ImporterAsync(
         HouseOsDbContext db, CompteBudget compte, IReadOnlyList<TransactionImportee> lues)
     {
@@ -68,7 +96,9 @@ public static class ImportTransactionsEndpoints
             .Where(t => t.CompteBudgetId == compte.Id)
             .Select(t => t.CleDedup)
             .ToListAsync();
+        var enBase = new HashSet<string>(clesExistantes);
         var vues = new HashSet<string>(clesExistantes);
+        var occurrencesFichier = new Dictionary<string, int>();
 
         int importees = 0, doublons = 0, anterieures = 0;
         foreach (var lue in lues)
@@ -78,7 +108,24 @@ public static class ImportTransactionsEndpoints
                 anterieures++;
                 continue;
             }
-            var cle = TransactionBancaire.CalculerCleDedup(lue.IdExterne, lue.Date, lue.Montant, lue.Description);
+            var cleBase = TransactionBancaire.CalculerCleDedup(
+                lue.IdExterne, lue.Date, lue.Montant, lue.Description, lue.NumeroSequence);
+            var occurrence = occurrencesFichier.GetValueOrDefault(cleBase);
+            occurrencesFichier[cleBase] = occurrence + 1;
+            var cle = occurrence == 0
+                ? cleBase
+                : TransactionBancaire.CalculerCleDedup(
+                    lue.IdExterne, lue.Date, lue.Montant, lue.Description, lue.NumeroSequence, occurrence);
+
+            // Compat : les transactions importées avant la capture du numéro de séquence
+            // portent la clé sans lui — un réimport d'un fichier déjà passé reste sans effet.
+            if (lue.IdExterne is null && lue.NumeroSequence is not null
+                && enBase.Contains(TransactionBancaire.CalculerCleDedup(null, lue.Date, lue.Montant, lue.Description)))
+            {
+                doublons++;
+                continue;
+            }
+
             if (vues.Add(cle) == false)
             {
                 doublons++;
@@ -91,7 +138,7 @@ public static class ImportTransactionsEndpoints
                 Date = lue.Date,
                 Montant = lue.Montant,
                 Description = lue.Description.Length > 300 ? lue.Description[..300] : lue.Description,
-                IdExterne = lue.IdExterne,
+                IdExterne = Tronquer(lue.IdExterne ?? lue.NumeroSequence, 100),
                 CleDedup = cle,
                 ImporteeLe = DateTimeOffset.UtcNow,
             });
@@ -99,6 +146,9 @@ public static class ImportTransactionsEndpoints
         }
         return new RapportImportDto(importees, doublons, anterieures);
     }
+
+    private static string? Tronquer(string? valeur, int max) =>
+        valeur is { Length: > 0 } && valeur.Length > max ? valeur[..max] : valeur;
 
     private static IResult Erreur(string champ, string message) =>
         Results.ValidationProblem(new Dictionary<string, string[]> { [champ] = [message] });

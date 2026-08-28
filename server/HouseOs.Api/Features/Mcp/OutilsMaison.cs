@@ -202,7 +202,7 @@ public static class OutilsMaison
         var documents = db.Documents.AsNoTracking();
         if (string.IsNullOrWhiteSpace(categorie) == false)
         {
-            if (Enum.TryParse<CategorieDocument>(categorie, out var cat) == false)
+            if (Conversions.ParserEnum(categorie, out CategorieDocument cat) == false)
             {
                 throw new McpException($"Catégorie inconnue : '{categorie}'.");
             }
@@ -255,7 +255,11 @@ public static class OutilsMaison
                 {
                     throw new McpException("Le titre est requis.");
                 }
-                if (Enum.TryParse<CategorieDocument>(donnees.Categorie, out var categorie) == false)
+                if (donnees.Titre.Trim().Length > 200)
+                {
+                    throw new McpException("Le titre ne peut pas dépasser 200 caractères.");
+                }
+                if (Conversions.ParserEnum(donnees.Categorie, out CategorieDocument categorie) == false)
                 {
                     throw new McpException($"Catégorie inconnue : '{donnees.Categorie}'.");
                 }
@@ -274,13 +278,18 @@ public static class OutilsMaison
                 {
                     throw new McpException("Le dossier ne peut pas dépasser 100 caractères.");
                 }
+                var notes = string.IsNullOrWhiteSpace(donnees.Notes) ? null : donnees.Notes.Trim();
+                if (notes?.Length > 2000)
+                {
+                    throw new McpException("Les notes ne peuvent pas dépasser 2000 caractères.");
+                }
 
                 document.Titre = donnees.Titre.Trim();
                 document.Categorie = categorie;
                 document.EquipementId = donnees.EquipementId;
                 document.ZoneId = donnees.ZoneId;
                 document.Dossier = dossier;
-                document.Notes = string.IsNullOrWhiteSpace(donnees.Notes) ? null : donnees.Notes.Trim();
+                document.Notes = notes;
                 document.DateDocument = Conversions.ParserDate(donnees.DateDocument, "dateDocument");
                 document.Echeance = Conversions.ParserDate(donnees.Echeance, "echeance");
                 await db.SaveChangesAsync();
@@ -384,15 +393,15 @@ public static class OutilsMaison
         "Provision|Retrait|Ajustement, montant signé), transferer (deEnveloppeId → " +
         "versEnveloppeId, montant positif), lier_transaction (retrait : une seule part ; " +
         "dépôt : ventilation multi-enveloppes, le reste demeure non affecté), " +
-        "ignorer_transaction. L'import de fichiers CSV/OFX passe par l'interface web, " +
-        "pas par MCP.")]
+        "ignorer_transaction, restaurer_transaction (ramène une ignorée dans l'inbox). " +
+        "L'import de fichiers CSV/OFX passe par l'interface web, pas par MCP.")]
     public static async Task<object> GererBudget(
         HouseOsDbContext db,
         [Description("ancrer_compte, modifier_compte, creer_enveloppe, modifier_enveloppe, " +
-            "fermer_enveloppe, ajouter_mouvement, transferer, lier_transaction ou " +
-            "ignorer_transaction.")] string action,
+            "fermer_enveloppe, ajouter_mouvement, transferer, lier_transaction, " +
+            "ignorer_transaction ou restaurer_transaction.")] string action,
         [Description("Id de l'enveloppe (modifier/fermer/ajouter_mouvement) ou de la " +
-            "transaction (lier/ignorer).")] Guid? id = null,
+            "transaction (lier/ignorer/restaurer).")] Guid? id = null,
         [Description("Fiche du compte (requise pour ancrer_compte et modifier_compte).")]
         CompteBudgetDonnees? compte = null,
         [Description("Fiche de l'enveloppe (requise pour creer_enveloppe et modifier_enveloppe).")]
@@ -523,13 +532,25 @@ public static class OutilsMaison
                 }
                 var lignes = ventilation?.Select(v => new VentilationLigne(v.EnveloppeId, v.Montant)).ToList()
                     ?? throw new McpException("Le paramètre ventilation est requis.");
+                // Réclamation atomique du statut, comme LierAsync côté REST : un rejeu
+                // concurrent (timeout du client, deux sessions) obtient « déjà traitée »
+                // au lieu de doubler les mouvements.
+                await using var portee = await db.Database.BeginTransactionAsync();
+                var reclamees = await db.TransactionsBancaires
+                    .Where(t => t.Id == transaction.Id && t.Statut == StatutTransaction.Nouvelle)
+                    .ExecuteUpdateAsync(s => s.SetProperty(t => t.Statut, StatutTransaction.Liee));
+                if (reclamees == 0)
+                {
+                    throw new McpException("Transaction déjà traitée.");
+                }
                 var erreur = await BudgetEndpoints.CreerLiaisonAsync(
                     db, transaction, new LierRequete(lignes, entreeJournalId, note));
                 if (erreur is { } e)
                 {
-                    throw new McpException(e.Message);
+                    throw new McpException(e.Message); // rollback à la sortie de la portée
                 }
                 await db.SaveChangesAsync();
+                await portee.CommitAsync();
                 return new { liee = true, id = transaction.Id };
             }
             case "ignorer_transaction":
@@ -544,10 +565,23 @@ public static class OutilsMaison
                 await db.SaveChangesAsync();
                 return new { ignoree = true, id = transaction.Id };
             }
+            case "restaurer_transaction":
+            {
+                var idTransaction = RequisId(id);
+                return await BudgetEndpoints.RestaurerAsync(db, idTransaction) switch
+                {
+                    StatutRestauration.Introuvable =>
+                        throw new McpException($"Transaction introuvable : {idTransaction}."),
+                    StatutRestauration.PasIgnoree =>
+                        throw new McpException("Seule une transaction ignorée se restaure."),
+                    _ => new { restauree = true, id = idTransaction },
+                };
+            }
             default:
                 throw new McpException($"Action inconnue : '{action}' (ancrer_compte, " +
                     "modifier_compte, creer_enveloppe, modifier_enveloppe, fermer_enveloppe, " +
-                    "ajouter_mouvement, transferer, lier_transaction ou ignorer_transaction).");
+                    "ajouter_mouvement, transferer, lier_transaction, ignorer_transaction " +
+                    "ou restaurer_transaction).");
         }
     }
 
@@ -627,19 +661,18 @@ public static class OutilsMaison
         {
             throw new McpException("Le paramètre donnees est requis pour creer et modifier.");
         }
-        if (string.IsNullOrWhiteSpace(donnees.Nom))
-        {
-            throw new McpException("Le nom est requis.");
-        }
-        if (donnees.ZoneId is { } zoneId && await db.Zones.AnyAsync(z => z.Id == zoneId) == false)
-        {
-            throw new McpException($"zoneId inconnu : {zoneId} (voir lister_zones).");
-        }
-        return new EquipementRequete(
+        var requete = new EquipementRequete(
             donnees.Nom, donnees.ZoneId, donnees.Marque, donnees.Modele, donnees.NumeroSerie,
             Conversions.ParserDate(donnees.DateAchat, "dateAchat"),
             Conversions.ParserDate(donnees.FinGarantie, "finGarantie"),
             donnees.Notes, donnees.Specs);
+        // Mêmes règles que le POST/PUT REST (longueurs, zone, dates, bornes des
+        // specs) : sans elles, Postgres répondrait par une erreur brute.
+        if (await EquipementsEndpoints.ValiderAsync(requete, db) is { } erreur)
+        {
+            throw new McpException(erreur.Message);
+        }
+        return requete;
     }
 
     private static void AppliquerCompte(
@@ -648,6 +681,10 @@ public static class OutilsMaison
         if (string.IsNullOrWhiteSpace(titre))
         {
             throw new McpException("Le titre est requis.");
+        }
+        if (titre.Trim().Length > 200)
+        {
+            throw new McpException("Le titre ne peut pas dépasser 200 caractères.");
         }
         var date = Conversions.ParserDate(dateCible, "dateCible");
         if (date is null && estCreation)

@@ -1,10 +1,15 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { MemoryRouter } from 'react-router-dom'
-import { expect, test } from 'vitest'
+import { afterEach, expect, test } from 'vitest'
+import BanniereErreur from '@/components/BanniereErreur'
 import Layout from '@/components/Layout'
+import { effacerErreur } from '@/lib/erreurs'
 import { rendre } from '@/test/rendre'
-import { ALAIN, FLUX_ICAL, FLUX_ICAL_TOURNE } from '@/test/serveur-msw'
+import { ALAIN, FLUX_ICAL, FLUX_ICAL_TOURNE, serveur } from '@/test/serveur-msw'
+
+afterEach(() => effacerErreur())
 
 function ouvrirCalendrier() {
   return userEvent.click(screen.getByRole('button', { name: 'Mon calendrier iCal' }))
@@ -43,4 +48,34 @@ test('la rotation demande confirmation puis remplace les URLs affichées', async
 
   expect(await screen.findByText(FLUX_ICAL_TOURNE.urlPublique)).toBeInTheDocument()
   expect(screen.queryByText(FLUX_ICAL.urlPublique)).not.toBeInTheDocument()
+})
+
+test('une déconnexion qui échoue est signalée — la session locale reste intacte', async () => {
+  serveur.use(http.post('/api/auth/deconnexion', () => new HttpResponse(null, { status: 500 })))
+  const { client } = rendre(
+    <MemoryRouter>
+      <Layout moi={ALAIN} />
+      <BanniereErreur />
+    </MemoryRouter>,
+  )
+  client.setQueryData(['moi'], ALAIN)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }))
+
+  expect(await screen.findByText('La déconnexion a échoué — réessaie.')).toBeInTheDocument()
+  expect(client.getQueryData(['moi'])).toEqual(ALAIN)
+})
+
+test('la déconnexion réussie vide le cache — le prochain `moi` ramène à la connexion', async () => {
+  serveur.use(http.post('/api/auth/deconnexion', () => new HttpResponse(null, { status: 204 })))
+  const { client } = rendre(
+    <MemoryRouter>
+      <Layout moi={ALAIN} />
+    </MemoryRouter>,
+  )
+  client.setQueryData(['moi'], ALAIN)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }))
+
+  await waitFor(() => expect(client.getQueryData(['moi'])).toBeUndefined())
 })

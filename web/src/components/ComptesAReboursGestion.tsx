@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil } from 'lucide-react'
+import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import { ICONES_COMPTE } from '@/components/Illustrations'
 import { api, type CompteARebours, type IconeCompte } from '@/lib/api'
 import { dateCourte, dodosAvant } from '@/lib/format'
@@ -166,14 +167,11 @@ export default function ComptesAReboursGestion({
                   >
                     <Pencil className="size-4" />
                   </button>
-                  <button
-                    type="button"
-                    aria-label={`Supprimer ${compte.titre}`}
-                    onClick={() => supprimer.mutate(compte.id)}
-                    className="rounded-lg p-1.5 text-sourdine hover:text-rouge"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                  <ConfirmerSuppression
+                    ariaLabel={`Supprimer ${compte.titre}`}
+                    onConfirmer={() => supprimer.mutate(compte.id)}
+                    className="rounded-lg p-1.5"
+                  />
                 </li>
               )
             })}

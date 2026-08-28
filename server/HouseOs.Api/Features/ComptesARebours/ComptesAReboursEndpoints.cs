@@ -91,7 +91,9 @@ public static class ComptesAReboursEndpoints
                 ["dateCible"] = ["La date cible est requise."],
             });
         }
-        var icone = IconeCompteARebours.Soleil;
+        // Icône omise = conserver l'existante, comme le MCP ; à la création, le
+        // défaut de l'entité (Soleil) s'applique.
+        var icone = compte.Icone;
         if (requete.Icone is not null && Mcp.Conversions.ParserEnum(requete.Icone, out icone) == false)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>

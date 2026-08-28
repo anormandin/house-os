@@ -112,4 +112,34 @@ public class EquipementsApiTests(HouseOsFactory factory)
 
         Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
     }
+
+    [Fact]
+    public async Task FinGarantieAvantDateAchat_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+
+        // Faute de frappe d'année classique : l'incohérence est bloquée à la saisie
+        // au lieu d'être persistée et affichée sans avertissement.
+        var reponse = await client.PostAsJsonAsync("/api/equipements",
+            new { nom = "Thermopompe", dateAchat = "2026-05-01", finGarantie = "2025-05-01" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Specs_HorsBornes_Repondent400()
+    {
+        var client = await factory.ClientConnecte();
+
+        // Sans bornes, le champ jsonb accepterait ~51 Mo de payload par requête.
+        var centUne = Enumerable.Range(0, 101).ToDictionary(i => $"cle{i}", _ => "v");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/equipements",
+            new { nom = "Borné", specs = centUne })).StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/equipements",
+            new { nom = "Borné", specs = new Dictionary<string, string> { [new string('c', 101)] = "v" } })).StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/equipements",
+            new { nom = "Borné", specs = new Dictionary<string, string> { ["hp"] = new string('v', 1001) } })).StatusCode);
+    }
 }

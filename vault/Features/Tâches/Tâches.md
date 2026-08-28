@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-27
-verified-against: 1dbd83e
+last-verified: 2026-08-28
+verified-against: 0d96d5f
 tags: []
 ---
 
@@ -42,7 +42,8 @@ Implémenté (V0, as-built) :
   ajout via select.
 - L'UI applique le design final [[D-2026-08-23 Direction Artistique Cuisine Chaleureuse]] :
   desktop d'abord (en-tête Maison + onglets), héros illustré avec titre d'humeur
-  (repli client de [[Titre D'humeur]]), cartes Cette semaine / Bilan /
+  (repli client de [[Titre D'humeur]]), ruban des 7 prochains jours (a remplacé
+  la carte Cette semaine), cartes Bilan /
   [[Comptes À Rebours|Comptes à rebours]], quick-add (bouton + ⌘K) qui ouvre
   l'éditeur complet en modal.
 
@@ -59,9 +60,13 @@ Implémenté (V1 « Emménagement », as-built) :
   complétion ; pour une fixe, à partir de max(complétion, échéance courante) — une
   complétion en avance ne double pas l'horaire ; une seule occurrence en attente
   par tâche, jamais d'empilement.
-- **Rollover** (défaut activé, tâches fixes seulement) : un `BackgroundService`
-  quotidien glisse les occurrences fixes manquées à leur prochaine date planifiée.
-  Les intervalles ne glissent pas (« tondre » reste dû tant que ce n'est pas fait).
+- **Rollover** (défaut activé, tâches fixes seulement — le flag est refusé pour
+  les autres modes et n'apparaît que sur les fixes dans les DTOs, QA 2026-08-28) :
+  un `BackgroundService` quotidien glisse les occurrences fixes manquées à leur
+  prochaine date planifiée. Une intervalle reste due tant que ce n'est pas fait
+  **pendant sa saison** ; hors fenêtre saisonnière, l'occurrence échue glisse au
+  premier jour de la prochaine fenêtre, indépendamment du flag
+  ([[D-2026-08-28 Glissement Hors Fenêtre Des Intervalles]]).
 - **Stratégies d'assignation** appliquées à la matérialisation (l'assigné vit sur
   l'**occurrence**) : fixe ; alternance (l'autre que le dernier compléteur) ;
   moins-l'a-fait (journal 90 jours, égalité → alternance).
@@ -92,8 +97,10 @@ Implémenté (cycle de vie des occurrences, 2026-08-24, as-built —
   Garde-fou : seulement la complétion la plus récente de la tâche, et si la suivante
   est encore en attente (sinon 409).
 - **Passer** (récurrentes seulement, icône au survol) : statut `Passee` daté, aucun
-  journal, la suivante est générée comme après une complétion aujourd'hui (même
-  stratégie d'assignation). Un passage n'est pas annulable.
+  journal, la suivante est générée avec l'échéance qu'aurait donnée une complétion
+  aujourd'hui, mais **conserve l'assigné** pour les stratégies tournantes — le tour
+  n'a pas été pris ([[D-2026-08-28 Passer Conserve L'assigné]], QA 2026-08-28).
+  Un passage n'est pas annulable.
 - **Reporter** (icône au survol) : glisse l'échéance de l'occurrence en attente
   (préréglages demain / +2 j / +7 j, ou date libre ≥ aujourd'hui) sans toucher la
   définition.
@@ -217,9 +224,6 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).
 - Sous-tâches et projets multi-étapes (module Projets, v2+).
 - Notifications push (v1 = flux iCal seulement).
-- **Documents liés à une tâche** (« fermer le spa → guide ») — besoin exprimé le
-  2026-08-24, reporté au module Documents de la phase 2 ([[Architecture]]) ; prévoir
-  l'attache de un ou plusieurs documents/guides à une tâche.
 
 ## Décisions
 
@@ -233,6 +237,10 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
 - [[D-2026-08-23 Auth Simple Deux Comptes]] — attribution des complétions.
 - [[D-2026-08-24 Annulation Et Passage D'occurrences]] — annuler/passer/reporter,
   sort du journal, garde-fous.
+- [[D-2026-08-28 Passer Conserve L'assigné]] — passer ne fait plus tourner
+  l'assignation (précise la précédente).
+- [[D-2026-08-28 Glissement Hors Fenêtre Des Intervalles]] — une intervalle échue
+  hors saison glisse à la prochaine fenêtre.
 - [[D-2026-08-25 Bilan Hebdo Du Ménage]] — carte Bilan (total par semaine) à la
   place de L'équipe ; attribution individuelle conservée mais indicative.
 - [[D-2026-08-25 Invariants D'occurrence En Base]] — index uniques (une en-attente

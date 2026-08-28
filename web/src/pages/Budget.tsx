@@ -24,10 +24,12 @@ import {
   type Versement,
 } from '@/lib/api'
 import {
+  bilanVentilation,
   construireFlux,
   construirePartition,
   couleursEnveloppes,
   pctJauge,
+  preRemplirVentilation,
   FLUX_LARGEUR,
 } from '@/lib/budget-vues'
 import { dollars, dateLisible } from '@/lib/format'
@@ -380,22 +382,24 @@ function VueApercu({
                     }}
                   />
                 ))}
-                {partition.surAllocation && partition.marqueurSoldePct !== null && (
-                  <>
-                    <span
-                      className="absolute -top-1.5 -bottom-1.5 w-0.5 bg-encre"
-                      style={{ left: `${partition.marqueurSoldePct}%` }}
-                    />
-                    <span
-                      className="absolute -inset-y-px right-0 rounded-r-xl border-2 border-rouge"
-                      title={`Dépassement — ${dollars(-resume.nonAffecte)}`}
-                      style={{
-                        left: `${partition.marqueurSoldePct}%`,
-                        background: MOTIF_DEPASSEMENT,
-                      }}
-                    />
-                  </>
-                )}
+                {partition.surAllocation &&
+                  partition.marqueurSoldePct !== null &&
+                  partition.depassementPct !== null && (
+                    <>
+                      <span
+                        className="absolute -top-1.5 -bottom-1.5 w-0.5 bg-encre"
+                        style={{ left: `${partition.marqueurSoldePct}%` }}
+                      />
+                      <span
+                        className="absolute -inset-y-px right-0 rounded-r-xl border-2 border-rouge"
+                        title={`Dépassement — ${dollars(-resume.nonAffecte)}`}
+                        style={{
+                          width: `${partition.depassementPct}%`,
+                          background: MOTIF_DEPASSEMENT,
+                        }}
+                      />
+                    </>
+                  )}
               </div>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-sourdine">
                 {partition.segments.map((segment) => (
@@ -906,24 +910,15 @@ function LierModal({
   transaction: TransactionBudget
   onFermer: () => void
 }) {
+  const queryClient = useQueryClient()
   const invalider = useInvaliderBudget()
   const actives = resume.enveloppes.filter((e) => e.statut === 'Active')
   const estDepot = transaction.montant > 0
 
   // Pré-remplissage : les provisions suggérées, écrêtées au montant du dépôt.
-  const [parts, setParts] = useState<Record<string, string>>(() => {
-    if (estDepot === false) {
-      return {}
-    }
-    let reste = transaction.montant
-    const remplies: Record<string, string> = {}
-    for (const enveloppe of [...actives].sort((a, b) => b.provision - a.provision)) {
-      const part = Math.min(enveloppe.provision, reste)
-      remplies[enveloppe.id] = part > 0 ? String(part) : ''
-      reste -= part
-    }
-    return remplies
-  })
+  const [parts, setParts] = useState<Record<string, string>>(() =>
+    estDepot ? preRemplirVentilation(transaction.montant, actives) : {},
+  )
   const [enveloppeRetrait, setEnveloppeRetrait] = useState(
     transaction.suggestionEnveloppeId ?? actives[0]?.id ?? '',
   )
@@ -931,10 +926,12 @@ function LierModal({
     transaction.suggererVentilation && resume.occurrenceVirementId !== null,
   )
 
-  const totalVentile = actives.reduce(
-    (somme, e) => somme + (Number(parts[e.id]) || 0), 0)
-  const reste = transaction.montant - totalVentile
+  const { total: totalVentile, reste } = bilanVentilation(
+    transaction.montant,
+    actives.map((e) => Number(parts[e.id]) || 0),
+  )
 
+  const virementAComplete = estDepot && completerVirement && resume.occurrenceVirementId !== null
   const lier = useMutation({
     mutationFn: async () => {
       const ventilation = estDepot
@@ -943,13 +940,21 @@ function LierModal({
             .filter((v) => v.montant > 0)
         : [{ enveloppeId: enveloppeRetrait, montant: -transaction.montant }]
       await api.lierTransaction(transaction.id, ventilation)
-      if (estDepot && completerVirement && resume.occurrenceVirementId !== null) {
-        await api.completer(resume.occurrenceVirementId)
+      if (virementAComplete) {
+        await api.completer(resume.occurrenceVirementId!)
       }
     },
-    onSuccess: () => {
+    onSuccess: onFermer,
+    onSettled: () => {
+      // Dans onSettled : si le completer échoue après un lier réussi, l'inbox
+      // doit quand même se rafraîchir (la transaction est liée côté serveur).
       invalider()
-      onFermer()
+      if (virementAComplete) {
+        // Invalidation croisée : la complétion du virement touche les vues tâches.
+        queryClient.invalidateQueries({ queryKey: ['taches'] })
+        queryClient.invalidateQueries({ queryKey: ['occurrences'] })
+        queryClient.invalidateQueries({ queryKey: ['journal'] })
+      }
     },
   })
 

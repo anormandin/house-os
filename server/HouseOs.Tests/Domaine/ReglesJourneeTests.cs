@@ -257,4 +257,78 @@ public class ReglesJourneeTests
         Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
         Assert.Contains("prévisions", verdict.Raison);
     }
+
+    // --- Issue #58 : la pluie du jour doit invalider les pastilles ---
+
+    [Fact]
+    public void JourneeDePluie_NiTondreNiAererNiDehors()
+    {
+        // Forte probabilité et vraie quantité de pluie sur toute la journée.
+        var heures = BellesHeures(h =>
+        {
+            h.ProbabilitePrecipitationPct = 70;
+            h.PrecipitationMm = 1.5;
+            h.CodeMeteo = 61;
+        });
+        foreach (var regle in RegleJournee.Toutes)
+        {
+            var verdict = regle.Evaluer(Apercu(heures));
+            Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
+        }
+    }
+
+    [Fact]
+    public void Dehors_BeauMatinEcoule_PluieToutLApresMidi_Defavorable()
+    {
+        // À 13 h, le beau matin est derrière : il ne doit pas masquer l'averse
+        // en cours et à venir — le verdict porte sur le reste de la journée.
+        var heures = BellesHeures(h =>
+        {
+            if (h.Heure >= Maintenant)
+            {
+                h.ProbabilitePrecipitationPct = 70;
+                h.PrecipitationMm = 2;
+                h.CodeMeteo = 63;
+            }
+        });
+        var verdict = new RegleJourneeDehors().Evaluer(Apercu(heures));
+        Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
+    }
+
+    [Fact]
+    public void Aeration_PluieALHeureEnCours_Defavorable()
+    {
+        // À 13 h 30, la ligne horaire de 13 h décrit le moment présent : la
+        // fenêtre « à venir » doit l'inclure, pas partir de 14 h.
+        var heures = BellesHeures(h =>
+        {
+            if (h.Heure == Maintenant)
+            {
+                h.ProbabilitePrecipitationPct = 80;
+                h.PrecipitationMm = 3;
+                h.CodeMeteo = 65;
+            }
+        });
+        var verdict = new RegleAeration().Evaluer(new ApercuMeteo(Maintenant.AddMinutes(30), heures, []));
+        Assert.Equal(EtatVerdict.Defavorable, verdict.Etat);
+    }
+
+    [Fact]
+    public void Dehors_BelleFinDeJournee_ResteBon()
+    {
+        // À 17 h il reste moins d'heures que le seuil « Bon » : une belle soirée
+        // ne doit pas devenir « rester en dedans » faute d'heures.
+        var verdict = new RegleJourneeDehors().Evaluer(
+            new ApercuMeteo(Maintenant.Date.AddHours(17), BellesHeures(), []));
+        Assert.Equal(EtatVerdict.Bon, verdict.Etat);
+    }
+
+    [Fact]
+    public void Dehors_EnSoiree_PassableSansPastille()
+    {
+        var verdict = new RegleJourneeDehors().Evaluer(
+            new ApercuMeteo(Maintenant.Date.AddHours(20), BellesHeures(), []));
+        Assert.Equal(EtatVerdict.Passable, verdict.Etat);
+        Assert.Contains("demain", verdict.Raison);
+    }
 }

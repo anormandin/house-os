@@ -52,8 +52,25 @@ public class OperationsTachesTests : TestAvecSqlite
         return tache;
     }
 
+    private Tache CreerHebdoLundi()
+    {
+        var spec = new SpecRecurrence
+        {
+            Mode = ModeRecurrence.Fixe,
+            FixeType = TypeFixe.JoursSemaine,
+            JoursSemaineMasque = SpecRecurrence.MasqueDe(DayOfWeek.Monday),
+        };
+        var tache = Tache.CreerRecurrente(
+            "Poubelles", null, spec, StrategieAssignation.Fixe, _alain.Id,
+            Aujourdhui, _alain.Id, _maintenant, Aujourdhui);
+        Db.Taches.Add(tache);
+        Db.SaveChanges();
+        return tache;
+    }
+
+    // Rollover null : le flag est réservé au mode fixe (T9, issue #53).
     private static RecurrenceDto RecIntervalle(int jours = 7) =>
-        new("Intervalle", null, null, null, null, null, jours, null, null, null, null, true);
+        new("Intervalle", null, null, null, null, null, jours, null, null, null, null, null);
 
     private static ModifierTacheRequete Requete(
         string titre = "Tondre",
@@ -230,6 +247,23 @@ public class OperationsTachesTests : TestAvecSqlite
         Assert.Equal(StatutNotes.PasCompletee, statut);
     }
 
+    [Fact]
+    public async Task Completer_normalise_les_notes()
+    {
+        // Issue #33 : mêmes règles qu'AjouterNotesAsync — Trim, et blanc → null (sinon
+        // le DTO expose Notes: "" que l'UI traite comme « note présente »).
+        var avecNotes = CreerIntervalle();
+        await OperationsTaches.CompleterAsync(
+            Db, EnAttenteDe(avecNotes).Id, _alain.Id, "  lame affûtée  ", _maintenant);
+        Assert.Equal("lame affûtée",
+            Db.Journal.Single(j => j.TacheId == avecNotes.Id).Notes);
+
+        var notesBlanches = CreerPonctuelle();
+        await OperationsTaches.CompleterAsync(
+            Db, EnAttenteDe(notesBlanches).Id, _alain.Id, "   ", _maintenant);
+        Assert.Null(Db.Journal.Single(j => j.TacheId == notesBlanches.Id).Notes);
+    }
+
     // --- Édition (PUT) : transitions de mode et réalignement de l'occurrence ---
 
     [Fact]
@@ -333,7 +367,7 @@ public class OperationsTachesTests : TestAvecSqlite
             Db, tache,
             new ModifierTacheRequete("Nouveau titre", null, null, null, null, null, null,
                 new RecurrenceDto("Intervalle", null, null, null, null, null, 0,
-                    null, null, null, null, true)),
+                    null, null, null, null, null)),
             Aujourdhui);
 
         Assert.NotNull(erreur);
@@ -485,7 +519,81 @@ public class OperationsTachesTests : TestAvecSqlite
         Assert.Null(OperationsTaches.ValiderFiltre(null, null, null));
     }
 
+    [Fact]
+    public void Le_filtre_faites_refuse_les_bornes_inversees()
+    {
+        // T6 (issue #53) : bornes inversées ou fenêtre vide donnaient un 200 []
+        // silencieux qui cachait l'erreur du client.
+        Assert.NotNull(OperationsTaches.ValiderFiltre("faites", _maintenant.AddDays(1), _maintenant));
+        Assert.NotNull(OperationsTaches.ValiderFiltre("faites", _maintenant, _maintenant));
+    }
+
     // --- Stratégies d'assignation : bornes de la fenêtre 90 jours ---
+
+    [Fact]
+    public async Task MoinsLAFait_compte_la_completion_en_cours()
+    {
+        // Issue #2 : l'entrée de journal en vol était invisible de la requête SQL —
+        // le compléteur se faisait réassigner une fois sur deux (motif A, B, B, A, A…
+        // au lieu de l'équité).
+        var tache = CreerIntervalle(strategie: StrategieAssignation.MoinsLAFait);
+
+        var premiere = await OperationsTaches.CompleterAsync(
+            Db, EnAttenteDe(tache).Id, _alain.Id, null, _maintenant);
+        // Alain 1 (en vol) / Ariane 0 → Ariane l'a moins fait.
+        Assert.Equal(_ariane.Id, premiere.Prochaine!.AssigneAId);
+
+        var deuxieme = await OperationsTaches.CompleterAsync(
+            Db, premiere.Prochaine.Id, _ariane.Id, null, _maintenant.AddDays(7));
+        // Alain 1 / Ariane 1 (en vol) → égalité → l'autre que la dernière compléteure.
+        // Avant le correctif, la requête lisait Alain 1 / Ariane 0 et réassignait
+        // Ariane alors qu'elle venait de faire la tâche.
+        Assert.Equal(_alain.Id, deuxieme.Prochaine!.AssigneAId);
+    }
+
+    [Fact]
+    public async Task Completer_en_alternance_decale_l_assigne()
+    {
+        // Contrepartie de la décision T8 : compléter, lui, prend le tour.
+        var tache = CreerIntervalle(strategie: StrategieAssignation.Alternance);
+
+        var resultat = await OperationsTaches.CompleterAsync(
+            Db, EnAttenteDe(tache).Id, _alain.Id, null, _maintenant);
+
+        Assert.Equal(_ariane.Id, resultat.Prochaine!.AssigneAId);
+    }
+
+    [Fact]
+    public async Task PasserConserve_l_assigne_en_alternance()
+    {
+        // Décision T8 (2026-08-28) : passer ne prend pas le tour — la prochaine
+        // occurrence garde l'assigné, peu importe qui a cliqué.
+        var tache = CreerIntervalle(strategie: StrategieAssignation.Alternance);
+        var occurrence = EnAttenteDe(tache);
+        occurrence.AssigneAId = _ariane.Id;
+        Db.SaveChanges();
+
+        var resultat = await OperationsTaches.PasserAsync(Db, occurrence.Id, _alain.Id, _maintenant);
+
+        Assert.Equal(StatutPasse.Ok, resultat.Statut);
+        Assert.Equal(_ariane.Id, resultat.Prochaine!.AssigneAId);
+    }
+
+    [Fact]
+    public async Task PasserConserve_l_assigne_en_moins_l_a_fait()
+    {
+        // Décision T8 (2026-08-28) : même règle pour MoinsLAFait — le tour n'a pas
+        // été pris.
+        var tache = CreerIntervalle(strategie: StrategieAssignation.MoinsLAFait);
+        var occurrence = EnAttenteDe(tache);
+        occurrence.AssigneAId = _ariane.Id;
+        Db.SaveChanges();
+
+        var resultat = await OperationsTaches.PasserAsync(Db, occurrence.Id, _alain.Id, _maintenant);
+
+        Assert.Equal(StatutPasse.Ok, resultat.Statut);
+        Assert.Equal(_ariane.Id, resultat.Prochaine!.AssigneAId);
+    }
 
     [Fact]
     public async Task MoinsLAFait_une_completion_a_exactement_90_jours_compte_encore()
@@ -554,6 +662,20 @@ public class OperationsTachesTests : TestAvecSqlite
         Assert.Equal(7, resume.Recurrence.IntervalleJours);
         Assert.Equal(1, resume.NbDocuments);
         Assert.False(resume.Completee);
+    }
+
+    [Fact]
+    public async Task Le_rollover_n_est_expose_que_pour_le_mode_fixe()
+    {
+        // T9 (issue #53) : exposer le flag sur une intervalle laisserait croire
+        // qu'il y agit.
+        CreerIntervalle();
+        CreerHebdoLundi();
+
+        var resumes = await OperationsTaches.ListerTachesAsync(Db);
+
+        Assert.Null(Assert.Single(resumes, r => r.Recurrence.Mode == "Intervalle").Recurrence.Rollover);
+        Assert.True(Assert.Single(resumes, r => r.Recurrence.Mode == "Fixe").Recurrence.Rollover);
     }
 
     [Fact]

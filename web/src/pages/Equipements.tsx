@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, FileText, Plus, X } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
+import ErreurChargement from '@/components/ErreurChargement'
 import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
-import { api, type EquipementDonnees } from '@/lib/api'
+import { api, type EquipementDetail, type EquipementDonnees } from '@/lib/api'
+import { problemeTailleFichier } from '@/lib/documents-vues'
+import { signalerErreur } from '@/lib/erreurs'
 import { dateLisible, dollars, heureQuebec } from '@/lib/format'
 import { dateLocaleIso } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -25,6 +28,20 @@ const ficheVide: Fiche = {
   dateAchat: '', finGarantie: '', notes: '', specs: [],
 }
 
+function versFiche(detail: EquipementDetail): Fiche {
+  return {
+    nom: detail.nom,
+    zoneId: detail.zoneId ?? '',
+    marque: detail.marque ?? '',
+    modele: detail.modele ?? '',
+    numeroSerie: detail.numeroSerie ?? '',
+    dateAchat: detail.dateAchat ?? '',
+    finGarantie: detail.finGarantie ?? '',
+    notes: detail.notes ?? '',
+    specs: Object.entries(detail.specs),
+  }
+}
+
 function versDonnees(f: Fiche): EquipementDonnees {
   return {
     nom: f.nom,
@@ -44,11 +61,17 @@ export default function Equipements() {
   const [choisiId, setChoisiId] = useState<string | null>(null)
   const [creation, setCreation] = useState(false)
   const [fiche, setFiche] = useState<Fiche>(ficheVide)
+  // Id de l'équipement que la fiche reflète — null pour la fiche vide (création).
+  const [ficheDe, setFicheDe] = useState<string | null>(null)
   const champFichier = useRef<HTMLInputElement>(null)
   const maj = (champ: Partial<Fiche>) => setFiche((ancienne) => ({ ...ancienne, ...champ }))
 
   const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
-  const { data: equipements } = useQuery({ queryKey: ['equipements'], queryFn: api.equipements })
+  const {
+    data: equipements,
+    isError: equipementsEnErreur,
+    refetch: rechargerEquipements,
+  } = useQuery({ queryKey: ['equipements'], queryFn: api.equipements })
   const { data: budget } = useQuery({ queryKey: ['budget'], queryFn: api.budget })
   const enveloppeLiee = budget?.enveloppes.find(
     (e) => e.equipementId === choisiId && e.statut === 'Active',
@@ -59,30 +82,28 @@ export default function Equipements() {
     enabled: choisiId !== null,
   })
 
+  // Ne recharge la fiche que quand l'équipement affiché change : un refetch du
+  // même détail (upload ou suppression de document) ne doit jamais écraser des
+  // édits en cours.
   useEffect(() => {
     if (creation) {
-      setFiche(ficheVide)
+      if (ficheDe !== null) {
+        setFiche(ficheVide)
+        setFicheDe(null)
+      }
       return
     }
-    if (detail === undefined) {
+    if (detail === undefined || detail.id === ficheDe) {
       return
     }
-    setFiche({
-      nom: detail.nom,
-      zoneId: detail.zoneId ?? '',
-      marque: detail.marque ?? '',
-      modele: detail.modele ?? '',
-      numeroSerie: detail.numeroSerie ?? '',
-      dateAchat: detail.dateAchat ?? '',
-      finGarantie: detail.finGarantie ?? '',
-      notes: detail.notes ?? '',
-      specs: Object.entries(detail.specs),
-    })
-  }, [detail, creation])
+    setFiche(versFiche(detail))
+    setFicheDe(detail.id)
+  }, [detail, creation, ficheDe])
 
   const invalider = () => {
     queryClient.invalidateQueries({ queryKey: ['equipements'] })
     queryClient.invalidateQueries({ queryKey: ['equipement'] })
+    queryClient.invalidateQueries({ queryKey: ['documents'] })
   }
 
   const enregistrer = useMutation({
@@ -150,7 +171,10 @@ export default function Equipements() {
       <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
         {/* Liste par pièce */}
         <div className="flex flex-col gap-4">
-          {(equipements ?? []).length === 0 && creation === false && (
+          {equipementsEnErreur && (
+            <ErreurChargement quoi="les équipements" onReessayer={() => rechargerEquipements()} />
+          )}
+          {equipementsEnErreur === false && (equipements ?? []).length === 0 && creation === false && (
             <p className="rounded-[20px] border-2 border-dashed border-tiret px-5 py-8 text-center text-sm font-bold text-tiret-texte">
               Aucun équipement encore — inventorie la maison en t’installant.
             </p>
@@ -255,8 +279,9 @@ export default function Equipements() {
                   <input type="date" value={fiche.finGarantie}
                     onChange={(e) => maj({ finGarantie: e.target.value })} className={cn(classeChamp, 'flex-1')} />
                 </label>
-                <input value={fiche.notes} onChange={(e) => maj({ notes: e.target.value })}
-                  placeholder="Notes" aria-label="Notes" className={cn(classeChamp, 'sm:col-span-2')} />
+                <textarea value={fiche.notes} onChange={(e) => maj({ notes: e.target.value })}
+                  placeholder="Notes" aria-label="Notes" rows={4}
+                  className={cn(classeChamp, 'resize-y leading-snug sm:col-span-2')} />
               </div>
 
               {/* Specs libres */}
@@ -307,8 +332,15 @@ export default function Equipements() {
                 <button
                   type="button"
                   onClick={() => {
-                    setCreation(false)
-                    if (creation) setChoisiId(null)
+                    if (creation) {
+                      setCreation(false)
+                      setChoisiId(null)
+                      return
+                    }
+                    // Équipement existant : Annuler restaure la fiche du serveur.
+                    if (detail !== undefined) {
+                      setFiche(versFiche(detail))
+                    }
                   }}
                   className="rounded-xl px-4 py-2 text-sm font-bold text-sourdine hover:text-texte"
                 >
@@ -338,7 +370,12 @@ export default function Equipements() {
                         onChange={(e) => {
                           const fichier = e.target.files?.[0]
                           if (fichier !== undefined) {
-                            televerser.mutate(fichier)
+                            const probleme = problemeTailleFichier(fichier)
+                            if (probleme === null) {
+                              televerser.mutate(fichier)
+                            } else {
+                              signalerErreur(probleme)
+                            }
                             e.target.value = ''
                           }
                         }}

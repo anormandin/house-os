@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { expect, test, vi } from 'vitest'
 import TacheEditeur from '@/components/TacheEditeur'
 import { rendre } from '@/test/rendre'
@@ -84,6 +84,34 @@ test('une hebdo en saison se recharge et se réenregistre à l’identique', asy
   })
 })
 
+test('une tâche à intervalle se réenregistre sans rollover (refusé hors mode fixe)', async () => {
+  // Le serveur n'expose rollover que pour le mode fixe (null sinon) et répond
+  // 400 s'il le reçoit ailleurs.
+  const TACHE_INTERVALLE = {
+    ...TACHE_COMPLETE,
+    id: 't-int',
+    recurrence: { mode: 'Intervalle' as const, intervalleJours: 30, rollover: null },
+  }
+  let corpsEnvoye: unknown = null
+  serveur.use(
+    http.get('/api/taches/:id', () => HttpResponse.json(TACHE_INTERVALLE)),
+    http.put('/api/taches/:id', async ({ request }) => {
+      corpsEnvoye = await request.json()
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  rendre(<TacheEditeur tacheId={TACHE_INTERVALLE.id} onFermer={() => {}} />)
+  await waitFor(() => expect(screen.getByLabelText('Titre')).toHaveValue(TACHE_INTERVALLE.titre))
+
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+  await waitFor(() => expect(corpsEnvoye).not.toBeNull())
+  expect((corpsEnvoye as { recurrence: unknown }).recurrence).toEqual({
+    mode: 'Intervalle',
+    intervalleJours: 30,
+  })
+})
+
 test('le document lié s’affiche, se délie, et l’enregistrement envoie la liste à jour', async () => {
   let corpsEnvoye: unknown = null
   serveur.use(
@@ -122,6 +150,43 @@ test('lier un document via le select l’ajoute à la liste envoyée', async () 
   await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
   await waitFor(() => expect(corpsEnvoye).not.toBeNull())
   expect((corpsEnvoye as { documentIds: string[] }).documentIds).toEqual(['d-rapport'])
+})
+
+test('enregistrer invalide les tâches, occurrences, journal et budget', async () => {
+  serveur.use(http.put('/api/taches/:id', () => new HttpResponse(null, { status: 204 })))
+  const { client } = rendre(<TacheEditeur tacheId={TACHE_COMPLETE.id} onFermer={() => {}} />)
+  await waitFor(() => expect(screen.getByLabelText('Titre')).toHaveValue(TACHE_COMPLETE.titre))
+  const espion = vi.spyOn(client, 'invalidateQueries')
+
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+  // ['tache'] seul ne couvre pas la liste ['taches'] : sans elle, une tâche
+  // créée/supprimée resterait fantôme sur la console et la page Budget.
+  await waitFor(() => {
+    const cles = espion.mock.calls.map(([filtre]) => (filtre?.queryKey ?? [])[0])
+    expect(cles).toEqual(
+      expect.arrayContaining(['taches', 'tache', 'occurrences', 'journal', 'budget']),
+    )
+  })
+})
+
+test('la saisie pendant le premier chargement du détail n’est pas écrasée', async () => {
+  serveur.use(
+    http.get('/api/taches/:id', async () => {
+      await delay(150)
+      return HttpResponse.json(TACHE_COMPLETE)
+    }),
+  )
+  rendre(<TacheEditeur tacheId={TACHE_COMPLETE.id} onFermer={() => {}} />)
+
+  const titre = screen.getByLabelText('Titre')
+  await userEvent.type(titre, 'Titre tapé avant le GET')
+
+  // Le détail arrive : la frappe prime champ par champ, le reste de la fiche
+  // se charge quand même (sinon le PUT effacerait l'échéance, la zone…).
+  await waitFor(() => expect(screen.getByLabelText('Échéance')).toHaveValue('2026-08-30'))
+  expect(titre).toHaveValue('Titre tapé avant le GET')
+  expect(screen.getByLabelText('Pièce')).toHaveValue(TACHE_COMPLETE.zoneId)
 })
 
 test('un refetch du détail n’écrase pas la saisie en cours', async () => {

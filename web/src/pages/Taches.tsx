@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { CalendarRange, ChevronDown, ChevronUp, List, Paperclip, Plus } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import TacheEditeur, { editeurDejaOuvert } from '@/components/TacheEditeur'
 import { api, dateLocaleIso, type CompteARebours, type TacheResume } from '@/lib/api'
+import { useCompletionAvecUndo } from '@/lib/completion'
 import { dateCourte, jourCourt } from '@/lib/format'
 import {
   chipsRecurrence,
@@ -79,17 +80,10 @@ const MOIS_COURTS_NOTE = [
 ]
 
 /** Compléter une occurrence depuis la console — on peut prendre de l'avance :
- * le moteur matérialise la suivante à partir de max(complétion, échéance). */
+ * le moteur matérialise la suivante à partir de max(complétion, échéance).
+ * Toast avec undo et invalidations croisées : lib/completion.ts (issue #60). */
 function useCompleter() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (occurrenceId: string) => api.completer(occurrenceId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['taches'] })
-      queryClient.invalidateQueries({ queryKey: ['occurrences'] })
-      queryClient.invalidateQueries({ queryKey: ['journal'] })
-    },
-  })
+  return useCompletionAvecUndo().completer
 }
 
 function CaseCompleter({
@@ -486,6 +480,21 @@ function VueRuban({
     conteneur.scrollLeft = Math.max(0, cible - (conteneur.clientWidth - ETIQUETTE_PX) * 0.2)
   }
 
+  // Au clavier, pas de position de souris : Entrée/Espace ramène à aujourd'hui.
+  function teleporterClavier(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      const conteneur = scrollRef.current
+      if (conteneur === null) {
+        return
+      }
+      conteneur.scrollLeft = Math.max(
+        0,
+        ruban.aujourdhuiOffset * PX_JOUR - (conteneur.clientWidth - ETIQUETTE_PX) * 0.2,
+      )
+    }
+  }
+
   function surGrappe(grappe: GrappeJour) {
     if (grappe.taches.length === 1) {
       onModifier(grappe.taches[0].id)
@@ -502,8 +511,12 @@ function VueRuban({
     <div className="flex flex-col gap-3">
       {/* Mini-carte de l'année : situe la fenêtre visible, cliquer téléporte. */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Mini-carte de l’année — cliquer téléporte, Entrée ramène à aujourd’hui"
         className="relative h-9 cursor-pointer overflow-hidden rounded-xl bg-carte shadow-carte"
         onClick={teleporter}
+        onKeyDown={teleporterClavier}
         title="Cliquer pour se téléporter"
       >
         <div className="absolute inset-0 grid grid-cols-12">
@@ -700,7 +713,7 @@ function VueRuban({
             ))}
 
             {/* Rangée des ponctuelles : grappes datées, détail dans la bande. */}
-            {ruban.grappes.length > 0 && (
+            {(ruban.grappes.length > 0 || ruban.noteAnProchain !== null) && (
               <div className="flex items-stretch border-t border-dashed border-tiret">
                 <div
                   className="sticky left-0 z-10 shrink-0 bg-carte px-4 py-2.5 shadow-[10px_0_14px_-10px_rgba(84,84,100,0.22)]"
@@ -746,6 +759,14 @@ function VueRuban({
                       )}
                     </button>
                   ))}
+                  {ruban.noteAnProchain !== null && (
+                    <span
+                      className="absolute top-5 text-[10.5px] font-bold whitespace-nowrap italic text-tiret-texte"
+                      style={{ left: largeurPiste - 220 }}
+                    >
+                      {ruban.noteAnProchain}
+                    </span>
+                  )}
                 </div>
               </div>
             )}

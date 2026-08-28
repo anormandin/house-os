@@ -140,7 +140,8 @@ function ruban(x0: number, haut0: number, bas0: number, x1: number, haut1: numbe
   )
 }
 
-function dansDouzeMois(date: string, aujourdhuiIso: string): boolean {
+/** Une date tombe-t-elle dans les 12 prochains mois (borne incluse)? */
+export function dansDouzeMois(date: string, aujourdhuiIso: string): boolean {
   const [annee, mois, jour] = aujourdhuiIso.split('-').map(Number)
   const borne = `${annee + 1}-${String(mois).padStart(2, '0')}-${String(jour).padStart(2, '0')}`
   return date <= borne
@@ -292,4 +293,40 @@ export function pctJauge(solde: number, cible: number | null): number | null {
     return null
   }
   return Math.min(100, Math.max(0, (solde / cible) * 100))
+}
+
+// ——— Ventilation d'un dépôt (LierModal) : arithmétique au cent ———
+
+/** Arrondi au cent — les sommes de flottants dérivent (0.1 + 0.2 ≠ 0.3). */
+export function arrondirCents(montant: number): number {
+  const cents = Math.round(montant * 100) / 100
+  // Jamais −0 : il s'afficherait « −0,00 $ ».
+  return cents === 0 ? 0 : cents
+}
+
+/** Pré-remplissage de la ventilation : les provisions suggérées (plus grosses
+ * d'abord), écrêtées au montant du dépôt et arrondies à 2 décimales — jamais
+ * « 108.33333333333334 » dans un champ. */
+export function preRemplirVentilation(
+  montant: number,
+  enveloppes: { id: string; provision: number }[],
+): Record<string, string> {
+  let reste = montant
+  const parts: Record<string, string> = {}
+  for (const enveloppe of [...enveloppes].sort((a, b) => b.provision - a.provision)) {
+    const part = arrondirCents(Math.min(enveloppe.provision, reste))
+    parts[enveloppe.id] = part > 0 ? String(part) : ''
+    reste = arrondirCents(reste - part)
+  }
+  return parts
+}
+
+/** Total saisi et reste en non affecté, arrondis au cent : un dépôt réparti au
+ * complet donne reste = 0, jamais −1e-13 (donc pas de faux « dépasse le dépôt »). */
+export function bilanVentilation(
+  montant: number,
+  parts: number[],
+): { total: number; reste: number } {
+  const total = arrondirCents(parts.reduce((somme, part) => somme + part, 0))
+  return { total, reste: arrondirCents(montant - total) }
 }

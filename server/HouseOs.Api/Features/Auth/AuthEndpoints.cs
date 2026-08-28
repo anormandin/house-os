@@ -13,6 +13,9 @@ public record UtilisateurDto(Guid Id, string NomUtilisateur, string NomAffichage
 
 public static class AuthEndpoints
 {
+    /// <summary>Politique de rate limiting de la connexion (fenêtre fixe par IP, Program.cs).</summary>
+    public const string PolitiqueLimiteConnexion = "auth-connexion";
+
     public static IEndpointRouteBuilder MapAuth(this IEndpointRouteBuilder app)
     {
         var groupe = app.MapGroup("/api/auth");
@@ -46,6 +49,13 @@ public static class AuthEndpoints
             {
                 return Results.Unauthorized();
             }
+            if (verdict == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                // Paramètres de hachage renforcés depuis : réencoder pendant qu'on
+                // tient le mot de passe en clair — seule occasion de le faire.
+                utilisateur.MotDePasseHash = hasher.HashPassword(utilisateur, requete.MotDePasse);
+                await db.SaveChangesAsync();
+            }
 
             var claims = new List<Claim>
             {
@@ -59,7 +69,7 @@ public static class AuthEndpoints
                 new AuthenticationProperties { IsPersistent = true });
 
             return Results.Ok(new UtilisateurDto(utilisateur.Id, utilisateur.NomUtilisateur, utilisateur.NomAffichage));
-        }).AllowAnonymous();
+        }).AllowAnonymous().RequireRateLimiting(PolitiqueLimiteConnexion);
 
         groupe.MapPost("/deconnexion", async (HttpContext http) =>
         {

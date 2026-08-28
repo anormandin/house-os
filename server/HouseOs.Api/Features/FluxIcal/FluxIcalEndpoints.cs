@@ -4,6 +4,8 @@ using HouseOs.Api.Infrastructure;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Features.FluxIcal;
@@ -15,7 +17,7 @@ public static class IcalEndpoints
         // Flux personnel : occurrences en attente avec échéance, assignées à la
         // personne + non-assignées. Anonyme — le jeton secret est l'authentification
         // (les apps calendrier ne savent pas envoyer de cookie).
-        app.MapGet("/ical/{jeton}.ics", async (string jeton, HouseOsDbContext db) =>
+        app.MapGet("/ical/{jeton}.ics", async (string jeton, HouseOsDbContext db, HttpContext http) =>
         {
             var utilisateur = await db.Utilisateurs.AsNoTracking()
                 .SingleOrDefaultAsync(u => u.JetonIcal == jeton);
@@ -69,6 +71,9 @@ public static class IcalEndpoints
             }
 
             var contenu = new CalendarSerializer().SerializeToString(calendrier);
+            // Le jeton secret est dans l'URL : rien ne doit finir dans un cache
+            // partagé (NPM, proxy Funnel, appli calendrier trop zélée).
+            http.Response.Headers.CacheControl = "private, no-store";
             return Results.Text(contenu, "text/calendar; charset=utf-8");
         }).AllowAnonymous();
 
@@ -93,10 +98,18 @@ public static class IcalEndpoints
         app.MapPost("/api/ical/rotation", async (
             System.Security.Claims.ClaimsPrincipal principal,
             HouseOsDbContext db,
-            IConfiguration config) =>
+            IConfiguration config,
+            HttpContext http) =>
         {
             var id = principal.IdUtilisateur();
-            var utilisateur = await db.Utilisateurs.SingleAsync(u => u.Id == id);
+            var utilisateur = await db.Utilisateurs.SingleOrDefaultAsync(u => u.Id == id);
+            if (utilisateur is null)
+            {
+                // Cookie valide mais compte disparu : même traitement que /api/auth/moi
+                // (purge du cookie + 401), au lieu d'un 500 SingleAsync.
+                await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return Results.Unauthorized();
+            }
             utilisateur.JetonIcal = JetonIcal.Generer();
             await db.SaveChangesAsync();
             return Results.Ok(JetonIcal.ReponseFlux(utilisateur.JetonIcal, config));

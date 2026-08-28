@@ -2,43 +2,14 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
+import ErreurChargement from '@/components/ErreurChargement'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import Ruban from '@/components/Ruban'
 import TacheEditeur from '@/components/TacheEditeur'
 import { api, dateLocaleIso, type Occurrence, type Zone } from '@/lib/api'
 import { bornesJourneeLocale, dateLongue } from '@/lib/format'
+import { santeZone } from '@/lib/pieces-vues'
 import { cn } from '@/lib/utils'
-
-type Sante = {
-  retard: number
-  aujourdhui: number
-  aVenir: number
-  pct: number
-  couleur: string
-  libelle: string
-}
-
-function santeZone(occurrences: Occurrence[], aujourdhui: string): Sante {
-  const retard = occurrences.filter((o) => o.echeance !== null && o.echeance < aujourdhui).length
-  const ceJour = occurrences.filter((o) => o.echeance === aujourdhui).length
-  const aVenir = occurrences.length - retard - ceJour
-  const pct = Math.max(0.15, 1 - retard * 0.35 - ceJour * 0.15)
-  if (retard > 0) {
-    return {
-      retard, aujourdhui: ceJour, aVenir, pct,
-      couleur: '#d98d6e',
-      libelle: 'ça déborde un peu',
-    }
-  }
-  if (ceJour > 0) {
-    return {
-      retard, aujourdhui: ceJour, aVenir, pct,
-      couleur: '#d9bd6e',
-      libelle: ceJour === 1 ? '1 chose à faire aujourd’hui' : `${ceJour} choses à faire aujourd’hui`,
-    }
-  }
-  return { retard, aujourdhui: ceJour, aVenir, pct: Math.max(pct, 0.85), couleur: '#9db07e', libelle: 'tout est frais' }
-}
 
 export default function Pieces() {
   const queryClient = useQueryClient()
@@ -51,7 +22,11 @@ export default function Pieces() {
   const [renommage, setRenommage] = useState<string | null>(null)
   const [editeur, setEditeur] = useState<{ tacheId: string | null } | null>(null)
 
-  const { data: zones } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
+  const {
+    data: zones,
+    isError: zonesEnErreur,
+    refetch: rechargerZones,
+  } = useQuery({ queryKey: ['zones'], queryFn: api.zones })
   const { data: enAttente } = useQuery({
     queryKey: ['occurrences', 'en-attente'],
     queryFn: () => api.occurrences('en-attente'),
@@ -76,12 +51,26 @@ export default function Pieces() {
     },
   })
   const renommerZone = useMutation({
-    mutationFn: (zone: Zone) => api.modifierZone(zone.id, { nom: renommage ?? zone.nom, type: zone.type }),
+    mutationFn: ({ zone, nom }: { zone: Zone; nom: string }) =>
+      api.modifierZone(zone.id, { nom, type: zone.type }),
     onSuccess: () => {
       setRenommage(null)
       invaliderZones()
     },
   })
+  // Entrée soumet puis le blur suit : le garde isPending évite un second PUT ;
+  // un nom vide ou inchangé annule le renommage au lieu de partir vers un 400.
+  const soumettreRenommage = (zone: Zone) => {
+    if (renommage === null || renommerZone.isPending) {
+      return
+    }
+    const nom = renommage.trim()
+    if (nom.length === 0 || nom === zone.nom) {
+      setRenommage(null)
+      return
+    }
+    renommerZone.mutate({ zone, nom })
+  }
   const supprimerZone = useMutation({
     mutationFn: (id: string) => api.supprimerZone(id),
     onSuccess: () => {
@@ -137,6 +126,11 @@ export default function Pieces() {
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         {/* Grille des pièces */}
         <div className="grid content-start gap-4 sm:grid-cols-2">
+          {zonesEnErreur && (
+            <div className="sm:col-span-2">
+              <ErreurChargement quoi="les pièces" onReessayer={() => rechargerZones()} />
+            </div>
+          )}
           {zones?.map((zone) => {
             const sante = santeZone(dansZone(ouvertes, zone.id), aujourdhui)
             const badge = sante.retard + sante.aujourdhui
@@ -246,14 +240,20 @@ export default function Pieces() {
                   <form
                     onSubmit={(e) => {
                       e.preventDefault()
-                      renommerZone.mutate(zoneChoisie)
+                      soumettreRenommage(zoneChoisie)
                     }}
                   >
                     <input
                       autoFocus
                       value={renommage}
                       onChange={(e) => setRenommage(e.target.value)}
-                      onBlur={() => renommerZone.mutate(zoneChoisie)}
+                      onBlur={() => soumettreRenommage(zoneChoisie)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setRenommage(null)
+                        }
+                      }}
+                      aria-label="Nouveau nom de la pièce"
                       className="rounded-xl bg-creux px-3 py-1.5 font-titre text-2xl font-bold text-encre focus:outline-2 focus:outline-orange/60"
                     />
                   </form>

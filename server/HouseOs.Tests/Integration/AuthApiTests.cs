@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using HouseOs.Api.Features.Auth;
+using Microsoft.AspNetCore.Hosting;
 
 namespace HouseOs.Tests.Integration;
 
@@ -71,6 +72,29 @@ public class AuthApiTests(HouseOsFactory factory)
             c => c.StartsWith("houseos_session="));
         Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=lax", cookie, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Connexion_SixiemeTentativeDansLaMinute_Repond429()
+    {
+        // Hôte dérivé avec la vraie limite (5/min) : la factory partagée la monte
+        // très haut pour que le reste de la suite se connecte librement.
+        await using var hote = factory.WithWebHostBuilder(builder =>
+            builder.UseSetting("Auth:LimiteConnexion:Tentatives", "5"));
+        var client = hote.CreateClient();
+
+        for (var tentative = 1; tentative <= 5; tentative++)
+        {
+            var refus = await client.PostAsJsonAsync(
+                "/api/auth/connexion", new ConnexionRequete("alain", "pas-le-bon"));
+            Assert.Equal(HttpStatusCode.Unauthorized, refus.StatusCode);
+        }
+
+        var bloquee = await client.PostAsJsonAsync(
+            "/api/auth/connexion", new ConnexionRequete("alain", "pas-le-bon"));
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, bloquee.StatusCode);
+        Assert.Contains("Trop de tentatives", await bloquee.Content.ReadAsStringAsync());
     }
 
     [Fact]
