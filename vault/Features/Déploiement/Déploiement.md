@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-28
-verified-against: 0d96d5f
+verified-against: 8cc560c
 tags: []
 ---
 
@@ -54,13 +54,15 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   (Secure via NPM/HTTPS ; l'accès http direct sur le LAN reste un risque
   résiduel accepté — foyer de 2, trafic Tailscale chiffré).
 
-> [!warning] Premier déploiement après la ronde QA 2026-08-28
-> 1. Compléter le `.env` du LXC (`POSTGRES_PASSWORD` — la valeur historique
->    effective était le repli `houseos-dev` —, `SEED_MDP_*`,
->    `RESEAU_PROXIES_CONNUS` si le réseau docker réécrit l'IP source).
-> 2. `chown` unique du volume fichiers (conteneur désormais non-root) :
->    `docker run --rm -v house-os_fichiers:/f mcr.microsoft.com/dotnet/aspnet:10.0 chown -R 1654:1654 /f`
->    (commande aussi en commentaire du `Dockerfile`).
+> [!note] Premier déploiement après la ronde QA — fait le 2026-08-28
+> Le `.env` du LXC était déjà complet (`POSTGRES_PASSWORD` aléatoire fonctionnel —
+> la crainte du repli `houseos-dev` ne s'est pas matérialisée —, `SEED_MDP_*` posés) ;
+> `RESEAU_PROXIES_CONNUS` laissé au défaut NPM (cookie `Secure` confirmé au login
+> HTTPS). `chown` unique du volume fichiers exécuté
+> (`docker run --rm -v house-os_fichiers:/f mcr.microsoft.com/dotnet/aspnet:10.0 chown -R 1654:1654 /f`,
+> commande aussi en commentaire du `Dockerfile`). Vérifié : santé 200 (db ok),
+> login 200 + cookie `secure`, flux Funnel `.ics` 200/66 évènements avec
+> `cache-control: private, no-store`, racine Funnel 404, nouveau bundle servi.
 - **Backups** : `scripts/backup.sh` en cron quotidien dans le LXC (dumps +
   archive fichiers, rétention 30 j) + snapshot PBS nocturne du LXC.
 - **Code** : GitHub privé `anormandin/house-os` ; mise à jour par
