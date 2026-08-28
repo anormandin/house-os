@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Auth;
+using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Features.Taches;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +46,7 @@ public static class OutilsTaches
         "d'appeler. Dates YYYY-MM-DD ; récurrence omise = tâche ponctuelle.")]
     public static async Task<object> CreerTaches(
         HouseOsDbContext db,
+        IDiffuseurSynchro diffuseur,
         [Description("Au nom de qui les tâches sont créées : 'alain' ou 'ariane'. Demander si ambigu.")]
         string agirComme,
         [Description("Les tâches à créer.")] TacheAPlanifier[] taches)
@@ -121,6 +123,19 @@ public static class OutilsTaches
         }
 
         await db.SaveChangesAsync();
+
+        // Un lot = un événement. Publier dans la boucle ci-dessus donnerait dix toasts
+        // pour dix tâches ; le lot étant tout-ou-rien avec un seul SaveChanges, le
+        // décompte est connu ici et voyage dans l'événement.
+        await diffuseur.DiffuserAsync(new EvenementSynchro(
+            ModulesSynchro.Taches,
+            EvenementSynchro.GenreTachesCreees,
+            EvenementSynchro.SourceMcp,
+            createur.Id,
+            createur.NomAffichage,
+            creees.Count == 1 ? creees[0].Tache.Titre : null,
+            creees.Count));
+
         return new
         {
             crees = creees.Select(c => new
@@ -301,13 +316,15 @@ public static class OutilsTaches
         "deviner. Si la tâche est récurrente, la prochaine occurrence est créée et retournée.")]
     public static async Task<object> CompleterOccurrence(
         HouseOsDbContext db,
+        IDiffuseurSynchro diffuseur,
         [Description("Id de l'occurrence (via lister_occurrences).")] Guid occurrenceId,
         [Description("Qui l'a faite : 'alain' ou 'ariane'. Demander si ambigu.")] string agirComme,
         [Description("Notes optionnelles (coût, remarques…).")] string? notes = null)
     {
         var utilisateur = await AgirComme.ResoudreAsync(db, agirComme);
         var resultat = await OperationsTaches.CompleterAsync(
-            db, occurrenceId, utilisateur.Id, notes, DateTimeOffset.UtcNow);
+            db, occurrenceId, utilisateur.Id, notes, DateTimeOffset.UtcNow,
+            diffuseur, EvenementSynchro.SourceMcp);
         switch (resultat.Statut)
         {
             case StatutCompletion.Introuvable:
@@ -346,6 +363,7 @@ public static class OutilsTaches
         "l'échéance de l'occurrence en attente sans toucher la définition de la tâche.")]
     public static async Task<object> GererOccurrence(
         HouseOsDbContext db,
+        IDiffuseurSynchro diffuseur,
         [Description("annuler-completion, passer ou reporter.")] string action,
         [Description("Id de l'occurrence (via lister_occurrences).")] Guid occurrenceId,
         [Description("Requis pour passer : au nom de qui ('alain' ou 'ariane') — le tour n'est " +
@@ -358,7 +376,11 @@ public static class OutilsTaches
         {
             case "annuler-completion":
             {
-                var statut = await OperationsTaches.AnnulerCompletionAsync(db, occurrenceId);
+                // agirComme est optionnel sur cette action : sans lui l'événement part
+                // sans acteur nommé, le toast dira simplement « Claude ».
+                var acteur = agirComme is null ? null : await AgirComme.ResoudreAsync(db, agirComme);
+                var statut = await OperationsTaches.AnnulerCompletionAsync(
+                    db, occurrenceId, diffuseur, acteur?.Id, EvenementSynchro.SourceMcp);
                 return statut switch
                 {
                     StatutAnnulation.Introuvable =>

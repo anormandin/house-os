@@ -3,11 +3,13 @@ using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Meteo;
+using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Features.Taches;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
 
@@ -69,7 +71,29 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
             {
                 services.Remove(descripteur);
             }
+
+            // Le diffuseur de synchro devient observable sans cesser de diffuser.
+            services.RemoveAll<IDiffuseurSynchro>();
+            services.AddSingleton<DiffuseurEspion>();
+            services.AddSingleton<IDiffuseurSynchro>(sp => sp.GetRequiredService<DiffuseurEspion>());
         });
+    }
+
+    /// <summary>Le mouchard de synchro de cet hôte — vider avant la portion observée d'un test.</summary>
+    public DiffuseurEspion Synchro => Services.GetRequiredService<DiffuseurEspion>();
+
+    /// <summary>
+    /// Le cookie de session brut. ClientConnecte le range dans un CookieContainer
+    /// invisible ; le client SignalR, lui, veut l'en-tête à la main.
+    /// </summary>
+    public async Task<string> CookieSession(string nomUtilisateur = "alain")
+    {
+        using var client = Server.CreateClient();
+        var reponse = await client.PostAsJsonAsync(
+            "/api/auth/connexion",
+            new ConnexionRequete(nomUtilisateur, $"test-{nomUtilisateur}"));
+        reponse.EnsureSuccessStatusCode();
+        return reponse.Headers.GetValues("Set-Cookie").First().Split(';')[0];
     }
 
     /// <summary>Client avec une vraie session cookie (POST connexion).</summary>

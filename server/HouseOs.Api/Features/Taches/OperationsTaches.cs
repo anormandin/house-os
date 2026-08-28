@@ -1,5 +1,6 @@
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Auth;
+using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -240,7 +241,9 @@ public static class OperationsTaches
         Guid occurrenceId,
         Guid utilisateurId,
         string? notes,
-        DateTimeOffset maintenant)
+        DateTimeOffset maintenant,
+        IDiffuseurSynchro? diffuseur = null,
+        string? source = null)
     {
         var occurrence = await db.Occurrences
             .Include(o => o.Tache)
@@ -282,7 +285,40 @@ public static class OperationsTaches
             db.ChangeTracker.Clear();
             return new ResultatCompletion(StatutCompletion.DejaCompletee, null);
         }
+
+        // Tier fin : l'intercepteur a déjà rafraîchi les données, ceci porte de quoi
+        // annoncer le geste (« Ariane a complété "Litière" »).
+        await DiffuserGesteAsync(
+            db, diffuseur, EvenementSynchro.GenreOccurrenceCompletee, utilisateurId, source, tache.Titre);
+
         return new ResultatCompletion(StatutCompletion.Ok, prochaine);
+    }
+
+    /// <summary>
+    /// Publie un événement fin nommant l'acteur et la tâche. Le nom d'affichage est
+    /// résolu ici plutôt que par l'appelant : les deux chemins (HTTP et MCP) ont l'id
+    /// sous la main, pas le nom.
+    /// </summary>
+    private static async Task DiffuserGesteAsync(
+        HouseOsDbContext db,
+        IDiffuseurSynchro? diffuseur,
+        string genre,
+        Guid? acteurId,
+        string? source,
+        string? libelle,
+        int nombre = 1)
+    {
+        if (diffuseur is null)
+        {
+            return;
+        }
+
+        var acteurNom = acteurId is { } id
+            ? await db.Utilisateurs.Where(u => u.Id == id).Select(u => u.NomAffichage).SingleOrDefaultAsync()
+            : null;
+
+        await diffuseur.DiffuserAsync(new EvenementSynchro(
+            ModulesSynchro.Taches, genre, source, acteurId, acteurNom, libelle, nombre));
     }
 
     /// <summary>
@@ -294,7 +330,10 @@ public static class OperationsTaches
     /// </summary>
     public static async Task<StatutAnnulation> AnnulerCompletionAsync(
         HouseOsDbContext db,
-        Guid occurrenceId)
+        Guid occurrenceId,
+        IDiffuseurSynchro? diffuseur = null,
+        Guid? acteurId = null,
+        string? source = null)
     {
         var occurrence = await db.Occurrences
             .Include(o => o.Tache)
@@ -365,6 +404,10 @@ public static class OperationsTaches
             db.ChangeTracker.Clear();
             return StatutAnnulation.ProchaineDejaTraitee;
         }
+
+        await DiffuserGesteAsync(
+            db, diffuseur, EvenementSynchro.GenreOccurrenceAnnulee, acteurId, source, tache.Titre);
+
         return StatutAnnulation.Ok;
     }
 

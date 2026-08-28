@@ -64,7 +64,9 @@ du quick-add — candidat futur, lui aussi peu coûteux à ~1 court appel par cr
 ## Hors périmètre
 
 - LLM dans le chemin de requête (jamais).
-- Notifications basées sur la phrase.
+- Notifications basées sur la phrase. [[Synchro]] diffuse bien la phrase aux onglets
+  ouverts dès qu'elle est écrite, mais silencieusement (aucun toast) et sans rien
+  changer à l'horaire de génération.
 
 ## Décisions
 

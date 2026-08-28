@@ -1,6 +1,8 @@
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Mcp;
 using HouseOs.Api.Features.Taches;
+using HouseOs.Api.Features.Synchro;
+using HouseOs.Tests.Features.Synchro;
 using HouseOs.Tests.Features.Taches;
 using ModelContextProtocol;
 
@@ -15,6 +17,9 @@ public class OutilsTachesTests : TestAvecSqlite
 {
     private readonly Utilisateur _alain;
     private DateOnly Aujourdhui => DateOnly.FromDateTime(DateTime.Now);
+
+    /// <summary>Les outils diffusent leurs gestes ; ce mouchard les recueille.</summary>
+    protected DiffuseurMouchard Mouchard { get; } = new();
 
     public OutilsTachesTests()
     {
@@ -39,7 +44,7 @@ public class OutilsTachesTests : TestAvecSqlite
 
     private async Task<Guid> CreerUne(TacheAPlanifier item)
     {
-        await OutilsTaches.CreerTaches(Db, "alain", [item]);
+        await OutilsTaches.CreerTaches(Db, Mouchard,"alain", [item]);
         // Tri côté client : Sqlite ne sait pas ordonner un DateTimeOffset en SQL.
         return Db.Taches.AsEnumerable().MaxBy(t => t.CreeLe)!.Id;
     }
@@ -57,7 +62,7 @@ public class OutilsTachesTests : TestAvecSqlite
         };
 
         var exception = await Assert.ThrowsAsync<McpException>(
-            () => OutilsTaches.CreerTaches(Db, "alain", lot));
+            () => OutilsTaches.CreerTaches(Db, Mouchard,"alain", lot));
 
         Assert.Contains("[1]", exception.Message);
         // La promesse tout-ou-rien doit survivre à un SaveChanges ultérieur du même
@@ -77,7 +82,7 @@ public class OutilsTachesTests : TestAvecSqlite
         };
 
         var exception = await Assert.ThrowsAsync<McpException>(
-            () => OutilsTaches.CreerTaches(Db, "alain", lot));
+            () => OutilsTaches.CreerTaches(Db, Mouchard,"alain", lot));
 
         Assert.Contains("[0]", exception.Message);
         Assert.Contains("[2]", exception.Message);
@@ -88,7 +93,7 @@ public class OutilsTachesTests : TestAvecSqlite
     public async Task Un_lot_avec_zone_supprimee_est_refuse_avec_un_message_actionnable()
     {
         var exception = await Assert.ThrowsAsync<McpException>(
-            () => OutilsTaches.CreerTaches(Db, "alain", [Item(zoneId: Guid.NewGuid())]));
+            () => OutilsTaches.CreerTaches(Db, Mouchard,"alain", [Item(zoneId: Guid.NewGuid())]));
 
         Assert.Contains("lister_zones", exception.Message);
     }
@@ -170,7 +175,7 @@ public class OutilsTachesTests : TestAvecSqlite
     public async Task Passer_sans_agirComme_est_refuse_avec_un_message_explicite()
     {
         var exception = await Assert.ThrowsAsync<McpException>(() =>
-            OutilsTaches.GererOccurrence(Db, "passer", Guid.NewGuid()));
+            OutilsTaches.GererOccurrence(Db, Mouchard,"passer", Guid.NewGuid()));
 
         Assert.Contains("agirComme", exception.Message);
     }
@@ -179,7 +184,7 @@ public class OutilsTachesTests : TestAvecSqlite
     public async Task Reporter_sans_echeance_est_refuse()
     {
         var exception = await Assert.ThrowsAsync<McpException>(() =>
-            OutilsTaches.GererOccurrence(Db, "reporter", Guid.NewGuid(), agirComme: "alain"));
+            OutilsTaches.GererOccurrence(Db, Mouchard,"reporter", Guid.NewGuid(), agirComme: "alain"));
 
         Assert.Contains("echeance", exception.Message);
     }
@@ -192,7 +197,7 @@ public class OutilsTachesTests : TestAvecSqlite
         await OutilsTaches.GererTache(Db, "supprimer", id);
 
         var exception = await Assert.ThrowsAsync<McpException>(() =>
-            OutilsTaches.CompleterOccurrence(Db, occurrenceId, "alain"));
+            OutilsTaches.CompleterOccurrence(Db, Mouchard,occurrenceId, "alain"));
 
         Assert.Contains("introuvable", exception.Message);
     }
@@ -221,8 +226,66 @@ public class OutilsTachesTests : TestAvecSqlite
     public async Task AgirComme_inconnu_enumere_les_noms_valides()
     {
         var exception = await Assert.ThrowsAsync<McpException>(() =>
-            OutilsTaches.CreerTaches(Db, "gertrude", [Item()]));
+            OutilsTaches.CreerTaches(Db, Mouchard,"gertrude", [Item()]));
 
         Assert.Contains("alain", exception.Message);
+    }
+
+    [Fact]
+    public async Task UnLotDeDixTaches_neDiffuseQuUnSeulEvenementCompte()
+    {
+        // Le point du lot : dix tâches poussées d'un coup doivent faire une annonce
+        // (« Claude a créé 10 tâches »), pas dix toasts empilés.
+        var lot = Enumerable.Range(1, 10).Select(i => Item($"Tâche {i}")).ToArray();
+
+        await OutilsTaches.CreerTaches(Db, Mouchard, "alain", lot);
+
+        var evenement = Assert.Single(Mouchard.Fins);
+        Assert.Equal(EvenementSynchro.GenreTachesCreees, evenement.Genre);
+        Assert.Equal(EvenementSynchro.SourceMcp, evenement.Source);
+        Assert.Equal(10, evenement.Nombre);
+        Assert.Equal("Alain", evenement.ActeurNom);
+        // Au pluriel, aucun titre : le libellé affiché sera le décompte.
+        Assert.Null(evenement.Libelle);
+    }
+
+    [Fact]
+    public async Task UnLotDUneSeuleTache_porteSonTitre()
+    {
+        await OutilsTaches.CreerTaches(Db, Mouchard, "alain", [Item("Changer le filtre")]);
+
+        var evenement = Assert.Single(Mouchard.Fins);
+        Assert.Equal(1, evenement.Nombre);
+        Assert.Equal("Changer le filtre", evenement.Libelle);
+    }
+
+    [Fact]
+    public async Task UnLotRefuse_neDiffuseRien()
+    {
+        // Tout-ou-rien : rien n'est créé, donc rien à annoncer.
+        var lot = new[] { Item("Bonne"), Item(zoneId: Guid.NewGuid()) };
+
+        await Assert.ThrowsAsync<McpException>(() =>
+            OutilsTaches.CreerTaches(Db, Mouchard, "alain", lot));
+
+        Assert.Empty(Mouchard.Recus);
+    }
+
+    [Fact]
+    public async Task CompleterViaMcp_diffuseLaSourceMcp()
+    {
+        // Sans la source, une complétion faite par Claude « au nom d'Alain » serait
+        // muette dans l'onglet d'Alain — le scénario que la synchro doit couvrir.
+        var tacheId = await CreerUne(Item("Litière", echeance: Aujourdhui.ToString("yyyy-MM-dd")));
+        var occurrence = Db.Occurrences.Single(o => o.TacheId == tacheId);
+        Mouchard.Recus.Clear();
+
+        await OutilsTaches.CompleterOccurrence(Db, Mouchard, occurrence.Id, "alain");
+
+        var evenement = Assert.Single(Mouchard.Fins);
+        Assert.Equal(EvenementSynchro.GenreOccurrenceCompletee, evenement.Genre);
+        Assert.Equal(EvenementSynchro.SourceMcp, evenement.Source);
+        Assert.Equal("Alain", evenement.ActeurNom);
+        Assert.Equal("Litière", evenement.Libelle);
     }
 }

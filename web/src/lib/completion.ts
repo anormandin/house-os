@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { afficherToast } from '@/lib/toast'
+import { afficherToast, SLOT_GESTE_LOCAL } from '@/lib/toast'
 
 /** Invalidations croisées d'un geste sur une occurrence : la console des tâches,
  * les occurrences, le journal (bilan hebdo) et le budget, qui dérive des
@@ -26,6 +26,7 @@ export function useCompletionAvecUndo() {
         message: 'Tâche complétée',
         actionLibelle: 'Annuler',
         onAction: () => annuler.mutate(occurrenceId),
+        slot: SLOT_GESTE_LOCAL,
       })
     },
   })
@@ -38,6 +39,7 @@ export function useCompletionAvecUndo() {
         message: 'Complétion annulée',
         actionLibelle: 'Refaire',
         onAction: () => completer.mutate(occurrenceId),
+        slot: SLOT_GESTE_LOCAL,
       })
     },
   })

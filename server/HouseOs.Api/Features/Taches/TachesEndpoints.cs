@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Auth;
+using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -180,10 +181,12 @@ public static class TachesEndpoints
             Guid id,
             CompleterRequete? requete,
             ClaimsPrincipal principal,
-            HouseOsDbContext db) =>
+            HouseOsDbContext db,
+            IDiffuseurSynchro diffuseur) =>
         {
             var resultat = await OperationsTaches.CompleterAsync(
-                db, id, principal.IdUtilisateur(), requete?.Notes, DateTimeOffset.UtcNow);
+                db, id, principal.IdUtilisateur(), requete?.Notes, DateTimeOffset.UtcNow,
+                diffuseur, EvenementSynchro.SourceWeb);
             return resultat.Statut switch
             {
                 StatutCompletion.Introuvable => Results.NotFound(),
@@ -194,9 +197,12 @@ public static class TachesEndpoints
 
         app.MapPost("/api/occurrences/{id:guid}/annuler-completion", async (
             Guid id,
-            HouseOsDbContext db) =>
+            ClaimsPrincipal principal,
+            HouseOsDbContext db,
+            IDiffuseurSynchro diffuseur) =>
         {
-            var statut = await OperationsTaches.AnnulerCompletionAsync(db, id);
+            var statut = await OperationsTaches.AnnulerCompletionAsync(
+                db, id, diffuseur, principal.IdUtilisateur(), EvenementSynchro.SourceWeb);
             return statut switch
             {
                 StatutAnnulation.Introuvable => Results.NotFound(),

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { api } from '@/lib/api'
+import { api, type Utilisateur } from '@/lib/api'
+import { useSynchro } from '@/hooks/useSynchro'
 import BanniereErreur from '@/components/BanniereErreur'
 import Layout from '@/components/Layout'
 import ToastConfirmation from '@/components/ToastConfirmation'
@@ -34,6 +35,15 @@ function App() {
       </>
     )
   }
+
+  return <AppConnectee moi={moi} />
+}
+
+/** La partie connectée, extraite pour que useSynchro n'existe qu'une fois la session
+ * établie (les hooks ne peuvent pas être conditionnels) : la connexion au hub naît
+ * avec la session et tombe à la déconnexion. */
+function AppConnectee({ moi }: { moi: Utilisateur }) {
+  useSynchro(moi.id)
 
   return (
     <>

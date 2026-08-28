@@ -9,6 +9,7 @@ using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Mcp;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Sante;
+using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Features.Taches;
 using HouseOs.Api.Features.Zones;
 using System.Threading.RateLimiting;
@@ -32,7 +33,14 @@ builder.WebHost.ConfigureKestrel(options =>
 var sourceDonnees = new Npgsql.NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("HouseOs"))
     .EnableDynamicJson()
     .Build();
-builder.Services.AddDbContext<HouseOsDbContext>(options => options.UseNpgsql(sourceDonnees));
+// L'intercepteur de synchro diffuse un événement par module touché après chaque
+// sauvegarde : c'est ce qui rend la fraîcheur des UI ouvertes automatique, y compris
+// pour les écritures MCP et les services d'arrière-plan.
+builder.Services.AddSingleton<IDiffuseurSynchro, DiffuseurSynchro>();
+builder.Services.AddSingleton<IntercepteurSynchro>();
+builder.Services.AddDbContext<HouseOsDbContext>((sp, options) => options
+    .UseNpgsql(sourceDonnees)
+    .AddInterceptors(sp.GetRequiredService<IntercepteurSynchro>()));
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -117,6 +125,7 @@ builder.Services.AjouterMcp();
 builder.Services.AddSingleton<IFournisseurTransactions, FournisseurFichier>();
 
 builder.Services.AddAntiforgery();
+builder.Services.AddSignalR();
 builder.Services.AddHostedService<RolloverService>();
 
 builder.Services.Configure<MeteoOptions>(builder.Configuration.GetSection("Meteo"));
@@ -181,6 +190,8 @@ app.MapMeteo();
 app.MapHumeur();
 app.MapFluxExternes();
 app.MapMcpHouseOs();
+// Avant le fallback SPA, sinon index.html avalerait la route du hub.
+app.MapHub<SynchroHub>(SynchroHub.Chemin);
 
 // PWA : toute route non-API retombe sur l'app React
 app.MapFallbackToFile("index.html").AllowAnonymous();

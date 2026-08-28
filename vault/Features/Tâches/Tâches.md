@@ -223,13 +223,17 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
 
 - Points, récompenses, features famille/enfants — jamais (pas d'enfants).
 - Sous-tâches et projets multi-étapes (module Projets, v2+).
-- Notifications push (v1 = flux iCal seulement).
+- Notifications push (v1 = flux iCal seulement). À ne pas confondre avec [[Synchro]],
+  qui ne sort jamais d'un onglet ouvert : les gestes sur les occurrences y diffusent de
+  quoi rafraîchir les autres écrans et annoncer « Ariane a complété … ».
 
 ## Décisions
 
 - [[D-2026-08-23 Moteur De Récurrence Trois Modes]] — les 3 modes, matérialisation,
   journal séparé, stratégies d'assignation.
 - [[D-2026-08-23 Notifications Par Flux iCal]] — canal de rappel v1.
+- [[D-2026-08-28 Synchro Temps Réel Par SignalR]] — les gestes sur les occurrences
+  diffusent acteur et libellé aux onglets ouverts (voir [[Synchro]]).
 - [[D-2026-08-23 Flux iCal Par Personne]] — structure des flux (jeton par compte).
 - [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]] — exposition publique du
   flux + rotation du jeton.

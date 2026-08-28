@@ -35,6 +35,9 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:5000',
       '/ical': 'http://127.0.0.1:5000',
+      // Forme longue obligatoire : la forme courte ne relaie pas l'upgrade WebSocket,
+      // et SignalR retomberait silencieusement en long-polling.
+      '/hubs': { target: 'http://127.0.0.1:5000', ws: true },
     },
   },
 })

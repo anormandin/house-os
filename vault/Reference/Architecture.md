@@ -23,6 +23,13 @@ Funnel ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]], qui supersède
 ([[D-2026-08-23 Monorepo]]). Un healthcheck anonyme `GET /api/sante`
 (`server/HouseOs.Api/Features/Sante/SanteEndpoint.cs`) répond au monitoring.
 
+Un canal SignalR transversal ([[Synchro]]) pousse aux onglets ouverts de quoi se
+rafraîchir. Sa particularité architecturale : le gros du signal n'est pas publié par les
+slices mais **dérivé automatiquement des sauvegardes** par un intercepteur EF Core
+([[D-2026-08-28 Événements Par Intercepteur EF]]) — c'est la seule infrastructure
+d'événements du backend, et elle couvre d'office les écritures HTTP, MCP et
+d'arrière-plan.
+
 ## Structure du monorepo
 
 - `server/HouseOs.Api` — API minimal, features en tranches verticales
