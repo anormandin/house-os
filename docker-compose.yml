@@ -1,5 +1,17 @@
-# Rotation appliquée à tous les services : le stdout d'un conteneur n'a aucune
-# borne par défaut, et le LXC 105 n'a que ~12 Go de disque.
+# L'app parle à Seq elle-même (Serilog, évènements structurés). Postgres et
+# tailscale, eux, ne savent qu'écrire sur stdout : le driver gelf le pousse à
+# l'entrée GELF du collecteur, pour qu'ils soient dans la même recherche que le
+# reste. UDP : une entrée indisponible ne bloque jamais un conteneur.
+# Contrepartie assumée : `docker logs postgres` ne montre plus rien — c'est Seq
+# qui garde l'historique, et 14 jours plutôt que 3 fichiers de 10 Mo.
+x-journal-conteneur: &journal-conteneur
+  driver: gelf
+  options:
+    gelf-address: "udp://192.168.4.36:12201"
+    tag: "{{.Name}}"
+
+# L'app garde json-file : son stdout n'est qu'un double lisible de ce que
+# Serilog envoie déjà, et il reste consultable si le collecteur est absent.
 x-journal: &journal
   driver: json-file
   options:
@@ -11,7 +23,7 @@ services:
     image: postgres:17-alpine
     container_name: houseos-postgres
     restart: unless-stopped
-    logging: *journal
+    logging: *journal-conteneur
     environment:
       POSTGRES_DB: houseos
       POSTGRES_USER: houseos
@@ -94,7 +106,7 @@ services:
     container_name: houseos-tailscale
     restart: unless-stopped
     profiles: ["funnel"]
-    logging: *journal
+    logging: *journal-conteneur
     hostname: houseos
     depends_on:
       - app

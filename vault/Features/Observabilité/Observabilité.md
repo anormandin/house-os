@@ -44,6 +44,16 @@ survécu à trois sessions d'enquête faute de preuves.
   non attrapées, promesses rejetées, et plantages de rendu via une error boundary.
   Ré-émis dans Serilog sous `HouseOs.Client.*` avec `Source = 'Client'` — jamais
   persisté en base.
+- **Trois chemins d'entrée**, selon ce que la source sait faire : une app .NET écrit
+  directement en Serilog (le plus riche : structuré, `TraceId`, propriétés) ; un
+  conteneur Docker sans support natif passe par le **driver gelf** vers l'entrée GELF ;
+  un hôte systemd/journald passe par **rsyslog** vers l'entrée syslog, ce qui couvre
+  l'OS entier et pas seulement l'application. Couverts aujourd'hui : house-os (Serilog),
+  `houseos-postgres` et `houseos-tailscale` (GELF), les LXC `homepage`,
+  `nginxproxymanager` et `observabilite` (syslog).
+- **Niveau** : `HouseOs` est à `Debug` **en prod aussi**. Sans cela, les durées de phase
+  et la quasi-totalité de la piste du navigateur (émise en `debug`) étaient jetées avant
+  d'atteindre le collecteur — le volume d'un foyer de deux ne justifie pas de s'en priver.
 - **Collecte** : Seq dans son **propre LXC** (106 « observabilite », dépôt
   `/opt/observabilite`), partagé par les apps du lab
   ([[D-2026-08-29 Collecteur Dans Son Propre LXC]]). Une clé d'ingestion par application,

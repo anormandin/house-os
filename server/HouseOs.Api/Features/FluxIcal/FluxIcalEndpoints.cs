@@ -1,6 +1,7 @@
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
@@ -14,6 +15,8 @@ public static class IcalEndpoints
 {
     public static IEndpointRouteBuilder MapIcal(this IEndpointRouteBuilder app)
     {
+        var journal = app.JournalPour("FluxIcal");
+
         // Flux personnel : occurrences en attente avec échéance, assignées à la
         // personne + non-assignées. Anonyme — le jeton secret est l'authentification
         // (les apps calendrier ne savent pas envoyer de cookie).
@@ -112,6 +115,10 @@ public static class IcalEndpoints
             }
             utilisateur.JetonIcal = JetonIcal.Generer();
             await db.SaveChangesAsync();
+            // Une rotation tue immédiatement l'ancien flux : c'est une révocation
+            // d'accès, elle doit laisser une trace.
+            journal.LogInformation(
+                "Jeton iCal de {UtilisateurId} régénéré — l'ancien flux est révoqué.", id);
             return Results.Ok(JetonIcal.ReponseFlux(utilisateur.JetonIcal, config));
         });
 
