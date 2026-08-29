@@ -51,8 +51,11 @@ survécu à trois sessions d'enquête faute de preuves.
   l'OS entier et pas seulement l'application ; un service qui écrit dans des **fichiers**
   passe par `imfile`. Couverts aujourd'hui : house-os (Serilog), `houseos-postgres` et
   `houseos-tailscale` (GELF), les LXC `homepage`, `nginxproxymanager` et `observabilite`
-  (syslog), et les **accès HTTP par hôte proxy** de NPM (imfile) — donc chaque requête
-  entrante, avec son client, son statut et l'amont vers lequel elle a été routée.
+  (syslog), l'**hyperviseur `pve`** lui-même (syslog — démarrages/arrêts de conteneurs,
+  sauvegardes, noyau, ZFS), et les **accès HTTP par hôte proxy** de NPM (imfile) — donc
+  chaque requête entrante, avec son client, son statut et l'amont vers lequel elle a été
+  routée. Réserve : au démarrage de l'hyperviseur, le collecteur qu'il héberge n'existe
+  pas encore — ses logs de boot restent dans `journalctl -b`, pas dans Seq.
 - **Niveau** : `HouseOs` est à `Debug` **en prod aussi**. Sans cela, les durées de phase
   et la quasi-totalité de la piste du navigateur (émise en `debug`) étaient jetées avant
   d'atteindre le collecteur — le volume d'un foyer de deux ne justifie pas de s'en priver.
