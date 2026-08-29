@@ -31,7 +31,10 @@ COPY --from=web /src/web/dist ./wwwroot
 # hérite de ces permissions à sa création ; un volume existant (prod) exige un
 # chown une fois :
 #   docker run --rm -v house-os_fichiers:/f mcr.microsoft.com/dotnet/aspnet:10.0 chown -R 1654:1654 /f
-RUN mkdir -p /app/donnees/fichiers && chown -R $APP_UID:$APP_UID /app/donnees
+# donnees/journal : tampon disque du sink Seq (pas de volume — un tampon perdu au
+# rebuild n'est qu'une poignée d'évènements, et un volume de plus à gérer coûte plus).
+RUN mkdir -p /app/donnees/fichiers /app/donnees/journal \
+    && chown -R $APP_UID:$APP_UID /app/donnees
 USER $APP_UID
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "HouseOs.Api.dll"]

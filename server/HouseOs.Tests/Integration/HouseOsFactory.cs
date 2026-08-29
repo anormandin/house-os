@@ -46,6 +46,9 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
     {
         builder.UseSetting("ConnectionStrings:HouseOs", _postgres.GetConnectionString());
         builder.UseSetting("Mcp:Cle", CleMcp);
+        // Pas de sink Seq sous test : appsettings.Development.json en pointe un, et
+        // la suite passerait son temps à tenter de joindre un collecteur local.
+        builder.UseSetting("Journalisation:Seq:Url", "");
         builder.UseSetting("Fichiers:Chemin", DossierFichiers);
         builder.UseSetting("Seed:Utilisateurs:0:NomUtilisateur", "alain");
         builder.UseSetting("Seed:Utilisateurs:0:NomAffichage", "Alain");

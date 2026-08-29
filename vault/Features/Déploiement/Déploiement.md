@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: 8cc560c
+last-verified: 2026-08-29
+verified-against: 5082ea1
 tags: []
 ---
 
@@ -72,7 +72,10 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 
 - Page de changement de mot de passe dans l'app (les mots de passe initiaux
   viennent du `.env` ; changer ensuite = SQL).
-- CI/CD, registry d'images, monitoring — inutile à cette échelle.
+- CI/CD, registry d'images — inutile à cette échelle.
+- Métriques et alertes — rien ne réveille personne la nuit dans une maison de deux.
+  (La journalisation, elle, est entrée au compose le 2026-08-29 : voir
+  [[Observabilité]] et [[D-2026-08-29 Journalisation Structurée Serilog Et Seq]].)
 - Exposition publique de l'app ou du MCP (jamais) — seule exception : le flux iCal
   ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]).
 

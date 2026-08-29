@@ -77,3 +77,32 @@ test('une panne réseau remonte telle quelle, sans devenir une ApiError', async 
 
   await expect(api.zones()).rejects.not.toBeInstanceOf(ApiError)
 })
+
+test("l'identifiant de trace du serveur voyage jusqu'à l'ApiError", async () => {
+  // C'est ce qu'Alain recopie de la bannière pour retrouver la requête dans Seq :
+  // sans lui, un incident reste un récit sans preuve.
+  serveur.use(http.get('/api/zones', () =>
+    HttpResponse.json({ message: 'Occurrence déjà complétée.' }, {
+      status: 409,
+      headers: { 'X-Trace-Id': 'e857c25eb3e3fbbbf09cddef581c117b' },
+    })))
+
+  await expect(api.zones()).rejects.toMatchObject({
+    statut: 409,
+    traceId: 'e857c25eb3e3fbbbf09cddef581c117b',
+  })
+})
+
+test("une réponse sans en-tête de trace laisse simplement le champ vide", async () => {
+  // Un intermédiaire (proxy Vite, NPM) peut répondre à la place du serveur : la
+  // bannière doit alors afficher le message seul, sans « réf. undefined ».
+  serveur.use(http.get('/api/zones', () => new HttpResponse(null, { status: 502 })))
+
+  try {
+    await api.zones()
+  } catch (e) {
+    expect((e as ApiError).traceId).toBeUndefined()
+    return
+  }
+  throw new Error('aurait dû lever')
+})

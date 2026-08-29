@@ -1,5 +1,6 @@
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Features.FluxExternes;
@@ -20,6 +21,8 @@ public static class FluxExternesEndpoints
 {
     public static IEndpointRouteBuilder MapFluxExternes(this IEndpointRouteBuilder app)
     {
+        var journal = app.JournalPour("FluxExternes");
+
         app.MapGet("/api/flux-externes", async (HouseOsDbContext db) =>
             await db.FluxExternes
                 .OrderBy(f => f.Nom)
@@ -37,7 +40,7 @@ public static class FluxExternesEndpoints
             IHttpClientFactory httpFactory,
             CancellationToken ct) =>
         {
-            var erreur = Valider(requete, out var type);
+            var erreur = Valider(journal, requete, out var type);
             if (erreur is not null)
             {
                 return erreur;
@@ -60,6 +63,9 @@ public static class FluxExternesEndpoints
                 // URL invalide : on ne garde pas l'abonnement mort.
                 db.FluxExternes.Remove(flux);
                 await db.SaveChangesAsync(ct);
+                journal.LogWarning(
+                    "Flux externe « {Nom} » refusé à la création — {Erreur} ({Url}).",
+                    flux.Nom, flux.DerniereErreur, flux.Url);
                 return Results.UnprocessableEntity(new
                 {
                     message = $"Impossible de lire ce calendrier : {flux.DerniereErreur}",
@@ -67,6 +73,9 @@ public static class FluxExternesEndpoints
             }
 
             var nbEvenements = await db.EvenementsExternes.CountAsync(e => e.FluxExterneId == flux.Id, ct);
+            journal.LogInformation(
+                "Flux externe {FluxId} créé — « {Nom} » ({Type}), {NbEvenements} évènement(s) amorcé(s).",
+                flux.Id, flux.Nom, flux.Type, nbEvenements);
             return Results.Created($"/api/flux-externes/{flux.Id}", new FluxExterneDto(
                 flux.Id, flux.Nom, flux.Url, flux.Type.ToString(), flux.Actif,
                 flux.DernierRafraichissementLe, null, nbEvenements));
@@ -84,7 +93,7 @@ public static class FluxExternesEndpoints
             {
                 return Results.NotFound();
             }
-            var erreur = Valider(requete, out var type);
+            var erreur = Valider(journal, requete, out var type);
             if (erreur is not null)
             {
                 return erreur;
@@ -105,6 +114,9 @@ public static class FluxExternesEndpoints
                 await FluxExternesRafraichissement.Rafraichir(
                     db, flux, httpFactory.CreateClient(FluxExternesRafraichissement.NomClientHttp), ct);
             }
+            journal.LogInformation(
+                "Flux externe {FluxId} modifié — « {Nom} », URL changée : {UrlChangee}.",
+                flux.Id, flux.Nom, urlChangee);
             return Results.NoContent();
         });
 
@@ -117,6 +129,7 @@ public static class FluxExternesEndpoints
             }
             db.FluxExternes.Remove(flux);
             await db.SaveChangesAsync();
+            journal.LogInformation("Flux externe {FluxId} supprimé — « {Nom} ».", flux.Id, flux.Nom);
             return Results.NoContent();
         });
 
@@ -138,30 +151,21 @@ public static class FluxExternesEndpoints
         return app;
     }
 
-    private static IResult? Valider(FluxExterneRequete requete, out TypeFluxExterne type)
+    private static IResult? Valider(ILogger journal, FluxExterneRequete requete, out TypeFluxExterne type)
     {
         type = TypeFluxExterne.Autre;
         if (string.IsNullOrWhiteSpace(requete.Nom))
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["nom"] = ["Le nom est requis."],
-            });
+            return ResultatsApi.Erreur(journal, "nom", "Le nom est requis.");
         }
         if (Uri.TryCreate(requete.Url?.Trim(), UriKind.Absolute, out var uri) == false
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["url"] = ["L'URL doit être une adresse http(s) valide."],
-            });
+            return ResultatsApi.Erreur(journal, "url", "L'URL doit être une adresse http(s) valide.");
         }
         if (requete.Type is not null && Enum.TryParse(requete.Type, out type) == false)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["type"] = ["Type inconnu."],
-            });
+            return ResultatsApi.Erreur(journal, "type", "Type inconnu.");
         }
         return null;
     }

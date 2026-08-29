@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-08-29
+verified-against: 5082ea1
 tags: []
 ---
 
@@ -22,6 +22,12 @@ Funnel ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]], qui supersède
 [[D-2026-08-23 Hébergement Maison Tailscale Docker]]), dans un monorepo unique
 ([[D-2026-08-23 Monorepo]]). Un healthcheck anonyme `GET /api/sante`
 (`server/HouseOs.Api/Features/Sante/SanteEndpoint.cs`) répond au monitoring.
+
+Une deuxième brique transversale, la journalisation ([[Observabilité]],
+[[D-2026-08-29 Journalisation Structurée Serilog Et Seq]]) : Serilog émet des évènements
+structurés corrélés par un `TraceId` unique — requêtes, durées de phase, écritures
+métier, outils MCP, services d'arrière-plan et piste de session du navigateur — que le
+conteneur Seq du compose collecte, sur le LAN/tailnet uniquement.
 
 Un canal SignalR transversal ([[Synchro]]) pousse aux onglets ouverts de quoi se
 rafraîchir. Sa particularité architecturale : le gros du signal n'est pas publié par les

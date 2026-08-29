@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api, type Utilisateur } from '@/lib/api'
+import { journaliser } from '@/lib/journal'
 import { useSynchro } from '@/hooks/useSynchro'
 import BanniereErreur from '@/components/BanniereErreur'
 import Layout from '@/components/Layout'
@@ -44,6 +46,7 @@ function App() {
  * avec la session et tombe à la déconnexion. */
 function AppConnectee({ moi }: { moi: Utilisateur }) {
   useSynchro(moi.id)
+  useJournalNavigation()
 
   return (
     <>
@@ -62,6 +65,17 @@ function AppConnectee({ moi }: { moi: Utilisateur }) {
       <BanniereErreur />
     </>
   )
+}
+
+/** Trace les changements d'écran : sans eux, la piste de session n'a pas de décor —
+ * on lit un geste raté sans savoir d'où il est parti. */
+function useJournalNavigation() {
+  const location = useLocation()
+  useEffect(() => {
+    journaliser('debug', 'Navigation', `Écran ${location.pathname}`, {
+      recherche: location.search === '' ? undefined : location.search,
+    })
+  }, [location.pathname, location.search])
 }
 
 export default App

@@ -3,6 +3,7 @@ using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Features.Taches;
@@ -96,6 +97,10 @@ public static class TachesEndpoints
 {
     public static IEndpointRouteBuilder MapTaches(this IEndpointRouteBuilder app)
     {
+        // Capturé une fois et fermé par les lambdas : dans Seq, « HouseOs.Taches »
+        // isole toute la tranche d'un filtre.
+        var journal = app.JournalPour("Taches");
+
         app.MapGet("/api/utilisateurs", async (HouseOsDbContext db) =>
             await db.Utilisateurs
                 .OrderBy(u => u.NomAffichage)
@@ -112,11 +117,14 @@ public static class TachesEndpoints
                 DateTimeOffset.UtcNow, DateOnly.FromDateTime(DateTime.Now));
             if (erreur is not null)
             {
-                return Erreur(erreur);
+                return ResultatsApi.Erreur(journal, erreur);
             }
 
             await db.SaveChangesAsync();
-            return Results.Created($"/api/taches/{tache!.Id}", new { tache.Id });
+            journal.LogInformation(
+                "Tâche {TacheId} créée par {ActeurId} — « {Titre} » (récurrence {Mode}).",
+                tache!.Id, principal.IdUtilisateur(), tache.Titre, tache.Recurrence.Mode);
+            return Results.Created($"/api/taches/{tache.Id}", new { tache.Id });
         });
 
         app.MapGet("/api/taches", async (HouseOsDbContext db) =>
@@ -149,10 +157,13 @@ public static class TachesEndpoints
                 db, tache, requete, DateOnly.FromDateTime(DateTime.Now));
             if (erreur is not null)
             {
-                return Erreur(erreur);
+                return ResultatsApi.Erreur(journal, erreur);
             }
 
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Tâche {TacheId} modifiée — « {Titre} » (récurrence {Mode}).",
+                tache.Id, tache.Titre, tache.Recurrence.Mode);
             return Results.NoContent();
         });
 
@@ -165,7 +176,7 @@ public static class TachesEndpoints
         {
             if (OperationsTaches.ValiderFiltre(filtre, de, a) is { } erreurFiltre)
             {
-                return Erreur(erreurFiltre);
+                return ResultatsApi.Erreur(journal, erreurFiltre);
             }
             var aujourdhui = date ?? DateOnly.FromDateTime(DateTime.Now);
             return Results.Ok(await OperationsTaches.ListerOccurrencesAsync(db, filtre, aujourdhui, de, a));
@@ -186,7 +197,7 @@ public static class TachesEndpoints
         {
             var resultat = await OperationsTaches.CompleterAsync(
                 db, id, principal.IdUtilisateur(), requete?.Notes, DateTimeOffset.UtcNow,
-                diffuseur, EvenementSynchro.SourceWeb);
+                diffuseur, EvenementSynchro.SourceWeb, journal);
             return resultat.Statut switch
             {
                 StatutCompletion.Introuvable => Results.NotFound(),
@@ -203,6 +214,9 @@ public static class TachesEndpoints
         {
             var statut = await OperationsTaches.AnnulerCompletionAsync(
                 db, id, diffuseur, principal.IdUtilisateur(), EvenementSynchro.SourceWeb);
+            journal.LogInformation(
+                "Annulation de complétion sur {OccurrenceId} par {ActeurId} → {Statut}.",
+                id, principal.IdUtilisateur(), statut);
             return statut switch
             {
                 StatutAnnulation.Introuvable => Results.NotFound(),
@@ -221,11 +235,14 @@ public static class TachesEndpoints
         {
             var resultat = await OperationsTaches.PasserAsync(
                 db, id, principal.IdUtilisateur(), DateTimeOffset.UtcNow);
+            journal.LogInformation(
+                "Occurrence {OccurrenceId} passée par {ActeurId} → {Statut}.",
+                id, principal.IdUtilisateur(), resultat.Statut);
             return resultat.Statut switch
             {
                 StatutPasse.Introuvable => Results.NotFound(),
                 StatutPasse.DejaTraitee => Results.Conflict(new { message = "Occurrence déjà traitée." }),
-                StatutPasse.TachePonctuelle => Erreur(new ErreurValidation(
+                StatutPasse.TachePonctuelle => ResultatsApi.Erreur(journal, new ErreurValidation(
                     "occurrence", "Une tâche ponctuelle ne se passe pas.")),
                 _ => Results.NoContent(),
             };
@@ -238,11 +255,14 @@ public static class TachesEndpoints
         {
             var statut = await OperationsTaches.ReporterAsync(
                 db, id, requete.Echeance, DateOnly.FromDateTime(DateTime.Now));
+            journal.LogInformation(
+                "Occurrence {OccurrenceId} reportée au {Echeance} → {Statut}.",
+                id, requete.Echeance, statut);
             return statut switch
             {
                 StatutReport.Introuvable => Results.NotFound(),
                 StatutReport.DejaTraitee => Results.Conflict(new { message = "Occurrence déjà traitée." }),
-                StatutReport.DateInvalide => Erreur(new ErreurValidation(
+                StatutReport.DateInvalide => ResultatsApi.Erreur(journal, new ErreurValidation(
                     "echeance", "L'échéance reportée ne peut pas être dans le passé.")),
                 _ => Results.NoContent(),
             };
@@ -272,12 +292,10 @@ public static class TachesEndpoints
 
             db.Taches.Remove(tache);
             await db.SaveChangesAsync();
+            journal.LogInformation("Tâche {TacheId} supprimée — « {Titre} ».", tache.Id, tache.Titre);
             return Results.NoContent();
         });
 
         return app;
     }
-
-    private static IResult Erreur(ErreurValidation erreur) =>
-        Results.ValidationProblem(new Dictionary<string, string[]> { [erreur.Champ] = [erreur.Message] });
 }

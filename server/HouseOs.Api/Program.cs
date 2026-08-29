@@ -6,6 +6,7 @@ using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.FluxIcal;
 using HouseOs.Api.Features.Humeur;
+using HouseOs.Api.Features.Journalisation;
 using HouseOs.Api.Features.Mcp;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Sante;
@@ -14,15 +15,24 @@ using HouseOs.Api.Features.Taches;
 using HouseOs.Api.Features.Zones;
 using System.Threading.RateLimiting;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+
+// Journal d'amorçage : sans lui, une panne avant la fin du câblage (config absente,
+// migration refusée) sort en texte brut et n'atteint jamais Seq. Remplacé par le
+// logger complet dès AddSerilog.
+Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Secrets locaux hors git (clé Anthropic…) — prime sur appsettings*.json.
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true);
+
+builder.AjouterJournalisation();
 
 // Le défaut Kestrel (30 Mo) est sous la limite documents de 50 Mo : sans ceci, un
 // scan PDF de 40 Mo meurt en 413 opaque avant même d'atteindre le handler.
@@ -97,16 +107,38 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.OnRejected = async (contexte, ct) =>
+    {
+        // Un brute-force du LAN doit laisser une trace : c'est le seul signal
+        // sécurité que ce système produit.
+        contexte.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("HouseOs.Auth")
+            .LogWarning(
+                "Limite de tentatives atteinte — {Chemin} depuis {AdresseClient}.",
+                contexte.HttpContext.Request.Path.Value,
+                contexte.HttpContext.Connection.RemoteIpAddress?.ToString());
         await contexte.HttpContext.Response.WriteAsJsonAsync(new
         {
             message = "Trop de tentatives de connexion — réessayez dans une minute.",
         }, ct);
+    };
     options.AddPolicy(AuthEndpoints.PolitiqueLimiteConnexion, contexte =>
         RateLimitPartition.GetFixedWindowLimiter(
             contexte.Connection.RemoteIpAddress?.ToString() ?? "local",
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = tentativesConnexion,
+                Window = TimeSpan.FromMinutes(1),
+            }));
+    // Journal du navigateur : anonyme par nécessité (l'écran de connexion doit pouvoir
+    // se plaindre), donc borné. Deux onglets vidant leur tampon toutes les 5 s font
+    // 24 lots/min — 120 laisse de la marge sans ouvrir un robinet.
+    options.AddPolicy(JournalClientEndpoints.PolitiqueLimite, contexte =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            contexte.Connection.RemoteIpAddress?.ToString() ?? "local",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
                 Window = TimeSpan.FromMinutes(1),
             }));
 });
@@ -161,6 +193,9 @@ var app = builder.Build();
 // rate limiter) doivent être ceux du client, pas ceux du proxy.
 app.UseForwardedHeaders();
 
+// Juste après : l'IP et le schéma journalisés doivent être ceux du client.
+app.UtiliserJournalisation();
+
 app.Use(async (contexte, suivant) =>
 {
     // Jamais de reniflage MIME par le navigateur (documents téléversés inclus).
@@ -177,6 +212,7 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapSante();
+app.MapJournalClient();
 app.MapAuth();
 app.MapTaches();
 app.MapZones();

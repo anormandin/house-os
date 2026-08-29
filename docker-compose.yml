@@ -1,8 +1,17 @@
+# Rotation appliquée à tous les services : le stdout d'un conteneur n'a aucune
+# borne par défaut, et le LXC 105 n'a que ~12 Go de disque.
+x-journal: &journal
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:17-alpine
     container_name: houseos-postgres
     restart: unless-stopped
+    logging: *journal
     environment:
       POSTGRES_DB: houseos
       POSTGRES_USER: houseos
@@ -23,12 +32,21 @@ services:
     build: .
     container_name: houseos-app
     restart: unless-stopped
+    logging: *journal
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       ConnectionStrings__HouseOs: "Host=postgres;Port=5432;Database=houseos;Username=houseos;Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (dans le .env)}"
       Fichiers__Chemin: /app/donnees/fichiers
+      # Journalisation structurée vers le collecteur partagé du lab (LXC 106,
+      # dépôt /opt/observabilite) — hors de ce compose exprès : les logs de toutes
+      # les apps ne doivent pas dépendre du cycle de vie de house-os. Le tampon
+      # disque garde les évènements quand le collecteur redémarre, c'est-à-dire
+      # exactement quand on ne veut pas perdre ceux d'un incident.
+      Journalisation__Seq__Url: ${JOURNALISATION_SEQ_URL:-http://192.168.4.36:5341}
+      Journalisation__Seq__CleApi: ${JOURNALISATION_SEQ_CLE:?JOURNALISATION_SEQ_CLE requise (clé d'ingestion « house-os » dans Seq)}
+      Journalisation__Seq__CheminTampon: /app/donnees/journal/tampon-seq
       # Le code vit en heure locale (récurrence, humeur, rollover) : fuseau requis.
       TZ: America/Toronto
       # Derrière NPM (HTTPS → HTTP interne) : X-Forwarded-* n'est honoré QUE depuis
@@ -72,6 +90,7 @@ services:
     container_name: houseos-tailscale
     restart: unless-stopped
     profiles: ["funnel"]
+    logging: *journal
     hostname: houseos
     depends_on:
       - app

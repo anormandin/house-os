@@ -6,6 +6,7 @@ using HouseOs.Api.Infrastructure;
 using HouseOs.Tests.Features.Taches;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HouseOs.Tests.Features.Synchro;
 
@@ -32,7 +33,7 @@ public class IntercepteurSynchroTests : IDisposable
     {
         var options = new DbContextOptionsBuilder<HouseOsDbContext>()
             .UseSqlite(_connexion)
-            .AddInterceptors(new IntercepteurSynchro(diffuseur))
+            .AddInterceptors(new IntercepteurSynchro(diffuseur, NullLogger<IntercepteurSynchro>.Instance))
             .Options;
         // Le contexte Sqlite des tests : il re-mappe les colonnes jsonb en TEXT.
         return new HouseOsDbContextSqlite(options);

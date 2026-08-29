@@ -61,6 +61,8 @@ public class FluxExternesRafraichissement(
                 .ToList();
         }
 
+        var chrono = System.Diagnostics.Stopwatch.StartNew();
+        var reussis = 0;
         foreach (var (id, nom) in flux)
         {
             try
@@ -76,6 +78,18 @@ public class FluxExternesRafraichissement(
                     continue; // supprimé pendant le passage
                 }
                 await Rafraichir(db, abonnement, httpFactory.CreateClient(NomClientHttp), ct);
+                if (abonnement.DerniereErreur is null)
+                {
+                    reussis++;
+                }
+                else
+                {
+                    // Jusqu'ici cet échec ne vivait que dans une colonne : un
+                    // calendrier muet depuis des jours ne se voyait qu'en ouvrant l'UI.
+                    logger.LogWarning(
+                        "Flux externes : « {Nom} » a répondu en erreur — {Erreur}.",
+                        nom, abonnement.DerniereErreur);
+                }
             }
             // Ceinture : un flux qui échoue (même dans sa gestion d'erreur) ne doit
             // jamais priver les flux suivants de leur rafraîchissement pendant 6 h.
@@ -84,6 +98,10 @@ public class FluxExternesRafraichissement(
                 logger.LogError(ex, "Flux externes : échec isolé du flux {Nom}.", nom);
             }
         }
+
+        logger.LogInformation(
+            "Flux externes : passage terminé — {Reussis}/{Total} flux rafraîchis en {DureeMs} ms.",
+            reussis, flux.Count, chrono.ElapsedMilliseconds);
     }
 
     /// <summary>Rafraîchit un flux ; partagé avec la validation à la création.</summary>

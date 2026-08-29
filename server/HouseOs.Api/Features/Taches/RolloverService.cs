@@ -30,7 +30,9 @@ public class RolloverService(IServiceScopeFactory scopeFactory, ILogger<Rollover
                 logger.LogError(ex, "Rollover : échec du glissement quotidien.");
             }
 
-            await Task.Delay(DelaiProchainPassage(DateTimeOffset.Now), stoppingToken);
+            var delai = DelaiProchainPassage(DateTimeOffset.Now);
+            logger.LogDebug("Rollover : prochain passage dans {DelaiHeures} h.", delai.TotalHours);
+            await Task.Delay(delai, stoppingToken);
         }
     }
 
@@ -54,11 +56,18 @@ public class RolloverService(IServiceScopeFactory scopeFactory, ILogger<Rollover
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<HouseOsDbContext>();
 
+        var chrono = System.Diagnostics.Stopwatch.StartNew();
         var glissees = await GlisserOccurrencesManquees(db, DateOnly.FromDateTime(DateTime.Now), ct);
         if (glissees > 0)
         {
-            logger.LogInformation("Rollover : {Nombre} occurrence(s) glissée(s).", glissees);
+            logger.LogInformation(
+                "Rollover : {Nombre} occurrence(s) glissée(s) en {DureeMs} ms.",
+                glissees, chrono.ElapsedMilliseconds);
+            return;
         }
+        // Un passage à vide reste un signe de vie : sans lui, un service mort et un
+        // service sans travail sont indiscernables dans Seq.
+        logger.LogDebug("Rollover : passage sans glissement ({DureeMs} ms).", chrono.ElapsedMilliseconds);
     }
 
     /// <summary>

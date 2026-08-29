@@ -98,6 +98,10 @@ export const FLUX_ICAL_TOURNE = {
 }
 
 export const serveur = setupServer(
+  // Le journal de session vide son tampon depuis n'importe quel test dès qu'il
+  // atteint son seuil ; sans ce handler, onUnhandledRequest: 'error' ferait
+  // échouer un test au hasard, très loin de sa cause.
+  http.post('/api/journal-client', () => new HttpResponse(null, { status: 202 })),
   http.get('/api/utilisateurs', () => HttpResponse.json([ALAIN, ARIANE])),
   http.get('/api/ical/mon-flux', () => HttpResponse.json(FLUX_ICAL)),
   http.post('/api/ical/rotation', () => HttpResponse.json(FLUX_ICAL_TOURNE)),

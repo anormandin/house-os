@@ -20,7 +20,9 @@ namespace HouseOs.Api.Features.Synchro;
 /// visibles, et aucun second événement ne suivrait — périmé jusqu'au prochain focus.
 /// Quand une transaction est ouverte, les modules attendent donc le commit.
 /// </summary>
-public sealed class IntercepteurSynchro(IDiffuseurSynchro diffuseur)
+public sealed class IntercepteurSynchro(
+    IDiffuseurSynchro diffuseur,
+    ILogger<IntercepteurSynchro> journal)
     : ISaveChangesInterceptor, IDbTransactionInterceptor
 {
     /// <summary>
@@ -187,18 +189,33 @@ public sealed class IntercepteurSynchro(IDiffuseurSynchro diffuseur)
 
     private async Task DiffuserAsync(string[] modules, CancellationToken annulation)
     {
+        if (modules.Length == 0)
+        {
+            return;
+        }
+
+        var chrono = System.Diagnostics.Stopwatch.StartNew();
         foreach (var module in modules)
         {
             try
             {
                 await diffuseur.DiffuserAsync(new EvenementSynchro(module), annulation);
             }
-            catch
+            catch (Exception ex)
             {
                 // On est dans le chemin de SaveChanges, après le commit : laisser
                 // remonter une panne de diffusion ferait échouer une écriture déjà
-                // durable. L'implémentation de production journalise déjà.
+                // durable. Mais l'avaler en silence, c'est ce qui a rendu le 503 de
+                // complétion inintelligible — désormais ça laisse une trace.
+                journal.LogError(
+                    ex, "Diffusion du tier grossier échouée pour le module {Module}.", module);
             }
         }
+        chrono.Stop();
+
+        // Ce temps est passé dans la requête, après le commit et avant la réponse.
+        journal.LogDebug(
+            "Tier grossier diffusé — {NombreModules} module(s) {Modules} en {DureeMs} ms.",
+            modules.Length, modules, chrono.ElapsedMilliseconds);
     }
 }

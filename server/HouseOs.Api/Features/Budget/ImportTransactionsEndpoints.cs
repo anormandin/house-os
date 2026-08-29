@@ -1,6 +1,7 @@
 using System.Text;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Features.Budget;
@@ -18,6 +19,8 @@ public static class ImportTransactionsEndpoints
 
     public static IEndpointRouteBuilder MapImportTransactions(this IEndpointRouteBuilder app)
     {
+        var journal = app.JournalPour("Budget");
+
         app.MapPost("/api/budget/import", async (
             HttpRequest requete,
             HouseOsDbContext db,
@@ -33,7 +36,7 @@ public static class ImportTransactionsEndpoints
             var fichier = formulaire.Files.GetFile("fichier");
             if (fichier is null || fichier.Length == 0 || fichier.Length > TailleMax)
             {
-                return Erreur("fichier", "Fichier manquant, vide ou trop gros (max 5 Mo).");
+                return ResultatsApi.Erreur(journal, "fichier", "Fichier manquant, vide ou trop gros (max 5 Mo).");
             }
 
             string contenu;
@@ -50,11 +53,16 @@ public static class ImportTransactionsEndpoints
             }
             catch (FormatFichierException e)
             {
-                return Erreur("fichier", e.Message);
+                return ResultatsApi.Erreur(journal, "fichier", e.Message);
             }
 
             var rapport = await ImporterAsync(db, compte, lues);
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Import bancaire — {NomFichier} ({Taille} octets), {NbLues} ligne(s) lue(s) → "
+                + "{Importees} importée(s), {Doublons} doublon(s), {Anterieures} antérieure(s).",
+                fichier.FileName, fichier.Length, lues.Count,
+                rapport.Importees, rapport.Doublons, rapport.Anterieures);
             return Results.Ok(rapport);
         }).DisableAntiforgery();
 
@@ -149,7 +157,4 @@ public static class ImportTransactionsEndpoints
 
     private static string? Tronquer(string? valeur, int max) =>
         valeur is { Length: > 0 } && valeur.Length > max ? valeur[..max] : valeur;
-
-    private static IResult Erreur(string champ, string message) =>
-        Results.ValidationProblem(new Dictionary<string, string[]> { [champ] = [message] });
 }

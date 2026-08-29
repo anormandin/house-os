@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -19,27 +20,32 @@ public static class AuthEndpoints
     public static IEndpointRouteBuilder MapAuth(this IEndpointRouteBuilder app)
     {
         var groupe = app.MapGroup("/api/auth");
+        // Le seul journal à portée sécurité du système : qui entre, qui échoue, d'où.
+        var journal = app.JournalPour("Auth");
 
         groupe.MapPost("/connexion", async (
             ConnexionRequete requete,
             HouseOsDbContext db,
             HttpContext http) =>
         {
+            var adresse = http.Connection.RemoteIpAddress?.ToString();
+
             // Corps partiel ({} ou champ manquant) : le binding laisse les membres à
             // null malgré le type non-nullable — sans cette garde, NRE → 500 anonyme.
             if (string.IsNullOrWhiteSpace(requete.NomUtilisateur)
                 || string.IsNullOrWhiteSpace(requete.MotDePasse))
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    ["connexion"] = ["Nom d'utilisateur et mot de passe requis."],
-                });
+                return ResultatsApi.Erreur(
+                    journal, "connexion", "Nom d'utilisateur et mot de passe requis.");
             }
 
             var nom = requete.NomUtilisateur.Trim().ToLowerInvariant();
             var utilisateur = await db.Utilisateurs.SingleOrDefaultAsync(u => u.NomUtilisateur == nom);
             if (utilisateur is null)
             {
+                journal.LogWarning(
+                    "Connexion refusée — compte {NomUtilisateur} inconnu, depuis {AdresseClient}.",
+                    nom, adresse);
                 return Results.Unauthorized();
             }
 
@@ -47,6 +53,9 @@ public static class AuthEndpoints
             var verdict = hasher.VerifyHashedPassword(utilisateur, utilisateur.MotDePasseHash, requete.MotDePasse);
             if (verdict == PasswordVerificationResult.Failed)
             {
+                journal.LogWarning(
+                    "Connexion refusée — mot de passe invalide pour {NomUtilisateur}, depuis {AdresseClient}.",
+                    nom, adresse);
                 return Results.Unauthorized();
             }
             if (verdict == PasswordVerificationResult.SuccessRehashNeeded)
@@ -55,6 +64,8 @@ public static class AuthEndpoints
                 // tient le mot de passe en clair — seule occasion de le faire.
                 utilisateur.MotDePasseHash = hasher.HashPassword(utilisateur, requete.MotDePasse);
                 await db.SaveChangesAsync();
+                journal.LogInformation(
+                    "Mot de passe de {NomUtilisateur} réencodé avec les paramètres courants.", nom);
             }
 
             var claims = new List<Claim>
@@ -68,11 +79,15 @@ public static class AuthEndpoints
                 new ClaimsPrincipal(identite),
                 new AuthenticationProperties { IsPersistent = true });
 
+            journal.LogInformation(
+                "Connexion réussie — {NomUtilisateur} ({UtilisateurId}) depuis {AdresseClient}.",
+                nom, utilisateur.Id, adresse);
             return Results.Ok(new UtilisateurDto(utilisateur.Id, utilisateur.NomUtilisateur, utilisateur.NomAffichage));
         }).AllowAnonymous().RequireRateLimiting(PolitiqueLimiteConnexion);
 
-        groupe.MapPost("/deconnexion", async (HttpContext http) =>
+        groupe.MapPost("/deconnexion", async (ClaimsPrincipal principal, HttpContext http) =>
         {
+            journal.LogInformation("Déconnexion de {Utilisateur}.", principal.Identity?.Name);
             await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return Results.NoContent();
         });
@@ -85,6 +100,9 @@ public static class AuthEndpoints
             {
                 // Cookie valide mais compte disparu : purger le cookie, sinon le client
                 // boucle sur un 401 impossible à sortir sans vider le navigateur.
+                journal.LogWarning(
+                    "Session orpheline — cookie valide pour {UtilisateurId}, compte introuvable ; cookie purgé.",
+                    id);
                 await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return Results.Unauthorized();
             }

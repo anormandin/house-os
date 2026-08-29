@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
 namespace HouseOs.Api.Features.Taches;
@@ -235,6 +237,12 @@ public static class OperationsTaches
     /// <summary>
     /// Complète une occurrence au nom d'un utilisateur : journal, puis matérialisation de la
     /// prochaine occurrence si la tâche est récurrente. Fait SaveChanges.
+    ///
+    /// Chaque phase est chronométrée séparément (<paramref name="journal"/>) : c'est ce
+    /// chemin qui rend un 503 intermittent alors que l'écriture, elle, passe. Les deux
+    /// temps qui comptent sont le SaveChanges (avec la matérialisation de la suivante
+    /// pour une récurrente) et la diffusion du geste, qui se produit APRÈS le commit et
+    /// AVANT que la réponse ne soit écrite.
     /// </summary>
     public static async Task<ResultatCompletion> CompleterAsync(
         HouseOsDbContext db,
@@ -243,17 +251,26 @@ public static class OperationsTaches
         string? notes,
         DateTimeOffset maintenant,
         IDiffuseurSynchro? diffuseur = null,
-        string? source = null)
+        string? source = null,
+        ILogger? journal = null)
     {
+        journal ??= NullLogger.Instance;
+
         var occurrence = await db.Occurrences
             .Include(o => o.Tache)
             .SingleOrDefaultAsync(o => o.Id == occurrenceId);
         if (occurrence is null)
         {
+            journal.LogWarning(
+                "Complétion refusée — occurrence {OccurrenceId} introuvable (source {Source}).",
+                occurrenceId, source);
             return new ResultatCompletion(StatutCompletion.Introuvable, null);
         }
         if (occurrence.Statut != StatutOccurrence.EnAttente)
         {
+            journal.LogInformation(
+                "Complétion refusée — occurrence {OccurrenceId} déjà au statut {Statut} (source {Source}).",
+                occurrenceId, occurrence.Statut, source);
             return new ResultatCompletion(StatutCompletion.DejaCompletee, null);
         }
 
@@ -262,7 +279,8 @@ public static class OperationsTaches
 
         Occurrence? prochaine = null;
         var tache = occurrence.Tache!;
-        if (tache.Recurrence.Mode != ModeRecurrence.Ponctuelle)
+        var recurrente = tache.Recurrence.Mode != ModeRecurrence.Ponctuelle;
+        if (recurrente)
         {
             var assigne = await ChoisirProchainAssigne(
                 db, tache, utilisateurId, maintenant, completionEnVol: true);
@@ -274,6 +292,7 @@ public static class OperationsTaches
             }
         }
 
+        var chrono = Stopwatch.StartNew();
         try
         {
             await db.SaveChangesAsync();
@@ -282,14 +301,28 @@ public static class OperationsTaches
         {
             // Course entre deux complétions : l'index unique « une seule occurrence en
             // attente par tâche » a refusé la seconde matérialisation — l'autre a gagné.
+            // Journalisé parce que ce cas se déguise en 409 côté client et était, jusqu'ici,
+            // strictement indiscernable d'une occurrence déjà complétée.
+            journal.LogWarning(
+                ex,
+                "Complétion — course détectée sur {OccurrenceId} (tâche {TacheId}), l'autre écriture a gagné.",
+                occurrenceId, tache.Id);
             db.ChangeTracker.Clear();
             return new ResultatCompletion(StatutCompletion.DejaCompletee, null);
         }
+        var msEcriture = chrono.ElapsedMilliseconds;
 
         // Tier fin : l'intercepteur a déjà rafraîchi les données, ceci porte de quoi
         // annoncer le geste (« Ariane a complété "Litière" »).
+        chrono.Restart();
         await DiffuserGesteAsync(
             db, diffuseur, EvenementSynchro.GenreOccurrenceCompletee, utilisateurId, source, tache.Titre);
+        var msDiffusion = chrono.ElapsedMilliseconds;
+
+        journal.LogInformation(
+            "Occurrence {OccurrenceId} complétée par {ActeurId} (tâche {TacheId}, récurrente {Recurrente}, "
+            + "suivante {ProchaineId}, source {Source}) — écriture {MsEcriture} ms, diffusion {MsDiffusion} ms.",
+            occurrenceId, utilisateurId, tache.Id, recurrente, prochaine?.Id, source, msEcriture, msDiffusion);
 
         return new ResultatCompletion(StatutCompletion.Ok, prochaine);
     }

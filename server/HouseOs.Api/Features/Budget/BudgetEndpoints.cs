@@ -1,5 +1,6 @@
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Features.Budget;
@@ -103,6 +104,8 @@ public static class BudgetEndpoints
 {
     public static IEndpointRouteBuilder MapBudget(this IEndpointRouteBuilder app)
     {
+        var journal = app.JournalPour("Budget");
+
         app.MapGet("/api/budget", async (DateOnly? date, HouseOsDbContext db) =>
             Results.Ok(await ChargerResumeAsync(db, date ?? Aujourdhui())));
 
@@ -120,10 +123,11 @@ public static class BudgetEndpoints
             };
             if (await AppliquerCompte(requete, compte, db) is { } erreur)
             {
-                return Erreur(erreur.Champ, erreur.Message);
+                return ResultatsApi.Erreur(journal, erreur.Champ, erreur.Message);
             }
             db.ComptesBudget.Add(compte);
             await db.SaveChangesAsync();
+            journal.LogInformation("Compte budget {CompteId} ancré — « {Nom} ».", compte.Id, compte.Nom);
             return Results.Created("/api/budget", new { compte.Id });
         });
 
@@ -136,9 +140,10 @@ public static class BudgetEndpoints
             }
             if (await AppliquerCompte(requete, compte, db) is { } erreur)
             {
-                return Erreur(erreur.Champ, erreur.Message);
+                return ResultatsApi.Erreur(journal, erreur.Champ, erreur.Message);
             }
             await db.SaveChangesAsync();
+            journal.LogInformation("Compte budget {CompteId} modifié — « {Nom} ».", compte.Id, compte.Nom);
             return Results.NoContent();
         });
 
@@ -152,10 +157,12 @@ public static class BudgetEndpoints
             };
             if (await AppliquerEnveloppe(requete, enveloppe, db) is { } erreur)
             {
-                return Erreur(erreur.Champ, erreur.Message);
+                return ResultatsApi.Erreur(journal, erreur.Champ, erreur.Message);
             }
             db.Enveloppes.Add(enveloppe);
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Enveloppe {EnveloppeId} créée — « {Nom} ».", enveloppe.Id, enveloppe.Nom);
             return Results.Created("/api/budget", new { enveloppe.Id });
         });
 
@@ -169,9 +176,11 @@ public static class BudgetEndpoints
             }
             if (await AppliquerEnveloppe(requete, enveloppe, db) is { } erreur)
             {
-                return Erreur(erreur.Champ, erreur.Message);
+                return ResultatsApi.Erreur(journal, erreur.Champ, erreur.Message);
             }
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Enveloppe {EnveloppeId} modifiée — « {Nom} ».", enveloppe.Id, enveloppe.Nom);
             return Results.NoContent();
         });
 
@@ -196,9 +205,13 @@ public static class BudgetEndpoints
             }
             catch (InvalidOperationException e)
             {
+                journal.LogWarning(
+                    "Fermeture refusée de l'enveloppe {EnveloppeId} — {Raison}.", id, e.Message);
                 return Results.Conflict(new { message = e.Message });
             }
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Enveloppe {EnveloppeId} fermée — « {Nom} », solde {Solde}.", id, enveloppe.Nom, solde);
             return Results.NoContent();
         });
 
@@ -212,7 +225,7 @@ public static class BudgetEndpoints
             }
             if (ValiderMouvement(requete, enveloppe, out var type) is { } erreur)
             {
-                return Erreur(erreur.Champ, erreur.Message);
+                return ResultatsApi.Erreur(journal, erreur.Champ, erreur.Message);
             }
             db.MouvementsEnveloppe.Add(new MouvementEnveloppe
             {
@@ -225,6 +238,9 @@ public static class BudgetEndpoints
                 CreeLe = DateTimeOffset.UtcNow,
             });
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Mouvement {Type} de {Montant} sur l'enveloppe {EnveloppeId} — « {Nom} ».",
+                type, requete.Montant, id, enveloppe.Nom);
             return Results.NoContent();
         });
 
@@ -233,9 +249,12 @@ public static class BudgetEndpoints
             var erreur = await TransfererAsync(db, requete, Aujourdhui());
             if (erreur is not null)
             {
-                return Erreur("transfert", erreur);
+                return ResultatsApi.Erreur(journal, "transfert", erreur);
             }
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Transfert de {Montant} de l'enveloppe {DeEnveloppeId} vers {VersEnveloppeId}.",
+                requete.Montant, requete.DeEnveloppeId, requete.VersEnveloppeId);
             return Results.NoContent();
         });
 
@@ -246,7 +265,7 @@ public static class BudgetEndpoints
             if (string.IsNullOrWhiteSpace(statut) == false
                 && Mcp.Conversions.ParserEnum(statut, out statutFiltre) == false)
             {
-                return Erreur("statut", "Statut inconnu (Nouvelle, Liee ou Ignoree).");
+                return ResultatsApi.Erreur(journal, "statut", "Statut inconnu (Nouvelle, Liee ou Ignoree).");
             }
             return Results.Ok(await ChargerTransactionsAsync(db, statutFiltre, date ?? Aujourdhui()));
         });
@@ -254,7 +273,9 @@ public static class BudgetEndpoints
         app.MapPost("/api/budget/transactions/{id:guid}/lier", async (
             Guid id, LierRequete requete, HouseOsDbContext db) =>
         {
-            var erreur = await LierAsync(db, id, requete);
+            var erreur = await LierAsync(db, id, requete, journal);
+            journal.LogInformation(
+                "Transaction {TransactionId} liée — {Issue}.", id, erreur is null ? "ok" : "refusée");
             return erreur ?? Results.NoContent();
         });
 
@@ -271,17 +292,22 @@ public static class BudgetEndpoints
             }
             transaction.Statut = StatutTransaction.Ignoree;
             await db.SaveChangesAsync();
+            journal.LogInformation("Transaction {TransactionId} ignorée.", id);
             return Results.NoContent();
         });
 
         app.MapPost("/api/budget/transactions/{id:guid}/restaurer", async (Guid id, HouseOsDbContext db) =>
-            await RestaurerAsync(db, id) switch
+        {
+            var statut = await RestaurerAsync(db, id);
+            journal.LogInformation("Restauration de la transaction {TransactionId} → {Statut}.", id, statut);
+            return statut switch
             {
                 StatutRestauration.Introuvable => Results.NotFound(),
                 StatutRestauration.PasIgnoree =>
                     Results.Conflict(new { message = "Seule une transaction ignorée se restaure." }),
                 _ => Results.NoContent(),
-            });
+            };
+        });
 
         return app;
     }
@@ -452,7 +478,8 @@ public static class BudgetEndpoints
     /// La réclamation du statut est un UPDATE conditionnel sous transaction : un rejeu
     /// concurrent (timeout MCP, deux navigateurs) obtient un conflit au lieu de doubler
     /// les mouvements. Null = succès.</summary>
-    public static async Task<IResult?> LierAsync(HouseOsDbContext db, Guid id, LierRequete requete)
+    public static async Task<IResult?> LierAsync(
+        HouseOsDbContext db, Guid id, LierRequete requete, ILogger journal)
     {
         var transaction = await db.TransactionsBancaires.FindAsync(id);
         if (transaction is null)
@@ -474,7 +501,7 @@ public static class BudgetEndpoints
         var erreur = await CreerLiaisonAsync(db, transaction, requete);
         if (erreur is { } e)
         {
-            return Erreur(e.Champ, e.Message); // rollback à la sortie de la portée
+            return ResultatsApi.Erreur(journal, e.Champ, e.Message); // rollback à la sortie de la portée
         }
         await db.SaveChangesAsync();
         await portee.CommitAsync();
@@ -797,7 +824,4 @@ public static class BudgetEndpoints
 
     private static string? Nettoyer(string? valeur) =>
         string.IsNullOrWhiteSpace(valeur) ? null : valeur.Trim();
-
-    private static IResult Erreur(string champ, string message) =>
-        Results.ValidationProblem(new Dictionary<string, string[]> { [champ] = [message] });
 }

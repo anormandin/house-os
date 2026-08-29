@@ -1,6 +1,7 @@
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Features.Equipements;
@@ -45,6 +46,8 @@ public static class EquipementsEndpoints
 {
     public static IEndpointRouteBuilder MapEquipements(this IEndpointRouteBuilder app)
     {
+        var journal = app.JournalPour("Equipements");
+
         app.MapGet("/api/equipements", async (HouseOsDbContext db) =>
             await db.Equipements
                 .OrderBy(e => e.Nom)
@@ -63,7 +66,7 @@ public static class EquipementsEndpoints
         {
             if (await ValiderAsync(requete, db) is { } erreur)
             {
-                return Erreur(erreur.Champ, erreur.Message);
+                return ResultatsApi.Erreur(journal, erreur.Champ, erreur.Message);
             }
 
             var equipement = new Equipement
@@ -75,6 +78,9 @@ public static class EquipementsEndpoints
             Appliquer(requete, equipement);
             db.Equipements.Add(equipement);
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Équipement {EquipementId} créé — « {Nom} » ({Marque} {Modele}), zone {ZoneId}.",
+                equipement.Id, equipement.Nom, equipement.Marque, equipement.Modele, equipement.ZoneId);
             return Results.Created($"/api/equipements/{equipement.Id}", new { equipement.Id });
         });
 
@@ -82,7 +88,7 @@ public static class EquipementsEndpoints
         {
             if (await ValiderAsync(requete, db) is { } erreur)
             {
-                return Erreur(erreur.Champ, erreur.Message);
+                return ResultatsApi.Erreur(journal, erreur.Champ, erreur.Message);
             }
             var equipement = await db.Equipements.FindAsync(id);
             if (equipement is null)
@@ -92,6 +98,8 @@ public static class EquipementsEndpoints
 
             Appliquer(requete, equipement);
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Équipement {EquipementId} modifié — « {Nom} ».", equipement.Id, equipement.Nom);
             return Results.NoContent();
         });
 
@@ -106,6 +114,8 @@ public static class EquipementsEndpoints
             // Les documents liés survivent (FK en SET NULL) — aucun fichier effacé.
             db.Equipements.Remove(equipement);
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Équipement {EquipementId} supprimé — « {Nom} ».", equipement.Id, equipement.Nom);
             return Results.NoContent();
         });
 
@@ -230,7 +240,4 @@ public static class EquipementsEndpoints
 
     private static string? Nettoyer(string? valeur) =>
         string.IsNullOrWhiteSpace(valeur) ? null : valeur.Trim();
-
-    private static IResult Erreur(string champ, string message) =>
-        Results.ValidationProblem(new Dictionary<string, string[]> { [champ] = [message] });
 }

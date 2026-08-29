@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: aa20cc7
+last-verified: 2026-08-29
+verified-against: 5082ea1
 tags: []
 ---
 
@@ -109,6 +109,9 @@ la même durée. Le minuteur reste un confort : la rangée complétée garde son
 - [[D-2026-08-28 Toast Carte Posée]] — la forme du toast : une carte de l'app, trois
   registres dans un seul composant, le compte à rebours dans le bouton d'action
   inverse et le lavis de la rangée.
+- [[D-2026-08-29 Journalisation Structurée Serilog Et Seq]] — la diffusion est
+  chronométrée (Warning au-delà de 500 ms) et ses pannes journalisées : elle se produit
+  dans la requête, après le commit, et reste le suspect n°1 du 503 de complétion.
 
 ## Ancres de code
 
@@ -117,9 +120,10 @@ la même durée. Le minuteur reste un confort : la rangée complétée garde son
   avec le web.
 - `server/HouseOs.Api/Features/Synchro/IntercepteurSynchro.cs` — tier grossier : table
   type CLR → module, dédoublonnage, report au commit de transaction.
-- `server/HouseOs.Api/Features/Synchro/SynchroHub.cs` — le hub (chemin `/hubs/synchro`).
+- `server/HouseOs.Api/Features/Synchro/SynchroHub.cs` — le hub (chemin `/hubs/synchro`),
+  cycle de vie journalisé.
 - `server/HouseOs.Api/Features/Synchro/DiffuseurSynchro.cs` — diffusion réelle, avale
-  ses pannes.
+  ses pannes — mais ne les tait plus.
 - `server/HouseOs.Api/Features/Taches/OperationsTaches.cs` — tier fin des complétions.
 - `server/HouseOs.Api/Features/Mcp/OutilsTaches.cs` — tier fin des écritures MCP
   (lot agrégé).

@@ -42,6 +42,7 @@ public class MeteoIngestionService(
 
     private async Task Ingerer(CancellationToken ct)
     {
+        var chrono = System.Diagnostics.Stopwatch.StartNew();
         var client = httpFactory.CreateClient();
         var json = await client.GetStringAsync(UrlPrevisions(options.Value), ct);
         var previsions = OpenMeteoNormalisation.Normaliser(json);
@@ -65,8 +66,9 @@ public class MeteoIngestionService(
 
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
-        logger.LogInformation("Météo : {Heures} heures et {Jours} jours de prévisions ingérés.",
-            previsions.Heures.Count, previsions.Jours.Count);
+        logger.LogInformation(
+            "Météo : {Heures} heures et {Jours} jours de prévisions ingérés en {DureeMs} ms.",
+            previsions.Heures.Count, previsions.Jours.Count, chrono.ElapsedMilliseconds);
     }
 
     private static string UrlPrevisions(MeteoOptions options)

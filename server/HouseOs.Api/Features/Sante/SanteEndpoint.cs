@@ -10,7 +10,8 @@ public static class SanteEndpoint
         // Sonde réelle : « ok » sans toucher la DB masquerait une base morte au
         // healthcheck compose. Timeout court — une sonde qui pend est pire qu'une
         // sonde rouge.
-        app.MapGet("/api/sante", async (HouseOsDbContext db, CancellationToken ct) =>
+        app.MapGet("/api/sante", async (
+            HouseOsDbContext db, ILoggerFactory fabrique, CancellationToken ct) =>
         {
             using var delai = CancellationTokenSource.CreateLinkedTokenSource(ct);
             delai.CancelAfter(TimeSpan.FromSeconds(3));
@@ -19,8 +20,12 @@ public static class SanteEndpoint
                 await db.Database.ExecuteSqlAsync($"SELECT 1", delai.Token);
                 return Results.Ok(new { statut = "ok", db = "ok" });
             }
-            catch (Exception) when (ct.IsCancellationRequested == false)
+            catch (Exception ex) when (ct.IsCancellationRequested == false)
             {
+                // Ce 503-ci vient de la DB. Le journaliser explicitement évite de le
+                // confondre, dans Seq, avec le 503 de complétion qu'on enquête.
+                fabrique.CreateLogger("HouseOs.Sante").LogError(
+                    ex, "Sonde de santé dégradée — la base n'a pas répondu en 3 s.");
                 return Results.Json(new { statut = "degrade", db = "inaccessible" },
                     statusCode: StatusCodes.Status503ServiceUnavailable);
             }

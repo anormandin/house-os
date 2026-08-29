@@ -317,14 +317,17 @@ public static class OutilsTaches
     public static async Task<object> CompleterOccurrence(
         HouseOsDbContext db,
         IDiffuseurSynchro diffuseur,
+        ILoggerFactory fabriqueJournal,
         [Description("Id de l'occurrence (via lister_occurrences).")] Guid occurrenceId,
         [Description("Qui l'a faite : 'alain' ou 'ariane'. Demander si ambigu.")] string agirComme,
         [Description("Notes optionnelles (coût, remarques…).")] string? notes = null)
     {
         var utilisateur = await AgirComme.ResoudreAsync(db, agirComme);
+        // Même chemin que le POST web : les mêmes durées de phase sont mesurées, ce
+        // qui permet de comparer une complétion MCP et une complétion humaine.
         var resultat = await OperationsTaches.CompleterAsync(
             db, occurrenceId, utilisateur.Id, notes, DateTimeOffset.UtcNow,
-            diffuseur, EvenementSynchro.SourceMcp);
+            diffuseur, EvenementSynchro.SourceMcp, fabriqueJournal.CreateLogger("HouseOs.Taches"));
         switch (resultat.Statut)
         {
             case StatutCompletion.Introuvable:

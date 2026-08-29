@@ -6,14 +6,16 @@ import { useSyncExternalStore } from 'react'
 export type ErreurSignalee = {
   id: number
   message: string
+  /** Identifiant de la requête serveur, affiché en petit : à recopier dans Seq. */
+  traceId?: string
 }
 
 let erreurCourante: ErreurSignalee | null = null
 let prochainId = 1
 const abonnes = new Set<() => void>()
 
-export function signalerErreur(message: string) {
-  erreurCourante = { id: prochainId++, message }
+export function signalerErreur(message: string, traceId?: string) {
+  erreurCourante = { id: prochainId++, message, traceId }
   abonnes.forEach((notifier) => notifier())
 }
 

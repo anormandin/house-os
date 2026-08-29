@@ -23,7 +23,16 @@ export default function BanniereErreur() {
       role="alert"
       className="fixed inset-x-0 bottom-5 z-50 mx-auto flex w-fit max-w-[calc(100%-2.5rem)] items-center gap-3 rounded-[16px] bg-rouge px-5 py-3 text-sm font-bold text-carte shadow-carte"
     >
-      <span>{erreur.message}</span>
+      <span className="flex flex-col">
+        <span>{erreur.message}</span>
+        {/* La référence de la requête fautive : c'est ce qu'on colle dans Seq pour
+            retrouver la trace serveur exacte de l'incident. */}
+        {erreur.traceId !== undefined && (
+          <span className="font-mono text-[11px] font-normal opacity-70 select-all">
+            réf. {erreur.traceId}
+          </span>
+        )}
+      </span>
       <button
         type="button"
         aria-label="Fermer le message d'erreur"

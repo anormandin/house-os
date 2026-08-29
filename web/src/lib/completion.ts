@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { journaliser } from '@/lib/journal'
 import { afficherToast, DUREE_TOAST_MS, SLOT_GESTE_LOCAL } from '@/lib/toast'
 
 /** Invalidations croisées d'un geste sur une occurrence : la console des tâches,
@@ -49,8 +50,18 @@ export function useCompletionAvecUndo() {
   }, [])
 
   const completer = useMutation({
-    mutationFn: ({ id }: GesteOccurrence) => api.completer(id),
+    // Le geste est journalisé au départ, pas seulement à l'arrivée : c'est
+    // exactement le cas « j'ai coché et rien ne s'est passé » qu'on cherche à
+    // reconstituer — un clic sans réponse doit laisser sa moitié de trace.
+    mutationFn: ({ id, titre }: GesteOccurrence) => {
+      journaliser('info', 'Geste', 'Complétion demandée', { occurrenceId: id, titre })
+      return api.completer(id)
+    },
     onSuccess: (_, geste) => {
+      journaliser('info', 'Geste', 'Complétion confirmée', {
+        occurrenceId: geste.id,
+        titre: geste.titre,
+      })
       invaliderAutourOccurrences(queryClient)
       armerLavis(geste.id)
       afficherToast({
@@ -65,8 +76,15 @@ export function useCompletionAvecUndo() {
   })
 
   const annuler = useMutation({
-    mutationFn: ({ id }: GesteOccurrence) => api.annulerCompletion(id),
+    mutationFn: ({ id, titre }: GesteOccurrence) => {
+      journaliser('info', 'Geste', 'Annulation demandée', { occurrenceId: id, titre })
+      return api.annulerCompletion(id)
+    },
     onSuccess: (_, geste) => {
+      journaliser('info', 'Geste', 'Annulation confirmée', {
+        occurrenceId: geste.id,
+        titre: geste.titre,
+      })
       invaliderAutourOccurrences(queryClient)
       // La rangée n'est plus complétée : son lavis n'a plus d'objet.
       armerLavis(null)

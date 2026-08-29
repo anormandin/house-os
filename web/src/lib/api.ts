@@ -1,3 +1,5 @@
+import { journaliser } from '@/lib/journal'
+
 export type Utilisateur = {
   id: string
   nomUtilisateur: string
@@ -365,28 +367,57 @@ export type PhraseDuJour = {
 
 export class ApiError extends Error {
   statut: number
+  /** Identifiant de la requête serveur (en-tête X-Trace-Id) : à coller dans Seq. */
+  traceId?: string
 
-  constructor(statut: number, message: string) {
+  constructor(statut: number, message: string, traceId?: string) {
     super(message)
     this.statut = statut
+    this.traceId = traceId
   }
 }
 
 async function requete<T>(url: string, options?: RequestInit): Promise<T> {
-  const reponse = await fetch(url, {
-    headers:
-      options?.body && !(options.body instanceof FormData)
-        ? { 'Content-Type': 'application/json' }
-        : undefined,
-    ...options,
-  })
-  if (reponse.status === 401) {
-    throw new ApiError(401, 'Non authentifié')
+  const methode = options?.method ?? 'GET'
+  const depart = performance.now()
+  let reponse: Response
+  try {
+    reponse = await fetch(url, {
+      headers:
+        options?.body && !(options.body instanceof FormData)
+          ? { 'Content-Type': 'application/json' }
+          : undefined,
+      ...options,
+    })
+  } catch (erreur) {
+    // Le cas « la réponse n'est jamais arrivée » : sans cette ligne, il ne restait
+    // qu'une bannière et aucune trace de ce qui avait été tenté.
+    journaliser('error', 'Api', `${methode} ${url} — panne réseau`, {
+      dureeMs: Math.round(performance.now() - depart),
+      detail: erreur instanceof Error ? erreur.message : String(erreur),
+    })
+    throw erreur
   }
+
+  const traceId = reponse.headers.get('X-Trace-Id') ?? undefined
+  const dureeMs = Math.round(performance.now() - depart)
+
   if (reponse.ok) {
+    journaliser('debug', 'Api', `${methode} ${url} → ${reponse.status}`, { dureeMs, traceId })
     return reponse.status === 204 ? (undefined as T) : reponse.json()
   }
-  throw new ApiError(reponse.status, await messageErreur(reponse))
+  if (reponse.status === 401) {
+    journaliser('info', 'Api', `${methode} ${url} → 401`, { dureeMs, traceId })
+    throw new ApiError(401, 'Non authentifié', traceId)
+  }
+
+  const message = await messageErreur(reponse)
+  journaliser('warn', 'Api', `${methode} ${url} → ${reponse.status}`, {
+    dureeMs,
+    traceId,
+    message,
+  })
+  throw new ApiError(reponse.status, message, traceId)
 }
 
 // Extrait le message d'un corps d'erreur : { message } (conflits), ProblemDetails

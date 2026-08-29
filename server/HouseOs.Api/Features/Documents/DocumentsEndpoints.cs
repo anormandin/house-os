@@ -1,6 +1,7 @@
 using System.Globalization;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Infrastructure;
+using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -149,6 +150,8 @@ public static class DocumentsEndpoints
 
     public static IEndpointRouteBuilder MapDocuments(this IEndpointRouteBuilder app)
     {
+        var journal = app.JournalPour("Documents");
+
         app.MapGet("/api/documents", async (
             string? categorie, Guid? equipementId, string? dossier, HouseOsDbContext db) =>
         {
@@ -157,7 +160,7 @@ public static class DocumentsEndpoints
             {
                 if (Mcp.Conversions.ParserEnum(categorie, out CategorieDocument cat) == false)
                 {
-                    return Erreur("categorie", "Catégorie inconnue.");
+                    return ResultatsApi.Erreur(journal, "categorie", "Catégorie inconnue.");
                 }
                 documents = documents.Where(d => d.Categorie == cat);
             }
@@ -194,7 +197,7 @@ public static class DocumentsEndpoints
             var fichier = formulaire.Files.GetFile("fichier");
             if (fichier is null || fichier.Length == 0 || fichier.Length > TailleMax)
             {
-                return Erreur("fichier", "Fichier manquant, vide ou trop gros (max 50 Mo).");
+                return ResultatsApi.Erreur(journal, "fichier", "Fichier manquant, vide ou trop gros (max 50 Mo).");
             }
             // Les types MIME sont insensibles à la casse et peuvent porter des paramètres
             // (« ; charset=… ») ; certains clients envoient image/jpg.
@@ -205,7 +208,7 @@ public static class DocumentsEndpoints
             }
             if (TypesMimePermis.Contains(typeMime) == false)
             {
-                return Erreur("fichier", "Type non permis (PDF ou image).");
+                return ResultatsApi.Erreur(journal, "fichier", "Type non permis (PDF ou image).");
             }
             var entete = new byte[12];
             int octetsLus;
@@ -215,7 +218,7 @@ public static class DocumentsEndpoints
             }
             if (ContenuCorrespondAuType(entete.AsSpan(0, octetsLus), typeMime) == false)
             {
-                return Erreur("fichier",
+                return ResultatsApi.Erreur(journal, "fichier",
                     "Le contenu du fichier ne correspond pas à son type annoncé (PDF ou image).");
             }
 
@@ -224,7 +227,7 @@ public static class DocumentsEndpoints
             if (string.IsNullOrWhiteSpace(categorieBrute) == false
                 && Mcp.Conversions.ParserEnum(categorieBrute, out categorie) == false)
             {
-                return Erreur("categorie", "Catégorie inconnue.");
+                return ResultatsApi.Erreur(journal, "categorie", "Catégorie inconnue.");
             }
 
             var nomFichier = NettoyerNomFichier(fichier.FileName, typeMime);
@@ -235,49 +238,49 @@ public static class DocumentsEndpoints
             }
             if (titre.Length > 200)
             {
-                return Erreur("titre", "Le titre ne peut pas dépasser 200 caractères.");
+                return ResultatsApi.Erreur(journal, "titre", "Le titre ne peut pas dépasser 200 caractères.");
             }
             var notes = Nettoyer(formulaire["notes"]);
             if (notes?.Length > 2000)
             {
-                return Erreur("notes", "Les notes ne peuvent pas dépasser 2000 caractères.");
+                return ResultatsApi.Erreur(journal, "notes", "Les notes ne peuvent pas dépasser 2000 caractères.");
             }
             var dossier = Nettoyer(formulaire["dossier"]);
             if (dossier?.Length > 100)
             {
-                return Erreur("dossier", "Le dossier ne peut pas dépasser 100 caractères.");
+                return ResultatsApi.Erreur(journal, "dossier", "Le dossier ne peut pas dépasser 100 caractères.");
             }
             // Valider les liens avant d'écrire quoi que ce soit : une violation de FK
             // après l'écriture laisserait un fichier orphelin permanent sur disque.
             var (equipementId, equipementValide) = LireGuid(formulaire["equipementId"]);
             if (equipementValide == false)
             {
-                return Erreur("equipementId",
+                return ResultatsApi.Erreur(journal, "equipementId",
                     $"equipementId invalide : '{formulaire["equipementId"]}' (Guid attendu).");
             }
             if (equipementId is { } eq && await db.Equipements.AnyAsync(e => e.Id == eq) == false)
             {
-                return Erreur("equipementId", "Cet équipement n'existe pas (ou plus).");
+                return ResultatsApi.Erreur(journal, "equipementId", "Cet équipement n'existe pas (ou plus).");
             }
             var (zoneId, zoneValide) = LireGuid(formulaire["zoneId"]);
             if (zoneValide == false)
             {
-                return Erreur("zoneId", $"zoneId invalide : '{formulaire["zoneId"]}' (Guid attendu).");
+                return ResultatsApi.Erreur(journal, "zoneId", $"zoneId invalide : '{formulaire["zoneId"]}' (Guid attendu).");
             }
             if (zoneId is { } z && await db.Zones.AnyAsync(x => x.Id == z) == false)
             {
-                return Erreur("zoneId", "Cette pièce n'existe pas (ou plus).");
+                return ResultatsApi.Erreur(journal, "zoneId", "Cette pièce n'existe pas (ou plus).");
             }
             var (dateDocument, dateDocumentValide) = LireDate(formulaire["dateDocument"]);
             if (dateDocumentValide == false)
             {
-                return Erreur("dateDocument", $"dateDocument invalide : '{formulaire["dateDocument"]}' " +
+                return ResultatsApi.Erreur(journal, "dateDocument", $"dateDocument invalide : '{formulaire["dateDocument"]}' " +
                     "— format attendu YYYY-MM-DD (ex. 2026-10-06).");
             }
             var (echeance, echeanceValide) = LireDate(formulaire["echeance"]);
             if (echeanceValide == false)
             {
-                return Erreur("echeance", $"echeance invalide : '{formulaire["echeance"]}' " +
+                return ResultatsApi.Erreur(journal, "echeance", $"echeance invalide : '{formulaire["echeance"]}' " +
                     "— format attendu YYYY-MM-DD (ex. 2026-10-06).");
             }
 
@@ -316,8 +319,14 @@ public static class DocumentsEndpoints
             catch
             {
                 File.Delete(chemin);
+                journal.LogError(
+                    "Document {DocumentId} — écriture DB refusée après copie disque ; fichier {Chemin} effacé.",
+                    document.Id, document.CheminDisque);
                 throw;
             }
+            journal.LogInformation(
+                "Document {DocumentId} téléversé — « {Titre} » ({TypeMime}, {Taille} octets, catégorie {Categorie}).",
+                document.Id, document.Titre, document.TypeMime, document.Taille, document.Categorie);
             return Results.Created($"/api/documents/{document.Id}", new { document.Id });
         }).DisableAntiforgery();
 
@@ -327,34 +336,34 @@ public static class DocumentsEndpoints
             // longueur hors colonne remonte une erreur Postgres brute (500).
             if (string.IsNullOrWhiteSpace(requete.Titre))
             {
-                return Erreur("titre", "Le titre est requis.");
+                return ResultatsApi.Erreur(journal, "titre", "Le titre est requis.");
             }
             var titre = requete.Titre.Trim();
             if (titre.Length > 200)
             {
-                return Erreur("titre", "Le titre ne peut pas dépasser 200 caractères.");
+                return ResultatsApi.Erreur(journal, "titre", "Le titre ne peut pas dépasser 200 caractères.");
             }
             if (Mcp.Conversions.ParserEnum(requete.Categorie, out CategorieDocument categorie) == false)
             {
-                return Erreur("categorie", "Catégorie inconnue.");
+                return ResultatsApi.Erreur(journal, "categorie", "Catégorie inconnue.");
             }
             var notes = Nettoyer(requete.Notes);
             if (notes?.Length > 2000)
             {
-                return Erreur("notes", "Les notes ne peuvent pas dépasser 2000 caractères.");
+                return ResultatsApi.Erreur(journal, "notes", "Les notes ne peuvent pas dépasser 2000 caractères.");
             }
             var dossier = Nettoyer(requete.Dossier);
             if (dossier?.Length > 100)
             {
-                return Erreur("dossier", "Le dossier ne peut pas dépasser 100 caractères.");
+                return ResultatsApi.Erreur(journal, "dossier", "Le dossier ne peut pas dépasser 100 caractères.");
             }
             if (requete.EquipementId is { } eq && await db.Equipements.AnyAsync(e => e.Id == eq) == false)
             {
-                return Erreur("equipementId", "Cet équipement n'existe pas (ou plus).");
+                return ResultatsApi.Erreur(journal, "equipementId", "Cet équipement n'existe pas (ou plus).");
             }
             if (requete.ZoneId is { } z && await db.Zones.AnyAsync(x => x.Id == z) == false)
             {
-                return Erreur("zoneId", "Cette pièce n'existe pas (ou plus).");
+                return ResultatsApi.Erreur(journal, "zoneId", "Cette pièce n'existe pas (ou plus).");
             }
             var document = await db.Documents.FindAsync(id);
             if (document is null)
@@ -371,6 +380,9 @@ public static class DocumentsEndpoints
             document.DateDocument = requete.DateDocument;
             document.Echeance = requete.Echeance;
             await db.SaveChangesAsync();
+            journal.LogInformation(
+                "Document {DocumentId} modifié — « {Titre} » (catégorie {Categorie}).",
+                document.Id, document.Titre, document.Categorie);
             return Results.NoContent();
         });
 
@@ -424,7 +436,13 @@ public static class DocumentsEndpoints
             HouseOsDbContext db,
             IConfiguration config,
             IWebHostEnvironment env) =>
-                await SupprimerAsync(db, id, config, env) ? Results.NoContent() : Results.NotFound());
+            {
+                var supprime = await SupprimerAsync(db, id, config, env);
+                journal.LogInformation(
+                    "Suppression du document {DocumentId} — {Issue}.",
+                    id, supprime ? "effectuée" : "introuvable");
+                return supprime ? Results.NoContent() : Results.NotFound();
+            });
 
         return app;
     }
@@ -515,7 +533,4 @@ public static class DocumentsEndpoints
 
     private static string? Nettoyer(string? valeur) =>
         string.IsNullOrWhiteSpace(valeur) ? null : valeur.Trim();
-
-    private static IResult Erreur(string champ, string message) =>
-        Results.ValidationProblem(new Dictionary<string, string[]> { [champ] = [message] });
 }

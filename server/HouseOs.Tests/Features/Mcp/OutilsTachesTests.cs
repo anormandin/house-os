@@ -5,6 +5,7 @@ using HouseOs.Api.Features.Synchro;
 using HouseOs.Tests.Features.Synchro;
 using HouseOs.Tests.Features.Taches;
 using ModelContextProtocol;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HouseOs.Tests.Features.Mcp;
 
@@ -197,7 +198,7 @@ public class OutilsTachesTests : TestAvecSqlite
         await OutilsTaches.GererTache(Db, "supprimer", id);
 
         var exception = await Assert.ThrowsAsync<McpException>(() =>
-            OutilsTaches.CompleterOccurrence(Db, Mouchard,occurrenceId, "alain"));
+            OutilsTaches.CompleterOccurrence(Db, Mouchard, NullLoggerFactory.Instance, occurrenceId, "alain"));
 
         Assert.Contains("introuvable", exception.Message);
     }
@@ -280,7 +281,7 @@ public class OutilsTachesTests : TestAvecSqlite
         var occurrence = Db.Occurrences.Single(o => o.TacheId == tacheId);
         Mouchard.Recus.Clear();
 
-        await OutilsTaches.CompleterOccurrence(Db, Mouchard, occurrence.Id, "alain");
+        await OutilsTaches.CompleterOccurrence(Db, Mouchard, NullLoggerFactory.Instance, occurrence.Id, "alain");
 
         var evenement = Assert.Single(Mouchard.Fins);
         Assert.Equal(EvenementSynchro.GenreOccurrenceCompletee, evenement.Genre);
