@@ -84,3 +84,56 @@ test('les autres erreurs de mutation nourrissent la bannière — sauf celles g�
   act(() => result.current.globale.mutate())
   await waitFor(() => expect(result.current.erreur?.message).toBe('La pièce résiste.'))
 })
+
+test('une erreur sans statut (panne réseau) devient un message générique', async () => {
+  const client = creerQueryClient()
+  serveur.use(http.delete('/api/zones/:id', () => HttpResponse.error()))
+  const { result } = renderHook(
+    () => ({
+      suppression: useMutation({ mutationFn: () => api.supprimerZone('z-bureau') }),
+      erreur: useErreurCourante(),
+    }),
+    { wrapper: avecClient(client) },
+  )
+
+  act(() => result.current.suppression.mutate())
+
+  await waitFor(() => expect(result.current.erreur?.message).toBe('Une erreur est survenue.'))
+})
+
+test('une exception locale du mutationFn nourrit aussi la bannière', async () => {
+  // Rien à voir avec le réseau : un bug dans la mutation elle-même ne doit pas
+  // laisser l'utilisateur devant un écran qui ne bouge pas.
+  const client = creerQueryClient()
+  const { result } = renderHook(
+    () => ({
+      cassee: useMutation({
+        mutationFn: async () => {
+          throw new Error('boum')
+        },
+      }),
+      erreur: useErreurCourante(),
+    }),
+    { wrapper: avecClient(client) },
+  )
+
+  act(() => result.current.cassee.mutate())
+
+  await waitFor(() => expect(result.current.erreur?.message).toBe('Une erreur est survenue.'))
+})
+
+test('une requête en échec reste muette : seules les mutations parlent', async () => {
+  // Voulu : un GET qui échoue laisse l'écran sur ses données précédentes plutôt
+  // que d'ouvrir une bannière à chaque refetch raté. Si ça change un jour, c'est
+  // ce test qui doit être rediscuté en premier.
+  const client = creerQueryClient()
+  serveur.use(http.get('/api/zones', () =>
+    HttpResponse.json({ message: 'Base indisponible.' }, { status: 500 })))
+  const { result } = renderHook(() => useErreurCourante(), { wrapper: avecClient(client) })
+
+  await client.prefetchQuery({ queryKey: ['zones'], queryFn: api.zones })
+
+  // Ancrage : sans ceci, le test passerait aussi si la requête avait réussi.
+  expect(client.getQueryState(['zones'])?.status).toBe('error')
+  expect(result.current).toBeNull()
+})

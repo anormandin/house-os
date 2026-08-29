@@ -43,3 +43,37 @@ test('un 401 devient une ApiError explicite', async () => {
 
   await expect(api.zones()).rejects.toMatchObject({ statut: 401 })
 })
+
+test('un corps qui n’est pas du JSON retombe sur le statut', async () => {
+  // Le cas d'un intermédiaire qui répond à la place du serveur : le proxy de dev
+  // rend du HTML en 503, une passerelle rend du texte. `reponse.json()` lève, et
+  // ce qui doit sortir est un message lisible, pas l'exception de parsing.
+  serveur.use(http.get('/api/zones', () =>
+    new HttpResponse('<html><body>503 Service Unavailable</body></html>', {
+      status: 503,
+      headers: { 'Content-Type': 'text/html' },
+    })))
+
+  await expect(api.zones()).rejects.toMatchObject({
+    statut: 503,
+    message: 'Erreur serveur (503)',
+  })
+})
+
+test('un JSON tronqué retombe aussi sur le statut', async () => {
+  serveur.use(http.get('/api/zones', () =>
+    new HttpResponse('{"message": "coupé au mil', {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' },
+    })))
+
+  await expect(api.zones()).rejects.toMatchObject({ message: 'Erreur serveur (502)' })
+})
+
+test('une panne réseau remonte telle quelle, sans devenir une ApiError', async () => {
+  // Serveur injoignable, connexion coupée : il n'y a pas de statut à rapporter.
+  // Le traitement global la traduit en message générique (voir query-client).
+  serveur.use(http.get('/api/zones', () => HttpResponse.error()))
+
+  await expect(api.zones()).rejects.not.toBeInstanceOf(ApiError)
+})

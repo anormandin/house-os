@@ -2,15 +2,35 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, expect, test } from 'vitest'
+import BanniereErreur from '@/components/BanniereErreur'
 import OccurrenceListe from '@/components/OccurrenceListe'
 import ToastConfirmation from '@/components/ToastConfirmation'
 import { dateLocaleIso, type Occurrence } from '@/lib/api'
+import { effacerErreur } from '@/lib/erreurs'
 import { dateCourte } from '@/lib/format'
+import { creerQueryClient } from '@/lib/query-client'
 import { effacerToast } from '@/lib/toast'
 import { rendre } from '@/test/rendre'
 import { ALAIN, serveur } from '@/test/serveur-msw'
 
-afterEach(effacerToast)
+afterEach(() => {
+  effacerToast()
+  effacerErreur()
+})
+
+/** Rend la liste sous le client de l'app (MutationCache → bannière globale), avec
+ * de quoi voir les deux issues d'un geste : le toast de confirmation et la bannière
+ * d'erreur. Sert les cas où une mutation échoue. */
+function rendreAvecIssues(occurrences: Occurrence[]) {
+  return rendre(
+    <>
+      <OccurrenceListe occurrences={occurrences} vide="rien" />
+      <ToastConfirmation />
+      <BanniereErreur />
+    </>,
+    creerQueryClient(),
+  )
+}
 
 function occurrence(champs: Partial<Occurrence>): Occurrence {
   return {
@@ -92,6 +112,67 @@ test('compléter affiche un toast dont « Annuler » défait la complétion (iss
   await userEvent.click(screen.getByRole('button', { name: 'Annuler' }))
 
   await waitFor(() => expect(annulations).toBe(1))
+})
+
+// Un geste qui échoue ne doit jamais se confirmer. Ces trois cas viennent d'un
+// incident réel (2026-08-28) : le POST de complétion revenait en 503 alors que
+// l'écriture passait côté serveur ; l'onSuccess ne tournait pas, donc ni toast ni
+// rafraîchissement — la case semblait ne rien faire.
+
+test('une complétion en échec ouvre la bannière et ne confirme rien', async () => {
+  serveur.use(
+    http.post('/api/occurrences/o-1/completer', () =>
+      new HttpResponse('<html>503 Service Unavailable</html>', {
+        status: 503,
+        headers: { 'Content-Type': 'text/html' },
+      })),
+  )
+  rendreAvecIssues([occurrence({})])
+
+  await userEvent.click(screen.getByRole('button', { name: 'Compléter Balayer' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Erreur serveur (503)')
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+
+test('un second clic sur une occurrence déjà complétée affiche le message du serveur', async () => {
+  // Le réflexe quand rien ne bouge : recliquer. Le 409 doit dire pourquoi.
+  serveur.use(
+    http.post('/api/occurrences/o-1/completer', () =>
+      HttpResponse.json({ message: 'Occurrence déjà complétée.' }, { status: 409 })),
+  )
+  rendreAvecIssues([occurrence({})])
+
+  await userEvent.click(screen.getByRole('button', { name: 'Compléter Balayer' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Occurrence déjà complétée.')
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+
+test('une annulation en échec ouvre la bannière et ne confirme rien', async () => {
+  serveur.use(
+    http.post('/api/occurrences/o-1/annuler-completion', () =>
+      HttpResponse.json({ message: 'Ce n’est pas la complétion la plus récente.' }, { status: 409 })),
+  )
+  rendreAvecIssues([
+    occurrence({ statut: 'Completee', completeePar: ALAIN, completeeLe: new Date().toISOString() }),
+  ])
+
+  await userEvent.click(screen.getByRole('button', { name: 'Annuler la complétion de Balayer' }))
+
+  expect(await screen.findByRole('alert'))
+    .toHaveTextContent('Ce n’est pas la complétion la plus récente.')
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+
+test('une panne réseau sur un geste reste visible, en message générique', async () => {
+  serveur.use(http.post('/api/occurrences/o-1/completer', () => HttpResponse.error()))
+  rendreAvecIssues([occurrence({})])
+
+  await userEvent.click(screen.getByRole('button', { name: 'Compléter Balayer' }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Une erreur est survenue.')
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
 
 test('la rangée qu’on vient de compléter porte le lavis des 6 s du toast', async () => {
