@@ -1,8 +1,9 @@
 ---
 type: decision
-status: accepted
+status: superseded
 date: 2026-08-24
 feature: "[[Tâches]]"
+superseded-by: "[[D-2026-08-28 Annulation Et Passage D'occurrences]]"
 tags: []
 ---
 

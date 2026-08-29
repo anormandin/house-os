@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-28
-verified-against: 0d96d5f
+verified-against: e19a4fb
 tags: []
 ---
 
@@ -89,9 +89,11 @@ Implémenté (V1 « Emménagement », as-built) :
   ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]).
 
 Implémenté (cycle de vie des occurrences, 2026-08-24, as-built —
-[[D-2026-08-24 Annulation Et Passage D'occurrences]]) :
+[[D-2026-08-28 Annulation Et Passage D'occurrences]]) :
 
-- **Annuler une complétion** (bouton « Annuler » au survol de la rangée verte) :
+- **Annuler une complétion** (deux recours : le toast à action inverse pendant 6 s
+  juste après le geste, et le bouton « Annuler » au survol de la rangée verte, qui ne
+  s'éteint jamais) :
   journal effacé, occurrence remise en attente avec son échéance d'origine (elle
   redevient éligible au rollover), occurrence suivante matérialisée supprimée.
   Garde-fou : seulement la complétion la plus récente de la tâche, et si la suivante
@@ -239,8 +241,10 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   flux + rotation du jeton.
 - [[D-2026-08-23 Zones Plates]] — zones = liste plate CRUD.
 - [[D-2026-08-23 Auth Simple Deux Comptes]] — attribution des complétions.
-- [[D-2026-08-24 Annulation Et Passage D'occurrences]] — annuler/passer/reporter,
-  sort du journal, garde-fous.
+- [[D-2026-08-28 Annulation Et Passage D'occurrences]] — annuler/passer/reporter,
+  sort du journal, garde-fous, et les deux recours d'annulation (toast + survol).
+  Supersède [[D-2026-08-24 Annulation Et Passage D'occurrences]], dont la clause
+  « pas de toast » était devenue fausse.
 - [[D-2026-08-28 Passer Conserve L'assigné]] — passer ne fait plus tourner
   l'assignation (précise la précédente).
 - [[D-2026-08-28 Glissement Hors Fenêtre Des Intervalles]] — une intervalle échue

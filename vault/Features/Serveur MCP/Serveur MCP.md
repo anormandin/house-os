@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-28
-verified-against: 0d96d5f
+verified-against: e19a4fb
 tags: []
 ---
 
@@ -29,7 +29,7 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
     `lister_occurrences` (filtres aujourdhui/avenir/en-attente/completees),
     `completer_occurrence` (matérialise la prochaine occurrence si récurrente),
     `gerer_occurrence` (annuler-completion/passer/reporter — voir
-    [[D-2026-08-24 Annulation Et Passage D'occurrences]]),
+    [[D-2026-08-28 Annulation Et Passage D'occurrences]]),
     `bilan_taches` (complétions du ménage par semaine, heure du serveur — voir
     [[D-2026-08-25 Bilan Hebdo Du Ménage]])
   - `lister_equipements`, `obtenir_equipement`, `gerer_equipement`
