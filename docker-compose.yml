@@ -39,6 +39,9 @@ services:
     environment:
       ConnectionStrings__HouseOs: "Host=postgres;Port=5432;Database=houseos;Username=houseos;Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (dans le .env)}"
       Fichiers__Chemin: /app/donnees/fichiers
+      # Clés de chiffrement du cookie de session : sur un volume, sinon chaque
+      # rebuild déconnecte le foyer (constaté le 2026-08-29).
+      Securite__CheminCles: /app/donnees/protection
       # Journalisation structurée vers le collecteur partagé du lab (LXC 106,
       # dépôt /opt/observabilite) — hors de ce compose exprès : les logs de toutes
       # les apps ne doivent pas dépendre du cycle de vie de house-os. Le tampon
@@ -71,6 +74,7 @@ services:
       - "8080:8080"
     volumes:
       - fichiers:/app/donnees/fichiers   # manuels et photos des équipements (inclus au backup)
+      - protection:/app/donnees/protection  # clés du cookie de session (pas de backup : les perdre = une reconnexion)
     healthcheck:
       # /api/sante sonde la DB : 503 (curl -f → échec) si elle est inaccessible.
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/sante"]
@@ -108,4 +112,5 @@ services:
 volumes:
   postgres-data:
   fichiers:
+  protection:
   tailscale-state:

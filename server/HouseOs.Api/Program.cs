@@ -17,6 +17,7 @@ using System.Threading.RateLimiting;
 using HouseOs.Api.Infrastructure;
 using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +52,22 @@ builder.Services.AddSingleton<IntercepteurSynchro>();
 builder.Services.AddDbContext<HouseOsDbContext>((sp, options) => options
     .UseNpgsql(sourceDonnees)
     .AddInterceptors(sp.GetRequiredService<IntercepteurSynchro>()));
+
+// Les clés de protection des données chiffrent le cookie de session. Par défaut
+// elles vivent dans le profil utilisateur — donc dans la couche éphémère du
+// conteneur : chaque `docker compose up -d --build` en générait de nouvelles et
+// déconnectait tout le monde, malgré un cookie prévu pour 180 jours. Constaté en
+// prod le 2026-08-29, le jour où les logs ont commencé à le dire.
+// Chemin vide (dev sur le Mac) = comportement par défaut, déjà persistant.
+var cheminCles = builder.Configuration["Securite:CheminCles"];
+if (string.IsNullOrWhiteSpace(cheminCles) == false)
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(Directory.CreateDirectory(cheminCles))
+        // Fixe : le défaut dérive du chemin du content root, qu'un changement
+        // d'image suffirait à faire bouger.
+        .SetApplicationName("HouseOs");
+}
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

@@ -28,6 +28,11 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   `ASPNETCORE_FORWARDEDHEADERS_ENABLED` tous-azimuts), healthcheck compose sur
   `/api/sante` (qui sonde la DB)
   ([[D-2026-08-24 Prod LXC Proxmox NPM GitHub]]).
+- **Sessions** : les clés de protection des données (chiffrement du cookie) vivent sur
+  le volume `protection`. Sans lui, elles naissaient dans la couche éphémère du
+  conteneur et **chaque `--build` déconnectait le foyer** malgré un cookie de 180 jours
+  — trouvé le 2026-08-29, au premier déploiement avec les logs structurés. Perdre ce
+  volume ne coûte qu'une reconnexion : il n'est pas sauvegardé.
 - **Accès** : `https://houseos.alainnormandin.dev` (NPM, cert wildcard) — app
   installable (manifest seulement, sans service worker :
   [[D-2026-08-25 Retrait Du Service Worker]]) ; à l'extérieur, Tailscale (subnet

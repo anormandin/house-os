@@ -33,7 +33,7 @@ COPY --from=web /src/web/dist ./wwwroot
 #   docker run --rm -v house-os_fichiers:/f mcr.microsoft.com/dotnet/aspnet:10.0 chown -R 1654:1654 /f
 # donnees/journal : tampon disque du sink Seq (pas de volume — un tampon perdu au
 # rebuild n'est qu'une poignée d'évènements, et un volume de plus à gérer coûte plus).
-RUN mkdir -p /app/donnees/fichiers /app/donnees/journal \
+RUN mkdir -p /app/donnees/fichiers /app/donnees/journal /app/donnees/protection \
     && chown -R $APP_UID:$APP_UID /app/donnees
 USER $APP_UID
 EXPOSE 8080
