@@ -106,7 +106,7 @@ function CaseCompleter({
       type="button"
       aria-label={`Compléter ${tache.titre}`}
       disabled={completer.isPending}
-      onClick={() => completer.mutate(tache.occurrenceId!)}
+      onClick={() => completer.mutate({ id: tache.occurrenceId!, titre: tache.titre })}
       className={cn(
         'shrink-0 rounded-[7px] border-[2.5px] transition-colors hover:border-vert hover:bg-vert-fond',
         enRetard ? 'border-rouge' : 'border-coche',

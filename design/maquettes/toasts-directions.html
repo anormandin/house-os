@@ -1,0 +1,1272 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>House OS — Toasts, cinq directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700;800&display=swap">
+<style>
+/* ------------------------------------------------------------------
+   Maquette de directions visuelles pour le toast de House OS.
+   Palette « Cuisine chaleureuse » — mode clair seulement.
+   Tout est du vrai HTML/CSS : les minuteurs tournent, les entrées
+   s’animent, la fusion se rejoue en boucle.
+   ------------------------------------------------------------------ */
+
+:root{
+  --fond:#f2ecbc;      /* fond de page = fond réel de l’app */
+  --carte:#faf7ed;
+  --creux:#f2ecbc;
+  --encre:#43436c;
+  --texte:#545464;
+  --sourdine:#8a8980;
+  --dore:#77713f;
+  --orange:#cc6d00;
+  --vert:#6f894e;
+  --vert-fond:#eef2e4;
+  --rouge:#c84053;
+  --jaune:#d9bd6e;
+  --tiret:#ddd3ab;
+  --tiret-texte:#a89e77;
+  --coche:#b5b3a6;
+  --piste:#f0ead6;
+  --bord-doux:#e5dfcc;
+
+  --ombre:0 2px 8px rgba(84,84,100,.07);
+  --ombre-lg:0 3px 14px rgba(84,84,100,.08);
+
+  --ar-fond:#ded4e8; --ar-texte:#624c83;
+  --al-fond:#cdd9ec; --al-texte:#4d699b;
+
+  --duree:7s;          /* 6 s de minuteur + 1 s de repos avant la boucle */
+  --rayon:1rem;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--fond);
+  color:var(--texte);
+  font-family:'Nunito Sans',system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+h1,h2,h3{font-family:Fraunces,Georgia,serif;color:var(--encre);margin:0}
+
+.page{max-width:1180px;margin:0 auto;padding:56px 40px 96px}
+
+/* ---------- En-tête de la maquette ---------- */
+.entete{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;flex-wrap:wrap;margin-bottom:14px}
+.entete h1{font-size:42px;font-weight:700;line-height:1.1}
+.entete p{margin:12px 0 0;max-width:660px;color:var(--dore);font-size:16px}
+.rejouer{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--carte);border:2px solid var(--tiret);border-radius:999px;
+  padding:10px 20px;font-size:14px;font-weight:700;color:var(--dore);
+  box-shadow:var(--ombre);transition:border-color .2s,color .2s,transform .2s;
+}
+.rejouer:hover{border-color:var(--orange);color:var(--orange);transform:translateY(-1px)}
+
+.sommaire{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 8px}
+.sommaire a{
+  text-decoration:none;background:var(--carte);border-radius:999px;padding:7px 16px;
+  font-size:13px;font-weight:700;color:var(--dore);box-shadow:var(--ombre);
+  transition:color .2s,box-shadow .2s;
+}
+.sommaire a:hover{color:var(--orange);box-shadow:var(--ombre-lg)}
+
+/* ---------- Sections ---------- */
+.direction{margin-top:64px;padding-top:36px;border-top:2px dashed var(--tiret)}
+.direction:first-of-type{border-top:0}
+.direction-entete{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.numero{
+  font-family:Fraunces,Georgia,serif;font-size:15px;font-weight:700;color:var(--carte);
+  background:var(--orange);width:30px;height:30px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;flex:none;
+  transform:translateY(2px);
+}
+.direction h2{font-size:29px;font-weight:600}
+.parti-pris{font-size:14px;font-weight:700;color:var(--orange);letter-spacing:.04em;text-transform:uppercase}
+.rationale{max-width:720px;margin:12px 0 0;color:var(--texte)}
+.rationale em{color:var(--dore);font-style:normal;font-weight:700}
+
+.legende-minuteur{
+  display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+  background:var(--carte);border-radius:999px;padding:6px 15px;font-size:12.5px;
+  font-weight:700;color:var(--dore);box-shadow:var(--ombre);
+}
+.legende-minuteur svg{width:13px;height:13px;color:var(--orange)}
+
+/* ---------- Grille d’échantillons ---------- */
+.echantillons{display:flex;flex-wrap:wrap;gap:26px 30px;margin-top:30px;align-items:flex-start}
+.echantillon{display:flex;flex-direction:column;gap:9px}
+.etiquette{
+  font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--tiret-texte);
+}
+.etiquette b{color:var(--dore);font-weight:800}
+
+/* ---------- Vignette : le bas d’écran de l’app ---------- */
+.vignette{
+  position:relative;margin-top:34px;height:352px;border-radius:24px;
+  background:var(--fond);border:1px solid var(--bord-doux);overflow:hidden;
+  padding:20px 20px 0;
+}
+.vignette::after{ /* le contenu file sous le pli */
+  content:'';position:absolute;inset:auto 0 0;height:120px;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(242,236,188,0) 0%,rgba(242,236,188,.86) 62%);
+}
+.vignette--haute{height:440px} /* l’ancre occupe de la hauteur dans la liste */
+.vignette-note{
+  position:absolute;top:14px;right:18px;z-index:3;font-size:11px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--tiret-texte);
+}
+.liste{display:flex;flex-direction:column;gap:10px}
+.rangee{
+  display:flex;align-items:center;gap:14px;background:var(--carte);border-radius:20px;
+  padding:13px 18px;box-shadow:var(--ombre);
+}
+.rangee--retard{border-left:6px solid var(--rouge)}
+.rangee--faite{background:var(--vert-fond);box-shadow:none}
+.case{width:24px;height:24px;border:2.5px solid var(--coche);border-radius:9px;flex:none}
+.case--retard{border-color:var(--rouge)}
+.case--faite{
+  border:0;background:var(--vert);color:var(--carte);
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.case--faite svg{width:14px;height:14px}
+.rangee-titre{flex:1;font-size:15px;font-weight:700;min-width:0}
+.rangee--faite .rangee-titre{color:var(--sourdine);text-decoration:line-through}
+.rangee-note{font-size:12.5px;font-weight:700;color:var(--vert)}
+.rangee-retard{font-size:12.5px;color:var(--rouge)}
+
+.avatar{
+  width:30px;height:30px;border-radius:50%;font-size:11px;font-weight:800;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.av-ar{background:var(--ar-fond);color:var(--ar-texte)}
+.av-al{background:var(--al-fond);color:var(--al-texte)}
+.av-cl{background:#f3e6cf;color:var(--orange)}
+.av-qui{background:var(--piste);color:var(--tiret-texte)}
+
+.pile{
+  position:absolute;z-index:4;left:0;right:0;bottom:18px;padding:0 20px;
+  display:flex;flex-direction:column;align-items:center;gap:9px;
+}
+
+/* ---------- Icônes ---------- */
+.ic{width:16px;height:16px;flex:none}
+.ic-plein{fill:currentColor;stroke:none}
+
+/* ==================================================================
+   Animations partagées
+   ================================================================== */
+@keyframes entree-monte{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes entree-glisse{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes entree-deploie{from{opacity:0;transform:scaleY(.55) translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes drain-x{0%{transform:scaleX(1)}86%{transform:scaleX(0)}100%{transform:scaleX(0)}}
+@keyframes drain-y{0%{transform:scaleY(1)}86%{transform:scaleY(0)}100%{transform:scaleY(0)}}
+@keyframes drain-largeur{0%{width:100%}86%{width:0}100%{width:0}}
+@keyframes drain-pastille{0%{transform:scale(1);opacity:1}86%{transform:scale(.15);opacity:.35}100%{transform:scale(.15);opacity:.35}}
+@keyframes drain-anneau{0%{stroke-dashoffset:0}86%{stroke-dashoffset:69}100%{stroke-dashoffset:69}}
+@keyframes lavis-rangee{0%{background:var(--vert-fond)}86%{background:var(--carte)}100%{background:var(--carte)}}
+
+.anime{animation:entree-monte .5s cubic-bezier(.2,.85,.28,1) both}
+
+/* Fusion : le toast se réécrit en place, le compteur apparaît. */
+.fusion-texte{display:grid}
+.fusion-texte>span{grid-area:1/1}
+.fusion-un{animation:fusion-un 6s ease-in-out infinite}
+.fusion-trois{animation:fusion-trois 6s ease-in-out infinite}
+@keyframes fusion-un{0%,40%{opacity:1}47%,100%{opacity:0}}
+@keyframes fusion-trois{0%,40%{opacity:0}47%,100%{opacity:1}}
+.compteur{
+  display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;
+  padding:0 7px;border-radius:999px;font-size:12px;font-weight:800;
+  animation:compteur-apparait 6s cubic-bezier(.2,1.5,.4,1) infinite;
+}
+@keyframes compteur-apparait{
+  0%,40%{opacity:0;transform:scale(.3)}
+  50%{opacity:1;transform:scale(1.22)}
+  57%,100%{opacity:1;transform:scale(1)}
+}
+.pouls{animation:pouls 6s ease-in-out infinite}
+@keyframes pouls{0%,41%{transform:none}48%{transform:scale(1.022)}55%,100%{transform:none}}
+
+/* ==================================================================
+   Direction 1 — LA CARTE POSÉE
+   Le toast est une carte de l’app, en plus petit.
+   Minuteur : barre fine sous la carte.
+   ================================================================== */
+.d1{
+  position:relative;display:flex;align-items:center;gap:14px;
+  background:var(--carte);border-radius:20px;box-shadow:var(--ombre-lg);
+  padding:13px 16px 15px 18px;border-left:6px solid var(--vert);
+  min-width:330px;max-width:520px;overflow:hidden;
+}
+.d1--defait{border-left-color:var(--orange)}
+.d1--distant{border-left-color:var(--ar-fond)}
+.d1--distant.d1--claude{border-left-color:#f3e6cf}
+.d1--distant.d1--anonyme{border-left-color:var(--piste)}
+.d1-medaillon{
+  width:34px;height:34px;border-radius:50%;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--vert-fond);color:var(--vert);
+}
+.d1-medaillon svg{width:17px;height:17px}
+.d1--defait .d1-medaillon{background:#fbf0dd;color:var(--orange)}
+.d1-corps{flex:1;min-width:0}
+.d1-titre{font-size:14.5px;font-weight:800;color:var(--texte);display:flex;align-items:center;gap:8px}
+.d1-titre .compteur{background:var(--vert-fond);color:var(--vert)}
+.d1-sous{font-size:12px;color:var(--sourdine);margin-top:1px}
+.d1-action{
+  flex:none;background:var(--creux);border-radius:999px;padding:7px 15px;
+  font-size:13px;font-weight:800;color:var(--dore);
+  transition:background .18s,color .18s;
+}
+.d1-action:hover{background:#ece2b8;color:var(--orange)}
+/* Les × au repos sont en doré (#77713f) et non en beige : sur crème, un glyphe
+   plus clair tomberait sous le 3:1 exigé pour un composant d’interface. */
+.d1-fermer{
+  flex:none;width:26px;height:26px;border-radius:50%;color:var(--dore);
+  display:inline-flex;align-items:center;justify-content:center;transition:background .18s,color .18s;
+}
+.d1-fermer:hover{background:var(--piste);color:var(--texte)}
+.d1-minuteur{position:absolute;left:18px;right:16px;bottom:0;height:3px;border-radius:999px;background:var(--piste)}
+.d1-minuteur i{
+  display:block;height:100%;border-radius:999px;background:var(--vert);opacity:.75;
+  transform-origin:left center;animation:drain-x var(--duree) linear infinite;
+}
+.d1--defait .d1-minuteur i{background:var(--orange)}
+.d1--distant .d1-minuteur i{background:var(--ar-texte);opacity:.45}
+
+/* ==================================================================
+   Direction 2 — LE LISERÉ
+   Presque pas de chrome : un rail de couleur, une ligne de texte.
+   Minuteur : le rail lui-même se vide de haut en bas.
+   ================================================================== */
+.d2{
+  position:relative;display:flex;align-items:center;gap:12px;
+  background:var(--carte);border:1px solid var(--bord-doux);border-radius:14px;
+  box-shadow:var(--ombre);padding:11px 14px 11px 20px;
+  min-width:320px;max-width:520px;overflow:hidden; /* le rail épouse le coin arrondi */
+}
+.d2-rail{position:absolute;left:0;top:6px;bottom:6px;width:4px;border-radius:999px;background:var(--piste);overflow:hidden}
+.d2-rail i{
+  display:block;width:100%;height:100%;border-radius:999px;background:var(--vert);
+  transform-origin:top center;animation:drain-y var(--duree) linear infinite;
+}
+.d2--defait .d2-rail i{background:var(--orange)}
+.d2--ariane .d2-rail i{background:var(--ar-texte);opacity:.55}
+.d2--claude .d2-rail i{background:var(--jaune)}
+.d2--anonyme .d2-rail i{background:var(--tiret-texte);opacity:.6}
+.d2-icone{width:17px;height:17px;flex:none;color:var(--vert)}
+.d2--defait .d2-icone{color:var(--orange)}
+.d2--ariane .d2-icone,.d2--claude .d2-icone,.d2--anonyme .d2-icone{color:var(--tiret-texte)}
+.d2-texte{flex:1;font-size:14px;font-weight:600;color:var(--texte);display:flex;align-items:center;gap:8px;min-width:0}
+.d2-texte b{font-weight:800}
+.d2-texte .compteur{background:var(--piste);color:var(--dore)}
+.d2-action{
+  flex:none;font-size:13.5px;font-weight:800;color:var(--orange);
+  border-bottom:2px dotted rgba(204,109,0,.45);padding-bottom:1px;
+  transition:border-color .18s;
+}
+.d2-action:hover{border-bottom-color:var(--orange)}
+.d2-fermer{
+  flex:none;width:24px;height:24px;border-radius:50%;color:var(--dore);
+  display:inline-flex;align-items:center;justify-content:center;transition:color .18s,background .18s;
+}
+.d2-fermer:hover{color:var(--texte);background:var(--piste)}
+.d2-avatar{width:24px;height:24px;font-size:9.5px}
+
+/* ==================================================================
+   Direction 3 — LA BARRE
+   Registre « le système parle » : bande d’encre dense, pleine largeur.
+   Minuteur : filet clair le long du bord haut.
+   ================================================================== */
+.d3{
+  position:relative;display:flex;align-items:center;gap:12px;width:100%;
+  background:var(--encre);color:#f7f3e4;border-radius:12px;
+  padding:11px 12px 11px 16px;overflow:hidden;
+  box-shadow:0 3px 14px rgba(67,67,108,.22);
+}
+.d3-filet{position:absolute;left:0;right:0;top:0;height:2px;background:rgba(250,247,237,.14)}
+.d3-filet i{
+  display:block;height:100%;background:var(--jaune);
+  transform-origin:left center;animation:drain-x var(--duree) linear infinite;
+}
+.d3-pastille{width:9px;height:9px;border-radius:50%;background:var(--vert);flex:none;box-shadow:0 0 0 3px rgba(111,137,78,.25)}
+.d3--defait .d3-pastille{background:var(--orange);box-shadow:0 0 0 3px rgba(204,109,0,.25)}
+.d3-avatar{width:24px;height:24px;font-size:9.5px;flex:none}
+.d3-texte{flex:1;font-size:13.5px;font-weight:700;min-width:0;display:flex;align-items:center;gap:9px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3-texte.leger{font-weight:600;color:rgba(247,243,228,.86)}
+.d3-texte .compteur{background:rgba(250,247,237,.16);color:#f7f3e4}
+.d3-heure{font-size:11.5px;font-weight:700;color:rgba(247,243,228,.5);flex:none;font-variant-numeric:tabular-nums}
+.d3-action{
+  flex:none;font-size:13px;font-weight:800;color:var(--jaune);
+  padding:4px 12px;border-radius:999px;border:1.5px solid rgba(217,189,110,.45);
+  transition:background .18s,border-color .18s;
+}
+.d3-action:hover{background:rgba(217,189,110,.16);border-color:var(--jaune)}
+.d3-fermer{
+  flex:none;width:24px;height:24px;border-radius:50%;color:rgba(247,243,228,.7);
+  display:inline-flex;align-items:center;justify-content:center;transition:color .18s,background .18s;
+}
+.d3-fermer:hover{color:#f7f3e4;background:rgba(250,247,237,.12)}
+.pile-d3{gap:4px}
+.pile-d3>*{width:100%}
+
+/* ==================================================================
+   Direction 4 — LE GESTE AU PREMIER PLAN
+   L’action inverse est l’objet ; le message est sa légende.
+   Minuteur : le bouton se vide — on voit la fenêtre d’annulation se fermer.
+   ================================================================== */
+.d4{
+  display:flex;align-items:center;gap:14px;
+  background:var(--carte);border-radius:999px;box-shadow:var(--ombre-lg);
+  padding:9px 12px 9px 22px;min-width:340px;max-width:560px;
+}
+.d4-message{flex:1;font-size:13.5px;font-weight:700;color:var(--sourdine);min-width:0;
+  display:flex;align-items:center;gap:8px}
+.d4-message b{color:var(--texte);font-weight:800}
+.d4-bouton{
+  position:relative;flex:none;overflow:hidden;
+  display:inline-flex;align-items:center;gap:9px;
+  border:2px solid var(--orange);border-radius:999px;
+  padding:9px 20px;font-size:15px;font-weight:800;color:var(--orange);
+  background:#fdf5e8;
+}
+.d4-bouton svg{width:16px;height:16px;position:relative;z-index:1}
+.d4-bouton span{position:relative;z-index:1}
+.d4-jauge{
+  position:absolute;left:0;top:0;bottom:0;z-index:0;
+  background:rgba(204,109,0,.17);
+  animation:drain-largeur var(--duree) linear infinite;
+}
+.d4-bouton:hover{background:#fbecd6}
+.d4-bouton--vert{border-color:var(--vert);color:var(--vert);background:var(--vert-fond)}
+.d4-bouton--vert .d4-jauge{background:rgba(111,137,78,.2)}
+.d4-fermer{
+  flex:none;width:30px;height:30px;border-radius:50%;color:var(--dore);
+  display:inline-flex;align-items:center;justify-content:center;transition:background .18s,color .18s;
+}
+.d4-fermer:hover{background:var(--piste);color:var(--texte)}
+
+/* La variante sans action : le registre informatif descend d’un cran. */
+.d4-info{
+  display:inline-flex;align-items:center;gap:11px;
+  background:rgba(250,247,237,.82);border:1px solid var(--bord-doux);
+  border-radius:999px;padding:7px 14px 7px 11px;box-shadow:var(--ombre);
+  font-size:13px;font-weight:600;color:var(--sourdine);max-width:520px;
+}
+.d4-info b{color:var(--texte);font-weight:800}
+.d4-info .avatar{width:24px;height:24px;font-size:9.5px}
+.d4-info .compteur{background:var(--piste);color:var(--dore)}
+.d4-goutte{
+  width:8px;height:8px;border-radius:50%;background:var(--dore);flex:none;
+  animation:drain-pastille var(--duree) linear infinite;
+}
+.d4-info .d4-fermer{width:22px;height:22px;margin-left:2px}
+
+/* ==================================================================
+   Direction 5 — L’ANCRE
+   Le toast sort de la rangée qui l’a produit : bulle à queue, sous la ligne.
+   Minuteur : anneau autour du ×, et la rangée reprend sa couleur en 6 s.
+   ================================================================== */
+.d5-groupe{width:100%;max-width:560px}
+.d5-rangee{
+  position:relative;display:flex;align-items:center;gap:14px;
+  background:var(--vert-fond);border-radius:20px;padding:13px 18px;
+  animation:lavis-rangee var(--duree) linear infinite;
+}
+.d5-rangee .rangee-titre{color:var(--sourdine);text-decoration:line-through}
+.d5{
+  position:relative;z-index:2;margin:2px 0 0 26px;width:calc(100% - 26px);
+  display:flex;align-items:center;gap:12px;
+  background:var(--carte);border:1.5px solid var(--vert-fond);border-radius:0 16px 16px 16px;
+  box-shadow:var(--ombre-lg);padding:10px 12px 10px 16px;
+  transform-origin:top left;
+}
+.d5::before{ /* la queue qui remonte vers la rangée, dans son padding bas */
+  content:'';position:absolute;left:-1.5px;top:-8px;width:0;height:0;
+  border-left:12px solid var(--carte);border-top:9px solid transparent;
+}
+.d5.anime{animation-name:entree-deploie}
+.d5--libre{margin:0;width:100%;border-radius:16px}
+.d5--libre::before{display:none}
+.d5--libre.anime{animation-name:entree-monte}
+.d5-icone{
+  width:26px;height:26px;border-radius:50%;flex:none;background:var(--vert-fond);color:var(--vert);
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.d5-icone svg{width:14px;height:14px}
+.d5-icone--orange{background:#fbf0dd;color:var(--orange)}
+.d5-texte{flex:1;font-size:13.5px;font-weight:700;color:var(--texte);min-width:0;
+  display:flex;align-items:center;gap:8px}
+.d5-texte .compteur{background:var(--vert-fond);color:var(--vert)}
+.d5-action{
+  flex:none;background:var(--vert);color:var(--carte);border-radius:999px;
+  padding:6px 16px;font-size:13px;font-weight:800;transition:filter .18s;
+}
+.d5-action--orange{background:var(--orange)}
+.d5-action:hover{filter:brightness(1.08)}
+.d5-fermer{
+  position:relative;flex:none;width:28px;height:28px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;color:var(--dore);
+}
+.d5-fermer svg.croix{width:11px;height:11px}
+.d5-anneau{position:absolute;inset:0;transform:rotate(-90deg)}
+.d5-anneau circle{fill:none;stroke-width:2}
+.d5-anneau .piste{stroke:var(--piste)}
+.d5-anneau .jauge{
+  stroke:var(--vert);stroke-linecap:round;stroke-dasharray:69;
+  animation:drain-anneau var(--duree) linear infinite;
+}
+.d5-fermer:hover{background:var(--piste);color:var(--texte)}
+.pile-d5{gap:8px}
+.pile-d5>*{width:100%}
+
+/* ==================================================================
+   Tableau comparatif
+   ================================================================== */
+.comparatif{margin-top:76px}
+.comparatif h2{font-size:29px;font-weight:600;margin-bottom:20px}
+table{
+  width:100%;border-collapse:collapse;background:var(--carte);
+  border-radius:24px;overflow:hidden;box-shadow:var(--ombre-lg);
+}
+th,td{text-align:left;padding:16px 22px;vertical-align:top;font-size:14px}
+thead th{
+  font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--dore);background:var(--creux);
+}
+tbody tr+tr{border-top:1px dashed var(--tiret)}
+td:first-child{font-family:Fraunces,Georgia,serif;font-size:16px;font-weight:600;color:var(--encre);width:23%}
+td.gain{color:var(--texte)}
+td.cout{color:var(--sourdine)}
+
+.pied{margin-top:40px;font-size:13px;color:var(--tiret-texte);max-width:760px;line-height:1.75}
+.pied b{color:var(--dore)}
+.pied code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;
+  background:var(--carte);border-radius:6px;padding:2px 6px;color:var(--dore);
+}
+
+/* Accessibilité : plus de mouvement si le système le refuse ; les
+   minuteurs se figent à mi-course pour rester lisibles. */
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .d1-minuteur i,.d3-filet i{transform:scaleX(.55)}
+  .d2-rail i{transform:scaleY(.55)}
+  .d4-jauge{width:55%}
+  .fusion-un{opacity:0}
+  .d5-rangee{background:var(--vert-fond)}
+}
+</style>
+</head>
+<body>
+
+<!-- Sprite d’icônes : un seul jeu, réutilisé par les cinq directions. -->
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
+  <symbol id="i-coche" viewBox="0 0 16 16"><path d="M3.2 8.4 6.4 11.6 12.8 4.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-retour" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.4 3 6.9l3.5 3.5"/><path d="M3 6.9h6.1a3.8 3.8 0 0 1 0 7.6H7.4"/></g></symbol>
+  <symbol id="i-refaire" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.4 13 6.9l-3.5 3.5"/><path d="M13 6.9H6.9a3.8 3.8 0 0 0 0 7.6h1.7"/></g></symbol>
+  <symbol id="i-croix" viewBox="0 0 16 16"><path d="M4.4 4.4l7.2 7.2M11.6 4.4l-7.2 7.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-etincelle" viewBox="0 0 16 16"><path d="M8 1.6l1.6 4.3 4.4 1.6-4.4 1.6L8 13.4 6.4 9.1 2 7.5l4.4-1.6z" fill="currentColor"/></symbol>
+  <symbol id="i-crayon" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M11.2 2.4 13.6 4.8 6 12.4 2.9 13.1 3.6 10z"/></g></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-horloge" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 4.6V8l2.4 1.7"/></g></symbol>
+  <symbol id="i-synchro" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 6.6a5.6 5.6 0 0 1 9.5-2.3l1.3 1.3"/><path d="M13.4 9.4a5.6 5.6 0 0 1-9.5 2.3l-1.3-1.3"/><path d="M13.4 2.6v3h-3M2.6 13.4v-3h3"/></g></symbol>
+</svg>
+
+<div class="page">
+
+  <header class="entete">
+    <div>
+      <h1>Toasts — cinq directions</h1>
+      <p>Le même composant, les mêmes six cas, cinq partis pris qui ne se ressemblent pas.
+         Fond de page = fond réel de l’app, pour juger le contraste en situation.
+         Tout est vivant : les minuteurs de 6 s tournent en boucle, la fusion se rejoue.</p>
+    </div>
+    <button class="rejouer" type="button" id="rejouer">
+      <svg class="ic"><use href="#i-synchro"/></svg> Rejouer les entrées
+    </button>
+  </header>
+
+  <nav class="sommaire">
+    <a href="#d1">1 · La carte posée</a>
+    <a href="#d2">2 · Le liseré</a>
+    <a href="#d3">3 · La barre</a>
+    <a href="#d4">4 · Le geste au premier plan</a>
+    <a href="#d5">5 · L’ancre</a>
+    <a href="#comparatif">Comparatif</a>
+  </nav>
+
+
+  <!-- ============================================================
+       DIRECTION 1 — LA CARTE POSÉE
+       ============================================================ -->
+  <section class="direction" id="d1">
+    <div class="direction-entete">
+      <span class="numero">1</span>
+      <h2>La carte posée</h2>
+      <span class="parti-pris">Continuité</span>
+    </div>
+    <p class="rationale">
+      Le toast est <em>une carte de l’app, en plus petit</em> : même crème, même rayon, même ombre,
+      même liseré gauche coloré que les rangées en retard. Rien de nouveau à apprendre — il se lit
+      comme une ligne de la liste qui serait venue se poser au premier plan. Deux lignes de texte
+      permettent de dire <em>quoi</em> et <em>sur quoi</em>, et un médaillon (icône pour mes gestes,
+      avatar pour ceux des autres) porte l’auteur sans changer de système.
+      Ce qu’elle sacrifie : c’est la direction la plus haute et la moins pressante — elle ne crie
+      jamais, donc un « Annuler » peut se rater si on regarde ailleurs.
+    </p>
+    <span class="legende-minuteur"><svg><use href="#i-horloge"/></svg> Minuteur : barre fine au pied de la carte</span>
+
+    <div class="echantillons">
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Mon geste</b> · action inverse</span>
+        <div class="d1 anime">
+          <span class="d1-medaillon"><svg><use href="#i-coche"/></svg></span>
+          <div class="d1-corps">
+            <div class="d1-titre">Tâche complétée</div>
+            <div class="d1-sous">Vider le cabanon</div>
+          </div>
+          <button class="d1-action" type="button">Annuler</button>
+          <button class="d1-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Mon geste</b> · retour arrière</span>
+        <div class="d1 d1--defait anime">
+          <span class="d1-medaillon"><svg><use href="#i-retour"/></svg></span>
+          <div class="d1-corps">
+            <div class="d1-titre">Complétion annulée</div>
+            <div class="d1-sous">Vider le cabanon</div>
+          </div>
+          <button class="d1-action" type="button">Refaire</button>
+          <button class="d1-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>Ariane</b></span>
+        <div class="d1 d1--distant anime">
+          <span class="avatar av-ar" style="width:34px;height:34px;font-size:12px">Ar</span>
+          <div class="d1-corps">
+            <div class="d1-titre">Ariane a complété « Sortir les poubelles »</div>
+            <div class="d1-sous">à l’instant, depuis un autre onglet</div>
+          </div>
+          <button class="d1-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>Claude</b></span>
+        <div class="d1 d1--distant d1--claude anime">
+          <span class="avatar av-cl" style="width:34px;height:34px"><svg class="ic"><use href="#i-etincelle"/></svg></span>
+          <div class="d1-corps">
+            <div class="d1-titre">Claude (au nom d’Alain) a créé 8 tâches</div>
+            <div class="d1-sous">Déménagement · à l’instant</div>
+          </div>
+          <button class="d1-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>auteur inconnu</b></span>
+        <div class="d1 d1--distant d1--anonyme anime">
+          <span class="avatar av-qui" style="width:34px;height:34px;font-size:14px">?</span>
+          <div class="d1-corps">
+            <div class="d1-titre">Quelqu’un a modifié une tâche</div>
+            <div class="d1-sous">à l’instant</div>
+          </div>
+          <button class="d1-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Fusion</b> · le compteur apparaît</span>
+        <div class="d1 d1--distant pouls">
+          <span class="avatar av-ar" style="width:34px;height:34px;font-size:12px">Ar</span>
+          <div class="d1-corps">
+            <div class="d1-titre">
+              <span class="fusion-texte">
+                <span class="fusion-un">Ariane a complété « Sortir les poubelles »</span>
+                <span class="fusion-trois">Ariane a complété 3 tâches</span>
+              </span>
+              <span class="compteur">3</span>
+            </div>
+            <div class="d1-sous">à l’instant</div>
+          </div>
+          <button class="d1-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Vignette : la direction posée sur un extrait crédible de liste -->
+    <div class="vignette">
+      <span class="vignette-note">Pile de 3 · bas d’écran</span>
+      <div class="liste">
+        <div class="rangee rangee--retard"><span class="case case--retard"></span><span class="rangee-titre">Réserver le camion de déménagement</span><span class="rangee-retard">depuis hier</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Appeler Hydro-Québec — changement d’adresse</span><span class="avatar av-ar">Ar</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Commander des boîtes</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee rangee--faite"><span class="case case--faite"><svg><use href="#i-coche"/></svg></span><span class="rangee-titre">Vider le cabanon</span><span class="rangee-note">Alain · 14 h 10</span></div>
+      </div>
+      <div class="pile">
+        <div class="d1 d1--distant anime" style="animation-delay:0s">
+          <span class="avatar av-cl" style="width:34px;height:34px"><svg class="ic"><use href="#i-etincelle"/></svg></span>
+          <div class="d1-corps"><div class="d1-titre">Claude (au nom d’Alain) a créé 8 tâches</div><div class="d1-sous">Déménagement</div></div>
+          <button class="d1-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+        <div class="d1 d1--distant anime" style="animation-delay:.12s">
+          <span class="avatar av-ar" style="width:34px;height:34px;font-size:12px">Ar</span>
+          <div class="d1-corps"><div class="d1-titre">Ariane a complété « Sortir les poubelles »</div><div class="d1-sous">à l’instant</div></div>
+          <button class="d1-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+        <div class="d1 anime" style="animation-delay:.24s">
+          <span class="d1-medaillon"><svg><use href="#i-coche"/></svg></span>
+          <div class="d1-corps"><div class="d1-titre">Tâche complétée</div><div class="d1-sous">Vider le cabanon</div></div>
+          <button class="d1-action" type="button">Annuler</button>
+          <button class="d1-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic"><use href="#i-croix"/></svg></button>
+          <span class="d1-minuteur"><i></i></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       DIRECTION 2 — LE LISERÉ
+       ============================================================ -->
+  <section class="direction" id="d2">
+    <div class="direction-entete">
+      <span class="numero">2</span>
+      <h2>Le liseré</h2>
+      <span class="parti-pris">Discrétion</span>
+    </div>
+    <p class="rationale">
+      Toute la couleur tient dans <em>un rail de 4 px et une icône</em> ; le fond reste crème, le
+      texte reste sur une seule ligne. C’est la direction qui interrompt le moins : à trois
+      empilés, on lit encore la liste derrière. L’auteur d’un événement distant se signale par un
+      petit avatar à la place de l’icône, et par un rail dans sa couleur pastel —
+      la hiérarchie « moi / les autres » se joue en teinte, pas en volume.
+      Ce qu’elle sacrifie : l’action inverse n’est qu’un lien souligné — trouvable, mais moins
+      « cliquable » qu’un bouton ; et sur le fond de page, la carte crème demande sa bordure fine
+      pour ne pas se dissoudre.
+    </p>
+    <span class="legende-minuteur"><svg><use href="#i-horloge"/></svg> Minuteur : le rail se vide de haut en bas</span>
+
+    <div class="echantillons">
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Mon geste</b> · action inverse</span>
+        <div class="d2 anime">
+          <span class="d2-rail"><i></i></span>
+          <svg class="d2-icone"><use href="#i-coche"/></svg>
+          <span class="d2-texte"><b>Tâche complétée</b></span>
+          <button class="d2-action" type="button">Annuler</button>
+          <button class="d2-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Mon geste</b> · retour arrière</span>
+        <div class="d2 d2--defait anime">
+          <span class="d2-rail"><i></i></span>
+          <svg class="d2-icone"><use href="#i-retour"/></svg>
+          <span class="d2-texte"><b>Complétion annulée</b></span>
+          <button class="d2-action" type="button">Refaire</button>
+          <button class="d2-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>Ariane</b></span>
+        <div class="d2 d2--ariane anime">
+          <span class="d2-rail"><i></i></span>
+          <span class="avatar av-ar d2-avatar">Ar</span>
+          <span class="d2-texte">Ariane a complété « Sortir les poubelles »</span>
+          <button class="d2-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>Claude</b></span>
+        <div class="d2 d2--claude anime">
+          <span class="d2-rail"><i></i></span>
+          <span class="avatar av-cl d2-avatar"><svg class="ic" style="width:12px;height:12px"><use href="#i-etincelle"/></svg></span>
+          <span class="d2-texte">Claude (au nom d’Alain) a créé 8 tâches</span>
+          <button class="d2-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>auteur inconnu</b></span>
+        <div class="d2 d2--anonyme anime">
+          <span class="d2-rail"><i></i></span>
+          <svg class="d2-icone"><use href="#i-crayon"/></svg>
+          <span class="d2-texte">Quelqu’un a modifié une tâche</span>
+          <button class="d2-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Fusion</b> · le compteur apparaît</span>
+        <div class="d2 d2--ariane pouls">
+          <span class="d2-rail"><i></i></span>
+          <span class="avatar av-ar d2-avatar">Ar</span>
+          <span class="d2-texte">
+            <span class="fusion-texte">
+              <span class="fusion-un">Ariane a complété « Sortir les poubelles »</span>
+              <span class="fusion-trois">Ariane a complété 3 tâches</span>
+            </span>
+            <span class="compteur">3</span>
+          </span>
+          <button class="d2-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="vignette">
+      <span class="vignette-note">Pile de 3 · bas d’écran</span>
+      <div class="liste">
+        <div class="rangee rangee--retard"><span class="case case--retard"></span><span class="rangee-titre">Réserver le camion de déménagement</span><span class="rangee-retard">depuis hier</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Appeler Hydro-Québec — changement d’adresse</span><span class="avatar av-ar">Ar</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Commander des boîtes</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Trier le garage — boîtes à donner</span><span class="avatar av-ar">Ar</span></div>
+        <div class="rangee rangee--faite"><span class="case case--faite"><svg><use href="#i-coche"/></svg></span><span class="rangee-titre">Vider le cabanon</span><span class="rangee-note">Alain · 14 h 10</span></div>
+      </div>
+      <div class="pile">
+        <div class="d2 d2--claude anime" style="animation-delay:0s">
+          <span class="d2-rail"><i></i></span>
+          <span class="avatar av-cl d2-avatar"><svg class="ic" style="width:12px;height:12px"><use href="#i-etincelle"/></svg></span>
+          <span class="d2-texte">Claude (au nom d’Alain) a créé 8 tâches</span>
+          <button class="d2-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+        <div class="d2 d2--ariane anime" style="animation-delay:.12s">
+          <span class="d2-rail"><i></i></span>
+          <span class="avatar av-ar d2-avatar">Ar</span>
+          <span class="d2-texte">Ariane a complété 3 tâches <span class="compteur" style="background:var(--piste);color:var(--dore);animation:none">3</span></span>
+          <button class="d2-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+        <div class="d2 anime" style="animation-delay:.24s">
+          <span class="d2-rail"><i></i></span>
+          <svg class="d2-icone"><use href="#i-coche"/></svg>
+          <span class="d2-texte"><b>Tâche complétée</b></span>
+          <button class="d2-action" type="button">Annuler</button>
+          <button class="d2-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       DIRECTION 3 — LA BARRE
+       ============================================================ -->
+  <section class="direction" id="d3">
+    <div class="direction-entete">
+      <span class="numero">3</span>
+      <h2>La barre</h2>
+      <span class="parti-pris">Densité</span>
+    </div>
+    <p class="rationale">
+      Un registre à part : <em>bande d’encre pleine largeur</em>, une seule ligne, 44 px de haut,
+      posée au pied de la colonne. La couleur vient du bleu-encre des titres, donc on reste dans la
+      famille sans reprendre le crème des cartes — le toast ne se confond jamais avec le contenu,
+      et trois empilés forment un petit journal qu’on lit d’un balayage vertical.
+      L’heure à droite et l’avatar pastel (très lisible sur l’encre) disent qui et quand.
+      Ce qu’elle sacrifie : c’est la direction la plus « système » — elle est efficace, mais moins
+      douillette que le reste de l’app, et sa pleine largeur en fait un objet lourd pour dire
+      seulement « Tâche complétée ».
+    </p>
+    <span class="legende-minuteur"><svg><use href="#i-horloge"/></svg> Minuteur : filet doré le long du bord haut</span>
+
+    <div class="echantillons" style="flex-direction:column;gap:22px">
+
+      <div class="echantillon" style="width:100%;max-width:620px">
+        <span class="etiquette"><b>Mon geste</b> · action inverse</span>
+        <div class="d3 anime">
+          <span class="d3-filet"><i></i></span>
+          <span class="d3-pastille"></span>
+          <span class="d3-texte">Tâche complétée — Vider le cabanon</span>
+          <span class="d3-heure">14 h 10</span>
+          <button class="d3-action" type="button">Annuler</button>
+          <button class="d3-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon" style="width:100%;max-width:620px">
+        <span class="etiquette"><b>Mon geste</b> · retour arrière</span>
+        <div class="d3 d3--defait anime">
+          <span class="d3-filet"><i></i></span>
+          <span class="d3-pastille"></span>
+          <span class="d3-texte">Complétion annulée — Vider le cabanon</span>
+          <span class="d3-heure">14 h 11</span>
+          <button class="d3-action" type="button">Refaire</button>
+          <button class="d3-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon" style="width:100%;max-width:620px">
+        <span class="etiquette">Synchro · <b>Ariane</b>, <b>Claude</b>, <b>auteur inconnu</b></span>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div class="d3 anime">
+            <span class="d3-filet"><i></i></span>
+            <span class="avatar av-ar d3-avatar">Ar</span>
+            <span class="d3-texte leger">Ariane a complété « Sortir les poubelles »</span>
+            <span class="d3-heure">14 h 12</span>
+            <button class="d3-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+          </div>
+          <div class="d3 anime" style="animation-delay:.1s">
+            <span class="d3-filet"><i></i></span>
+            <span class="avatar av-cl d3-avatar"><svg class="ic" style="width:12px;height:12px"><use href="#i-etincelle"/></svg></span>
+            <span class="d3-texte leger">Claude (au nom d’Alain) a créé 8 tâches</span>
+            <span class="d3-heure">14 h 12</span>
+            <button class="d3-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+          </div>
+          <div class="d3 anime" style="animation-delay:.2s">
+            <span class="d3-filet"><i></i></span>
+            <span class="avatar av-qui d3-avatar">?</span>
+            <span class="d3-texte leger">Quelqu’un a modifié une tâche</span>
+            <span class="d3-heure">14 h 13</span>
+            <button class="d3-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="echantillon" style="width:100%;max-width:620px">
+        <span class="etiquette"><b>Fusion</b> · le compteur apparaît</span>
+        <div class="d3 pouls">
+          <span class="d3-filet"><i></i></span>
+          <span class="avatar av-ar d3-avatar">Ar</span>
+          <span class="d3-texte leger">
+            <span class="fusion-texte">
+              <span class="fusion-un">Ariane a complété « Sortir les poubelles »</span>
+              <span class="fusion-trois">Ariane a complété 3 tâches</span>
+            </span>
+            <span class="compteur">3</span>
+          </span>
+          <span class="d3-heure">14 h 12</span>
+          <button class="d3-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="vignette">
+      <span class="vignette-note">Pile de 3 · bas d’écran</span>
+      <div class="liste">
+        <div class="rangee rangee--retard"><span class="case case--retard"></span><span class="rangee-titre">Réserver le camion de déménagement</span><span class="rangee-retard">depuis hier</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Appeler Hydro-Québec — changement d’adresse</span><span class="avatar av-ar">Ar</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Commander des boîtes</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Trier le garage — boîtes à donner</span><span class="avatar av-ar">Ar</span></div>
+        <div class="rangee rangee--faite"><span class="case case--faite"><svg><use href="#i-coche"/></svg></span><span class="rangee-titre">Vider le cabanon</span><span class="rangee-note">Alain · 14 h 10</span></div>
+      </div>
+      <div class="pile pile-d3">
+        <div class="d3 anime" style="animation-delay:0s">
+          <span class="d3-filet"><i></i></span>
+          <span class="avatar av-cl d3-avatar"><svg class="ic" style="width:12px;height:12px"><use href="#i-etincelle"/></svg></span>
+          <span class="d3-texte leger">Claude (au nom d’Alain) a créé 8 tâches</span>
+          <span class="d3-heure">14 h 12</span>
+          <button class="d3-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+        </div>
+        <div class="d3 anime" style="animation-delay:.12s">
+          <span class="d3-filet"><i></i></span>
+          <span class="avatar av-ar d3-avatar">Ar</span>
+          <span class="d3-texte leger">Ariane a complété 3 tâches <span class="compteur" style="background:rgba(250,247,237,.16);color:#f7f3e4;animation:none">3</span></span>
+          <span class="d3-heure">14 h 12</span>
+          <button class="d3-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+        </div>
+        <div class="d3 anime" style="animation-delay:.24s">
+          <span class="d3-filet"><i></i></span>
+          <span class="d3-pastille"></span>
+          <span class="d3-texte">Tâche complétée — Vider le cabanon</span>
+          <span class="d3-heure">14 h 13</span>
+          <button class="d3-action" type="button">Annuler</button>
+          <button class="d3-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic" style="width:13px;height:13px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       DIRECTION 4 — LE GESTE AU PREMIER PLAN
+       ============================================================ -->
+  <section class="direction" id="d4">
+    <div class="direction-entete">
+      <span class="numero">4</span>
+      <h2>Le geste au premier plan</h2>
+      <span class="parti-pris">Le filet d’abord</span>
+    </div>
+    <p class="rationale">
+      On inverse la hiérarchie : <em>le bouton d’annulation est l’objet</em>, le message n’est que sa
+      légende, en sourdine. Et le minuteur passe dans le bouton — sa teinte se vide de gauche à
+      droite, si bien qu’on <em>voit</em> la fenêtre de rattrapage se refermer. C’est la direction
+      qui rate le moins un mauvais clic.
+      Les annonces de la synchro, elles, n’ont pas d’action : elles tombent d’un cran dans une
+      pastille crème translucide, sans bouton. Le contraste entre les deux formes dit tout de suite
+      « ça, c’est à toi de décider / ça, c’est une nouvelle ».
+      Ce qu’elle sacrifie : deux formes très différentes dans un même coin d’écran, et un accent
+      orange assez présent pour un événement banal.
+    </p>
+    <span class="legende-minuteur"><svg><use href="#i-horloge"/></svg> Minuteur : le bouton se vide · goutte qui rétrécit pour les annonces</span>
+
+    <div class="echantillons">
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Mon geste</b> · action inverse</span>
+        <div class="d4 anime">
+          <span class="d4-message"><b>Tâche complétée</b> — Vider le cabanon</span>
+          <button class="d4-bouton" type="button">
+            <span class="d4-jauge"></span>
+            <svg><use href="#i-retour"/></svg><span>Annuler</span>
+          </button>
+          <button class="d4-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Mon geste</b> · retour arrière</span>
+        <div class="d4 anime">
+          <span class="d4-message"><b>Complétion annulée</b> — Vider le cabanon</span>
+          <button class="d4-bouton d4-bouton--vert" type="button">
+            <span class="d4-jauge"></span>
+            <svg><use href="#i-refaire"/></svg><span>Refaire</span>
+          </button>
+          <button class="d4-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>Ariane</b></span>
+        <div class="d4-info anime">
+          <span class="d4-goutte"></span>
+          <span class="avatar av-ar">Ar</span>
+          <span><b>Ariane</b> a complété « Sortir les poubelles »</span>
+          <button class="d4-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>Claude</b></span>
+        <div class="d4-info anime">
+          <span class="d4-goutte"></span>
+          <span class="avatar av-cl"><svg class="ic" style="width:12px;height:12px"><use href="#i-etincelle"/></svg></span>
+          <span><b>Claude</b> (au nom d’Alain) a créé 8 tâches</span>
+          <button class="d4-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette">Synchro · <b>auteur inconnu</b></span>
+        <div class="d4-info anime">
+          <span class="d4-goutte"></span>
+          <span class="avatar av-qui">?</span>
+          <span>Quelqu’un a modifié une tâche</span>
+          <button class="d4-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+      <div class="echantillon">
+        <span class="etiquette"><b>Fusion</b> · le compteur apparaît</span>
+        <div class="d4-info pouls">
+          <span class="d4-goutte"></span>
+          <span class="avatar av-ar">Ar</span>
+          <span class="fusion-texte">
+            <span class="fusion-un"><b>Ariane</b> a complété « Sortir les poubelles »</span>
+            <span class="fusion-trois"><b>Ariane</b> a complété 3 tâches</span>
+          </span>
+          <span class="compteur">3</span>
+          <button class="d4-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="vignette">
+      <span class="vignette-note">Pile de 3 · bas d’écran</span>
+      <div class="liste">
+        <div class="rangee rangee--retard"><span class="case case--retard"></span><span class="rangee-titre">Réserver le camion de déménagement</span><span class="rangee-retard">depuis hier</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Appeler Hydro-Québec — changement d’adresse</span><span class="avatar av-ar">Ar</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Commander des boîtes</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee rangee--faite"><span class="case case--faite"><svg><use href="#i-coche"/></svg></span><span class="rangee-titre">Vider le cabanon</span><span class="rangee-note">Alain · 14 h 10</span></div>
+      </div>
+      <div class="pile">
+        <div class="d4-info anime" style="animation-delay:0s">
+          <span class="d4-goutte"></span>
+          <span class="avatar av-cl"><svg class="ic" style="width:12px;height:12px"><use href="#i-etincelle"/></svg></span>
+          <span><b>Claude</b> (au nom d’Alain) a créé 8 tâches</span>
+          <button class="d4-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+        <div class="d4-info anime" style="animation-delay:.12s">
+          <span class="d4-goutte"></span>
+          <span class="avatar av-ar">Ar</span>
+          <span><b>Ariane</b> a complété 3 tâches</span>
+          <span class="compteur" style="background:var(--piste);color:var(--dore);animation:none">3</span>
+          <button class="d4-fermer" type="button" aria-label="Fermer l’annonce"><svg class="ic" style="width:12px;height:12px"><use href="#i-croix"/></svg></button>
+        </div>
+        <div class="d4 anime" style="animation-delay:.24s">
+          <span class="d4-message"><b>Tâche complétée</b> — Vider le cabanon</span>
+          <button class="d4-bouton" type="button">
+            <span class="d4-jauge"></span>
+            <svg><use href="#i-retour"/></svg><span>Annuler</span>
+          </button>
+          <button class="d4-fermer" type="button" aria-label="Fermer la confirmation"><svg class="ic"><use href="#i-croix"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       DIRECTION 5 — L’ANCRE
+       ============================================================ -->
+  <section class="direction" id="d5">
+    <div class="direction-entete">
+      <span class="numero">5</span>
+      <h2>L’ancre</h2>
+      <span class="parti-pris">Le lieu du geste</span>
+    </div>
+    <p class="rationale">
+      Le toast <em>sort de la rangée qui l’a produit</em> : une bulle à queue vient se glisser juste
+      sous la ligne cochée, pendant que le lavis vert de la rangée redescend lentement vers le crème
+      — la durée restante est portée par le monde, pas par le toast (l’anneau autour du × la
+      redouble pour ceux qui la cherchent). Aucun aller-retour du regard : ce que j’ai coché et la
+      façon de le défaire sont au même endroit.
+      Quand l’événement n’a pas de rangée visible (8 tâches créées, une tâche modifiée ailleurs),
+      la bulle perd sa queue et rejoint le bas d’écran.
+      Ce qu’elle sacrifie : c’est la plus coûteuse à construire (positionnement lié à la liste,
+      repli quand la rangée est hors écran) et elle pousse le contenu vers le bas.
+    </p>
+    <span class="legende-minuteur"><svg><use href="#i-horloge"/></svg> Minuteur : anneau autour du × · la rangée se décolore en 6 s</span>
+
+    <div class="echantillons" style="flex-direction:column;gap:26px">
+
+      <div class="echantillon" style="width:100%;max-width:600px">
+        <span class="etiquette"><b>Mon geste</b> · ancré à la rangée cochée</span>
+        <div class="d5-groupe">
+          <div class="d5-rangee">
+            <span class="case case--faite"><svg><use href="#i-coche"/></svg></span>
+            <span class="rangee-titre">Vider le cabanon</span>
+            <span class="rangee-note">Alain · 14 h 10</span>
+          </div>
+          <div class="d5 anime">
+            <span class="d5-icone"><svg><use href="#i-coche"/></svg></span>
+            <span class="d5-texte">Tâche complétée</span>
+            <button class="d5-action" type="button">Annuler</button>
+            <button class="d5-fermer" type="button" aria-label="Fermer la confirmation">
+              <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11"/></svg>
+              <svg class="croix"><use href="#i-croix"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="echantillon" style="width:100%;max-width:600px">
+        <span class="etiquette"><b>Mon geste</b> · retour arrière, la rangée redevient à faire</span>
+        <div class="d5-groupe">
+          <div class="rangee">
+            <span class="case"></span>
+            <span class="rangee-titre">Vider le cabanon</span>
+            <span class="avatar av-al">Al</span>
+          </div>
+          <div class="d5 anime" style="border-color:#fbf0dd">
+            <span class="d5-icone d5-icone--orange"><svg><use href="#i-retour"/></svg></span>
+            <span class="d5-texte">Complétion annulée</span>
+            <button class="d5-action d5-action--orange" type="button">Refaire</button>
+            <button class="d5-fermer" type="button" aria-label="Fermer la confirmation">
+              <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11" style="stroke:var(--orange)"/></svg>
+              <svg class="croix"><use href="#i-croix"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="echantillon" style="width:100%;max-width:600px">
+        <span class="etiquette">Synchro · <b>Ariane</b> — ancré, et la fusion réécrit la bulle</span>
+        <div class="d5-groupe">
+          <div class="d5-rangee">
+            <span class="case case--faite"><svg><use href="#i-coche"/></svg></span>
+            <span class="rangee-titre">Sortir les poubelles</span>
+            <span class="rangee-note">Ariane · à l’instant</span>
+          </div>
+          <div class="d5 pouls">
+            <span class="avatar av-ar" style="width:26px;height:26px;font-size:10px">Ar</span>
+            <span class="d5-texte">
+              <span class="fusion-texte">
+                <span class="fusion-un">Ariane a complété « Sortir les poubelles »</span>
+                <span class="fusion-trois">Ariane a complété 3 tâches</span>
+              </span>
+              <span class="compteur">3</span>
+            </span>
+            <button class="d5-fermer" type="button" aria-label="Fermer l’annonce">
+              <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11" style="stroke:var(--ar-texte)"/></svg>
+              <svg class="croix"><use href="#i-croix"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="echantillon" style="width:100%;max-width:600px">
+        <span class="etiquette">Sans rangée visible · <b>la bulle perd sa queue</b></span>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="d5 d5--libre anime">
+            <span class="avatar av-cl" style="width:26px;height:26px"><svg class="ic" style="width:13px;height:13px"><use href="#i-etincelle"/></svg></span>
+            <span class="d5-texte">Claude (au nom d’Alain) a créé 8 tâches</span>
+            <button class="d5-fermer" type="button" aria-label="Fermer l’annonce">
+              <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11" style="stroke:var(--jaune)"/></svg>
+              <svg class="croix"><use href="#i-croix"/></svg>
+            </button>
+          </div>
+          <div class="d5 d5--libre anime" style="animation-delay:.1s">
+            <span class="avatar av-qui" style="width:26px;height:26px;font-size:12px">?</span>
+            <span class="d5-texte">Quelqu’un a modifié une tâche</span>
+            <button class="d5-fermer" type="button" aria-label="Fermer l’annonce">
+              <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11" style="stroke:var(--tiret-texte)"/></svg>
+              <svg class="croix"><use href="#i-croix"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="vignette vignette--haute">
+      <span class="vignette-note">Ancré dans la liste · repli en pile de 3</span>
+      <div class="liste">
+        <div class="rangee rangee--retard"><span class="case case--retard"></span><span class="rangee-titre">Réserver le camion de déménagement</span><span class="rangee-retard">depuis hier</span><span class="avatar av-al">Al</span></div>
+        <div class="d5-groupe" style="max-width:none">
+          <div class="d5-rangee">
+            <span class="case case--faite"><svg><use href="#i-coche"/></svg></span>
+            <span class="rangee-titre">Vider le cabanon</span>
+            <span class="rangee-note">Alain · à l’instant</span>
+          </div>
+          <div class="d5 anime">
+            <span class="d5-icone"><svg><use href="#i-coche"/></svg></span>
+            <span class="d5-texte">Tâche complétée</span>
+            <button class="d5-action" type="button">Annuler</button>
+            <button class="d5-fermer" type="button" aria-label="Fermer la confirmation">
+              <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11"/></svg>
+              <svg class="croix"><use href="#i-croix"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Appeler Hydro-Québec — changement d’adresse</span><span class="avatar av-ar">Ar</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Commander des boîtes</span><span class="avatar av-al">Al</span></div>
+        <div class="rangee"><span class="case"></span><span class="rangee-titre">Trier le garage — boîtes à donner</span><span class="avatar av-ar">Ar</span></div>
+      </div>
+      <div class="pile pile-d5">
+        <div class="d5 d5--libre anime" style="animation-delay:0s">
+          <span class="avatar av-cl" style="width:26px;height:26px"><svg class="ic" style="width:13px;height:13px"><use href="#i-etincelle"/></svg></span>
+          <span class="d5-texte">Claude (au nom d’Alain) a créé 8 tâches</span>
+          <button class="d5-fermer" type="button" aria-label="Fermer l’annonce">
+            <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11" style="stroke:var(--jaune)"/></svg>
+            <svg class="croix"><use href="#i-croix"/></svg>
+          </button>
+        </div>
+        <div class="d5 d5--libre anime" style="animation-delay:.12s">
+          <span class="avatar av-ar" style="width:26px;height:26px;font-size:10px">Ar</span>
+          <span class="d5-texte">Ariane a complété 3 tâches <span class="compteur" style="background:var(--vert-fond);color:var(--vert);animation:none">3</span></span>
+          <button class="d5-fermer" type="button" aria-label="Fermer l’annonce">
+            <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11" style="stroke:var(--ar-texte)"/></svg>
+            <svg class="croix"><use href="#i-croix"/></svg>
+          </button>
+        </div>
+        <div class="d5 d5--libre anime" style="animation-delay:.24s">
+          <span class="avatar av-qui" style="width:26px;height:26px;font-size:12px">?</span>
+          <span class="d5-texte">Quelqu’un a modifié une tâche</span>
+          <button class="d5-fermer" type="button" aria-label="Fermer l’annonce">
+            <svg class="d5-anneau" viewBox="0 0 28 28"><circle class="piste" cx="14" cy="14" r="11"/><circle class="jauge" cx="14" cy="14" r="11" style="stroke:var(--tiret-texte)"/></svg>
+            <svg class="croix"><use href="#i-croix"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       COMPARATIF
+       ============================================================ -->
+  <section class="comparatif" id="comparatif">
+    <h2>Ce que chacune gagne, ce qu’elle coûte</h2>
+    <table>
+      <thead>
+        <tr><th>Direction</th><th>Ce qu’elle gagne</th><th>Ce qu’elle coûte</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1 · La carte posée</td>
+          <td class="gain">Zéro dette visuelle : c’est le langage des cartes, en petit. Deux lignes pour dire quoi et sur quoi ; l’auteur tient dans le médaillon.</td>
+          <td class="cout">La plus haute et la plus polie ; un « Annuler » peut passer inaperçu. Trois empilés mangent 210 px de bas d’écran.</td>
+        </tr>
+        <tr>
+          <td>2 · Le liseré</td>
+          <td class="gain">Interrompt le moins : une ligne, presque pas de chrome, la liste reste lisible derrière même à trois. Auteur codé en teinte de rail.</td>
+          <td class="cout">L’action inverse est un lien souligné, moins évidemment cliquable. Sur fond crème, la carte a besoin d’une bordure pour exister.</td>
+        </tr>
+        <tr>
+          <td>3 · La barre</td>
+          <td class="gain">Registre séparé, impossible à confondre avec le contenu ; trois empilés se lisent comme un journal. Place pour l’heure et l’auteur.</td>
+          <td class="cout">Le seul objet sombre de l’app — efficace mais moins douillet ; pleine largeur pour trois mots, c’est lourd.</td>
+        </tr>
+        <tr>
+          <td>4 · Le geste au premier plan</td>
+          <td class="gain">Le mauvais clic est rattrapé : le bouton est l’objet et se vide à vue, on voit la fenêtre se refermer. Deux registres nettement distincts.</td>
+          <td class="cout">Deux formes très différentes au même endroit ; l’orange est bruyant pour un geste banal, et un « Annuler » gros invite à être cliqué par réflexe.</td>
+        </tr>
+        <tr>
+          <td>5 · L’ancre</td>
+          <td class="gain">Aucun aller-retour du regard : la confirmation et le moyen de la défaire naissent sur la rangée touchée. La durée est portée par le lavis de la rangée.</td>
+          <td class="cout">La plus chère à construire (position liée à la liste, repli hors écran, contenu poussé vers le bas) et elle a deux comportements à maintenir.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="pied">
+      <b>Accessibilité commune aux cinq :</b> conteneur <code>role="status"</code> / <code>aria-live="polite"</code>
+      (les annonces distantes n’interrompent pas la lecture en cours), chaque × est un vrai
+      <code>&lt;button&gt;</code> avec <code>aria-label</code> et une cible d’au moins 24 px, l’action inverse est
+      atteignable au clavier avant le ×. Sous <code>prefers-reduced-motion</code>, les entrées et les minuteurs
+      se figent — la page ci-dessus le fait déjà. Les 6 s restent une <b>commodité, jamais la seule voie</b> :
+      l’annulation doit exister ailleurs (rangée complétée cliquable) pour qui met plus de 6 s à réagir.
+    </p>
+  </section>
+
+</div>
+
+<script>
+  // Rejoue les animations d’entrée sans recharger la page : on coupe
+  // l’animation, on force un reflow, on la rend.
+  document.getElementById('rejouer').addEventListener('click', function () {
+    document.querySelectorAll('.anime').forEach(function (el) {
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = '';
+    });
+  });
+</script>
+
+</body>
+</html>

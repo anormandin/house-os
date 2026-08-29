@@ -51,7 +51,7 @@ export default function OccurrenceListe({
   const [reportOuvert, setReportOuvert] = useState<string | null>(null)
   const [noteEnEdition, setNoteEnEdition] = useState<{ id: string; texte: string } | null>(null)
 
-  const { completer, annuler } = useCompletionAvecUndo()
+  const { completer, annuler, fraichementCompletee } = useCompletionAvecUndo()
   const passer = useMutation({
     mutationFn: (id: string) => api.passer(id),
     onSuccess: invalider,
@@ -107,7 +107,13 @@ export default function OccurrenceListe({
           return (
             <li
               key={o.id}
-              className="group flex items-center gap-4 rounded-[20px] bg-vert-fond px-5 py-3.5"
+              className={cn(
+                'group flex items-center gap-4 rounded-[20px] bg-vert-fond px-5 py-3.5',
+                // Le lavis de la rangée qu'on vient de cocher : elle redescend vers
+                // son vert de repos sur les 6 s du toast, pour que le geste et sa
+                // confirmation se lisent au même endroit.
+                o.id === fraichementCompletee && 'rangee-lavis',
+              )}
             >
               <span className="flex size-[26px] shrink-0 items-center justify-center rounded-[9px] bg-vert">
                 <Check className="size-3.5 text-carte" strokeWidth={3} />
@@ -150,7 +156,7 @@ export default function OccurrenceListe({
                 type="button"
                 aria-label={`Annuler la complétion de ${o.titre}`}
                 disabled={annuler.isPending}
-                onClick={() => annuler.mutate(o.id)}
+                onClick={() => annuler.mutate({ id: o.id, titre: o.titre })}
                 className="text-[13px] font-bold text-sourdine opacity-0 transition-opacity hover:text-rouge focus-visible:opacity-100 group-hover:opacity-100"
               >
                 Annuler
@@ -172,7 +178,7 @@ export default function OccurrenceListe({
               type="button"
               aria-label={`Compléter ${o.titre}`}
               disabled={completer.isPending}
-              onClick={() => completer.mutate(o.id)}
+              onClick={() => completer.mutate({ id: o.id, titre: o.titre })}
               className={cn(
                 'size-[26px] shrink-0 rounded-[9px] border-[2.5px] transition-colors hover:border-vert hover:bg-vert-fond',
                 enRetard ? 'border-rouge' : 'border-coche',

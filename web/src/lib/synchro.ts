@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { invaliderAutourOccurrences } from '@/lib/completion'
+import type { AuteurToast } from '@/lib/toast'
 
 /** Message poussé par le hub (contrat partagé : server/…/Features/Synchro/EvenementSynchro.cs). */
 export type EvenementSynchro = {
@@ -117,6 +118,19 @@ export function messagePour(evenement: EvenementSynchro): string {
   }
   const cible = typeof evenement.libelle === 'string' ? `« ${evenement.libelle} »` : 'une tâche'
   return `${auteur} ${verbe} ${cible}`
+}
+
+/**
+ * Auteur à afficher dans le médaillon du toast : l'agent MCP porte une étincelle,
+ * un membre du foyer ses initiales dans sa teinte pastel, un acteur inconnu un « ? ».
+ * C'est ce qui distingue une annonce distante de mes propres gestes sans ouvrir un
+ * second système de toast.
+ */
+export function auteurPour(evenement: EvenementSynchro): AuteurToast {
+  if (evenement.source === SOURCE_MCP) {
+    return { nom: evenement.acteurNom ?? null, estClaude: true }
+  }
+  return { nom: evenement.acteurNom ?? null }
 }
 
 /** Clé de fusion des toasts : même geste, même acteur, même origine. */

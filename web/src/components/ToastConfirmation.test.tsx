@@ -102,6 +102,47 @@ test('trois annonces au plus : la plus ancienne sort', () => {
   expect(affiches[0]).toHaveTextContent('Annonce 1')
 })
 
+test('mon geste porte une sous-ligne : « Annuler » dit sur quoi il porte', () => {
+  render(<ToastConfirmation />)
+
+  act(() => afficherToast({
+    message: 'Tâche complétée',
+    sousTitre: 'Vider le cabanon',
+    ton: 'succes',
+    actionLibelle: 'Annuler',
+    onAction: () => {},
+  }))
+
+  const toast = screen.getByRole('status')
+  expect(toast).toHaveTextContent('Tâche complétée')
+  expect(toast).toHaveTextContent('Vider le cabanon')
+})
+
+test('une annonce distante porte les initiales de son auteur', () => {
+  render(<ToastConfirmation />)
+
+  act(() => afficherToast({
+    message: 'Ariane a complété « Litière »',
+    ton: 'distant',
+    auteur: { nom: 'Ariane' },
+  }))
+
+  expect(screen.getByTitle('Ariane')).toHaveTextContent('Ar')
+})
+
+test('une écriture de l’agent MCP se signale comme Claude, pas comme la personne au nom de qui il agit', () => {
+  render(<ToastConfirmation />)
+
+  act(() => afficherToast({
+    message: 'Claude (au nom d’Alain) a créé 8 tâches',
+    ton: 'distant',
+    auteur: { nom: 'Alain', estClaude: true },
+  }))
+
+  expect(screen.getByTitle('Claude')).toBeInTheDocument()
+  expect(screen.queryByTitle('Alain')).not.toBeInTheDocument()
+})
+
 test('passé la fenêtre de fusion, un geste identique ouvre un nouveau toast', () => {
   vi.useFakeTimers()
   render(<ToastConfirmation />)

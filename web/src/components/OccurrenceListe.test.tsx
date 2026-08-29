@@ -86,9 +86,43 @@ test('compléter affiche un toast dont « Annuler » défait la complétion (iss
 
   const toast = await screen.findByRole('status')
   expect(toast).toHaveTextContent('Tâche complétée')
+  // Sous-ligne : empilé sous des annonces distantes, « Annuler » doit dire sur quoi
+  // il porte.
+  expect(toast).toHaveTextContent('Balayer')
   await userEvent.click(screen.getByRole('button', { name: 'Annuler' }))
 
   await waitFor(() => expect(annulations).toBe(1))
+})
+
+test('la rangée qu’on vient de compléter porte le lavis des 6 s du toast', async () => {
+  serveur.use(
+    http.post('/api/occurrences/o-1/annuler-completion', () => new HttpResponse(null, { status: 204 })),
+    http.post('/api/occurrences/o-1/completer', () => new HttpResponse(null, { status: 204 })),
+  )
+  rendre(
+    <>
+      <OccurrenceListe
+        occurrences={[
+          occurrence({
+            statut: 'Completee',
+            completeePar: ALAIN,
+            completeeLe: new Date().toISOString(),
+          }),
+        ]}
+        vide="rien"
+      />
+      <ToastConfirmation />
+    </>,
+  )
+
+  // Une rangée complétée de longue date ne porte rien : le lavis marque le geste,
+  // pas l'état.
+  expect(screen.getByRole('listitem')).not.toHaveClass('rangee-lavis')
+
+  await userEvent.click(screen.getByRole('button', { name: 'Annuler la complétion de Balayer' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Refaire' }))
+
+  await waitFor(() => expect(screen.getByRole('listitem')).toHaveClass('rangee-lavis'))
 })
 
 test('annuler une complétion affiche un toast dont « Refaire » recomplète (issue #60)', async () => {

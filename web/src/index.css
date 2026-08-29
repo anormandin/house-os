@@ -34,6 +34,16 @@
   --avatar-ariane-texte: #624c83;
   --avatar-alain-fond: #cdd9ec;
   --avatar-alain-texte: #4d699b;
+  --avatar-claude-fond: #f3e6cf; /* l'agent MCP : même famille, teinte dorée */
+  --avatar-claude-texte: var(--orange);
+
+  /* Toasts (D-2026-08-28 Toast Carte Posée) */
+  --toast-medaillon-vert: #eef2e4;
+  --toast-medaillon-orange: #fbf0dd;
+  --toast-bouton-orange-fond: #fdf5e8;
+  --toast-jauge-vert: rgba(111, 137, 78, 0.2);
+  --toast-jauge-orange: rgba(204, 109, 0, 0.17);
+  --toast-lavis: #dfe8cf; /* départ du lavis, redescend vers --vert-fond */
 
   /* Mapping shadcn (button/input/label restants) */
   --background: var(--fond);
@@ -116,5 +126,53 @@
   }
   h1, h2, h3 {
     @apply font-titre text-encre;
+  }
+}
+
+/*
+ * Le temps qui reste, rendu visible — les 6 s du toast (lib/toast.ts) sont la
+ * durée de toutes ces animations. Trois traitements, un seul compte à rebours :
+ * la jauge dans le bouton d'action inverse (là où il faudra cliquer), la barre
+ * au pied des annonces qui n'ont pas de bouton, et le lavis de la rangée qu'on
+ * vient de compléter. Voir vault/Decisions/D-2026-08-28 Toast Carte Posée.
+ */
+@keyframes toast-entree {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes toast-jauge {
+  from { width: 100%; }
+  to { width: 0; }
+}
+@keyframes toast-minuteur {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@keyframes toast-compteur {
+  0% { opacity: 0; transform: scale(0.3); }
+  55% { opacity: 1; transform: scale(1.22); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes rangee-lavis {
+  from { background-color: var(--toast-lavis); }
+  to { background-color: var(--vert-fond); }
+}
+
+.toast-entree { animation: toast-entree 0.5s cubic-bezier(0.2, 0.85, 0.28, 1) both; }
+.toast-jauge { animation: toast-jauge 6s linear both; }
+.toast-minuteur { animation: toast-minuteur 6s linear both; transform-origin: left center; }
+.toast-compteur { animation: toast-compteur 0.45s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+.rangee-lavis { animation: rangee-lavis 6s linear both; }
+
+/* Le mouvement est un confort : sans lui, les jauges se figent pleines et le
+   toast reste lisible — le minuteur n'a jamais été la seule voie (la rangée
+   complétée garde son bouton « Annuler » au survol). */
+@media (prefers-reduced-motion: reduce) {
+  .toast-entree,
+  .toast-jauge,
+  .toast-minuteur,
+  .toast-compteur,
+  .rangee-lavis {
+    animation: none;
   }
 }

@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-08-28
-verified-against: 8cc560c
+verified-against: aa20cc7
 tags: []
 ---
 
@@ -67,6 +67,20 @@ synchro est un confort, jamais une raison de perdre une écriture.
 (une seule action inverse « Annuler » valide à la fois — un « Annuler » périmé rejouerait
 une mutation déjà défaite) ; les annonces distantes s'empilent à côté, trois au plus.
 
+**À quoi ressemble un toast** ([[D-2026-08-28 Toast Carte Posée]]) : une carte de
+l'app en plus petit, avec un liseré gauche coloré et un médaillon d'auteur. Trois
+registres dans un seul composant — ma complétion (vert, coche), mon retour arrière
+(orange, flèche), une annonce distante (teinte pastel de l'acteur ; initiales pour un
+membre du foyer, étincelle pour l'agent MCP, « ? » si l'acteur est inconnu). Mes
+gestes portent une seconde ligne nommant la tâche, pour que « Annuler » dise sur quoi
+il porte quand il est empilé sous des annonces ; les annonces distantes n'en ont pas.
+
+**Le temps qui reste est visible** : quand le toast porte une action inverse, les 6 s
+se vident dans ce bouton ; sans action, une barre fine au pied de la carte. La rangée
+qu'on vient de cocher part d'un vert soutenu et redescend vers son vert de repos sur
+la même durée. Le minuteur reste un confort : la rangée complétée garde son bouton
+« Annuler » au survol, donc perdre le toast ne perd jamais le recours.
+
 ## Hors périmètre
 
 - **Notifications persistantes** — pas de boîte de réception, pas de lu/non-lu, pas de
@@ -92,6 +106,9 @@ une mutation déjà défaite) ; les annonces distantes s'empilent à côté, tro
   brut ; portée « live sync » distincte des notifications iCal.
 - [[D-2026-08-28 Événements Par Intercepteur EF]] — le tier grossier est dérivé
   automatiquement des sauvegardes plutôt que publié à la main dans chaque slice.
+- [[D-2026-08-28 Toast Carte Posée]] — la forme du toast : une carte de l'app, trois
+  registres dans un seul composant, le compte à rebours dans le bouton d'action
+  inverse et le lavis de la rangée.
 
 ## Ancres de code
 
@@ -107,9 +124,15 @@ une mutation déjà défaite) ; les annonces distantes s'empilent à côté, tro
 - `server/HouseOs.Api/Features/Mcp/OutilsTaches.cs` — tier fin des écritures MCP
   (lot agrégé).
 - `web/src/lib/synchro.ts` — table module → clés à invalider, coalescence, règle du
-  toast, libellés.
+  toast, libellés, auteur du médaillon (`auteurPour`).
 - `web/src/hooks/useSynchro.ts` — connexion, reconnexion, montée des toasts.
-- `web/src/lib/toast.ts` — file de toasts, emplacement exclusif, fusion comptée.
+- `web/src/lib/toast.ts` — file de toasts, emplacement exclusif, fusion comptée,
+  modèle d'un toast (ton, auteur, sous-ligne) et durée partagée.
+- `web/src/components/ToastConfirmation.tsx` — le rendu « carte posée ».
+- `web/src/lib/completion.ts` — compléter ⇄ annuler, leurs toasts, et l'occurrence
+  fraîchement complétée qui arme le lavis de la rangée.
+- `web/src/index.css` — les animations des minuteurs et du lavis (6 s), et leur
+  neutralisation sous `prefers-reduced-motion`.
 
 ## Historique
 

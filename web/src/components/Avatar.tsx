@@ -8,14 +8,17 @@ const palettes: Record<string, { fond: string; texte: string; barre: string }> =
   alain: { fond: 'var(--avatar-alain-fond)', texte: 'var(--avatar-alain-texte)', barre: '#9db8dd' },
 }
 
+const paletteNeutre = { fond: 'var(--creux)', texte: 'var(--dore)', barre: 'var(--jaune)' }
+
+/** Palette à partir d'un nom seul. La synchro ne transmet que le nom d'affichage de
+ * l'acteur (pas l'utilisateur complet) : le toast doit pouvoir teinter son avatar
+ * sans aller chercher le compte. */
+export function paletteParNom(nom: string | null | undefined) {
+  return palettes[(nom ?? '').toLowerCase()] ?? paletteNeutre
+}
+
 export function paletteAvatar(utilisateur: Utilisateur) {
-  return (
-    palettes[utilisateur.nomUtilisateur.toLowerCase()] ?? {
-      fond: 'var(--creux)',
-      texte: 'var(--dore)',
-      barre: 'var(--jaune)',
-    }
-  )
+  return paletteParNom(utilisateur.nomUtilisateur)
 }
 
 export function initiales(utilisateur: Utilisateur): string {

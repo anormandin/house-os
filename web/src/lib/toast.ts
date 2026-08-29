@@ -6,9 +6,28 @@ import { useSyncExternalStore } from 'react'
 // plutôt qu'un slot unique, et une fusion pour que dix tâches créées d'un coup, ou
 // trois cases cochées coup sur coup, ne fassent pas dix ou trois toasts.
 
+/**
+ * Registre visuel du toast. `succes` et `retour` sont mes deux gestes (la complétion
+ * et son retour arrière) ; `distant` est tout ce qui vient d'ailleurs. Un seul
+ * composant, trois accents — le toast reste une carte de l'app dans les trois cas.
+ */
+export type TonToast = 'succes' | 'retour' | 'distant'
+
+/** Auteur d'une annonce distante, tel que la synchro le connaît : un nom d'affichage,
+ * ou l'agent MCP (qui n'a pas de compte et porte une étincelle). */
+export type AuteurToast = {
+  nom: string | null
+  estClaude?: boolean
+}
+
 export type ToastConfirmation = {
   id: number
   message: string
+  /** Seconde ligne : sur quoi porte le geste. Lève l'ambiguïté quand mon toast se
+   * retrouve empilé sous deux annonces distantes (« Annuler », mais annuler quoi?). */
+  sousTitre?: string
+  ton?: TonToast
+  auteur?: AuteurToast
   /** Libellé du bouton d'action inverse (« Annuler », « Refaire »…). Absent = toast informatif. */
   actionLibelle?: string
   onAction?: () => void
@@ -30,6 +49,10 @@ export const SLOT_GESTE_LOCAL = 'geste-local'
 
 /** Nombre de toasts affichés simultanément ; au-delà, le plus ancien sort. */
 export const MAX_TOASTS = 3
+
+/** Durée de vie d'un toast. Les animations de minuteur (jauge du bouton, barre au
+ * pied, lavis de la rangée) durent autant — leur `6s` est écrit dans index.css. */
+export const DUREE_TOAST_MS = 6000
 
 /** Au-delà de ce délai, un geste identique ouvre un nouveau toast au lieu de fusionner. */
 export const FENETRE_FUSION_MS = 2000

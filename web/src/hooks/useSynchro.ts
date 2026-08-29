@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr'
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  auteurPour,
   cleFusion,
   creerInvalidateurCoalesce,
   doitAnnoncer,
@@ -39,6 +40,8 @@ export function useSynchro(moiId: string) {
       }
       afficherToast({
         message: messagePour(evenement),
+        ton: 'distant',
+        auteur: auteurPour(evenement),
         cleFusion: cleFusion(evenement),
         nombre: evenement.nombre ?? 1,
         recomposer: (nombre) => messagePour({ ...evenement, nombre }),

@@ -22,6 +22,13 @@ e-ink mural comme seconde vue distincte ; téléphone non prioritaire.
 - [[Typographie Québécoise]] — normes OQLF (dates, heures, unités) et registre.
 - [[Apps Similaires]] — patterns et anti-patterns des apps du domaine.
 
+## Maquettes de composants
+
+- `design/maquettes/toasts-directions.html` — cinq directions pour le toast (carte
+  posée, liseré, barre, geste au premier plan, ancre), rendues vivantes : minuteurs,
+  animations d'entrée, fusion. Retenue : la première
+  ([[D-2026-08-28 Toast Carte Posée]]).
+
 ## Principes retenus (synthèse, as of 2026-08)
 
 1. **Statut avant interaction** (calm tech) : l'écran par défaut répond « est-ce que

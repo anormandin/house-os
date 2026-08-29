@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { expect, test, vi } from 'vitest'
 import {
+  auteurPour,
   cleFusion,
   creerInvalidateurCoalesce,
   doitAnnoncer,
@@ -119,4 +120,11 @@ test('la clé de fusion sépare genre, acteur et source', () => {
   expect(cleFusion(a)).toBe(cleFusion({ ...a, libelle: 'autre titre' }))
   expect(cleFusion(a)).not.toBe(cleFusion({ ...a, acteurId: AUTRE }))
   expect(cleFusion(a)).not.toBe(cleFusion({ ...a, source: 'mcp' }))
+})
+
+test('l’auteur du toast distingue l’agent MCP d’un membre du foyer', () => {
+  const base: EvenementSynchro = { module: 'taches', genre: 'occurrence.completee', acteurNom: 'Ariane' }
+  expect(auteurPour({ ...base, source: 'web' })).toEqual({ nom: 'Ariane' })
+  expect(auteurPour({ ...base, source: 'mcp' })).toEqual({ nom: 'Ariane', estClaude: true })
+  expect(auteurPour({ ...base, source: 'web', acteurNom: null })).toEqual({ nom: null })
 })
