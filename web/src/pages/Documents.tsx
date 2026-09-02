@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  BadgeCheck, BookOpen, Download, File, FileSignature, FolderOpen, House, Image,
-  Landmark, Map, Plus, Receipt, Shield, TriangleAlert, Wrench, X,
+  BadgeCheck, BookOpen, Download, File, FileSignature, FolderOpen, House, Image, Inbox,
+  Landmark, Mail, Map, Plus, Receipt, Shield, TriangleAlert, Wrench, X,
 } from 'lucide-react'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import ErreurChargement from '@/components/ErreurChargement'
-import { libelleTypeFichier } from '@/components/VignetteDocument'
+import { libelleTypeFichier, TYPE_MIME_COURRIEL } from '@/components/VignetteDocument'
 import { api, dateLocaleIso, type CategorieDocument, type Document, type DocumentDonnees } from '@/lib/api'
 import {
   comparer,
@@ -19,6 +19,7 @@ import {
 } from '@/lib/documents-vues'
 import { signalerErreur } from '@/lib/erreurs'
 import { dateLisible } from '@/lib/format'
+import { afficherToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 const ICONES_CATEGORIE: Record<CategorieDocument, typeof File> = {
@@ -106,6 +107,49 @@ function ApercuImage({ document }: { document: Document }) {
         className="h-36 max-w-full object-contain"
       />
     </a>
+  )
+}
+
+/** De / Date / Sujet / texte d'un courriel archivé — le tiroir lit le .eml sans l'ouvrir. */
+function ApercuCourriel({ id }: { id: string }) {
+  const { data: courriel, isError } = useQuery({
+    queryKey: ['document-courriel', id],
+    queryFn: () => api.courrielDocument(id),
+  })
+  if (isError) {
+    return <p className="text-xs text-sourdine">Aperçu du courriel indisponible.</p>
+  }
+  if (courriel === undefined) {
+    return null
+  }
+  const taille = (octets: number) => `${Math.max(1, Math.round(octets / 1024))} Ko`
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl bg-creux px-3.5 py-3 text-xs">
+      <div className="text-sourdine">
+        <span className="font-bold text-texte">De</span> {courriel.de}
+      </div>
+      <div className="text-sourdine">
+        <span className="font-bold text-texte">Le</span> {dateLisible(dateLocaleIso(new Date(courriel.date)))}
+      </div>
+      <div className="text-sourdine">
+        <span className="font-bold text-texte">Sujet</span> {courriel.sujet || '—'}
+      </div>
+      <pre
+        aria-label="Texte du courriel"
+        className="mt-1 max-h-64 overflow-y-auto whitespace-pre-wrap break-words font-sans text-[12.5px] text-texte"
+      >
+        {courriel.texte || '(courriel sans texte)'}
+      </pre>
+      {courriel.piecesJointes.length > 0 && (
+        <ul className="mt-1 text-sourdine">
+          {courriel.piecesJointes.map((piece) => (
+            <li key={piece.nomFichier}>
+              {piece.nomFichier} · {piece.typeMime} · {taille(piece.taille)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -218,6 +262,27 @@ export default function Documents() {
     onSuccess: invalider,
   })
 
+  // Classer = enregistrer la fiche corrigée ET sortir de la boîte, en un geste.
+  const classer = useMutation({
+    mutationFn: () => api.modifierDocument(choisiId!, { ...versDonnees(fiche!), aClasser: false }),
+    onSuccess: invalider,
+  })
+
+  const relever = useMutation({
+    mutationFn: api.releverCourriels,
+    onSuccess: (rapport) => {
+      invalider()
+      afficherToast({
+        message: rapport.nbDocuments > 0
+          ? `${rapport.nbDocuments} document${rapport.nbDocuments > 1 ? 's' : ''} reçu${rapport.nbDocuments > 1 ? 's' : ''} par courriel`
+          : 'Rien de nouveau dans le courrier',
+        sousTitre: rapport.erreurs.length > 0 ? rapport.erreurs[0] : undefined,
+        ton: 'succes',
+      })
+    },
+    onError: (erreur) => signalerErreur(erreur instanceof Error ? erreur.message : 'Relevé impossible'),
+  })
+
   const supprimer = useMutation({
     mutationFn: () => api.supprimerDocument(choisiId!),
     onSuccess: () => {
@@ -260,6 +325,10 @@ export default function Documents() {
   const proches = tous
     .filter((d) => d.echeance !== null && joursAvant(d.echeance) <= SEUIL_ECHEANCE_JOURS)
     .sort((a, b) => a.echeance!.localeCompare(b.echeance!))
+
+  const aClasser = tous
+    .filter((d) => d.aClasser)
+    .sort((a, b) => b.creeLe.localeCompare(a.creeLe))
 
   const basculerTri = (colonne: ColonneTri) => {
     setTri((ancien) =>
@@ -339,6 +408,16 @@ export default function Documents() {
         />
         <button
           type="button"
+          disabled={relever.isPending}
+          onClick={() => relever.mutate()}
+          title="Aller chercher tout de suite ce qui a été transféré à documents@"
+          className="flex items-center gap-2 rounded-full border border-tiret bg-carte px-4 py-2 text-sm font-bold text-dore hover:text-orange disabled:opacity-40"
+        >
+          <Mail className="size-4" />
+          {relever.isPending ? 'Relevé…' : 'Relever le courrier'}
+        </button>
+        <button
+          type="button"
           disabled={televerser.isPending}
           onClick={() => champFichier.current?.click()}
           className="flex items-center gap-2 rounded-full bg-orange px-4 py-2 text-sm font-bold text-carte disabled:opacity-40"
@@ -351,6 +430,30 @@ export default function Documents() {
       <div className="flex items-start gap-5">
         {/* Barre latérale de facettes */}
         <div className="flex w-64 shrink-0 flex-col gap-3">
+          {aClasser.length > 0 && (
+            <div className="rounded-2xl border border-orange bg-carte px-3.5 py-3 shadow-carte">
+              <div className="mb-1 flex items-center gap-2 text-[13.5px] font-bold text-orange">
+                <Inbox className="size-4" /> À classer ({aClasser.length})
+              </div>
+              {aClasser.map((document) => (
+                <button
+                  key={document.id}
+                  type="button"
+                  onClick={() => setChoisiId(document.id)}
+                  className="flex w-full items-start gap-2 rounded-lg px-1 py-1.5 text-left text-xs hover:bg-creux/60"
+                >
+                  <Mail className="mt-0.5 size-3.5 shrink-0 text-dore" />
+                  <span className="min-w-0">
+                    <span className="block truncate font-bold">{document.titre}</span>
+                    <span className="text-sourdine">
+                      {LIBELLES_CATEGORIE[document.categorie]} · {libelleTypeFichier(document)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {proches.length > 0 && (
             <div className="rounded-2xl border border-jaune bg-carte px-3.5 py-3 shadow-carte">
               <div className="mb-1 flex items-center gap-2 text-[13.5px] font-bold text-rouge">
@@ -644,15 +747,23 @@ export default function Documents() {
                 </button>
               </div>
 
-              <div className="text-xs text-sourdine">
-                {libelleTypeFichier(choisi)} · {choisi.nomFichier} ·{' '}
-                {(choisi.taille / 1024 / 1024).toFixed(1).replace('.', ',')} Mo ·
-                ajouté le {dateLisible(dateLocaleIso(new Date(choisi.creeLe)))}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-sourdine">
+                {choisi.aClasser && (
+                  <span className="rounded-full bg-orange px-2 py-0.5 text-[11px] font-bold text-carte">
+                    À classer
+                  </span>
+                )}
+                <span>
+                  {libelleTypeFichier(choisi)} · {choisi.nomFichier} ·{' '}
+                  {(choisi.taille / 1024 / 1024).toFixed(1).replace('.', ',')} Mo ·
+                  ajouté le {dateLisible(dateLocaleIso(new Date(choisi.creeLe)))}
+                </span>
               </div>
 
               {choisi.typeMime.startsWith('image/') && (
                 <ApercuImage key={choisi.id} document={choisi} />
               )}
+              {choisi.typeMime === TYPE_MIME_COURRIEL && <ApercuCourriel key={choisi.id} id={choisi.id} />}
 
               <div className="grid gap-3">
                 <input
@@ -728,21 +839,36 @@ export default function Documents() {
                     className={cn(classeChamp, 'flex-1')}
                   />
                 </label>
-                <input
+                <textarea
                   value={fiche.notes}
                   onChange={(e) => maj({ notes: e.target.value })}
                   placeholder="Notes"
                   aria-label="Notes"
-                  className={classeChamp}
+                  rows={3}
+                  maxLength={2000}
+                  className={cn(classeChamp, 'resize-y')}
                 />
               </div>
 
-              <div className="mt-auto flex justify-end pt-1">
+              <div className="mt-auto flex justify-end gap-2 pt-1">
+                {choisi.aClasser && (
+                  <button
+                    type="button"
+                    disabled={fiche.titre.trim().length === 0 || classer.isPending}
+                    onClick={() => classer.mutate()}
+                    className="rounded-xl bg-orange px-5 py-2 text-sm font-bold text-carte disabled:opacity-40"
+                  >
+                    Classer
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={fiche.titre.trim().length === 0 || enregistrer.isPending}
                   onClick={() => enregistrer.mutate()}
-                  className="rounded-xl bg-orange px-5 py-2 text-sm font-bold text-carte disabled:opacity-40"
+                  className={cn(
+                    'rounded-xl px-5 py-2 text-sm font-bold disabled:opacity-40',
+                    choisi.aClasser ? 'border border-tiret bg-carte text-dore' : 'bg-orange text-carte',
+                  )}
                 >
                   Enregistrer
                 </button>

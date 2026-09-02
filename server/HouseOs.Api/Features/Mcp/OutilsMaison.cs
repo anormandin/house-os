@@ -2,6 +2,7 @@ using System.ComponentModel;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Budget;
 using HouseOs.Api.Features.ComptesARebours;
+using HouseOs.Api.Features.Courriel;
 using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.Zones;
@@ -34,7 +35,9 @@ public record DocumentDonnees(
     [property: Description("Dossier libre de classement (« 17 rue de la Colline », « Déménagement »…), ou null.")] string? Dossier,
     string? Notes,
     [property: Description("Date portée par le document YYYY-MM-DD (facture, contrat…), ou null.")] string? DateDocument,
-    [property: Description("Échéance YYYY-MM-DD (rappel visuel dans l'app), ou null.")] string? Echeance);
+    [property: Description("Échéance YYYY-MM-DD (rappel visuel dans l'app), ou null.")] string? Echeance,
+    [property: Description("Sortir de la boîte À classer (false) ou y remettre (true) ; null = inchangé.")]
+    bool? AClasser = null);
 
 /// <summary>Fiche du compte fonds de prévoyance (dates en chaînes YYYY-MM-DD).</summary>
 public record CompteBudgetDonnees(
@@ -197,9 +200,15 @@ public static class OutilsMaison
         [Description("Filtrer par catégorie : Manuel, Photo, Assurance, Facture, Garantie, " +
             "Contrat, PlanPermis, ImpotsTaxes ou Autre.")] string? categorie = null,
         [Description("Filtrer par équipement lié.")] Guid? equipementId = null,
-        [Description("Filtrer par dossier de classement (valeur exacte).")] string? dossier = null)
+        [Description("Filtrer par dossier de classement (valeur exacte).")] string? dossier = null,
+        [Description("true = seulement la boîte À classer (documents arrivés par courriel, " +
+            "pas encore confirmés) ; false = seulement les classés.")] bool? aClasser = null)
     {
         var documents = db.Documents.AsNoTracking();
+        if (aClasser is { } aTrier)
+        {
+            documents = documents.Where(d => d.AClasser == aTrier);
+        }
         if (string.IsNullOrWhiteSpace(categorie) == false)
         {
             if (Conversions.ParserEnum(categorie, out CategorieDocument cat) == false)
@@ -225,19 +234,20 @@ public static class OutilsMaison
                 d.ZoneId,
                 db.Zones.Where(z => z.Id == d.ZoneId).Select(z => z.Nom).FirstOrDefault(),
                 d.Dossier, d.Notes, d.DateDocument, d.Echeance,
-                d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
+                d.NomFichier, d.TypeMime, d.Taille, d.CreeLe, d.AClasser, d.ImportCourrielId))
             .ToListAsync();
     }
 
     [McpServerTool(Name = "gerer_document")]
     [Description("Modifier les métadonnées d'un document (remplace la fiche : titre, catégorie, " +
-        "liens équipement/zone, dossier, dates, notes) ou le supprimer (efface aussi le fichier disque). " +
-        "L'ajout d'un document n'est pas possible via MCP (interface web).")]
+        "liens équipement/zone, dossier, dates, notes), le classer (sortir de la boîte À classer " +
+        "sans toucher à la fiche) ou le supprimer (efface aussi le fichier disque). " +
+        "L'ajout d'un document passe par l'interface web ou par courriel (relever_courriels).")]
     public static async Task<object> GererDocument(
         HouseOsDbContext db,
         IConfiguration config,
         IWebHostEnvironment env,
-        [Description("modifier ou supprimer.")] string action,
+        [Description("modifier, classer ou supprimer.")] string action,
         [Description("Id du document (via lister_documents).")] Guid? id = null,
         [Description("Métadonnées complètes (requises pour modifier).")] DocumentDonnees? donnees = null)
     {
@@ -292,8 +302,20 @@ public static class OutilsMaison
                 document.Notes = notes;
                 document.DateDocument = Conversions.ParserDate(donnees.DateDocument, "dateDocument");
                 document.Echeance = Conversions.ParserDate(donnees.Echeance, "echeance");
+                if (donnees.AClasser is { } aClasser)
+                {
+                    document.AClasser = aClasser;
+                }
                 await db.SaveChangesAsync();
                 return new { modifie = true, id = document.Id };
+            }
+            case "classer":
+            {
+                var document = await db.Documents.FindAsync(RequisId(id))
+                    ?? throw new McpException($"Document introuvable : {id}.");
+                document.AClasser = false;
+                await db.SaveChangesAsync();
+                return new { classe = true, id = document.Id };
             }
             case "supprimer":
             {
@@ -304,8 +326,32 @@ public static class OutilsMaison
                 return new { supprime = true, id };
             }
             default:
-                throw new McpException($"Action inconnue : '{action}' (modifier ou supprimer).");
+                throw new McpException($"Action inconnue : '{action}' (modifier, classer ou supprimer).");
         }
+    }
+
+    [McpServerTool(Name = "relever_courriels")]
+    [Description("Relève maintenant la boîte documents@ (dépôt Cloudflare R2) sans attendre le " +
+        "passage automatique : chaque courriel transféré devient un ou des documents dans la boîte " +
+        "À classer (voir lister_documents aClasser=true). Retourne le rapport du passage.")]
+    public static async Task<object> ReleverCourriels(CourrielEntrantService service, CancellationToken ct)
+    {
+        var rapport = await service.ReleverAsync(ct);
+        if (rapport.Actif == false)
+        {
+            throw new McpException("Relevé du courriel non configuré sur ce serveur (section Courriel:R2).");
+        }
+        if (rapport.DejaEnCours)
+        {
+            throw new McpException("Un relevé est déjà en cours — réessayer dans une minute.");
+        }
+        return new
+        {
+            nbCourriels = rapport.NbCourriels,
+            nbDocuments = rapport.NbDocuments,
+            nbIgnores = rapport.NbIgnores,
+            erreurs = rapport.Erreurs,
+        };
     }
 
     [McpServerTool(Name = "gerer_comptes_a_rebours")]

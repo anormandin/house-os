@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { File, FileText, Image as ImageIcon, type LucideIcon } from 'lucide-react'
+import { File, FileText, Image as ImageIcon, Mail, type LucideIcon } from 'lucide-react'
 import type { Document } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -9,7 +9,11 @@ const LIBELLES_TYPE: Record<string, string> = {
   'image/png': 'PNG',
   'image/webp': 'WebP',
   'image/heic': 'HEIC',
+  'message/rfc822': 'EML',
 }
+
+/** Un courriel archivé tel quel (.eml) — voir Documents par courriel. */
+export const TYPE_MIME_COURRIEL = 'message/rfc822'
 
 /** Libellé court du type de fichier (PDF, JPG…), replié sur l'extension du nom. */
 export function libelleTypeFichier(document: Pick<Document, 'typeMime' | 'nomFichier'>): string {
@@ -52,9 +56,11 @@ export default function VignetteDocument({
 
   const Icone = icone ?? (document.typeMime === 'application/pdf'
     ? FileText
-    : estImage
-      ? ImageIcon
-      : File)
+    : document.typeMime === TYPE_MIME_COURRIEL
+      ? Mail
+      : estImage
+        ? ImageIcon
+        : File)
   return (
     <div
       className={cn(

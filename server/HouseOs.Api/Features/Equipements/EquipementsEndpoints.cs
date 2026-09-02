@@ -140,7 +140,7 @@ public static class EquipementsEndpoints
                 d.EquipementId, equipement.Nom,
                 d.ZoneId, db.Zones.Where(z => z.Id == d.ZoneId).Select(z => z.Nom).FirstOrDefault(),
                 d.Dossier, d.Notes, d.DateDocument, d.Echeance,
-                d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
+                d.NomFichier, d.TypeMime, d.Taille, d.CreeLe, d.AClasser, d.ImportCourrielId))
             .ToListAsync();
 
         // Historique d'entretien : complétions du journal des tâches actuellement liées

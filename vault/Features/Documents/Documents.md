@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-09-02
+verified-against: f29b6fd
 tags: []
 ---
 
@@ -67,10 +67,24 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   Documents) ; supprimer un document efface le fichier disque **et ses liens
   vers des tâches** (jointure `TacheDocuments` — voir
   [[D-2026-08-26 Documents Liés Aux Tâches]] et la spec [[Tâches]]).
+- **Par courriel** ([[Courriel Entrant]], 2026-09-02) : un courriel transféré à
+  `documents@alainnormandin.dev` devient un document par pièce jointe permise, ou
+  le `.eml` entier (type `message/rfc822`, accepté par l'ingestion seulement),
+  marqué **à classer** ([[D-2026-09-02 Boîte À Classer Des Documents]]) avec des
+  métadonnées proposées par LLM. La page montre un bloc « À classer (n) » en tête
+  de barre latérale, un bouton « Relever le courrier », une chip « À classer » et
+  un bouton primaire **Classer** dans le tiroir (enregistre la fiche corrigée +
+  `aClasser:false` ; « Enregistrer » n'envoie jamais le champ), les notes en zone
+  de texte multiligne, et pour un `.eml` un aperçu De / Date / Sujet / texte
+  (`GET /api/documents/{id}/courriel`, texte seulement). `GET /api/documents`
+  accepte `aClasser` ; le PUT accepte `aClasser` (null = inchangé).
+- Toute écriture de document (web ou courriel) passe par
+  `EnregistrementDocument.EnregistrerAsync` — mêmes validations, même nom disque,
+  même rollback.
 - **MCP** ([[Serveur MCP]]) : `lister_documents` (filtres catégorie/équipement/
-  dossier) et `gerer_document` (modifier les métadonnées dossier inclus,
-  supprimer) — l'ajout et le téléchargement de fichiers restent dans l'interface
-  web.
+  dossier/aClasser), `gerer_document` (modifier les métadonnées dossier inclus,
+  classer, supprimer) et `relever_courriels` — l'ajout et le téléchargement de
+  fichiers restent dans l'interface web (ou par courriel).
 
 ## Hors périmètre
 
@@ -90,11 +104,15 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
 - [[D-2026-08-26 Navigation Documents Par Facettes]] — facettes latérales +
   table dense + tiroir de détail + pagination client.
 - [[D-2026-08-26 Dossier De Document]] — champ texte libre, pas d'entité.
+- [[D-2026-09-02 Boîte À Classer Des Documents]] — drapeau `AClasser`, archivage
+  `.eml` des courriels sans pièce.
 
 ## Ancres de code
 
 - `server/HouseOs.Api/Domaine/Document.cs` — entité + `CategorieDocument`.
 - `server/HouseOs.Api/Features/Documents/DocumentsEndpoints.cs` — CRUD + fichiers.
+- `server/HouseOs.Api/Features/Documents/EnregistrementDocument.cs` — service
+  partagé d'écriture (REST + courriel).
 - `web/src/pages/Documents.tsx` — page ; `web/src/pages/Equipements.tsx` —
   documents liés sur la fiche.
 - `web/src/components/VignetteDocument.tsx` — vignette + libellé de type partagés.

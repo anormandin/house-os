@@ -23,8 +23,12 @@ public record DocumentDto(
     string NomFichier,
     string TypeMime,
     long Taille,
-    DateTimeOffset CreeLe);
+    DateTimeOffset CreeLe,
+    bool AClasser,
+    Guid? ImportCourrielId);
 
+/// <param name="AClasser">Null = inchangé : le tiroir n'envoie le champ qu'au geste
+/// « Classer », jamais à un simple enregistrement.</param>
 public record DocumentRequete(
     string Titre,
     string Categorie,
@@ -33,7 +37,8 @@ public record DocumentRequete(
     string? Dossier,
     string? Notes,
     DateOnly? DateDocument,
-    DateOnly? Echeance);
+    DateOnly? Echeance,
+    bool? AClasser = null);
 
 public static class DocumentsEndpoints
 {
@@ -153,9 +158,13 @@ public static class DocumentsEndpoints
         var journal = app.JournalPour("Documents");
 
         app.MapGet("/api/documents", async (
-            string? categorie, Guid? equipementId, string? dossier, HouseOsDbContext db) =>
+            string? categorie, Guid? equipementId, string? dossier, bool? aClasser, HouseOsDbContext db) =>
         {
             var documents = db.Documents.AsNoTracking();
+            if (aClasser is { } aTrier)
+            {
+                documents = documents.Where(d => d.AClasser == aTrier);
+            }
             if (string.IsNullOrWhiteSpace(categorie) == false)
             {
                 if (Mcp.Conversions.ParserEnum(categorie, out CategorieDocument cat) == false)
@@ -182,7 +191,7 @@ public static class DocumentsEndpoints
                     d.ZoneId,
                     db.Zones.Where(z => z.Id == d.ZoneId).Select(z => z.Nom).FirstOrDefault(),
                     d.Dossier, d.Notes, d.DateDocument, d.Echeance,
-                    d.NomFichier, d.TypeMime, d.Taille, d.CreeLe))
+                    d.NomFichier, d.TypeMime, d.Taille, d.CreeLe, d.AClasser, d.ImportCourrielId))
                 .ToListAsync();
             return Results.Ok(liste);
         });
@@ -195,81 +204,33 @@ public static class DocumentsEndpoints
         {
             var formulaire = await requete.ReadFormAsync();
             var fichier = formulaire.Files.GetFile("fichier");
-            if (fichier is null || fichier.Length == 0 || fichier.Length > TailleMax)
+            if (fichier is null)
             {
                 return ResultatsApi.Erreur(journal, "fichier", "Fichier manquant, vide ou trop gros (max 50 Mo).");
             }
-            // Les types MIME sont insensibles à la casse et peuvent porter des paramètres
-            // (« ; charset=… ») ; certains clients envoient image/jpg.
-            var typeMime = (fichier.ContentType ?? "").Split(';')[0].Trim().ToLowerInvariant();
-            if (typeMime == "image/jpg")
-            {
-                typeMime = "image/jpeg";
-            }
-            if (TypesMimePermis.Contains(typeMime) == false)
-            {
-                return ResultatsApi.Erreur(journal, "fichier", "Type non permis (PDF ou image).");
-            }
-            var entete = new byte[12];
-            int octetsLus;
-            await using (var lecture = fichier.OpenReadStream())
-            {
-                octetsLus = await lecture.ReadAtLeastAsync(entete, entete.Length, throwOnEndOfStream: false);
-            }
-            if (ContenuCorrespondAuType(entete.AsSpan(0, octetsLus), typeMime) == false)
-            {
-                return ResultatsApi.Erreur(journal, "fichier",
-                    "Le contenu du fichier ne correspond pas à son type annoncé (PDF ou image).");
-            }
-
-            var categorie = CategorieParDefaut(typeMime);
+            // Les champs du formulaire sont parsés ici (400 explicite plutôt qu'avalés) ;
+            // les validations métier et l'écriture vivent dans EnregistrementDocument,
+            // partagé avec l'ingestion par courriel.
+            CategorieDocument? categorie = null;
             var categorieBrute = formulaire["categorie"].ToString();
-            if (string.IsNullOrWhiteSpace(categorieBrute) == false
-                && Mcp.Conversions.ParserEnum(categorieBrute, out categorie) == false)
+            if (string.IsNullOrWhiteSpace(categorieBrute) == false)
             {
-                return ResultatsApi.Erreur(journal, "categorie", "Catégorie inconnue.");
+                if (Mcp.Conversions.ParserEnum(categorieBrute, out CategorieDocument cat) == false)
+                {
+                    return ResultatsApi.Erreur(journal, "categorie", "Catégorie inconnue.");
+                }
+                categorie = cat;
             }
-
-            var nomFichier = NettoyerNomFichier(fichier.FileName, typeMime);
-            var titre = formulaire["titre"].ToString().Trim();
-            if (titre.Length == 0)
-            {
-                titre = Path.GetFileNameWithoutExtension(nomFichier);
-            }
-            if (titre.Length > 200)
-            {
-                return ResultatsApi.Erreur(journal, "titre", "Le titre ne peut pas dépasser 200 caractères.");
-            }
-            var notes = Nettoyer(formulaire["notes"]);
-            if (notes?.Length > 2000)
-            {
-                return ResultatsApi.Erreur(journal, "notes", "Les notes ne peuvent pas dépasser 2000 caractères.");
-            }
-            var dossier = Nettoyer(formulaire["dossier"]);
-            if (dossier?.Length > 100)
-            {
-                return ResultatsApi.Erreur(journal, "dossier", "Le dossier ne peut pas dépasser 100 caractères.");
-            }
-            // Valider les liens avant d'écrire quoi que ce soit : une violation de FK
-            // après l'écriture laisserait un fichier orphelin permanent sur disque.
             var (equipementId, equipementValide) = LireGuid(formulaire["equipementId"]);
             if (equipementValide == false)
             {
                 return ResultatsApi.Erreur(journal, "equipementId",
                     $"equipementId invalide : '{formulaire["equipementId"]}' (Guid attendu).");
             }
-            if (equipementId is { } eq && await db.Equipements.AnyAsync(e => e.Id == eq) == false)
-            {
-                return ResultatsApi.Erreur(journal, "equipementId", "Cet équipement n'existe pas (ou plus).");
-            }
             var (zoneId, zoneValide) = LireGuid(formulaire["zoneId"]);
             if (zoneValide == false)
             {
                 return ResultatsApi.Erreur(journal, "zoneId", $"zoneId invalide : '{formulaire["zoneId"]}' (Guid attendu).");
-            }
-            if (zoneId is { } z && await db.Zones.AnyAsync(x => x.Id == z) == false)
-            {
-                return ResultatsApi.Erreur(journal, "zoneId", "Cette pièce n'existe pas (ou plus).");
             }
             var (dateDocument, dateDocumentValide) = LireDate(formulaire["dateDocument"]);
             if (dateDocumentValide == false)
@@ -284,49 +245,26 @@ public static class DocumentsEndpoints
                     "— format attendu YYYY-MM-DD (ex. 2026-10-06).");
             }
 
-            var document = new Document
+            var (document, erreur) = await EnregistrementDocument.EnregistrerAsync(
+                fichier.OpenReadStream,
+                fichier.Length,
+                fichier.FileName,
+                fichier.ContentType,
+                new DocumentDonneesCreation(
+                    formulaire["titre"].ToString(), categorie, equipementId, zoneId,
+                    formulaire["dossier"].ToString(), formulaire["notes"].ToString(),
+                    dateDocument, echeance),
+                db,
+                DossierFichiers(config, env),
+                TypesMimePermis,
+                journal);
+            if (erreur is not null)
             {
-                Id = Guid.NewGuid(),
-                Titre = titre,
-                Categorie = categorie,
-                EquipementId = equipementId,
-                ZoneId = zoneId,
-                Dossier = dossier,
-                Notes = notes,
-                DateDocument = dateDocument,
-                Echeance = echeance,
-                NomFichier = nomFichier,
-                CheminDisque = string.Empty,
-                TypeMime = typeMime,
-                Taille = fichier.Length,
-                CreeLe = DateTimeOffset.UtcNow,
-            };
-            // Nom disque = id + extension dérivée du type MIME : jamais le nom (ni
-            // l'extension) fourni par le client.
-            document.CheminDisque = document.Id.ToString("N") + ExtensionPour(typeMime);
-
-            var chemin = Path.Combine(DossierFichiers(config, env), document.CheminDisque);
-            await using (var flux = File.Create(chemin))
-            {
-                await fichier.CopyToAsync(flux);
-            }
-
-            db.Documents.Add(document);
-            try
-            {
-                await db.SaveChangesAsync();
-            }
-            catch
-            {
-                File.Delete(chemin);
-                journal.LogError(
-                    "Document {DocumentId} — écriture DB refusée après copie disque ; fichier {Chemin} effacé.",
-                    document.Id, document.CheminDisque);
-                throw;
+                return ResultatsApi.Erreur(journal, erreur.Champ, erreur.Message);
             }
             journal.LogInformation(
                 "Document {DocumentId} téléversé — « {Titre} » ({TypeMime}, {Taille} octets, catégorie {Categorie}).",
-                document.Id, document.Titre, document.TypeMime, document.Taille, document.Categorie);
+                document!.Id, document.Titre, document.TypeMime, document.Taille, document.Categorie);
             return Results.Created($"/api/documents/{document.Id}", new { document.Id });
         }).DisableAntiforgery();
 
@@ -379,10 +317,15 @@ public static class DocumentsEndpoints
             document.Notes = notes;
             document.DateDocument = requete.DateDocument;
             document.Echeance = requete.Echeance;
+            if (requete.AClasser is { } aClasser)
+            {
+                document.AClasser = aClasser;
+            }
             await db.SaveChangesAsync();
             journal.LogInformation(
-                "Document {DocumentId} modifié — « {Titre} » (catégorie {Categorie}).",
-                document.Id, document.Titre, document.Categorie);
+                "Document {DocumentId} modifié — « {Titre} » (catégorie {Categorie}{Classement}).",
+                document.Id, document.Titre, document.Categorie,
+                requete.AClasser == false ? ", classé" : "");
             return Results.NoContent();
         });
 
@@ -481,32 +424,7 @@ public static class DocumentsEndpoints
         return true;
     }
 
-    /// <summary>
-    /// Nom d'affichage sûr : sans séparateurs de chemin (le backslash traverse
-    /// Path.GetFileName sous Linux), sans caractères de contrôle (CRLF casserait
-    /// l'en-tête Content-Disposition), borné à 255 (colonne varchar).
-    /// </summary>
-    private static string NettoyerNomFichier(string? nomBrut, string typeMime)
-    {
-        var nom = Path.GetFileName((nomBrut ?? "").Replace('\\', '/'));
-        nom = new string(nom.Where(c => char.IsControl(c) == false).ToArray()).Trim();
-        if (nom.Length == 0)
-        {
-            nom = "document" + ExtensionPour(typeMime);
-        }
-        return nom.Length > 255 ? nom[^255..] : nom;
-    }
 
-    /// <summary>Extension disque dérivée du type MIME validé — jamais du nom client.</summary>
-    private static string ExtensionPour(string typeMime) => typeMime switch
-    {
-        "application/pdf" => ".pdf",
-        "image/jpeg" => ".jpg",
-        "image/png" => ".png",
-        "image/webp" => ".webp",
-        "image/heic" => ".heic",
-        _ => ".bin",
-    };
 
     /// <summary>Guid nullable d'un champ de formulaire : vide → null ; Valide=false
     /// si une valeur non vide est imparsable — jamais avalée en silence.</summary>
@@ -531,6 +449,5 @@ public static class DocumentsEndpoints
             DateTimeStyles.None, out var date) ? (date, true) : (null, false);
     }
 
-    private static string? Nettoyer(string? valeur) =>
-        string.IsNullOrWhiteSpace(valeur) ? null : valeur.Trim();
+    private static string? Nettoyer(string? valeur) => EnregistrementDocument.Nettoyer(valeur);
 }

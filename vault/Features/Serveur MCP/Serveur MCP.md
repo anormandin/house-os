@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: e19a4fb
+last-verified: 2026-09-02
+verified-against: f29b6fd
 tags: []
 ---
 
@@ -20,7 +20,7 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 - Le backend expose un endpoint MCP **`/mcp`** (streamable HTTP, stateless) via le SDK
   officiel C#. Quand la requête ne porte pas la clé API (`Authorization: Bearer`,
   config `Mcp:Cle`), le système répond 401 ; clé non configurée = tout est refusé.
-- **19 outils**, noms snake_case français, erreurs en français actionnables
+- **20 outils**, noms snake_case français, erreurs en français actionnables
   (`McpException`) ; dates en chaînes `YYYY-MM-DD` ; enums en chaînes ; retours
   camelCase (mêmes formes que les DTO REST) :
   - `lister_utilisateurs`, `lister_zones`, `gerer_zone`
@@ -33,8 +33,12 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
     `bilan_taches` (complétions du ménage par semaine, heure du serveur — voir
     [[D-2026-08-25 Bilan Hebdo Du Ménage]])
   - `lister_equipements`, `obtenir_equipement`, `gerer_equipement`
-  - `lister_documents`, `gerer_document` (métadonnées et suppression seulement —
-    les octets passent par l'interface web ; voir [[Documents]])
+  - `lister_documents` (filtre `aClasser` — la boîte des documents arrivés par
+    courriel), `gerer_document` (modifier / **classer** / supprimer — jamais
+    d'octets : les fichiers entrent par l'interface web ou par courriel ; voir
+    [[Documents]]), `relever_courriels` (déclenche un passage de
+    [[Courriel Entrant]] et retourne son rapport ; refuse si non configuré ou déjà
+    en cours)
   - `gerer_budget`, `bilan_budget` — parité avec le module [[Budget]] sur les
     cœurs partagés (ancrage, enveloppes, mouvements, rapprochement, dont
     `restaurer_transaction` et un `lier_transaction` à réclamation atomique —

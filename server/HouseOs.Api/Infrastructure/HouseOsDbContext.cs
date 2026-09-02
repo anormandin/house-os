@@ -14,6 +14,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<Zone> Zones => Set<Zone>();
     public DbSet<Equipement> Equipements => Set<Equipement>();
     public DbSet<Document> Documents => Set<Document>();
+    public DbSet<ImportCourriel> ImportsCourriel => Set<ImportCourriel>();
     public DbSet<CompteARebours> ComptesARebours => Set<CompteARebours>();
     public DbSet<PrevisionHoraire> PrevisionsHoraires => Set<PrevisionHoraire>();
     public DbSet<PrevisionQuotidienne> PrevisionsQuotidiennes => Set<PrevisionQuotidienne>();
@@ -234,8 +235,25 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.SetNull);
             d.HasOne<Zone>().WithMany().HasForeignKey(x => x.ZoneId)
                 .OnDelete(DeleteBehavior.SetNull);
+            d.HasOne<ImportCourriel>().WithMany().HasForeignKey(x => x.ImportCourrielId)
+                .OnDelete(DeleteBehavior.SetNull);
             d.HasIndex(x => x.Categorie);
             d.HasIndex(x => x.Echeance);
+            d.HasIndex(x => x.AClasser);
+        });
+
+        modelBuilder.Entity<ImportCourriel>(i =>
+        {
+            i.Property(x => x.CleDepot).HasMaxLength(300);
+            i.Property(x => x.MessageId).HasMaxLength(300);
+            i.Property(x => x.Expediteur).HasMaxLength(300);
+            i.Property(x => x.Sujet).HasMaxLength(500);
+            i.Property(x => x.Erreur).HasMaxLength(1000);
+            i.Property(x => x.Statut).HasConversion<string>().HasMaxLength(20);
+            // Les deux gardes de déduplication : l'objet du dépôt et le Message-ID
+            // (NULL multiples permis — les lignes ignorées n'en portent pas).
+            i.HasIndex(x => x.CleDepot).IsUnique();
+            i.HasIndex(x => x.MessageId).IsUnique();
         });
     }
 }

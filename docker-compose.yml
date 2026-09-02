@@ -82,6 +82,13 @@ services:
       # Base de l'URL publique du flux iCal (Funnel) — vide = l'UI n'affiche que
       # l'URL interne.
       Ical__UrlPubliqueBase: ${ICAL_URL_PUBLIQUE_BASE:-}
+      # Documents par courriel : documents@alainnormandin.dev → Worker Cloudflare →
+      # bucket R2, relevé ici par l'API S3 (infra/courriel-worker/README.md).
+      # Facultatif : sans les quatre, le relevé est désactivé.
+      Courriel__R2__Endpoint: ${COURRIEL_R2_ENDPOINT:-}
+      Courriel__R2__Bucket: ${COURRIEL_R2_BUCKET:-}
+      Courriel__R2__CleAcces: ${COURRIEL_R2_CLE_ACCES:-}
+      Courriel__R2__CleSecrete: ${COURRIEL_R2_CLE_SECRETE:-}
     ports:
       - "8080:8080"
     volumes:

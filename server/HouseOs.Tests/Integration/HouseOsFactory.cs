@@ -1,10 +1,12 @@
 using System.Net.Http.Json;
 using HouseOs.Api.Features.Auth;
+using HouseOs.Api.Features.Courriel;
 using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Features.Taches;
+using HouseOs.Tests.Features.Courriel;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -68,7 +70,8 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
                     (d.ImplementationType == typeof(RolloverService) ||
                      d.ImplementationType == typeof(MeteoIngestionService) ||
                      d.ImplementationType == typeof(HumeurService) ||
-                     d.ImplementationType == typeof(FluxExternesRafraichissement)))
+                     d.ImplementationType == typeof(FluxExternesRafraichissement) ||
+                     d.ImplementationType == typeof(CourrielEntrantHote)))
                 .ToList();
             foreach (var descripteur in arrierePlan)
             {
@@ -79,11 +82,22 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
             services.RemoveAll<IDiffuseurSynchro>();
             services.AddSingleton<DiffuseurEspion>();
             services.AddSingleton<IDiffuseurSynchro>(sp => sp.GetRequiredService<DiffuseurEspion>());
+
+            // Le dépôt de courriels devient un dictionnaire pilotable ; l'enrichisseur
+            // ne parle jamais à Anthropic sous test, même avec une clé dans l'env.
+            services.RemoveAll<IDepotCourriels>();
+            services.AddSingleton<DepotCourrielsFictif>();
+            services.AddSingleton<IDepotCourriels>(sp => sp.GetRequiredService<DepotCourrielsFictif>());
+            services.RemoveAll<IEnrichisseurCourriel>();
+            services.AddSingleton<IEnrichisseurCourriel>(new EnrichisseurFictif());
         });
     }
 
     /// <summary>Le mouchard de synchro de cet hôte — vider avant la portion observée d'un test.</summary>
     public DiffuseurEspion Synchro => Services.GetRequiredService<DiffuseurEspion>();
+
+    /// <summary>Le dépôt de courriels en mémoire de cet hôte.</summary>
+    public DepotCourrielsFictif Courriels => Services.GetRequiredService<DepotCourrielsFictif>();
 
     /// <summary>
     /// Le cookie de session brut. ClientConnecte le range dans un CookieContainer

@@ -1,0 +1,18 @@
+# Email Worker de House OS : documents@alainnormandin.dev → bucket R2 houseos-courriels.
+# Déploiement : npx wrangler deploy (voir README.md). Les vars ci-dessous priment sur
+# celles du tableau de bord à chaque deploy — c'est ici qu'elles vivent.
+name = "houseos-courriel"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+# Pas d'URL *.workers.dev : ce Worker n'a pas de handler HTTP, il ne reçoit que du courriel.
+workers_dev = false
+
+[[r2_buckets]]
+binding = "COURRIELS"
+bucket_name = "houseos-courriels"
+
+[vars]
+# Adresses (enveloppe MAIL FROM, minuscules) autorisées à déposer — tout le reste est
+# rejeté au SMTP. Ce n'est pas un secret : committable.
+EXPEDITEURS_PERMIS = "alain.normandin@gmail.com,ajolicoe@hotmail.com,ariane.jolicoeur@vinumgrappa.com,alain.normandin@neosapiens.com"
+PREFIXE = "entrants/"

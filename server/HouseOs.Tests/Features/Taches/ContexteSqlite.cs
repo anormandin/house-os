@@ -37,6 +37,9 @@ public class HouseOsDbContextSqlite(DbContextOptions<HouseOsDbContext> options)
         // même limite Sqlite, même remède.
         modelBuilder.Entity<Occurrence>().Property(o => o.CompleteeLe)
             .HasConversion(new DateTimeOffsetToBinaryConverter());
+        // Les listes de documents (REST et MCP) trient par CreeLe.
+        modelBuilder.Entity<Document>().Property(d => d.CreeLe)
+            .HasConversion(new DateTimeOffsetToBinaryConverter());
     }
 }
 

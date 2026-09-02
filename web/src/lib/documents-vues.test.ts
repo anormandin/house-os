@@ -36,6 +36,8 @@ function document(partiel: Partial<Document> & { id: string }): Document {
     typeMime: 'application/pdf',
     taille: 1024,
     creeLe: '2026-08-01T12:00:00Z',
+    aClasser: false,
+    importCourrielId: null,
     ...partiel,
   }
 }

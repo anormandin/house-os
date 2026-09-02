@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-29
-verified-against: 5082ea1
+last-verified: 2026-09-02
+verified-against: f29b6fd
 tags: []
 ---
 
@@ -29,8 +29,11 @@ affiché, et annonce les gestes qui ne viennent pas de moi.
   module et refetch. Aucun toast. Dérivé automatiquement du `ChangeTracker`, donc
   couvre HTTP, MCP et l'arrière-plan sans que les slices aient rien à publier.
 - **Fin** — quand un geste mérite d'être annoncé (complétion, annulation de
-  complétion, création d'un lot MCP), le système diffuse en plus un événement portant
-  `genre`, `source` (`web` ou `mcp`), l'acteur, un libellé et un `nombre`.
+  complétion, création d'un lot MCP, documents reçus par courriel), le système
+  diffuse en plus un événement portant `genre`, `source` (`web`, `mcp` ou
+  `courriel`), l'acteur, un libellé et un `nombre`. Le genre `documents.recus`
+  (source `courriel`, sans acteur) vient de [[Courriel Entrant]] : le toast dit
+  « N documents reçus par courriel — à classer », médaillon « Courriel ».
 
 **Quand un client se connecte** : il reçoit tout ce qui est diffusé tant qu'il est
 connecté ; rien n'est persisté, rien n'est rejoué. Un onglet fermé ne rate rien — il

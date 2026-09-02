@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-29
-verified-against: 5082ea1
+last-verified: 2026-09-02
+verified-against: f29b6fd
 tags: []
 ---
 
@@ -50,9 +50,15 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   joignable du wifi même sans Internet ; + réservation DHCP de l'IP du LXC
   (192.168.4.146). Règle : tout nom `*.alainnormandin.dev` servi en HTTPS pointe
   vers NPM.
+- **Courriel entrant** ([[Courriel Entrant]]) : hors du compose — règle Cloudflare
+  Email Routing `documents@alainnormandin.dev` → Worker `houseos-courriel`
+  (`infra/courriel-worker/`, déployé par `wrangler`) → bucket R2
+  `houseos-courriels` ; l'app le relève avec les variables `COURRIEL_R2_*` du
+  `.env` (facultatives : absentes = relevé désactivé). Rien n'entre par HTTP ; le
+  Funnel reste `/ical` seulement.
 - **Secrets** : `.env` sur le serveur seulement (`.env.example` committé) —
   mot de passe Postgres, clé MCP, clé Anthropic, mots de passe initiaux des
-  2 comptes. Depuis la ronde QA 2026-08-28, le compose **refuse de démarrer**
+  2 comptes, jeton R2. Depuis la ronde QA 2026-08-28, le compose **refuse de démarrer**
   sans `POSTGRES_PASSWORD`, `SEED_MDP_ALAIN`, `SEED_MDP_ARIANE` (syntaxe `:?`,
   comme la clé MCP) — plus aucun repli committé ; les valeurs dev vivent dans
   `appsettings.Development.json`. Cookie : `SecurePolicy.SameAsRequest`

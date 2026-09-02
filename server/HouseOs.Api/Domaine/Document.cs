@@ -44,4 +44,12 @@ public class Document
     public required string TypeMime { get; set; }
     public long Taille { get; set; }
     public DateTimeOffset CreeLe { get; set; }
+
+    /// <summary>Vrai tant qu'un humain n'a pas confirmé la fiche d'un document arrivé
+    /// tout seul (courriel) — la boîte « À classer » de la page Documents
+    /// (D-2026-09-02 Boîte À Classer Des Documents).</summary>
+    public bool AClasser { get; set; }
+
+    /// <summary>Le courriel dont ce document est issu, s'il y a lieu (SET NULL).</summary>
+    public Guid? ImportCourrielId { get; set; }
 }

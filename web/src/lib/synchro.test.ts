@@ -128,3 +128,12 @@ test('l’auteur du toast distingue l’agent MCP d’un membre du foyer', () =>
   expect(auteurPour({ ...base, source: 'mcp' })).toEqual({ nom: 'Ariane', estClaude: true })
   expect(auteurPour({ ...base, source: 'web', acteurNom: null })).toEqual({ nom: null })
 })
+
+test('des documents reçus par courriel s’annoncent sans auteur, au singulier comme au pluriel', () => {
+  const base: EvenementSynchro = { module: 'documents', genre: 'documents.recus', source: 'courriel' }
+  expect(messagePour({ ...base, libelle: 'Facture IKEA' })).toBe('« Facture IKEA » reçu par courriel — à classer')
+  expect(messagePour({ ...base, nombre: 3 })).toBe('3 documents reçus par courriel — à classer')
+  expect(auteurPour(base)).toEqual({ nom: 'Courriel' })
+  // Personne n'a cliqué : l'acteur est nul, donc ce n'est jamais « mon » geste.
+  expect(doitAnnoncer(base, MOI)).toBe(true)
+})

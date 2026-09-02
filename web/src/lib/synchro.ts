@@ -16,7 +16,9 @@ export type EvenementSynchro = {
 export const GENRE_COMPLETEE = 'occurrence.completee'
 export const GENRE_ANNULEE = 'occurrence.annulee'
 export const GENRE_TACHES_CREEES = 'taches.creees'
+export const GENRE_DOCUMENTS_RECUS = 'documents.recus'
 export const SOURCE_MCP = 'mcp'
+export const SOURCE_COURRIEL = 'courriel'
 
 /**
  * Module diffusé → racines de clés à invalider. Miroir des closures `invalider()`
@@ -101,6 +103,15 @@ export function doitAnnoncer(evenement: EvenementSynchro, moiId: string): boolea
 /** Phrase affichée pour un événement fin. Au pluriel, le titre cède la place au décompte. */
 export function messagePour(evenement: EvenementSynchro): string {
   const nombre = evenement.nombre ?? 1
+  // Le courriel n'a pas d'auteur : la phrase porte sur ce qui est entré.
+  if (evenement.genre === GENRE_DOCUMENTS_RECUS) {
+    const cible = nombre > 1
+      ? `${nombre} documents reçus`
+      : typeof evenement.libelle === 'string'
+        ? `« ${evenement.libelle} » reçu`
+        : '1 document reçu'
+    return `${cible} par courriel — à classer`
+  }
   const auteur = evenement.source === SOURCE_MCP
     ? (typeof evenement.acteurNom === 'string'
       ? `Claude (au nom d'${evenement.acteurNom})`
@@ -129,6 +140,9 @@ export function messagePour(evenement: EvenementSynchro): string {
 export function auteurPour(evenement: EvenementSynchro): AuteurToast {
   if (evenement.source === SOURCE_MCP) {
     return { nom: evenement.acteurNom ?? null, estClaude: true }
+  }
+  if (evenement.source === SOURCE_COURRIEL) {
+    return { nom: 'Courriel' }
   }
   return { nom: evenement.acteurNom ?? null }
 }

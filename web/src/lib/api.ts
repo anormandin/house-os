@@ -124,6 +124,9 @@ export type Document = {
   typeMime: string
   taille: number
   creeLe: string
+  /** Arrivé tout seul (courriel) et pas encore confirmé par un humain. */
+  aClasser: boolean
+  importCourrielId: string | null
 }
 
 export type DocumentDonnees = {
@@ -135,6 +138,26 @@ export type DocumentDonnees = {
   notes?: string | null
   dateDocument?: string | null
   echeance?: string | null
+  /** Absent = inchangé ; false = sortir de la boîte À classer. */
+  aClasser?: boolean | null
+}
+
+/** Aperçu d'un document .eml — texte extrait côté serveur, jamais de HTML. */
+export type CourrielDocument = {
+  de: string
+  a: string
+  date: string
+  sujet: string
+  texte: string
+  piecesJointes: { nomFichier: string; typeMime: string; taille: number }[]
+}
+
+export type RapportReleve = {
+  actif: boolean
+  nbCourriels: number
+  nbDocuments: number
+  nbIgnores: number
+  erreurs: string[]
 }
 
 export type Entretien = {
@@ -528,10 +551,11 @@ export const api = {
     }),
   supprimerEquipement: (id: string) =>
     requete<void>(`/api/equipements/${id}`, { method: 'DELETE' }),
-  documents: (filtres?: { categorie?: CategorieDocument; equipementId?: string }) => {
+  documents: (filtres?: { categorie?: CategorieDocument; equipementId?: string; aClasser?: boolean }) => {
     const params = new URLSearchParams()
     if (filtres?.categorie) params.set('categorie', filtres.categorie)
     if (filtres?.equipementId) params.set('equipementId', filtres.equipementId)
+    if (filtres?.aClasser !== undefined) params.set('aClasser', String(filtres.aClasser))
     const suffixe = params.size > 0 ? `?${params}` : ''
     return requete<Document[]>(`/api/documents${suffixe}`)
   },
@@ -539,7 +563,7 @@ export const api = {
     const formulaire = new FormData()
     formulaire.append('fichier', fichier)
     for (const [champ, valeur] of Object.entries(donnees ?? {})) {
-      if (valeur) formulaire.append(champ, valeur)
+      if (typeof valeur === 'string' && valeur) formulaire.append(champ, valeur)
     }
     return requete<{ id: string }>('/api/documents', { method: 'POST', body: formulaire })
   },
@@ -547,6 +571,9 @@ export const api = {
     requete<void>(`/api/documents/${id}`, { method: 'PUT', body: JSON.stringify(donnees) }),
   supprimerDocument: (id: string) =>
     requete<void>(`/api/documents/${id}`, { method: 'DELETE' }),
+  courrielDocument: (id: string) => requete<CourrielDocument>(`/api/documents/${id}/courriel`),
+  releverCourriels: () =>
+    requete<RapportReleve>('/api/documents/relever-courriels', { method: 'POST' }),
 
   comptesARebours: () => requete<CompteARebours[]>('/api/comptes-a-rebours'),
   creerCompteARebours: (donnees: CompteAReboursDonnees) =>

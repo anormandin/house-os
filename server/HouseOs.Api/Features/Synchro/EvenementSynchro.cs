@@ -22,8 +22,12 @@ public record EvenementSynchro(
 {
     public const string SourceWeb = "web";
     public const string SourceMcp = "mcp";
+    /// <summary>Écriture née d'un courriel relevé — personne n'a cliqué.</summary>
+    public const string SourceCourriel = "courriel";
 
     public const string GenreOccurrenceCompletee = "occurrence.completee";
     public const string GenreOccurrenceAnnulee = "occurrence.annulee";
     public const string GenreTachesCreees = "taches.creees";
+    /// <summary>Des documents sont entrés par courriel (Nombre = combien).</summary>
+    public const string GenreDocumentsRecus = "documents.recus";
 }

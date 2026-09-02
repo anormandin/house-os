@@ -40,6 +40,7 @@ public sealed class IntercepteurSynchro(
         [typeof(Zone)] = ModulesSynchro.Zones,
         [typeof(Equipement)] = ModulesSynchro.Equipements,
         [typeof(Document)] = ModulesSynchro.Documents,
+        [typeof(ImportCourriel)] = ModulesSynchro.Documents,
         [typeof(CompteARebours)] = ModulesSynchro.ComptesARebours,
         [typeof(PrevisionHoraire)] = ModulesSynchro.Meteo,
         [typeof(PrevisionQuotidienne)] = ModulesSynchro.Meteo,

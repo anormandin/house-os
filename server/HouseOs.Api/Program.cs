@@ -1,6 +1,7 @@
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.Budget;
 using HouseOs.Api.Features.ComptesARebours;
+using HouseOs.Api.Features.Courriel;
 using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxExternes;
@@ -204,6 +205,19 @@ builder.Services.PostConfigure<HumeurOptions>(o =>
 });
 builder.Services.AddHostedService<HumeurService>();
 
+// Courriel entrant : le Worker Cloudflare dépose les .eml dans R2, l'app les relève
+// (D-2026-09-02 Courriel Entrant Par Cloudflare Et R2). Config absente = dépôt inactif,
+// service idle — le dev n'a pas besoin d'un bucket.
+builder.Services.Configure<CourrielOptions>(builder.Configuration.GetSection("Courriel"));
+builder.Services.AddSingleton<IDepotCourriels>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CourrielOptions>>().Value;
+    return options.Actif ? new DepotCourrielsR2(options) : new DepotCourrielsInactif();
+});
+builder.Services.AddSingleton<IEnrichisseurCourriel, EnrichisseurAnthropic>();
+builder.Services.AddSingleton<CourrielEntrantService>();
+builder.Services.AddHostedService<CourrielEntrantHote>();
+
 var app = builder.Build();
 
 // Avant tout le reste : le schéma/IP vus par l'app (cookie Secure, partition du
@@ -236,6 +250,7 @@ app.MapZones();
 app.MapComptesARebours();
 app.MapEquipements();
 app.MapDocuments();
+app.MapCourriel();
 app.MapBudget();
 app.MapImportTransactions();
 app.MapIcal();
