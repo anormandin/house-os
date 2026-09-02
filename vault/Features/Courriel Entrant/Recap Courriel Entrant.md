@@ -28,6 +28,17 @@ Construit le 2026-09-02 (code complet, tests verts : 629 serveur, 181 web) :
   `Document.CreeLe` dans le contexte de test) ; MimeKit génère un Message-ID par
   défaut (retiré explicitement dans la fabrique de test).
 
-Reste ouvert : la mise en service Cloudflare (étapes manuelles d'Alain, voir le
-README du Worker) et la vérification avec de vrais courriels — le spec passe à
-`implemented` après.
+Mise en service le 2026-09-02 (Cloudflare + prod) et premier vrai courriel importé :
+« Commande LUSINE — lit, fauteuil et ottoman », titre proposé par Haiku, toast reçu.
+Deux leçons de la mise en service :
+
+- R2 refuse `message.raw` tel quel (« readable stream must have a known length ») :
+  le Worker lit le flux en mémoire d'abord. Les deux premiers transferts ont
+  échoué en silence — `npx wrangler tail houseos-courriel` est l'outil qui l'a
+  montré ; `wrangler r2 bucket info` a un compteur d'objets en retard, inutile
+  pour ce diagnostic.
+- Le bucket créé s'appelle `houseos-courriel` (singulier) et le jeton lui est
+  scopé ; un doublon `houseos-courriels` a existé le temps de l'aligner.
+
+Reste au fil de l'usage : vérifier un courriel avec PDF joint, un doublon, un
+expéditeur hors liste et l'outil MCP sur la prod.

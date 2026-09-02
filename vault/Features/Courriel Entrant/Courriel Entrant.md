@@ -1,8 +1,8 @@
 ---
 type: feature
-status: building
+status: implemented
 last-verified: 2026-09-02
-verified-against: f29b6fd
+verified-against: 4c20d2f
 tags: []
 ---
 
@@ -80,4 +80,4 @@ rien téléverser à la main. Troisième source d'ingestion après [[Météo]] e
 
 ## Historique
 
-- [[Plan 2026-09-02 Courriel Entrant]]
+- [[Plan 2026-09-02 Courriel Entrant]] · [[Recap Courriel Entrant]]

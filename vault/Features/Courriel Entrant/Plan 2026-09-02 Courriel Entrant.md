@@ -1,6 +1,6 @@
 ---
 type: plan
-status: approved
+status: executed
 date: 2026-09-02
 feature: "[[Courriel Entrant]]"
 ---
@@ -37,10 +37,14 @@ enrichis par LLM, avec parité MCP et toast temps réel. Approuvé par Alain le
   bouton Relever, Classer, aperçu courriel), synchro.ts.
 - [x] Tests : unitaires Courriel, service avec dépôt fictif, intégration, vitest.
 - [x] Docs : dépôt infra `unifi` (DNS, Worker, R2), specs vault touchées, Recap.
-- [ ] Mise en service (Alain) : DNS, Email Routing, bucket + jeton R2, `wrangler
-  deploy`, règle de routage, `.env` prod ; puis push + release.
-- [ ] Vérification réelle : courriel avec PDF, courriel HTML seul, doublon,
-  expéditeur hors liste, bouton et MCP « relever ».
+- [x] Mise en service (Alain) : DNS, Email Routing, bucket + jeton R2, `wrangler
+  deploy`, règle de routage, `.env` prod ; puis push + release (2026-09-02).
+- [x] Correctif après mise en service : `message.raw` lu en mémoire avant le dépôt
+  R2 ; bucket `houseos-courriel` (singulier) aligné partout.
+- [x] Vérification réelle : premier courriel (commande LUSINE, HTML) importé et
+  titré par Haiku, toast reçu, bouton « relever » → 409 pendant un passage.
+- [ ] Vérification restante : courriel avec PDF joint, doublon, expéditeur hors
+  liste, MCP `relever_courriels` — à cocher au fil de l'usage.
 
 ## Vérification
 
