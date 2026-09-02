@@ -46,7 +46,7 @@ L'app n'est pas exposée à Internet hors `/ical`
 **Cloudflare Email Routing sur l'apex** (le MX Mailgun et son SPF sont remplacés),
 adresse `documents@alainnormandin.dev` → **Email Worker** (`infra/courriel-worker/`)
 qui filtre l'expéditeur sur une liste permise et dépose le MIME brut dans le bucket R2
-`houseos-courriels` → **House OS relève R2** par l'API S3 (`AWSSDK.S3`, jeton scopé
+`houseos-courriel` → **House OS relève R2** par l'API S3 (`AWSSDK.S3`, jeton scopé
 au bucket) toutes les 2 minutes, importe, puis efface l'objet. Choix d'Alain
 (2026-09-02) : boîte dédiée sur son domaine, puis « Worker → R2 » parmi les
 consommations proposées.

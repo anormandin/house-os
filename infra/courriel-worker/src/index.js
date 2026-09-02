@@ -22,9 +22,12 @@ export default {
       return;
     }
 
+    // R2 exige une longueur connue : message.raw est un flux sans longueur, on le
+    // lit d'abord en mémoire (≤ 25 Mo, la limite d'Email Routing).
+    const corps = await new Response(message.raw).arrayBuffer();
     const horodatage = new Date().toISOString().replace(/[:.]/g, "-");
     const cle = `${env.PREFIXE ?? "entrants/"}${horodatage}-${crypto.randomUUID()}.eml`;
-    await env.COURRIELS.put(cle, message.raw, {
+    await env.COURRIELS.put(cle, corps, {
       httpMetadata: { contentType: "message/rfc822" },
       customMetadata: {
         de: expediteur,

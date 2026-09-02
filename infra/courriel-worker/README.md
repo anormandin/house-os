@@ -1,7 +1,7 @@
 # Worker « houseos-courriel »
 
 Reçoit `documents@alainnormandin.dev` (Cloudflare Email Routing) et dépose le
-courriel brut dans le bucket R2 `houseos-courriels`. House OS relève le bucket
+courriel brut dans le bucket R2 `houseos-courriel`. House OS relève le bucket
 toutes les deux minutes (`server/HouseOs.Api/Features/Courriel/`).
 
 ## Mise en place (une fois, dans le tableau de bord Cloudflare)
@@ -13,7 +13,7 @@ toutes les deux minutes (`server/HouseOs.Api/Features/Courriel/`).
    Email Routing → *Onboard Domain* → `alainnormandin.dev` et accepter les
    enregistrements proposés (3 MX `routeN.mx.cloudflare.net`, SPF
    `v=spf1 include:_spf.mx.cloudflare.net ~all`, DKIM `cf2024-1._domainkey`).
-3. **R2** : créer le bucket `houseos-courriels`. Puis *Manage API Tokens* → jeton
+3. **R2** : créer le bucket `houseos-courriel`. Puis *Manage API Tokens* → jeton
    « Object Read & Write » scopé à ce bucket ; noter Access Key ID, Secret et
    l'endpoint `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` → `.env` du serveur
    (`COURRIEL_R2_*`, voir `.env.example`).

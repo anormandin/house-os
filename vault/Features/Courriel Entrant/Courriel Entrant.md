@@ -22,7 +22,7 @@ rien téléverser à la main. Troisième source d'ingestion après [[Météo]] e
   Email Routing reçoit `documents@` et confie le message à l'Email Worker
   `houseos-courriel` (`infra/courriel-worker/`). Le Worker rejette (SMTP 5xx) tout
   expéditeur absent de `EXPEDITEURS_PERMIS` et tout message > 25 MiB, sinon dépose le
-  MIME brut dans le bucket R2 `houseos-courriels` sous `entrants/<horodatage>-<uuid>.eml`.
+  MIME brut dans le bucket R2 `houseos-courriel` sous `entrants/<horodatage>-<uuid>.eml`.
 - **Relève** : `CourrielEntrantHote` relève R2 au démarrage puis toutes les
   `Courriel:CadenceMinutes` (défaut 2, plancher 1) via `CourrielEntrantService`
   (singleton, verrou anti-passe concurrente). Sans configuration R2, le service

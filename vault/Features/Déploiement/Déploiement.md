@@ -53,7 +53,7 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 - **Courriel entrant** ([[Courriel Entrant]]) : hors du compose — règle Cloudflare
   Email Routing `documents@alainnormandin.dev` → Worker `houseos-courriel`
   (`infra/courriel-worker/`, déployé par `wrangler`) → bucket R2
-  `houseos-courriels` ; l'app le relève avec les variables `COURRIEL_R2_*` du
+  `houseos-courriel` ; l'app le relève avec les variables `COURRIEL_R2_*` du
   `.env` (facultatives : absentes = relevé désactivé). Rien n'entre par HTTP ; le
   Funnel reste `/ical` seulement.
 - **Secrets** : `.env` sur le serveur seulement (`.env.example` committé) —
