@@ -17,14 +17,17 @@ public static class FabriqueCourriels
         return memoire.ToArray();
     }
 
-    /// <summary>Un PNG au-delà du seuil « logo de signature » (bruit non compressible).</summary>
-    public static byte[] GrosPng()
+    /// <summary>Un PNG bien au-delà du seuil « logo de signature » (~120 Ko de bruit).</summary>
+    public static byte[] GrosPng() => PngBruit(200);
+
+    /// <summary>Un PNG de bruit non compressible : ~3 octets par pixel, taille prévisible.</summary>
+    public static byte[] PngBruit(int cote)
     {
         var alea = new Random(7);
-        using var image = new Image<Rgba32>(160, 160);
-        for (var y = 0; y < 160; y++)
+        using var image = new Image<Rgba32>(cote, cote);
+        for (var y = 0; y < cote; y++)
         {
-            for (var x = 0; x < 160; x++)
+            for (var x = 0; x < cote; x++)
             {
                 image[x, y] = new Rgba32((byte)alea.Next(256), (byte)alea.Next(256), (byte)alea.Next(256));
             }

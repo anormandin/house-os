@@ -71,6 +71,27 @@ public class LectureCourrielTests
     }
 
     [Fact]
+    public async Task Une_banniere_transferee_par_mail_app_est_ignoree_mais_pas_le_pdf()
+    {
+        // Mail.app transfère les images du corps en parties « inline » nommées, sans cid,
+        // entre deux morceaux de HTML — la bannière Zoho Sign faisait 16 Ko en PNG. Elle ne
+        // doit pas devenir un document ; le PDF, lui aussi « inline » chez Mail.app, si.
+        var message = Message(html: "<p>Document terminé</p>", texte: null, corps: b =>
+        {
+            var banniere = (MimePart)b.Attachments.Add("zs_branding.png", PngBruit(64), ContentType.Parse("image/png"));
+            banniere.ContentDisposition!.Disposition = ContentDisposition.Inline;
+            var pdf = (MimePart)b.Attachments.Add("SO-948157.pdf", PetitPdf(), ContentType.Parse("application/pdf"));
+            pdf.ContentDisposition!.Disposition = ContentDisposition.Inline;
+        });
+
+        var lu = await LectureCourriel.LireAsync(Octets(message), CancellationToken.None);
+
+        var piece = Assert.Single(lu.PiecesJointes);
+        Assert.Equal("SO-948157.pdf", piece.NomFichier);
+        Assert.True(PngBruit(64).Length > 10 * 1024, "la bannière de test doit dépasser l'ancien seuil de 10 Ko");
+    }
+
+    [Fact]
     public async Task Le_type_image_jpg_est_normalise_et_un_docx_est_ecarte()
     {
         var message = Message(corps: b =>

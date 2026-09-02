@@ -23,8 +23,13 @@ public record CourrielLu(
 /// </summary>
 public static partial class LectureCourriel
 {
-    /// <summary>Sous cette taille, une image inline est un logo de signature.</summary>
-    public const int TailleMinImageInline = 10 * 1024;
+    /// <summary>
+    /// Sous cette taille, une image non déclarée « attachment » est un logo ou une
+    /// bannière de courriel, pas un document. Mail.app transfère les images du corps
+    /// en parties `inline` nommées sans `cid:` (la bannière Zoho Sign faisait 16 Ko en
+    /// PNG) ; une photo utile — reçu, plaque, écran — pèse bien plus que 64 Ko.
+    /// </summary>
+    public const int TailleMinImageInline = 64 * 1024;
 
     [GeneratedRegex(@"cid:([^""'\s>)]+)", RegexOptions.IgnoreCase)]
     private static partial Regex ReferencesCid();

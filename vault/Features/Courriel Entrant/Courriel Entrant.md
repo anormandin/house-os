@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-02
-verified-against: 4c20d2f
+verified-against: 202d31d
 tags: []
 ---
 
@@ -31,7 +31,9 @@ rien téléverser à la main. Troisième source d'ingestion après [[Météo]] e
   `relever_courriels` déclenchent un passage immédiat.
 - **Par courriel**, dans son propre scope : téléchargement → lecture MimeKit → chaque
   pièce jointe de type permis (PDF/JPEG/PNG/WebP/HEIC, disposition « attachment » ou
-  nommée et non référencée en `cid:`, hors petites images inline) devient un
+  nommée et non référencée en `cid:`, hors images non-attachment sous
+  `LectureCourriel.TailleMinImageInline` — 64 Ko as of 2026-09, parce que Mail.app
+  transfère les bannières du corps en parties `inline` nommées sans `cid:`) devient un
   `Document` **à classer** ; sans pièce retenue, le `.eml` entier devient le document
   ([[D-2026-09-02 Boîte À Classer Des Documents]]). Une ligne `ImportCourriel`
   (clé R2, Message-ID, expéditeur, sujet, statut, nb documents) est écrite dans la

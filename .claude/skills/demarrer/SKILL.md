@@ -1,6 +1,6 @@
 ---
 name: demarrer
-description: Lancer House OS en dev — Postgres (docker compose, port 5433), Seq (logs, localhost:8081), API .NET (localhost:5000), web Vite (localhost:5173) — exécuter les tests, lire les logs structurés, et vérifier/brancher le serveur MCP local. Utiliser pour démarrer l'app, la tester, lire une trace d'incident, ou diagnostiquer le MCP.
+description: Lancer House OS en dev — Postgres (docker compose, port 5433), API .NET (localhost:5000), web Vite (localhost:5173), logs vers le Seq du lab (logs.alainnormandin.dev) — exécuter les tests, lire les logs structurés, et vérifier/brancher le serveur MCP local. Utiliser pour démarrer l'app, la tester, lire une trace d'incident, ou diagnostiquer le MCP.
 ---
 
 # Démarrer House OS en dev
@@ -8,8 +8,8 @@ description: Lancer House OS en dev — Postgres (docker compose, port 5433), Se
 ## Services
 
 ```bash
-# 1. Postgres + Seq (une fois ; volumes persistants)
-docker compose up -d postgres seq              # → Seq : http://localhost:8081
+# 1. Postgres (une fois ; volume persistant)
+docker compose up -d postgres                  # port 5433 côté hôte
 
 # 2. API (.NET 10) — applique les migrations et le seed au démarrage
 dotnet run --project server/HouseOs.Api        # → http://localhost:5000
@@ -28,10 +28,13 @@ correspondante dans le log serveur, c'est lui — pas l'app.)
 
 ## Logs (Seq)
 
-L'API émet des logs structurés vers Seq ([[Observabilité]] dans le vault) : une ligne
-par requête avec statut et durée, les durées de phase de la complétion, les gestes du
-navigateur. UI sur **http://localhost:8081** (`admin` / le mot de passe du `.env`) ;
-ingestion sur 5342 — **pas 5341**, occupé par le Seq personnel du Mac.
+L'API émet des logs structurés vers le **Seq du lab** ([[Observabilité]] dans le
+vault) : une ligne par requête avec statut et durée, les durées de phase de la
+complétion, les gestes du navigateur. Plus de Seq local : dev et prod envoient au
+collecteur partagé (LXC 106, `192.168.4.36:5341`, sans clé en dev). UI sur
+**https://logs.alainnormandin.dev** (ou `http://192.168.4.36:8081` du LAN).
+Le compose exige `JOURNALISATION_SEQ_CLE` dans le `.env` (placeholder en dev —
+seul le service `app` prod la consomme).
 
 Pour lire la trace complète d'une requête : copier la référence affichée sous le
 message de la bannière d'erreur (ou l'en-tête `X-Trace-Id` de la réponse) et filtrer
@@ -52,27 +55,29 @@ relancer `dotnet run` après un changement C#.
 
 ## MCP (serveur intégré, endpoint /mcp)
 
-- Config Claude Code : `.mcp.json` à la racine — URL `${HOUSEOS_MCP_URL:-http://localhost:5000/mcp}`,
-  clé `${HOUSEOS_MCP_KEY:-dev-cle-mcp-houseos}`.
+- Config Claude Code : `.mcp.json` à la racine — URL `${HOUSEOS_MCP_URL:-https://houseos.alainnormandin.dev/mcp}`,
+  clé `${HOUSEOS_MCP_KEY}` (sans défaut : clé absente = 401, jamais un repli silencieux
+  vers le dev).
 
-### Choisir l'environnement (dev vs prod)
+### Choisir l'environnement (prod par défaut, dev sur demande)
 
-L'expansion `${…}` se fait **au démarrage de Claude Code** : sans variables, on parle
-au serveur **dev** (localhost:5000). Pour viser la **prod** (LXC 105 sur pve,
-derrière NPM — joignable du LAN et via Tailscale), lancer la session avec les deux
-variables :
+**Sauf indication contraire, le MCP de la session parle à la prod** (LXC 105 sur pve,
+derrière NPM — joignable du LAN et via Tailscale). Les deux variables sont exportées
+par `~/.config/secrets.zsh` (hors dotfiles, chmod 600, sourcé par `~/.config/zsh/.zshrc`) ;
+la clé est `HOUSEOS_MCP_KEY` dans `/opt/house-os/.env` sur le LXC.
+
+Pour viser l'API **dev** (localhost:5000), lancer la session avec l'alias `claude-dev`
+(défini dans `~/.config/zsh/aliases.zsh`) :
 
 ```bash
-HOUSEOS_MCP_URL="https://houseos.alainnormandin.dev/mcp" \
-HOUSEOS_MCP_KEY="<HOUSEOS_MCP_KEY du /opt/house-os/.env sur le LXC>" \
-claude
+HOUSEOS_MCP_URL="http://localhost:5000/mcp" HOUSEOS_MCP_KEY="dev-cle-mcp-houseos" claude
 ```
 
-(pratique : en faire un alias `claude-maison` dans ~/.zshrc). Changer d'environnement
-= relancer la session. En cas de doute sur l'environnement courant, `lister_occurrences`
-révèle vite quelles données on regarde ; les données dev sont jetables, la prod non.
-Quand l'app sera en service permanent, on pourra inverser le défaut de `.mcp.json`
-vers l'URL Tailscale et surcharger pour le dev.
+L'expansion `${…}` se fait **au démarrage de Claude Code** : changer d'environnement
+= relancer la session. En cas de doute, `claude mcp list` affiche l'URL résolue et
+`lister_occurrences` révèle vite quelles données on regarde ; les données dev sont
+jetables, la prod non. Une session lancée sur le mauvais environnement peut interroger
+la prod sans relancer par le curl stateless ci-dessous (clé prod à la place de la clé dev).
 - Vérifier la connexion : `claude mcp list` → `house-os` doit être connecté.
 - Smoke test à la main (le transport exige l'en-tête `Accept` double) :
 

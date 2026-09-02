@@ -40,5 +40,17 @@ Deux leçons de la mise en service :
 - Le bucket créé s'appelle `houseos-courriel` (singulier) et le jeton lui est
   scopé ; un doublon `houseos-courriels` a existé le temps de l'aligner.
 
-Reste au fil de l'usage : vérifier un courriel avec PDF joint, un doublon, un
-expéditeur hors liste et l'outil MCP sur la prod.
+Vérifié le soir même : le contrat signé LUSINE (PDF joint) est arrivé comme document,
+et l'outil MCP prod répond. Deux effets de bord observés et traités :
+
+- Les transferts échoués à 16 h 27/16 h 28 ont été **rejoués par Gmail** à 21 h
+  (nouveaux Message-ID côté Mail.app : la déduplication ne les voit pas) → trois
+  documents « à classer » réapparus, doublons des deux déjà classés. Une relance
+  SMTP produit toujours un nouvel import ; seule une empreinte du contenu
+  attraperait ce cas (non fait).
+- Mail.app transfère les images du corps en parties **`inline` nommées sans `cid:`**
+  (multipart/mixed entrelacé de HTML) : la bannière Zoho Sign, 16 Ko en PNG, a
+  franchi le seuil de 10 Ko et est devenue une « photo ». Seuil monté à 64 Ko
+  (`LectureCourriel.TailleMinImageInline`), test « bannière Mail.app » ajouté.
+
+Reste au fil de l'usage : un expéditeur hors liste.
