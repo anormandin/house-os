@@ -2,7 +2,7 @@
   "mcpServers": {
     "house-os": {
       "type": "http",
-      "url": "${HOUSEOS_MCP_URL:-https://houseos.alainnormandin.dev/mcp}",
+      "url": "${HOUSEOS_MCP_URL:-http://localhost:5000/mcp}",
       "headers": {
         "Authorization": "Bearer ${HOUSEOS_MCP_KEY}"
       }

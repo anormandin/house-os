@@ -1,42 +1,48 @@
 # House OS — contexte projet
 
-Système auto-hébergé de gestion de la maison pour Alain et sa femme (jamais d'enfants —
-aucune feature points/récompenses/kid-station, jamais). Déménagement le **6 octobre 2026**
-à **Sainte-Catherine-de-la-Jacques-Cartier, QC** (~46.85, −71.62). Projet-hobby : le but
-est autant de construire (serveur, UI, un jour hardware) que d'utiliser. Les outils
-existants (Donetick, Grocy, Homebox…) servent d'inspiration, jamais d'intégration.
+Système auto-hébergé de gestion de la maison pour un foyer de deux adultes : tâches
+récurrentes et ponctuelles, pièces, équipements, documents, budget, météo, iCal,
+serveur MCP. Projet-hobby : le but est autant de construire (serveur, UI, un jour
+hardware) que d'utiliser. Les outils existants (Donetick, Grocy, Homebox…) servent
+d'inspiration, jamais d'intégration. **Décision produit : aucune feature enfants /
+points / récompenses / kid-station, jamais.**
 
-## Décisions structurantes (2026-08-23 — ADRs détaillés dans vault/)
+Dépôt public (AGPL-3.0) : d'autres foyers l'installent (`docs/installation.md`) et
+contribuent (`CONTRIBUTING.md`). Rien de propre à un foyer ou à un hébergement ne va
+dans le code ni dans les défauts : tout passe par le `.env` (`docs/configuration.md`).
+Le contexte personnel du mainteneur vit dans `CLAUDE.local.md` (gitignoré).
 
-- **Monorepo** ; hébergé sur une machine maison toujours allumée + **Tailscale** ; tout en **Docker Compose** (le homelab change au déménagement).
-- **Backend** : .NET 10, monolithe modulaire en **tranches verticales** (endpoint + handler + data par feature), minimal APIs, EF Core + Npgsql. Domaine riche + tests unitaires pour le moteur de récurrence.
-- **DB** : PostgreSQL (JSONB pour métadonnées flexibles ; backups pg_dump).
-- **Frontend** : Vite + TypeScript + TanStack Query + Tailwind + shadcn/ui. **UI 100 % français, chaînes en dur** (pas de lib i18n). **Desktop d'abord** — téléphone non prioritaire (probablement jamais) ; l'écran e-ink mural sera une seconde vue distincte (rendu serveur, phase 3).
-- **Auth** : login simple, 2 comptes, session cookie ; clés API pour les devices IoT plus tard.
-- **Notifications v1** : flux iCal (Ical.Net) auquel chaque téléphone s'abonne. Push/ntfy plus tard.
-- **Pas de n8n/Node-RED dans le cœur** : l'ingestion (météo, ICS…) = un `BackgroundService` .NET par source vers des tables normalisées ; les règles (« bonne journée pour tondre ») = classes C# testables.
+## Décisions structurantes (ADRs détaillés dans vault/Decisions)
+
+- **Monorepo** ; hébergé sur une machine maison toujours allumée, tout en **Docker Compose** (une image API + web, Postgres à côté).
+- **Backend** : .NET 10, monolithe modulaire en **tranches verticales** (`Features/<Module>/` : endpoints + opérations + DTOs), minimal APIs, EF Core + Npgsql. Domaine riche (`Domaine/`) testé sans base.
+- **DB** : PostgreSQL (JSONB pour métadonnées flexibles ; backups pg_dump). Migrations EF générées, jamais de schéma modifié à la main.
+- **Frontend** : Vite + React + TypeScript + TanStack Query + Tailwind. **UI 100 % français, chaînes en dur** (pas de lib i18n). **Desktop d'abord** ; installable sans service worker ; l'écran e-ink mural sera une seconde vue distincte (rendu serveur, phase 3).
+- **Auth** : login simple, comptes seedés depuis la config à la première mise en route, cookie de session ; clés API pour les devices IoT plus tard.
+- **Notifications v1** : flux iCal (Ical.Net) par personne. Push/ntfy plus tard.
+- **Pas de n8n/Node-RED dans le cœur** : l'ingestion (météo, ICS, courriel…) = un `BackgroundService` .NET par source vers des tables normalisées ; les règles (« bonne journée pour tondre ») = classes C# testables.
+- **Serveur MCP intégré** (`/mcp`, clé partagée + paramètre `agirComme`) : **parité MCP / API** — toute tranche REST met à jour les outils MCP dans la même session ; les fichiers restent web seulement.
+- **Observabilité** : Serilog structuré, `TraceId` par requête ; Seq facultatif.
 - **IoT (phase 3)** : MQTT + convention **Home Assistant MQTT Discovery** comme standard device (indépendant de HA) ; Zigbee2MQTT + Mosquitto ; firmwares maison en ESPHome ; Matter uniquement via sidecar, jamais de contrôleur C#.
 
-## Moteur de récurrence (le cœur — patterns validés par la recherche Grocy/Donetick)
+## Moteur de récurrence (le cœur)
 
 - Récurrence stockée **type + paramètres, PAS de chaînes RRULE/cron** : `mode` = fixe (jours de semaine / jour du mois / annuel) | intervalle-depuis-complétion | ponctuelle ; + **fenêtre saisonnière** optionnelle (plage mois-jour, combinable) ; + flag **rollover** (une occurrence manquée glisse au lieu de s'empiler en retard).
 - **Prochaine échéance matérialisée à la complétion**, pas calculée à la lecture.
 - **Journal de complétion = table séparée** (qui/quand/notes/coût/photo), jamais une simple date mutée.
 - Stratégie d'assignation sur la tâche : fixe | alternance | moins-l'a-fait.
-- Différenciateurs prévus (aucun outil existant ne les a) : fenêtres saisonnières + échéance déclenchée par capteur (v3).
+- Différenciateur prévu : échéance déclenchée par capteur (phase 3).
 
-## Domaine (termes français dans le code du domaine)
+## Domaine (termes français dans le code)
 
-Utilisateur · Zone (pièce/extérieur) · Équipement (asset : marque, série, garantie, manuels, specs JSONB) · Tâche (définition + spec de récurrence) · Occurrence (instance planifiée) · Journal de complétion. À venir : Projet, Document, Consommable, Appareil (IoT).
+Utilisateur · Zone (pièce/extérieur) · Équipement (marque, série, garantie, manuels, specs JSONB) · Tâche (définition + spec de récurrence) · Occurrence (instance planifiée) · Journal de complétion · Document · Compte à rebours · Enveloppe (budget) · Flux externe. À venir : Consommable, Appareil (IoT).
 
 ## Feuille de route
 
-1. **Phase 1a — V0 « Déménagement »** (mi-sept.) : tâches ponctuelles seulement (créer/assigner/échéance/compléter), vue Aujourd'hui, quick-add, login, PWA — les tâches du déménagement = premières vraies données.
-2. **Phase 1b — V1** (autour du 6 oct.) : moteur de récurrence 3 modes + zones + module équipements complet + flux iCal + script de backup.
-3. **Phase 2** : météo Open-Meteo (gratuit, sans clé, modèle HRDPS canadien) + règles « bonne journée pour… » ; ingestion ICS (collectes Recollect, calendriers) ; Hydro-Québec `evenements-pointe` ; documents ; consommables.
-4. **Phase 3** : hub MQTT, tablette murale Fully Kiosk, NFC tap-pour-compléter, e-ink, panneaux openHASP, capteurs.
-
-Rapports de recherche complets : `docs/research/`.
+Phases 1 et 2 livrées (tâches, récurrence, zones, équipements, iCal, météo, humeur,
+ICS, documents, budget, courriel entrant, MCP, synchro). Reste de la phase 2 :
+Hydro-Québec `evenements-pointe`, consommables. **Phase 3** : hub MQTT, tablette
+murale, NFC tap-pour-compléter, e-ink, capteurs. Détail : `vault/Reference/Architecture.md`.
 
 ## Vault
 
@@ -47,4 +53,5 @@ de `vault/Home.md`. Tout changement de contrat met à jour le vault dans la mêm
 ## Conventions
 
 - UI et termes du domaine en français ; code technique (infra, helpers) en anglais si plus naturel.
-- Toujours demander avant de committer.
+- Messages de commit `type: description` en français.
+- Démarrer, tester, brancher le MCP local : skill `demarrer`.

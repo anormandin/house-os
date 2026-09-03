@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Check, Copy, LogOut, RefreshCw } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
-import Avatar from '@/components/Avatar'
+import Avatar, { enregistrerFoyer } from '@/components/Avatar'
 import { api, ApiError, type Utilisateur } from '@/lib/api'
 import { signalerErreur } from '@/lib/erreurs'
 import { cn, copierDansPressePapiers } from '@/lib/utils'
@@ -26,6 +26,13 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
     queryKey: ['utilisateurs'],
     queryFn: api.utilisateurs,
   })
+  // Les teintes d'avatar suivent le rang dans le foyer : on publie la liste dès
+  // qu'elle arrive pour que toasts et occurrences colorent les bons membres.
+  useEffect(() => {
+    if (utilisateurs !== undefined) {
+      enregistrerFoyer(utilisateurs)
+    }
+  }, [utilisateurs])
   const { data: monFlux } = useQuery({
     queryKey: ['mon-flux-ical'],
     queryFn: api.monFluxIcal,

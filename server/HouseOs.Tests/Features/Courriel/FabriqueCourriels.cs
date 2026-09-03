@@ -39,7 +39,7 @@ public static class FabriqueCourriels
 
     public static MimeMessage Message(
         string sujet = "Votre reçu IKEA",
-        string de = "alain.normandin@gmail.com",
+        string de = "camille@exemple.com",
         string? texte = "Merci pour votre achat.",
         string? html = null,
         string? messageId = "recu-1@exemple.test",
@@ -48,7 +48,7 @@ public static class FabriqueCourriels
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("Alain", de));
-        message.To.Add(new MailboxAddress("Documents", "documents@alainnormandin.dev"));
+        message.To.Add(new MailboxAddress("Documents", "documents@exemple.com"));
         message.Subject = sujet;
         message.Date = date ?? new DateTimeOffset(2026, 9, 1, 10, 0, 0, TimeSpan.FromHours(-4));
         var builder = new BodyBuilder { TextBody = texte, HtmlBody = html };

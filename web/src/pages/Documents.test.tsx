@@ -36,7 +36,7 @@ const DOCUMENT_COMPLET = document({
   categorie: 'Contrat',
   zoneId: 'z-bureau',
   nomZone: 'Bureau',
-  dossier: '17 rue de la Colline',
+  dossier: '12 rue des Érables',
   notes: 'Signée chez le notaire',
   dateDocument: '2026-03-01',
   echeance: '2030-01-01',
@@ -75,7 +75,7 @@ test('le tiroir charge tous les champs et n’en perd aucun à l’enregistremen
   await waitFor(() =>
     expect(screen.getByLabelText('Titre')).toHaveValue('Promesse d’achat'))
   expect(screen.getByLabelText('Catégorie')).toHaveValue('Contrat')
-  expect(screen.getByLabelText('Dossier')).toHaveValue('17 rue de la Colline')
+  expect(screen.getByLabelText('Dossier')).toHaveValue('12 rue des Érables')
   expect(screen.getByLabelText('Pièce liée')).toHaveValue('z-bureau')
   expect(screen.getByLabelText('Notes')).toHaveValue('Signée chez le notaire')
 
@@ -87,7 +87,7 @@ test('le tiroir charge tous les champs et n’en perd aucun à l’enregistremen
     categorie: 'Contrat',
     equipementId: null,
     zoneId: 'z-bureau',
-    dossier: '17 rue de la Colline',
+    dossier: '12 rue des Érables',
     notes: 'Signée chez le notaire',
     dateDocument: '2026-03-01',
     echeance: '2030-01-01',
@@ -96,9 +96,9 @@ test('le tiroir charge tous les champs et n’en perd aucun à l’enregistremen
 
 test('les facettes se combinent en ET et se retirent par jeton', async () => {
   servirDocuments([
-    document({ id: 'd-1', titre: 'Promesse d’achat', categorie: 'Contrat', dossier: '17 rue de la Colline' }),
+    document({ id: 'd-1', titre: 'Promesse d’achat', categorie: 'Contrat', dossier: '12 rue des Érables' }),
     document({ id: 'd-2', titre: 'Offre acceptée', categorie: 'Contrat', dossier: '428 rue Fraser' }),
-    document({ id: 'd-3', titre: 'Facture toiture', categorie: 'Facture', dossier: '17 rue de la Colline' }),
+    document({ id: 'd-3', titre: 'Facture toiture', categorie: 'Facture', dossier: '12 rue des Érables' }),
   ])
   rendre(<Documents />)
   await screen.findByText('Facture toiture')
@@ -109,7 +109,7 @@ test('les facettes se combinent en ET et se retirent par jeton', async () => {
   expect(screen.getByText('Offre acceptée')).toBeInTheDocument()
 
   // + facette dossier : intersection.
-  await userEvent.click(screen.getByRole('button', { name: 'Filtrer : 17 rue de la Colline' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Filtrer : 12 rue des Érables' }))
   expect(screen.queryByText('Offre acceptée')).not.toBeInTheDocument()
   expect(screen.getByText('Promesse d’achat')).toBeInTheDocument()
   expect(screen.getByText('1 document')).toBeInTheDocument()
@@ -222,7 +222,7 @@ test('un courriel archivé montre son aperçu dans le tiroir', async () => {
   serveur.use(
     http.get('/api/documents/d-eml/courriel', () =>
       HttpResponse.json({
-        de: 'IKEA <noreply@ikea.ca>', a: 'documents@alainnormandin.dev', date: '2026-09-01T14:00:00Z',
+        de: 'IKEA <noreply@ikea.ca>', a: 'documents@exemple.com', date: '2026-09-01T14:00:00Z',
         sujet: 'Confirmation de commande', texte: 'Bonjour Alain,\nTotal : 129,95 $',
         piecesJointes: [],
       })),

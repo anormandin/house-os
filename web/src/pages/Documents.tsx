@@ -788,7 +788,7 @@ export default function Documents() {
                 <input
                   value={fiche.dossier}
                   onChange={(e) => maj({ dossier: e.target.value })}
-                  placeholder="Dossier (17 rue de la Colline, Déménagement…)"
+                  placeholder="Dossier (Maison, Impôts 2026…)"
                   aria-label="Dossier"
                   list="dossiers-existants"
                   maxLength={100}

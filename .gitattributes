@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+design/maquettes/*.dc.html -diff
+design/maquettes/canvas.json -diff

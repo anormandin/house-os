@@ -1,17 +1,11 @@
-# L'app parle à Seq elle-même (Serilog, évènements structurés). Postgres et
-# tailscale, eux, ne savent qu'écrire sur stdout : le driver gelf le pousse à
-# l'entrée GELF du collecteur, pour qu'ils soient dans la même recherche que le
-# reste. UDP : une entrée indisponible ne bloque jamais un conteneur.
-# Contrepartie assumée : `docker logs postgres` ne montre plus rien — c'est Seq
-# qui garde l'historique, et 14 jours plutôt que 3 fichiers de 10 Mo.
-x-journal-conteneur: &journal-conteneur
-  driver: gelf
-  options:
-    gelf-address: "udp://192.168.4.36:12201"
-    tag: "{{.Name}}"
+# Pile House OS : Postgres + l'app (API .NET qui sert aussi le web). Toutes les valeurs
+# propres à une maison viennent du .env à côté de ce fichier (gabarit : .env.example) ;
+# les ${…:?} refusent de démarrer plutôt que de retomber sur une valeur du dépôt.
+#
+# Pour ajouter des réglages propres à votre hébergement (driver de logs, réseau,
+# ports…), créez un docker-compose.override.yml (gitignoré, chargé automatiquement) —
+# exemples dans infra/exemples/.
 
-# L'app garde json-file : son stdout n'est qu'un double lisible de ce que
-# Serilog envoie déjà, et il reste consultable si le collecteur est absent.
 x-journal: &journal
   driver: json-file
   options:
@@ -23,15 +17,15 @@ services:
     image: postgres:17-alpine
     container_name: houseos-postgres
     restart: unless-stopped
-    logging: *journal-conteneur
+    logging: *journal
     environment:
       POSTGRES_DB: houseos
       POSTGRES_USER: houseos
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (dans le .env)}
     ports:
       # 127.0.0.1 seulement : l'app passe par le réseau compose, le port hôte ne
-      # sert qu'à l'admin local. (5433 : 5432 est pris par un autre projet en dev.)
-      - "127.0.0.1:5433:5432"
+      # sert qu'à l'admin local (et au `dotnet run` du dev).
+      - "127.0.0.1:${POSTGRES_PORT_HOTE:-5433}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -52,47 +46,48 @@ services:
       ConnectionStrings__HouseOs: "Host=postgres;Port=5432;Database=houseos;Username=houseos;Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (dans le .env)}"
       Fichiers__Chemin: /app/donnees/fichiers
       # Clés de chiffrement du cookie de session : sur un volume, sinon chaque
-      # rebuild déconnecte le foyer (constaté le 2026-08-29).
+      # rebuild déconnecte le foyer.
       Securite__CheminCles: /app/donnees/protection
-      # Journalisation structurée vers le collecteur partagé du lab (LXC 106,
-      # dépôt /opt/observabilite) — hors de ce compose exprès : les logs de toutes
-      # les apps ne doivent pas dépendre du cycle de vie de house-os. Le tampon
-      # disque garde les évènements quand le collecteur redémarre, c'est-à-dire
-      # exactement quand on ne veut pas perdre ceux d'un incident.
-      Journalisation__Seq__Url: ${JOURNALISATION_SEQ_URL:-http://192.168.4.36:5341}
-      Journalisation__Seq__CleApi: ${JOURNALISATION_SEQ_CLE:?JOURNALISATION_SEQ_CLE requise (clé d'ingestion « house-os » dans Seq)}
-      Journalisation__Seq__CheminTampon: /app/donnees/journal/tampon-seq
-      # Le code vit en heure locale (récurrence, humeur, rollover) : fuseau requis.
-      TZ: America/Toronto
-      # Derrière NPM (HTTPS → HTTP interne) : X-Forwarded-* n'est honoré QUE depuis
-      # ces proxys (IPs ou CIDR, séparés par des virgules) — défaut : le NPM du LAN.
-      # Si le cookie Secure ne se pose pas au login HTTPS, Docker réécrit
-      # probablement l'IP source : ajouter le sous-réseau du compose (CIDR).
-      Reseau__ProxiesConnus: ${RESEAU_PROXIES_CONNUS:-192.168.4.50}
-      # Clé du endpoint /mcp — obligatoire en prod, à définir dans le .env du serveur
-      # (générer avec : openssl rand -hex 32)
+      # Le code vit en heure locale (récurrence, humeur, rollover) : fuseau requis,
+      # le même pour le conteneur et pour la météo.
+      TZ: ${FUSEAU_HORAIRE:-America/Toronto}
+      Meteo__FuseauHoraire: ${FUSEAU_HORAIRE:-America/Toronto}
+      # Météo Open-Meteo (sans clé) : la position de la maison.
+      Meteo__Latitude: ${METEO_LATITUDE:?METEO_LATITUDE requise (dans le .env, ex. 46.81)}
+      Meteo__Longitude: ${METEO_LONGITUDE:?METEO_LONGITUDE requise (dans le .env, ex. -71.21)}
+      # Comptes du foyer — créés à la première mise en route seulement (base vierge) ;
+      # changer un mot de passe ensuite = SQL. Le second compte est facultatif.
+      Seed__Utilisateurs__0__NomUtilisateur: ${COMPTE_1_NOM:?COMPTE_1_NOM requis (dans le .env)}
+      Seed__Utilisateurs__0__NomAffichage: ${COMPTE_1_AFFICHAGE:-}
+      Seed__Utilisateurs__0__MotDePasse: ${COMPTE_1_MDP:?COMPTE_1_MDP requis (dans le .env)}
+      Seed__Utilisateurs__1__NomUtilisateur: ${COMPTE_2_NOM:-}
+      Seed__Utilisateurs__1__NomAffichage: ${COMPTE_2_AFFICHAGE:-}
+      Seed__Utilisateurs__1__MotDePasse: ${COMPTE_2_MDP:-}
+      # Clé du endpoint /mcp (Claude Code) — générer avec : openssl rand -hex 32
       Mcp__Cle: ${HOUSEOS_MCP_KEY:?HOUSEOS_MCP_KEY requis (openssl rand -hex 32, dans le .env)}
-      # Titre d'humeur (facultatif : repli sur la banque de phrases si absent)
+      # Derrière un reverse proxy HTTPS : X-Forwarded-* n'est honoré QUE depuis ces
+      # proxys (IPs ou CIDR, séparés par des virgules). Vide = aucun proxy de confiance.
+      Reseau__ProxiesConnus: ${RESEAU_PROXIES_CONNUS:-}
+      # Journalisation structurée vers un Seq (facultatif : vide = console seulement).
+      Journalisation__Seq__Url: ${JOURNALISATION_SEQ_URL:-}
+      Journalisation__Seq__CleApi: ${JOURNALISATION_SEQ_CLE:-}
+      Journalisation__Seq__CheminTampon: /app/donnees/journal/tampon-seq
+      # Titre d'humeur par LLM (facultatif : repli sur la banque de phrases si absent)
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      # Mots de passe initiaux des comptes — appliqués seulement à la création
-      # des utilisateurs (base vierge) ; en changer ensuite = SQL. Exigés : un .env
-      # incomplet ne doit jamais retomber en silence sur un mot de passe du repo.
-      Seed__Utilisateurs__0__MotDePasse: ${SEED_MDP_ALAIN:?SEED_MDP_ALAIN requis (dans le .env)}
-      Seed__Utilisateurs__1__MotDePasse: ${SEED_MDP_ARIANE:?SEED_MDP_ARIANE requis (dans le .env)}
       # Base de l'URL publique du flux iCal (Funnel) — vide = l'UI n'affiche que
       # l'URL interne.
       Ical__UrlPubliqueBase: ${ICAL_URL_PUBLIQUE_BASE:-}
-      # Documents par courriel : documents@alainnormandin.dev → Worker Cloudflare →
-      # bucket R2, relevé ici par l'API S3 (infra/courriel-worker/README.md).
-      # Facultatif : sans les quatre, le relevé est désactivé.
+      # Documents par courriel (Cloudflare Email Routing → Worker → R2), relevés ici
+      # par l'API S3 (infra/courriel-worker/README.md). Facultatif : sans les
+      # quatre, le relevé est désactivé.
       Courriel__R2__Endpoint: ${COURRIEL_R2_ENDPOINT:-}
       Courriel__R2__Bucket: ${COURRIEL_R2_BUCKET:-}
       Courriel__R2__CleAcces: ${COURRIEL_R2_CLE_ACCES:-}
       Courriel__R2__CleSecrete: ${COURRIEL_R2_CLE_SECRETE:-}
     ports:
-      - "8080:8080"
+      - "${APP_PORT_HOTE:-8080}:8080"
     volumes:
-      - fichiers:/app/donnees/fichiers   # manuels et photos des équipements (inclus au backup)
+      - fichiers:/app/donnees/fichiers   # manuels, photos, documents (inclus au backup)
       - protection:/app/donnees/protection  # clés du cookie de session (pas de backup : les perdre = une reconnexion)
     healthcheck:
       # /api/sante sonde la DB : 503 (curl -f → échec) si elle est inaccessible.
@@ -102,18 +97,18 @@ services:
       retries: 3
       start_period: 30s
 
-  # Seule exposition publique du système : Funnel publie /ical (et rien d'autre —
-  # voir infra/tailscale-serve.json) sur https://houseos.<tailnet>.ts.net pour que
-  # Google Agenda puisse s'abonner au flux. Démarre seulement avec
-  # COMPOSE_PROFILES=funnel (défini dans le .env du serveur, absent en dev).
+  # Seule exposition publique possible du système : Funnel publie /ical (et rien
+  # d'autre — voir infra/tailscale-serve.json) sur https://houseos.<tailnet>.ts.net
+  # pour qu'un agenda externe puisse s'abonner au flux. Démarre seulement avec
+  # COMPOSE_PROFILES=funnel dans le .env.
   tailscale:
     # Épinglé (pas latest) : un funnel qui casse à un pull silencieux serait
-    # invisible jusqu'à ce que Google Agenda arrête de se rafraîchir.
+    # invisible jusqu'à ce que l'agenda arrête de se rafraîchir.
     image: tailscale/tailscale:v1.102.3
     container_name: houseos-tailscale
     restart: unless-stopped
     profiles: ["funnel"]
-    logging: *journal-conteneur
+    logging: *journal
     hostname: houseos
     depends_on:
       - app

@@ -55,7 +55,7 @@ public static class EnrichissementCourriel
     public static readonly TimeSpan DelaiMax = TimeSpan.FromSeconds(30);
 
     private const string PromptSysteme = """
-        Tu es le classeur de la maison d'Alain et Ariane (Québec). On te donne un
+        Tu es le classeur d'une maison au Québec. On te donne un
         courriel transféré (expéditeur, sujet, date, texte, noms des pièces jointes) et
         le vocabulaire existant du classeur. Propose les métadonnées du document.
 

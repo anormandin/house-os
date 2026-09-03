@@ -13,8 +13,8 @@ public class EnrichissementCourrielTests
     private static readonly Guid Thermopompe = Guid.NewGuid();
 
     private static ContexteEnrichissement Contexte(string sujet = "Votre reçu IKEA", string texte = "Merci.") =>
-        new("alain.normandin@gmail.com", sujet, new DateTimeOffset(2026, 9, 1, 10, 0, 0, TimeSpan.FromHours(-4)),
-            texte, ["Facture_48211.pdf"], ["17 rue de la Colline"],
+        new("camille@exemple.com", sujet, new DateTimeOffset(2026, 9, 1, 10, 0, 0, TimeSpan.FromHours(-4)),
+            texte, ["Facture_48211.pdf"], ["12 rue des Érables"],
             [new EquipementRef(Thermopompe, "Thermopompe", "Fujitsu")]);
 
     [Fact]
@@ -45,19 +45,19 @@ public class EnrichissementCourrielTests
     [Fact]
     public void Appliquer_garde_ce_qui_est_dans_le_vocabulaire()
     {
-        var proposition = new PropositionLlm("Facture IKEA — BILLY", "facture", "17 rue de la Colline",
+        var proposition = new PropositionLlm("Facture IKEA — BILLY", "facture", "12 rue des Érables",
             Thermopompe, "2026-08-30", "129,95 $", "Bibliothèque BILLY blanche.");
 
         var meta = EnrichissementCourriel.Appliquer(proposition, Contexte(), "Facture_48211.pdf", "application/pdf");
 
         Assert.Equal("Facture IKEA — BILLY", meta.Titre);
         Assert.Equal(CategorieDocument.Facture, meta.Categorie);
-        Assert.Equal("17 rue de la Colline", meta.Dossier);
+        Assert.Equal("12 rue des Érables", meta.Dossier);
         Assert.Equal(Thermopompe, meta.EquipementId);
         Assert.Equal(new DateOnly(2026, 8, 30), meta.DateDocument);
         Assert.Equal(
             "Bibliothèque BILLY blanche.\nMontant : 129,95 $\n" +
-            "Reçu par courriel de alain.normandin@gmail.com le 2026-09-01 — Votre reçu IKEA",
+            "Reçu par courriel de camille@exemple.com le 2026-09-01 — Votre reçu IKEA",
             meta.Notes);
     }
 
@@ -74,7 +74,7 @@ public class EnrichissementCourrielTests
         Assert.Null(meta.Dossier);                                // dossier inventé → null
         Assert.Null(meta.EquipementId);                           // équipement inconnu → null
         Assert.Equal(new DateOnly(2026, 9, 1), meta.DateDocument); // date illisible → date du courriel
-        Assert.Equal("Reçu par courriel de alain.normandin@gmail.com le 2026-09-01 — Votre reçu IKEA", meta.Notes);
+        Assert.Equal("Reçu par courriel de camille@exemple.com le 2026-09-01 — Votre reçu IKEA", meta.Notes);
     }
 
     [Fact]

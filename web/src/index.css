@@ -30,10 +30,10 @@
   --barre-piste: #f0ead6;   /* piste des barres de progression */
 
   /* Avatars pastel */
-  --avatar-ariane-fond: #ded4e8;
-  --avatar-ariane-texte: #624c83;
-  --avatar-alain-fond: #cdd9ec;
-  --avatar-alain-texte: #4d699b;
+  --avatar-1-fond: #cdd9ec;      /* 1er membre : bleu */
+  --avatar-1-texte: #4d699b;
+  --avatar-2-fond: #ded4e8;      /* 2e membre : violet */
+  --avatar-2-texte: #624c83;
   --avatar-claude-fond: #f3e6cf; /* l'agent MCP : même famille, teinte dorée */
   --avatar-claude-texte: var(--orange);
 

@@ -17,7 +17,7 @@ public static class OutilsIcal
     public static async Task<object> MonFluxIcal(
         HouseOsDbContext db,
         IConfiguration config,
-        [Description("La personne : 'alain' ou 'ariane'.")] string agirComme,
+        [Description("Nom d'utilisateur du membre de la maison (via lister_utilisateurs).")] string agirComme,
         [Description("true = régénérer le jeton (révocation : l'ancienne URL meurt, " +
             "les abonnements existants sont à refaire).")] bool? regenerer = null)
     {

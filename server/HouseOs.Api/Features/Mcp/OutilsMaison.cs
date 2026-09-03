@@ -32,7 +32,7 @@ public record DocumentDonnees(
         "PlanPermis, ImpotsTaxes ou Autre (requise).")] string Categorie,
     [property: Description("Id d'un équipement existant (via lister_equipements), ou null pour délier.")] Guid? EquipementId,
     [property: Description("Id d'une zone existante (via lister_zones), ou null pour délier.")] Guid? ZoneId,
-    [property: Description("Dossier libre de classement (« 17 rue de la Colline », « Déménagement »…), ou null.")] string? Dossier,
+    [property: Description("Dossier libre de classement (« Maison », « Impôts 2026 »…), ou null.")] string? Dossier,
     string? Notes,
     [property: Description("Date portée par le document YYYY-MM-DD (facture, contrat…), ou null.")] string? DateDocument,
     [property: Description("Échéance YYYY-MM-DD (rappel visuel dans l'app), ou null.")] string? Echeance,

@@ -19,8 +19,9 @@ dist/
 # IDE
 .idea/
 
-# Claude
+# Claude — contexte personnel du projet (foyer, lab) hors dépôt
 **/.claude/settings.local.json
+CLAUDE.local.md
 
 # Obsidian vault
 vault/.obsidian/workspace.json
@@ -29,3 +30,8 @@ backups/
 server/HouseOs.Api/donnees/
 web/test-results/
 web/playwright-report/
+
+# Réglages propres à un hébergement
+docker-compose.override.yml
+infra/courriel-worker/.env
+infra/courriel-worker/.dev.vars

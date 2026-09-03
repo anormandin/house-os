@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-02
-verified-against: f29b6fd
+verified-against: 884b383
 tags: []
 ---
 
@@ -48,7 +48,9 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
     [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]])
 - Quand un outil enregistre une identité (`creer_taches`, `completer_occurrence`,
   `gerer_occurrence` action passer, `mon_flux_ical`), le paramètre **`agirComme`**
-  (`alain` | `ariane`) est requis sans défaut — voir
+  (nom d'utilisateur d'un compte, via `lister_utilisateurs` ; l'erreur liste les
+  valeurs valides) est requis
+  sans défaut — voir
   [[D-2026-08-24 Clé API Partagée Et AgirComme]].
 - La validation référentielle est explicite : `zoneId`/`equipementId`/`assigneA`
   inconnus sont refusés avec un message qui pointe vers l'outil de listage.
@@ -66,9 +68,9 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   les validations REST partagées (longueurs, garanties, bornes des specs) —
   plus aucun chemin MCP ne contourne un `ValiderAsync`.
 - Claude Code se branche via `.mcp.json` (racine, committé) : URL
-  `${HOUSEOS_MCP_URL:-http://localhost:5000/mcp}`, clé
-  `${HOUSEOS_MCP_KEY:-<clé dev committée>}` ; en prod, les deux variables pointent
-  vers le serveur maison (Tailscale, port 8080) et la clé du `.env`.
+  `${HOUSEOS_MCP_URL:-http://localhost:5000/mcp}`, clé `${HOUSEOS_MCP_KEY}` **sans
+  repli** (clé absente = 401, jamais un défaut committé — 2026-09-02). Chaque
+  personne exporte les deux variables vers son instance ([[Distribution]]).
 - Deux skills projet accompagnent le MCP : `.claude/skills/planifier-taches/`
   (workflow conversation → tableau récapitulatif → confirmation humaine → un seul
   `creer_taches`) et `.claude/skills/demarrer/` (démarrage dev + smoke tests MCP).

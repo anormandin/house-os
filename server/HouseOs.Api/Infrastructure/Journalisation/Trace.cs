@@ -4,7 +4,7 @@ namespace HouseOs.Api.Infrastructure.Journalisation;
 
 /// <summary>
 /// L'identifiant de corrélation d'une requête, sous la seule forme qu'on expose :
-/// celle qu'Alain peut copier de la bannière d'erreur et coller dans Seq.
+/// celle que l'utilisateur peut copier de la bannière d'erreur et coller dans Seq.
 /// </summary>
 public static class Trace
 {

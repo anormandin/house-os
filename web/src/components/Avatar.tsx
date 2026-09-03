@@ -1,20 +1,34 @@
 import type { Utilisateur } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
-// Avatars pastel du langage chaleureuse : Ariane violet, Alain bleu.
-// Repli neutre si un jour un autre compte apparaît.
-const palettes: Record<string, { fond: string; texte: string; barre: string }> = {
-  ariane: { fond: 'var(--avatar-ariane-fond)', texte: 'var(--avatar-ariane-texte)', barre: '#b9a5d8' },
-  alain: { fond: 'var(--avatar-alain-fond)', texte: 'var(--avatar-alain-texte)', barre: '#9db8dd' },
-}
+// Avatars pastel du langage chaleureuse : une teinte par membre du foyer, attribuée
+// par son rang dans la liste des comptes (ordre de l'API, par nom d'affichage) —
+// jamais par prénom, pour qu'une autre maison ait les mêmes couleurs sans rien
+// configurer. Repli neutre tant que la liste n'est pas connue ou pour un inconnu.
+const palettes = [
+  { fond: 'var(--avatar-1-fond)', texte: 'var(--avatar-1-texte)', barre: '#9db8dd' }, // bleu
+  { fond: 'var(--avatar-2-fond)', texte: 'var(--avatar-2-texte)', barre: '#b9a5d8' }, // violet
+]
 
 const paletteNeutre = { fond: 'var(--creux)', texte: 'var(--dore)', barre: 'var(--jaune)' }
 
-/** Palette à partir d'un nom seul. La synchro ne transmet que le nom d'affichage de
- * l'acteur (pas l'utilisateur complet) : le toast doit pouvoir teinter son avatar
- * sans aller chercher le compte. */
+// Rang de chaque membre, indexé par nom d'utilisateur ET nom d'affichage (minuscules) :
+// la synchro ne transmet que le nom d'affichage de l'acteur, les occurrences portent
+// l'utilisateur complet. Alimenté par Layout dès que la liste du foyer est chargée.
+let rangs = new Map<string, number>()
+
+export function enregistrerFoyer(utilisateurs: Utilisateur[]) {
+  rangs = new Map()
+  utilisateurs.forEach((u, i) => {
+    rangs.set(u.nomUtilisateur.toLowerCase(), i)
+    rangs.set(u.nomAffichage.toLowerCase(), i)
+  })
+}
+
+/** Palette à partir d'un nom seul (nom d'utilisateur ou d'affichage). */
 export function paletteParNom(nom: string | null | undefined) {
-  return palettes[(nom ?? '').toLowerCase()] ?? paletteNeutre
+  const rang = rangs.get((nom ?? '').toLowerCase())
+  return rang === undefined ? paletteNeutre : palettes[rang % palettes.length]
 }
 
 export function paletteAvatar(utilisateur: Utilisateur) {

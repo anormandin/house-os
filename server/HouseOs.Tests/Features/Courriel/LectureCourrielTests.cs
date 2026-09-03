@@ -20,7 +20,7 @@ public class LectureCourrielTests
         Assert.Equal("application/pdf", piece.TypeMime);
         Assert.Equal(PetitPdf(), piece.Contenu);
         Assert.Equal("recu-1@exemple.test", lu.MessageId);
-        Assert.Equal("alain.normandin@gmail.com", lu.Expediteur);
+        Assert.Equal("camille@exemple.com", lu.Expediteur);
         Assert.Equal("Votre reçu IKEA", lu.Sujet);
         Assert.Equal(new DateOnly(2026, 9, 1), DateOnly.FromDateTime(lu.Date.DateTime));
         Assert.Equal("Merci pour votre achat.", lu.Texte);

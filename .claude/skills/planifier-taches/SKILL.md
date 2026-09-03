@@ -1,6 +1,6 @@
 ---
 name: planifier-taches
-description: Planifier un lot de tâches maison (ex. déménagement, corvées saisonnières) en conversation, puis les pousser dans House OS via les outils MCP house-os. Utiliser dès qu'Alain ou Ariane veut planifier, organiser ou créer plusieurs tâches, ou « envoyer le plan dans l'app ».
+description: Planifier un lot de tâches maison (ex. déménagement, corvées saisonnières) en conversation, puis les pousser dans House OS via les outils MCP house-os. Utiliser dès qu'un membre de la maison veut planifier, organiser ou créer plusieurs tâches, ou « envoyer le plan dans l'app ».
 ---
 
 # Planifier des tâches et les pousser dans House OS
@@ -16,7 +16,8 @@ Discute librement pour dégager la liste. Pour chaque tâche, détermine :
 - **echeance** — toujours résolue en date explicite `YYYY-MM-DD` (année comprise).
   Jamais de « la semaine prochaine » non résolu : convertis à partir de la date du
   jour et confirme si ambigu. Une tâche peut être sans échéance.
-- **assigneA** — `alain`, `ariane`, ou vide (non assignée). Ne devine pas : demande.
+- **assigneA** — le nom d'utilisateur d'un membre de la maison (`lister_utilisateurs`
+  donne les valeurs valides), ou vide (non assignée). Ne devine pas : demande.
 - **notes/description** — seulement si ça aide vraiment.
 - **recurrence** — seulement si la tâche revient (la plupart des tâches d'un plan
   ponctuel n'en ont pas).

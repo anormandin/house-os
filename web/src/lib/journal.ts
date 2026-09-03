@@ -2,7 +2,7 @@
  * Piste de session du navigateur, expédiée au serveur et lisible dans Seq.
  *
  * Le web était totalement muet : aucun `console.*`, aucune error boundary, et
- * l'échec de connexion au hub avalé par un `catch(() => {})`. Quand Alain dit
+ * l'échec de connexion au hub avalé par un `catch(() => {})`. Quand l'utilisateur dit
  * « j'ai coché et rien ne s'est passé », il n'existait rien à relire. Ce module
  * enregistre la suite des gestes, des requêtes et des états de connexion, et les
  * envoie par lots à `/api/journal-client`, où ils rejoignent les logs serveur —

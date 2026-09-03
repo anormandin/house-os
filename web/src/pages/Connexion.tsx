@@ -42,7 +42,7 @@ export default function Connexion() {
               autoCapitalize="none"
               value={nomUtilisateur}
               onChange={(e) => setNomUtilisateur(e.target.value)}
-              placeholder="alain ou ariane"
+              placeholder="nom d'utilisateur"
               className="rounded-xl bg-creux px-4 py-2.5 text-base font-bold text-texte placeholder:font-normal placeholder:text-sourdine focus:outline-2 focus:outline-orange/60"
             />
           </label>

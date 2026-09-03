@@ -1,0 +1,19 @@
+# Exemple d'override : expédier le stdout de postgres et du sidecar tailscale à un
+# collecteur GELF (Seq, Graylog…), pour qu'ils soient dans la même recherche que les
+# logs de l'app (qui, elle, parle à Seq par Serilog : JOURNALISATION_SEQ_URL).
+#
+# Copier vers docker-compose.override.yml à la racine (gitignoré, chargé
+# automatiquement par `docker compose`) et ajuster l'adresse. UDP : un collecteur
+# indisponible ne bloque jamais un conteneur. Contrepartie : `docker logs postgres`
+# ne montre plus rien, c'est le collecteur qui garde l'historique.
+x-journal-collecteur: &journal-collecteur
+  driver: gelf
+  options:
+    gelf-address: "udp://192.168.1.20:12201"
+    tag: "{{.Name}}"
+
+services:
+  postgres:
+    logging: *journal-collecteur
+  tailscale:
+    logging: *journal-collecteur

@@ -25,7 +25,7 @@ export default class GardeErreur extends Component<Props, Etat> {
       composants: infos.componentStack ?? undefined,
     })
     // L'écran est mort : envoyer tout de suite, sans attendre le prochain cycle de
-    // vidange, parce qu'Alain va recharger la page dans la seconde.
+    // vidange, parce que l'utilisateur va recharger la page dans la seconde.
     void vider()
   }
 

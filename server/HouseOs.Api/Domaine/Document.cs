@@ -25,7 +25,7 @@ public class Document
     public Guid? EquipementId { get; set; }
     public Guid? ZoneId { get; set; }
 
-    /// <summary>Dossier libre de classement (« 17 rue de la Colline », « Déménagement »…).</summary>
+    /// <summary>Dossier libre de classement (« Maison », « Impôts 2026 »…).</summary>
     public string? Dossier { get; set; }
 
     public string? Notes { get; set; }

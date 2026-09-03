@@ -40,7 +40,7 @@ public class CourrielApiTests(HouseOsFactory factory)
 
         var apercu = (await client.GetFromJsonAsync<CourrielDocumentDto>($"/api/documents/{document.Id}/courriel"))!;
         Assert.Equal("Commande Amazon #123", apercu.Sujet);
-        Assert.Contains("alain.normandin@gmail.com", apercu.De);
+        Assert.Contains("camille@exemple.com", apercu.De);
         Assert.Contains("Total : 129,95 $", apercu.Texte);
         Assert.Empty(apercu.PiecesJointes);
 

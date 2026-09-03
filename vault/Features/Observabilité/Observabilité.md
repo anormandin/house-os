@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-29
-verified-against: 5082ea1
+last-verified: 2026-09-02
+verified-against: 884b383
 tags: []
 ---
 
@@ -46,7 +46,9 @@ survécu à trois sessions d'enquête faute de preuves.
   persisté en base.
 - **Trois chemins d'entrée**, selon ce que la source sait faire : une app .NET écrit
   directement en Serilog (le plus riche : structuré, `TraceId`, propriétés) ; un
-  conteneur Docker sans support natif passe par le **driver gelf** vers l'entrée GELF ;
+  conteneur Docker sans support natif passe par le **driver gelf** vers l'entrée GELF
+  (pour house-os : dans le `docker-compose.override.yml` du LXC, pas dans le compose
+  committé — [[Distribution]] ; `JOURNALISATION_SEQ_*` sont facultatives) ;
   un hôte systemd/journald passe par **rsyslog** vers l'entrée syslog, ce qui couvre
   l'OS entier et pas seulement l'application ; un service qui écrit dans des **fichiers**
   passe par `imfile`. Couverts aujourd'hui : house-os (Serilog), `houseos-postgres` et

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Infrastructure;
 
-public record UtilisateurSeed(string NomUtilisateur, string NomAffichage, string MotDePasse = "");
+public record UtilisateurSeed(string NomUtilisateur = "", string NomAffichage = "", string MotDePasse = "");
 
 public static class AmorcageDb
 {
@@ -19,11 +19,17 @@ public static class AmorcageDb
         var hasher = new PasswordHasher<Utilisateur>();
         foreach (var seed in seeds)
         {
-            var nom = seed.NomUtilisateur.ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(seed.NomUtilisateur))
+            {
+                // Le compose déclare toujours deux entrées ; la seconde est facultative
+                // (COMPTE_2_NOM vide) — une entrée sans nom n'est pas un compte.
+                continue;
+            }
+            var nom = seed.NomUtilisateur.Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(seed.MotDePasse))
             {
                 // Jamais de compte à secret vide. Le mot de passe vient de
-                // appsettings.Development.json en dev et de SEED_MDP_* (exigé par le
+                // appsettings.Development.json en dev et de COMPTE_n_MDP (exigé par le
                 // compose) en prod — ce garde-fou couvre les lancements hors compose.
                 app.Logger.LogWarning(
                     "Amorçage : aucun mot de passe fourni pour {Nom} — compte non créé.", nom);
@@ -39,7 +45,7 @@ public static class AmorcageDb
             {
                 Id = Guid.NewGuid(),
                 NomUtilisateur = nom,
-                NomAffichage = seed.NomAffichage,
+                NomAffichage = string.IsNullOrWhiteSpace(seed.NomAffichage) ? seed.NomUtilisateur.Trim() : seed.NomAffichage,
                 MotDePasseHash = string.Empty,
             };
             utilisateur.MotDePasseHash = hasher.HashPassword(utilisateur, seed.MotDePasse);

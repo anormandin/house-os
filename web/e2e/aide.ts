@@ -14,7 +14,7 @@ export function dansNJours(n: number): string {
 
 export async function seConnecter(page: Page) {
   await page.goto('/')
-  await page.getByPlaceholder('alain ou ariane').fill(UTILISATEUR)
+  await page.getByLabel('Qui es-tu?').fill(UTILISATEUR)
   await page.getByLabel('Mot de passe').fill(MOT_DE_PASSE)
   await page.getByRole('button', { name: 'Entrer' }).click()
   await expect(page.getByRole('link', { name: 'Tâches' })).toBeVisible()

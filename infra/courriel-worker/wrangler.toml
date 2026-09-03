@@ -1,4 +1,4 @@
-# Email Worker de House OS : documents@alainnormandin.dev → bucket R2 houseos-courriel.
+# Email Worker de House OS : documents@<votre-domaine> → bucket R2 houseos-courriel.
 # Déploiement : npx wrangler deploy (voir README.md). Les vars ci-dessous priment sur
 # celles du tableau de bord à chaque deploy — c'est ici qu'elles vivent.
 name = "houseos-courriel"
@@ -12,7 +12,9 @@ binding = "COURRIELS"
 bucket_name = "houseos-courriel"
 
 [vars]
-# Adresses (enveloppe MAIL FROM, minuscules) autorisées à déposer — tout le reste est
-# rejeté au SMTP. Ce n'est pas un secret : committable.
-EXPEDITEURS_PERMIS = "alain.normandin@gmail.com,ajolicoe@hotmail.com,ariane.jolicoeur@vinumgrappa.com,alain.normandin@neosapiens.com"
+# Adresses (enveloppe MAIL FROM, minuscules, séparées par des virgules) autorisées à
+# déposer — tout le reste est rejeté au SMTP. Vide ici : la vraie liste est passée au
+# déploiement (`npx wrangler deploy --var EXPEDITEURS_PERMIS:"a@x.com,b@y.com"`, voir
+# README.md) pour ne pas committer d'adresses personnelles.
+EXPEDITEURS_PERMIS = ""
 PREFIXE = "entrants/"

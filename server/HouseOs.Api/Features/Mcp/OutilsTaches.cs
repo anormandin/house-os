@@ -15,7 +15,7 @@ public record TacheAPlanifier(
     [property: Description("Titre de la tâche (requis).")] string Titre,
     [property: Description("Détails optionnels.")] string? Description,
     [property: Description("Échéance au format YYYY-MM-DD (ex. 2026-10-06), ou null si sans date.")] string? Echeance,
-    [property: Description("Nom d'utilisateur de la personne assignée ('alain' ou 'ariane'), ou null si non assignée.")] string? AssigneA,
+    [property: Description("Nom d'utilisateur du membre assigné (via lister_utilisateurs), ou null si non assignée.")] string? AssigneA,
     [property: Description("Id d'une zone existante (via lister_zones) — ne jamais inventer.")] Guid? ZoneId,
     [property: Description("Id d'un équipement existant (via lister_equipements) — ne jamais inventer.")] Guid? EquipementId,
     [property: Description("Stratégie d'assignation pour une tâche récurrente : Fixe (défaut), Alternance ou MoinsLAFait.")] string? Strategie,
@@ -47,7 +47,7 @@ public static class OutilsTaches
     public static async Task<object> CreerTaches(
         HouseOsDbContext db,
         IDiffuseurSynchro diffuseur,
-        [Description("Au nom de qui les tâches sont créées : 'alain' ou 'ariane'. Demander si ambigu.")]
+        [Description("Nom d'utilisateur du membre au nom de qui les tâches sont créées (via lister_utilisateurs). Demander si ambigu.")]
         string agirComme,
         [Description("Les tâches à créer.")] TacheAPlanifier[] taches)
     {
@@ -319,7 +319,7 @@ public static class OutilsTaches
         IDiffuseurSynchro diffuseur,
         ILoggerFactory fabriqueJournal,
         [Description("Id de l'occurrence (via lister_occurrences).")] Guid occurrenceId,
-        [Description("Qui l'a faite : 'alain' ou 'ariane'. Demander si ambigu.")] string agirComme,
+        [Description("Nom d'utilisateur du membre qui l'a faite (via lister_utilisateurs). Demander si ambigu.")] string agirComme,
         [Description("Notes optionnelles (coût, remarques…).")] string? notes = null)
     {
         var utilisateur = await AgirComme.ResoudreAsync(db, agirComme);
@@ -369,7 +369,7 @@ public static class OutilsTaches
         IDiffuseurSynchro diffuseur,
         [Description("annuler-completion, passer ou reporter.")] string action,
         [Description("Id de l'occurrence (via lister_occurrences).")] Guid occurrenceId,
-        [Description("Requis pour passer : au nom de qui ('alain' ou 'ariane') — le tour n'est " +
+        [Description("Requis pour passer : nom d'utilisateur du membre qui passe — le tour n'est " +
             "pas pris : l'assigné de la suivante reste celui de l'occurrence sautée. " +
             "Demander si ambigu.")] string? agirComme = null,
         [Description("Requis pour reporter : nouvelle échéance YYYY-MM-DD (aujourd'hui ou plus tard).")]

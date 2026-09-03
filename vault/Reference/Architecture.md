@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-08-29
-verified-against: 5082ea1
+last-verified: 2026-09-02
+verified-against: 884b383
 tags: []
 ---
 
@@ -52,10 +52,16 @@ d'arrière-plan.
 - `Dockerfile`, `docker-compose.yml`, `.env.example` — conteneurisation et prod
   ([[Déploiement]]) ; sidecar `tailscale` (profil compose `funnel`, absent en
   dev) et `infra/tailscale-serve.json` qui ne publie que `/ical`.
-- `design/` — maquettes retenues (canvas Artifact publié).
-- `firmware/`, `hardware/cad`, `hardware/pcb` — phase 3 (vides pour l'instant).
-- `vault/`, `docs/research/` — connaissance.
-- `.mcp.json`, `.claude/skills/` — branchement Claude Code (voir ci-dessous).
+- `infra/` — Worker courriel Cloudflare, `tailscale-serve.json`, `exemples/`
+  d'override compose propres à un hébergement.
+- `design/` — maquettes retenues (canvas Artifact publié ; `design/README.md`).
+- `firmware/`, `hardware/cad`, `hardware/pcb` — phase 3 (pas encore suivis : vides).
+- `vault/`, `docs/` — connaissance : vault, `docs/installation.md`,
+  `docs/configuration.md`, `docs/research/`.
+- `README.md`, `CONTRIBUTING.md`, `LICENSE` (AGPL-3.0), `.github/workflows/ci.yml`,
+  `server/global.json`, `.editorconfig` — dépôt public ([[Distribution]]).
+- `.mcp.json`, `.claude/skills/`, `CLAUDE.md` — branchement Claude Code (voir
+  ci-dessous) ; `CLAUDE.local.md` (gitignoré) porte le contexte personnel.
 
 ## Interface agent (MCP)
 

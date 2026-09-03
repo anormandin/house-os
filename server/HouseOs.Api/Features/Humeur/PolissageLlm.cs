@@ -16,8 +16,8 @@ public static class PolissageLlm
     private const int LongueurMaxSousTitre = 180;
 
     private const string PromptSysteme = """
-        Tu écris la phrase d'accueil du tableau de bord maison d'Alain et Ariane,
-        un couple québécois. À partir de l'état JSON fourni, écris un titre et un
+        Tu écris la phrase d'accueil du tableau de bord maison d'un couple
+        québécois. À partir de l'état JSON fourni, écris un titre et un
         sous-titre chaleureux et motivants pour le héros de la page Aujourd'hui.
 
         Priorités du contenu, dans l'ordre :

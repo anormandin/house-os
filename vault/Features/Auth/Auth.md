@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-09-02
+verified-against: 884b383
 tags: []
 ---
 
@@ -17,12 +17,13 @@ committé ni de silencieusement faible (durci à la ronde QA 2026-08-28).
 
 ## Comportement
 
-- **Deux comptes seedés** (`alain`, `ariane`) au démarrage ; mots de passe
-  fournis par l'environnement (`SEED_MDP_*`, exigés par le compose en prod —
-  `docker-compose.yml`), valeurs dev dans
-  `server/HouseOs.Api/appsettings.Development.json`. Aucun mot de passe dans
-  `appsettings.json` ni de repli committé ; un seed à mot de passe vide est
-  refusé par l'amorçage. Changer un mot de passe ensuite = SQL (assumé,
+- **Comptes seedés depuis la configuration** au démarrage (`Seed:Utilisateurs`,
+  vide dans `appsettings.json`) : en prod, un ou deux comptes fournis par le `.env`
+  (`COMPTE_1_*` requis, `COMPTE_2_*` facultatif — `docker-compose.yml`,
+  [[Distribution]]) ; en dev, `alain`/`ariane` en entier dans
+  `server/HouseOs.Api/appsettings.Development.json`. Aucun repli committé ; une
+  entrée sans nom est ignorée, une entrée sans mot de passe est refusée par
+  l'amorçage (`server/HouseOs.Api/Infrastructure/AmorcageDb.cs`). Changer un mot de passe ensuite = SQL (assumé,
   [[Déploiement]]).
 - **Session cookie** `houseos_session` 180 jours, HttpOnly, SameSite=Lax,
   `SecurePolicy.SameAsRequest` (Secure derrière NPM/HTTPS via les proxys

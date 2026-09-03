@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-02
-verified-against: f29b6fd
+verified-against: 884b383
 tags: []
 ---
 
@@ -23,8 +23,9 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   image tailscale **épinglée** (plus de `:latest`).
 - **`docker compose up -d --build`** dans le LXC `house-os` sur `pve` : Postgres 17
   + app (port 8080), volumes nommés (`postgres-data`, `fichiers`), redémarrage
-  automatique, `TZ=America/Toronto`, en-têtes proxy restreints aux proxys connus
-  (`RESEAU_PROXIES_CONNUS`, défaut l'IP du NPM — remplace l'ancien
+  automatique, `TZ` = `FUSEAU_HORAIRE` (défaut `America/Toronto`), en-têtes proxy
+  restreints aux proxys connus (`RESEAU_PROXIES_CONNUS`, **vide par défaut** depuis
+  [[Distribution]] : l'IP du NPM se règle dans le `.env` du LXC — remplace l'ancien
   `ASPNETCORE_FORWARDEDHEADERS_ENABLED` tous-azimuts), healthcheck compose sur
   `/api/sante` (qui sonde la DB)
   ([[D-2026-08-24 Prod LXC Proxmox NPM GitHub]]).
@@ -58,10 +59,14 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   Funnel reste `/ical` seulement.
 - **Secrets** : `.env` sur le serveur seulement (`.env.example` committé) —
   mot de passe Postgres, clé MCP, clé Anthropic, mots de passe initiaux des
-  2 comptes, jeton R2. Depuis la ronde QA 2026-08-28, le compose **refuse de démarrer**
-  sans `POSTGRES_PASSWORD`, `SEED_MDP_ALAIN`, `SEED_MDP_ARIANE` (syntaxe `:?`,
-  comme la clé MCP) — plus aucun repli committé ; les valeurs dev vivent dans
-  `appsettings.Development.json`. Cookie : `SecurePolicy.SameAsRequest`
+  2 comptes, jeton R2. Le compose **refuse de démarrer** sans les variables requises
+  (syntaxe `:?`) : `POSTGRES_PASSWORD`, `COMPTE_1_NOM`/`COMPTE_1_MDP` (ex-`SEED_MDP_*`,
+  renommées le 2026-09-02 — [[Distribution]]), `METEO_LATITUDE`/`METEO_LONGITUDE`,
+  `HOUSEOS_MCP_KEY` — plus aucun repli committé ; les valeurs dev vivent dans
+  `appsettings.Development.json`. Les réglages propres au lab (driver GELF de
+  postgres/tailscale vers le collecteur) vivent dans
+  `/opt/house-os/docker-compose.override.yml` (gitignoré ; gabarit
+  `infra/exemples/docker-compose.override.gelf.yml`), plus dans le compose committé. Cookie : `SecurePolicy.SameAsRequest`
   (Secure via NPM/HTTPS ; l'accès http direct sur le LAN reste un risque
   résiduel accepté — foyer de 2, trafic Tailscale chiffré).
 
@@ -76,7 +81,8 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 > `cache-control: private, no-store`, racine Funnel 404, nouveau bundle servi.
 - **Backups** : `scripts/backup.sh` en cron quotidien dans le LXC (dumps +
   archive fichiers, rétention 30 j) + snapshot PBS nocturne du LXC.
-- **Code** : GitHub privé `anormandin/house-os` ; mise à jour par
+- **Code** : GitHub `anormandin/house-os` (public, AGPL-3.0 depuis [[Distribution]]) ;
+  mise à jour par
   `git pull && docker compose up -d --build`.
 
 ## Hors périmètre

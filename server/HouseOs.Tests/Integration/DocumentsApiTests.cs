@@ -188,7 +188,7 @@ public class DocumentsApiTests(HouseOsFactory factory)
     {
         var client = await factory.ClientConnecte();
         // Valeur unique par exécution : la base est partagée entre les tests.
-        var dossier = $"17 rue de la Colline {Guid.NewGuid():N}";
+        var dossier = $"12 rue des Érables {Guid.NewGuid():N}";
 
         var creation = await client.PostAsync("/api/documents", Formulaire(
             PetitPng(), "promesse.png", "image/png",
