@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-02
-verified-against: 884b383
+last-verified: 2026-09-03
+verified-against: bfc2719
 tags: []
 ---
 
@@ -20,7 +20,7 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 - Le backend expose un endpoint MCP **`/mcp`** (streamable HTTP, stateless) via le SDK
   officiel C#. Quand la requête ne porte pas la clé API (`Authorization: Bearer`,
   config `Mcp:Cle`), le système répond 401 ; clé non configurée = tout est refusé.
-- **20 outils**, noms snake_case français, erreurs en français actionnables
+- **22 outils**, noms snake_case français, erreurs en français actionnables
   (`McpException`) ; dates en chaînes `YYYY-MM-DD` ; enums en chaînes ; retours
   camelCase (mêmes formes que les DTO REST) :
   - `lister_utilisateurs`, `lister_zones`, `gerer_zone`
@@ -46,6 +46,9 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   - `gerer_comptes_a_rebours`, `mon_flux_ical` (dont l'action `regenerer` —
     rotation du jeton — et l'`urlPublique` Funnel ; voir
     [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]])
+  - `lister_appareils_affichage`, `gerer_appareil_affichage` (renommer / supprimer
+    un écran e-ink enrôlé ; l'enrôlement est automatique par le protocole TRMNL —
+    voir [[Affichage E-ink]])
 - Quand un outil enregistre une identité (`creer_taches`, `completer_occurrence`,
   `gerer_occurrence` action passer, `mon_flux_ical`), le paramètre **`agirComme`**
   (nom d'utilisateur d'un compte, via `lister_utilisateurs` ; l'erreur liste les

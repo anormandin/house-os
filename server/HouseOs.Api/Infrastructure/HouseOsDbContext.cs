@@ -26,9 +26,23 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<Enveloppe> Enveloppes => Set<Enveloppe>();
     public DbSet<MouvementEnveloppe> MouvementsEnveloppe => Set<MouvementEnveloppe>();
     public DbSet<TransactionBancaire> TransactionsBancaires => Set<TransactionBancaire>();
+    public DbSet<AppareilAffichage> AppareilsAffichage => Set<AppareilAffichage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AppareilAffichage>(a =>
+        {
+            a.Property(x => x.AdresseMac).HasMaxLength(17);
+            a.Property(x => x.Identifiant).HasMaxLength(6);
+            a.Property(x => x.Cle).HasMaxLength(64);
+            a.Property(x => x.Nom).HasMaxLength(100);
+            a.Property(x => x.Modele).HasMaxLength(50);
+            a.Property(x => x.VersionFirmware).HasMaxLength(50);
+            a.Property(x => x.DernierFichier).HasMaxLength(64);
+            a.HasIndex(x => x.AdresseMac).IsUnique();
+            a.HasIndex(x => x.Identifiant).IsUnique();
+        });
+
         modelBuilder.Entity<Utilisateur>(u =>
         {
             u.Property(x => x.NomUtilisateur).HasMaxLength(50);

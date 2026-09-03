@@ -381,6 +381,31 @@ export type EnveloppeBudgetDonnees = {
   echeancier?: Versement[] | null
 }
 
+export type LigneEcran = { titre: string; assigne: string | null; faite: boolean; enRetard: boolean }
+
+/** Tout ce que la vue e-ink (/ecran) affiche, composé par le serveur. */
+export type DonneesEcran = {
+  date: string
+  renduLe: string
+  phrase: { titre: string; sousTitre: string } | null
+  lignes: LigneEcran[]
+  lignesEnPlus: number
+  ouvertes: number
+  enRetard: number
+  faites: number
+  meteo: {
+    codeMeteo: number
+    temperatureC: number
+    tempMin: number
+    tempMax: number
+    probabilitePrecipitation: number
+    verdicts: VerdictMeteo[]
+  } | null
+  evenementsDuJour: EvenementExterne[]
+  prochaineCollecte: EvenementExterne | null
+  prochainCompte: { titre: string; dateCible: string } | null
+}
+
 export type PhraseDuJour = {
   titre: string
   sousTitre: string
@@ -670,6 +695,8 @@ export const api = {
 
   // null quand aucune phrase n'est encore matérialisée : le client retombe sur
   // sa banque locale (humeur.ts).
+  donneesEcran: () => requete<DonneesEcran>('/api/affichage/donnees'),
+
   phraseDuJour: async (): Promise<PhraseDuJour | null> => {
     try {
       return await requete<PhraseDuJour>('/api/phrase-du-jour')

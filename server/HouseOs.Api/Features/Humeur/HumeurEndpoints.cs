@@ -1,3 +1,4 @@
+using HouseOs.Api.Domaine.Humeur;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,14 +14,7 @@ public static class HumeurEndpoints
         // retombe sur sa banque locale (humeur.ts).
         app.MapGet("/api/phrase-du-jour", async (HouseOsDbContext db) =>
         {
-            var aujourdhui = DateOnly.FromDateTime(DateTime.Now);
-            var hier = aujourdhui.AddDays(-1);
-            var phrase = await db.PhrasesDuJour
-                .Where(p => p.Date == aujourdhui || p.Date == hier)
-                .OrderByDescending(p => p.Date)
-                // Colonne string : « Soir » passe avant « Matin » aussi en tri alphabétique.
-                .ThenByDescending(p => p.Moment)
-                .FirstOrDefaultAsync();
+            var phrase = await PhraseCouranteAsync(db, DateOnly.FromDateTime(DateTime.Now));
 
             return phrase is null
                 ? Results.NotFound()
@@ -29,5 +23,18 @@ public static class HumeurEndpoints
         });
 
         return app;
+    }
+
+    /// <summary>La phrase la plus récente (soir sinon matin, aujourd'hui sinon hier) —
+    /// partagée avec la vue e-ink (Features/Affichage).</summary>
+    public static Task<PhraseDuJour?> PhraseCouranteAsync(HouseOsDbContext db, DateOnly aujourdhui)
+    {
+        var hier = aujourdhui.AddDays(-1);
+        return db.PhrasesDuJour
+            .Where(p => p.Date == aujourdhui || p.Date == hier)
+            .OrderByDescending(p => p.Date)
+            // Colonne string : « Soir » passe avant « Matin » aussi en tri alphabétique.
+            .ThenByDescending(p => p.Moment)
+            .FirstOrDefaultAsync();
     }
 }

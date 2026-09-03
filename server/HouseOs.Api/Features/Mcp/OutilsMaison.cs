@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Features.Affichage;
 using HouseOs.Api.Features.Budget;
 using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Courriel;
@@ -719,6 +720,41 @@ public static class OutilsMaison
             throw new McpException(erreur.Message);
         }
         return requete;
+    }
+
+    [McpServerTool(Name = "lister_appareils_affichage")]
+    [Description("Les écrans e-ink enrôlés (protocole TRMNL) : identifiant, nom, modèle, taille, " +
+        "firmware, tension et pourcentage de pile, RSSI, dernier contact, dernier bitmap servi. " +
+        "Parité avec GET /api/affichage/appareils.")]
+    public static Task<List<AppareilAffichageDto>> ListerAppareilsAffichage(HouseOsDbContext db) =>
+        OperationsAppareils.ListerAsync(db);
+
+    [McpServerTool(Name = "gerer_appareil_affichage")]
+    [Description("Renommer ou révoquer un écran e-ink enrôlé. Actions : renommer (nom requis ; vide = " +
+        "sans nom), supprimer (l'appareil devra se ré-enrôler au prochain réveil et recevra une " +
+        "nouvelle clé). L'enrôlement lui-même est automatique : l'appareil appelle /api/setup.")]
+    public static async Task<object> GererAppareilAffichage(
+        HouseOsDbContext db,
+        CacheImages cache,
+        [Description("renommer ou supprimer.")] string action,
+        [Description("Id de l'appareil (voir lister_appareils_affichage).")] Guid id,
+        [Description("Nouveau nom (pour renommer).")] string? nom = null)
+    {
+        switch (Conversions.NormaliserAction(action))
+        {
+            case "renommer":
+                return await OperationsAppareils.RenommerAsync(db, id, nom)
+                    ?? throw new McpException($"Appareil introuvable : {id}.");
+            case "supprimer":
+                if (await OperationsAppareils.SupprimerAsync(db, id) == false)
+                {
+                    throw new McpException($"Appareil introuvable : {id}.");
+                }
+                cache.Oublier(id);
+                return new { supprime = true, id };
+            default:
+                throw new McpException($"Action inconnue : '{action}' (renommer ou supprimer).");
+        }
     }
 
     private static void AppliquerCompte(

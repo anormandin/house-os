@@ -57,9 +57,15 @@ un écran e-ink mural, design distinct du desktop.
 
 ## Esquisse House OS e-ink (phase 3)
 
+Spec vivante : [[Affichage E-ink]] (matériel choisi : reTerminal E1003, 2026-09-03).
+
 - Traitement retenu (si direction A) : ⅔ gauche = liste du jour (en-tête-date, ≤6
   items, « Ce soir » après un filet), ⅓ droit = zones Étiquette/Valeur empilées
   (météo, prochaine échéance, collecte) ; une seule bande inversée (l'en-tête).
 - Contenu : date + météo, « À faire aujourd'hui », collecte à venir, titre d'humeur.
 - Voir `docs/research/2026-08-23-affichages-iot-hardware.md` pour le matériel
   (Inkplate 10 / TRMNL X).
+- Relevé du marché 2026-09-03 avec prix livrés, dispo et API par appareil :
+  `docs/research/2026-09-03-ecrans-eink-candidats.md`. Point clé : le protocole
+  TRMNL BYOS (`/api/setup`, `/api/display`, `/api/log`) comme API unique côté
+  House OS, compatible TRMNL, Seeed reTerminal, Kindle et Kobo.

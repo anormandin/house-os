@@ -85,8 +85,11 @@ calendriers scolaires — gérés dans l'app). À venir : Hydro-Québec
 
 MQTT + convention HA Discovery ([[D-2026-08-23 Standard IoT MQTT Discovery]]) ;
 Mosquitto + Zigbee2MQTT en Docker ; tablette murale Fully Kiosk sur l'app web ; NFC
-tap-pour-compléter ; e-ink et panneaux openHASP ensuite. Détails :
-`docs/research/2026-08-23-affichages-iot-hardware.md`.
+tap-pour-compléter ; panneaux openHASP ensuite. L'écran e-ink mural est en cours
+([[Affichage E-ink]], reTerminal E1003 commandé 2026-09-03) : House OS sert le
+protocole du firmware TRMNL, pas MQTT. Détails :
+`docs/research/2026-08-23-affichages-iot-hardware.md` et
+`docs/research/2026-09-03-ecrans-eink-candidats.md`.
 
 ## Feuille de route (as of 2026-08)
 

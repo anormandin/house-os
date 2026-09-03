@@ -11,11 +11,22 @@ import Connexion from '@/pages/Connexion'
 import Aujourdhui from '@/pages/Aujourdhui'
 import Budget from '@/pages/Budget'
 import Documents from '@/pages/Documents'
+import Ecran from '@/pages/Ecran'
 import Equipements from '@/pages/Equipements'
 import Pieces from '@/pages/Pieces'
 import Taches from '@/pages/Taches'
 
 function App() {
+  const location = useLocation()
+  // La vue e-ink vit hors de la session : le navigateur de rendu du serveur n'a pas
+  // de cookie (il porte un jeton), et un humain connecté la voit telle quelle.
+  if (location.pathname === '/ecran') {
+    return <Ecran />
+  }
+  return <AppSession />
+}
+
+function AppSession() {
   const { data: moi, isLoading } = useQuery({
     queryKey: ['moi'],
     queryFn: api.moi,

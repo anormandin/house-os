@@ -36,6 +36,21 @@ public class JournalisationApiTests(HouseOsFactory factory)
     }
 
     [Fact]
+    public async Task UnParametreQuiNeSeLiePas_EstUne400PasUne500()
+    {
+        // « ?date=hier » est la faute du client : le filet d'exceptions le dit tel quel
+        // au lieu de fabriquer une « Erreur serveur » et une fausse alerte dans Seq.
+        var client = await factory.ClientConnecte();
+
+        var reponse = await client.GetAsync("/api/occurrences?filtre=aujourdhui&date=hier");
+
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+        var corps = await reponse.Content.ReadAsStringAsync();
+        Assert.Contains("Requête invalide", corps);
+        Assert.Single(reponse.Headers.GetValues("X-Trace-Id"));
+    }
+
+    [Fact]
     public async Task UnRefusDeValidation_PorteLIdentifiantDeTraceDansLeCorps()
     {
         var client = await factory.ClientConnecte();

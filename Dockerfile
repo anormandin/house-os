@@ -15,17 +15,29 @@ COPY server/HouseOs.Tests/HouseOs.Tests.csproj server/HouseOs.Tests/
 RUN dotnet restore server/HouseOs.Api
 COPY server/ server/
 RUN dotnet publish server/HouseOs.Api -c Release --no-restore -o /app/publish
+# Le Chromium de Playwright, à la révision exacte du paquet NuGet, dans un dossier
+# copié tel quel dans l'image finale (D-2026-09-03 Rendu E-ink Par Chromium Headless).
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN dotnet exec --runtimeconfig /app/publish/HouseOs.Api.runtimeconfig.json /app/publish/Microsoft.Playwright.dll install chromium
 
 # Étape 3 : image finale — base Debian : tzdata inclus, requis parce que le code
 # vit en heure locale (TZ=America/Toronto passé par docker-compose).
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
-# curl : uniquement pour le healthcheck du compose (l'image aspnet n'en a pas).
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=api /app/publish ./
 COPY --from=web /src/web/dist ./wwwroot
+# curl : uniquement pour le healthcheck du compose (l'image aspnet n'en a pas).
+# Les bibliothèques de Chromium (install-deps = la liste que Playwright maintient)
+# et une police de repli pour les glyphes que Nunito n'a pas (« ✓ »).
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl fonts-dejavu-core \
+    && dotnet exec --runtimeconfig /app/HouseOs.Api.runtimeconfig.json /app/Microsoft.Playwright.dll install-deps chromium \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=api /ms-playwright /ms-playwright
+# Le node embarqué par Playwright perd son bit d'exécution au publish : sans lui,
+# l'utilisateur non-root ne peut pas lancer le pilote.
+RUN chmod -R a+rx /app/.playwright/node
 # Conteneur non-root ($APP_UID fourni par l'image aspnet). Le dossier des fichiers
 # doit appartenir à cet utilisateur pour que l'upload marche : un volume VIERGE
 # hérite de ces permissions à sa création ; un volume existant (prod) exige un

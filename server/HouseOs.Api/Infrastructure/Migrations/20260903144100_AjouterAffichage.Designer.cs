@@ -5,6 +5,7 @@ using HouseOs.Api.Domaine;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -13,9 +14,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HouseOs.Api.Infrastructure.Migrations
 {
     [DbContext(typeof(HouseOsDbContext))]
-    partial class HouseOsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903144100_AjouterAffichage")]
+    partial class AjouterAffichage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

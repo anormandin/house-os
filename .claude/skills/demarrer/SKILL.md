@@ -25,6 +25,22 @@ Comptes seed : `alain` / `ariane`, mot de passe `45234523`
 Si le port 5000 est occupé par une vieille instance : `pkill -f HouseOs.Api`. Le
 backend ne hot-reload pas : relancer `dotnet run` après un changement C#.
 
+## Vue e-ink (Chromium dans l'API)
+
+L'API capture la page `/ecran` avec Playwright (`Features/Affichage/RenduEcran.cs`).
+Il lui faut le Chromium de la version du paquet, une fois par machine :
+
+```bash
+pwsh server/HouseOs.Api/bin/Debug/net10.0/playwright.ps1 install chromium
+```
+
+(`pwsh` : `dotnet tool install --global PowerShell` s'il manque. Le `npx playwright`
+du dossier `web/` installe la même révision quand les versions concordent.) En dev,
+la capture vise Vite (`Affichage:UrlEcran` = `http://localhost:5173/ecran`,
+`appsettings.Development.json`) : Vite doit tourner. Aperçu du bitmap exact :
+`http://localhost:5000/api/affichage/apercu.png?pile=87` (connecté ; `&brut=1` pour
+la capture avant seuillage), page vivante : `http://localhost:5173/ecran`.
+
 ## Logs
 
 L'API émet des logs structurés (Serilog) : une ligne par requête avec statut et durée,

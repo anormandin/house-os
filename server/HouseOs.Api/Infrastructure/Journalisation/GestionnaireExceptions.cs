@@ -30,6 +30,28 @@ public sealed class GestionnaireExceptions(
             return false;
         }
 
+        // Un paramètre qui ne se lie pas (« ?brut=oui », « ?date=hier ») est la faute
+        // du client, pas une panne : 400 avec la raison, en avertissement — le 500
+        // masquait un simple format et noyait Seq sous de fausses alertes.
+        if (exception is BadHttpRequestException requeteInvalide)
+        {
+            journal.LogWarning(
+                "Requête invalide — {Methode} {Chemin} : {Raison} (trace {TraceId}).",
+                contexte.Request.Method, contexte.Request.Path.Value, requeteInvalide.Message, identifiant);
+            contexte.Response.StatusCode = requeteInvalide.StatusCode;
+            return await problemes.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = contexte,
+                Exception = exception,
+                ProblemDetails = new ProblemDetails
+                {
+                    Status = requeteInvalide.StatusCode,
+                    Title = "Requête invalide",
+                    Detail = requeteInvalide.Message,
+                },
+            });
+        }
+
         journal.LogError(
             exception,
             "Exception non gérée — {Methode} {Chemin} (trace {TraceId}).",

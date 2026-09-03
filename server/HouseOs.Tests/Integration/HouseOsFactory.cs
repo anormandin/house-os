@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using HouseOs.Api.Features.Affichage;
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.Courriel;
 using HouseOs.Api.Features.FluxExternes;
@@ -6,6 +7,7 @@ using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Features.Taches;
+using HouseOs.Tests.Features.Affichage;
 using HouseOs.Tests.Features.Courriel;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -71,7 +73,8 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
                      d.ImplementationType == typeof(MeteoIngestionService) ||
                      d.ImplementationType == typeof(HumeurService) ||
                      d.ImplementationType == typeof(FluxExternesRafraichissement) ||
-                     d.ImplementationType == typeof(CourrielEntrantHote)))
+                     d.ImplementationType == typeof(CourrielEntrantHote) ||
+                     d.ImplementationType == typeof(HoteRenduEcran)))
                 .ToList();
             foreach (var descripteur in arrierePlan)
             {
@@ -90,6 +93,11 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
             services.AddSingleton<IDepotCourriels>(sp => sp.GetRequiredService<DepotCourrielsFictif>());
             services.RemoveAll<IEnrichisseurCourriel>();
             services.AddSingleton<IEnrichisseurCourriel>(new EnrichisseurFictif());
+
+            // Pas de Chromium sous test : le rendu de l'écran e-ink est une image grise.
+            services.RemoveAll<IRenduEcran>();
+            services.AddSingleton<RenduEcranFictif>();
+            services.AddSingleton<IRenduEcran>(sp => sp.GetRequiredService<RenduEcranFictif>());
         });
     }
 

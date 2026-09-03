@@ -8,6 +8,7 @@ using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.FluxIcal;
 using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Journalisation;
+using HouseOs.Api.Features.Affichage;
 using HouseOs.Api.Features.Mcp;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Sante;
@@ -218,6 +219,15 @@ builder.Services.AddSingleton<IEnrichisseurCourriel, EnrichisseurAnthropic>();
 builder.Services.AddSingleton<CourrielEntrantService>();
 builder.Services.AddHostedService<CourrielEntrantHote>();
 
+// Vue e-ink (D-2026-09-03 Rendu E-ink Par Chromium Headless) : le jeton que le
+// serveur donne à son propre navigateur, et ce navigateur, préchauffé au démarrage.
+builder.Services.Configure<AffichageOptions>(builder.Configuration.GetSection("Affichage"));
+builder.Services.AddSingleton<JetonRendu>();
+builder.Services.AddSingleton<RenduEcranPlaywright>();
+builder.Services.AddSingleton<IRenduEcran>(sp => sp.GetRequiredService<RenduEcranPlaywright>());
+builder.Services.AddHostedService<HoteRenduEcran>();
+builder.Services.AddSingleton<CacheImages>();
+
 var app = builder.Build();
 
 // Avant tout le reste : le schéma/IP vus par l'app (cookie Secure, partition du
@@ -257,6 +267,7 @@ app.MapIcal();
 app.MapMeteo();
 app.MapHumeur();
 app.MapFluxExternes();
+app.MapAffichage();
 app.MapMcpHouseOs();
 // Avant le fallback SPA, sinon index.html avalerait la route du hub.
 app.MapHub<SynchroHub>(SynchroHub.Chemin);

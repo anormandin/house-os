@@ -1,48 +1,16 @@
-import {
-  Cloud,
-  CloudDrizzle,
-  CloudFog,
-  CloudLightning,
-  CloudRain,
-  CloudSnow,
-  CloudSun,
-  Sun,
-  type LucideIcon,
-} from 'lucide-react'
-import type { Meteo, VerdictMeteo } from '@/lib/api'
+import type { Meteo } from '@/lib/api'
 import { jourCourt } from '@/lib/format'
+import { iconeMeteo, pastillesMeteo } from '@/lib/meteo-vues'
 
-// Codes temps WMO (Open-Meteo) → icône et teinte.
-function icone(codeMeteo: number): { Icone: LucideIcon; classe: string } {
-  if (codeMeteo === 0) return { Icone: Sun, classe: 'text-jaune' }
-  if (codeMeteo <= 2) return { Icone: CloudSun, classe: 'text-jaune' }
-  if (codeMeteo === 3) return { Icone: Cloud, classe: 'text-sourdine' }
-  if (codeMeteo <= 48) return { Icone: CloudFog, classe: 'text-sourdine' }
-  if (codeMeteo <= 57) return { Icone: CloudDrizzle, classe: 'text-sourdine' }
-  if (codeMeteo <= 67) return { Icone: CloudRain, classe: 'text-encre' }
-  if (codeMeteo <= 77) return { Icone: CloudSnow, classe: 'text-sourdine' }
-  if (codeMeteo <= 82) return { Icone: CloudRain, classe: 'text-encre' }
-  if (codeMeteo <= 86) return { Icone: CloudSnow, classe: 'text-sourdine' }
-  return { Icone: CloudLightning, classe: 'text-encre' }
-}
-
-const LIBELLES_BON: Record<string, string> = {
-  Tondre: 'Bonne journée pour tondre',
-  Aérer: 'Bon moment pour aérer',
-  'Être dehors': 'Belle journée pour être dehors',
-}
-
-function pastilles(verdicts: VerdictMeteo[]) {
-  const chips: { regle: string; texte: string; raison: string; enDedans: boolean }[] = []
-  for (const v of verdicts) {
-    if (v.etat === 'Bon' && LIBELLES_BON[v.regle]) {
-      chips.push({ regle: v.regle, texte: LIBELLES_BON[v.regle], raison: v.raison, enDedans: false })
-    }
-    if (v.etat === 'Defavorable' && v.regle === 'Être dehors') {
-      chips.push({ regle: v.regle, texte: 'Une journée pour rester en dedans', raison: v.raison, enDedans: true })
-    }
-  }
-  return chips
+// Teinte par famille de temps — la forme vient de lib/meteo-vues (partagée avec l'e-ink).
+function classeMeteo(codeMeteo: number): string {
+  if (codeMeteo <= 2) return 'text-jaune'
+  if (codeMeteo <= 57) return 'text-sourdine'
+  if (codeMeteo <= 67) return 'text-encre'
+  if (codeMeteo <= 77) return 'text-sourdine'
+  if (codeMeteo <= 82) return 'text-encre'
+  if (codeMeteo <= 86) return 'text-sourdine'
+  return 'text-encre'
 }
 
 export default function MeteoCarte({ meteo }: { meteo: Meteo | undefined }) {
@@ -54,9 +22,11 @@ export default function MeteoCarte({ meteo }: { meteo: Meteo | undefined }) {
   const [aujourdhui, ...suivants] = meteo.jours
   // Le moment présent en grand (l'heure courante) ; le jour sert de repli quand
   // la ligne horaire manque.
-  const { Icone: IconeJour, classe } = icone(meteo.maintenant?.codeMeteo ?? aujourdhui.codeMeteo)
+  const codeCourant = meteo.maintenant?.codeMeteo ?? aujourdhui.codeMeteo
+  const IconeJour = iconeMeteo(codeCourant)
+  const classe = classeMeteo(codeCourant)
   const temperature = meteo.maintenant?.temperatureC ?? aujourdhui.tempMax
-  const chips = pastilles(meteo.verdicts)
+  const chips = pastillesMeteo(meteo.verdicts)
 
   return (
     <section className="rounded-3xl bg-carte px-6 py-5 shadow-carte">
@@ -79,7 +49,8 @@ export default function MeteoCarte({ meteo }: { meteo: Meteo | undefined }) {
 
       <div className="mt-4 flex justify-between">
         {suivants.slice(0, 5).map((jour) => {
-          const { Icone: IconePetit, classe: classePetit } = icone(jour.codeMeteo)
+          const IconePetit = iconeMeteo(jour.codeMeteo)
+          const classePetit = classeMeteo(jour.codeMeteo)
           return (
             <div key={jour.date} className="flex flex-col items-center gap-1">
               <span className="text-xs text-sourdine">{jourCourt(jour.date)}</span>
