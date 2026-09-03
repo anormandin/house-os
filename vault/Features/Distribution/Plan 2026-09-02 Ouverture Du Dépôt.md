@@ -32,10 +32,11 @@ personnelles hors du code, docs d'installation et de contribution, CI, licence.
   Auth / Observabilité / Architecture / Home.
 - [x] Vérification clone vierge (compose depuis une copie propre, comptes inventés) —
   santé 200, login, 2 comptes, 0 compte à rebours, MCP 401/200, faite le 2026-09-02.
-- [ ] Commit, push, CI verte.
-- [ ] D Migration de la prod : `.env` du LXC (`COMPTE_n_*`, `METEO_*`,
-  `RESEAU_PROXIES_CONNUS`, `JOURNALISATION_SEQ_URL`), `docker-compose.override.yml`
-  GELF, déploiement, vérifications, fiche LXC dans le dépôt infra.
+- [x] Commit `6836675`, push, CI verte au premier passage (2026-09-03).
+- [x] D Migration de la prod (2026-09-03) : `.env` du LXC réécrit (sauvegarde
+  `.env.bak-20260903`), `docker-compose.override.yml` GELF, `git pull` +
+  `up -d --build` ; santé 200, nouveau bundle, 2 comptes inchangés, driver gelf
+  confirmé ; fiche LXC 105 mise à jour dans le dépôt infra.
 - [ ] Passage du dépôt GitHub en public (geste du mainteneur).
 
 ## Vérification

@@ -18,4 +18,8 @@ Construit tel que planifié, avec trois écarts :
   cascade sur l'utilisateur : supprimer un compte pour le recréer aurait effacé son
   historique).
 
-Reste ouvert : la migration de la prod (Partie D) et le passage en public sur GitHub.
+Découvert en vérifiant : Compose interpole tout le fichier, donc `up -d postgres` en
+dev exige aussi les variables requises — d'où `infra/exemples/.env.dev`.
+
+Prod migrée le 2026-09-03 sans incident. Reste ouvert : le passage du dépôt en public
+sur GitHub (geste du mainteneur).
