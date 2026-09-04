@@ -32,8 +32,9 @@ release prod. Reste l'étape 5 du plan (flasher et calibrer à la réception).
 ## Écarts par rapport au plan
 
 - Le rendu était d'abord proposé en dessin C# (ImageSharp) ; l'utilisateur a
-  choisi Chromium pour la qualité d'image ([[D-2026-09-03 Rendu E-ink Par Chromium
-  Headless]]) — la décision ImageSharp, encore `proposed`, a été remplacée.
+  choisi Chromium pour la qualité d'image
+  ([[D-2026-09-03 Rendu E-ink Par Chromium Headless]]) — la décision ImageSharp,
+  encore `proposed`, a été remplacée.
 - Plafond de lignes 8 → 10 (rangées réduites à la demande de l'utilisateur), la
   ligne « + N autres » occupe la dixième place quand ça déborde.
 - Cadence 15 → 5 min (choix utilisateur) ; le tactile de l'E1003 est ignoré par
