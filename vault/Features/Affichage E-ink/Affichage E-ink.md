@@ -63,7 +63,8 @@ cookie de session :
   est donc ≤ 5 min.
 - La nuit (`Affichage:NuitDebut` 22 h → `Affichage:NuitFin` 5 h 30, défauts),
   le serveur répond un délai qui mène au prochain matin, borné à ce que le
-  firmware accepte (à vérifier à la réception ; plafond de sécurité 1 h).
+  firmware accepte (plafond de sécurité 1 h ; l'acceptation par le firmware
+  1.8.10 reste à confirmer sur une nuit).
 - Le bouton *Refresh* (dessus de l'appareil) force un réveil et un rendu
   immédiat : rien à faire côté serveur. Le tactile de l'E1003 est ignoré par le
   firmware TRMNL (SenseCraft seulement) : toucher l'écran ne fait rien.
@@ -167,7 +168,23 @@ Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
   `github.com/usetrmnl/terminus/doc/api.adoc` (en-têtes et réponses complets),
   `wiki.seeedstudio.com/reterminal_e10xx_trmnl` (flash de l'E1003).
 
+## Mise en service (2026-09-04)
+
+- Appareil reçu et enrôlé en prod le jour même : firmware TRMNL **1.8.10**, portail
+  captif → Advanced > Custom Server = `https://houseos.alainnormandin.dev` (HTTPS
+  Let's Encrypt via NPM accepté). Wi-Fi **Feynman-IoT** (2,4 GHz, WPA2) : le firmware
+  ne fait pas WPA3+PMF, exigé sur Feynman.
+- Le firmware annonce `Width`×`Height` = **1872×1404** (paysage), ce qui confirme le
+  repli et le choix de composition ; télémétrie reçue (pile 4,04 V, RSSI −46).
+- Flash depuis un Mac : la puce USB-série WCH (1a86:7522) n'a pas de driver Apple ;
+  installer `wch-ch34x-usb-serial-driver` (Homebrew) et activer l'extension. Aucun
+  bouton « boot » : le reset est automatique. Portail captif : Refresh pour réveiller,
+  Page Up + Page Down 2 s, SSID `TRMNL`, `http://4.3.2.1`. Un champ serveur vide
+  renvoie vers trmnl.com (« purchase a BYOD license »).
+- Orientation et rendu 1-bit validés à l'œil sur le panneau. Reste ouvert : cadence
+  de nuit, calibration des tailles à 2–3 m.
+
 ## Historique
 
 - [[Plan 2026-09-03 Affichage E-ink V1]] · [[Recap Affichage E-ink]] (étape 5 —
-  réception de l'appareil — encore ouverte)
+  calibration sur l'écran réel — encore ouverte)

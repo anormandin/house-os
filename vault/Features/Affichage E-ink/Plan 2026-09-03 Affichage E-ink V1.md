@@ -122,17 +122,28 @@ Ordre voulu par l'utilisateur : **l'image d'abord**, le protocole ensuite.
   (Fait : `dotnet exec --runtimeconfig … Microsoft.Playwright.dll install chromium` en
   étape SDK, `install-deps chromium` + `fonts-dejavu-core` en étape finale, `chmod`
   du node embarqué ; aperçu 1-bit identique au dev en 0,6 s ; image ≈ 1,9 Go arm64.)
-- [ ] Release prod (push + `pct exec 105`), vérifier `/api/sante` et
-  `apercu.png` en prod.
-- [ ] Vault : Recap, spec `status: building` → `implemented`, ancres de code.
+- [x] Release prod (push + `pct exec 105`), vérifier `/api/sante` et
+  `apercu.png` en prod. (Fait 2026-09-03, commit 21d3265 : premier build en ENOSPC
+  sur le rootfs de 12 Go, `docker builder prune -af` puis rebuild OK ; Chromium
+  lancé en prod, faux appareil enrôlé → display → PNG 1-bit servi en HTTPS, puis
+  supprimé par MCP.)
+- [x] Vault : Recap, spec `status: building` → `implemented`, ancres de code.
 
 ### 5. À la réception de l'E1003
 
-- [ ] Flasher le firmware TRMNL (`usetrmnl.com/flash`, cible reTerminal E1003),
-  portail captif : Wi-Fi + serveur personnalisé = URL de House OS.
-- [ ] Vérifier l'enrôlement (ligne créée, écran d'accueil), puis l'écran réel ;
-  confirmer orientation, `Width`/`Height` envoyés, plafond de `refresh_rate`
-  accepté, aspect du 1-bit ; calibrer les tailles à 2–3 m ; noter dans la spec.
+- [x] Flasher le firmware TRMNL (`usetrmnl.com/flash`, cible reTerminal E1003),
+  portail captif : Wi-Fi + serveur personnalisé = URL de House OS. (Fait
+  2026-09-04 : le Mac n'avait pas de port série — puce WCH 1a86:7522 sans driver
+  Apple, `brew install --cask wch-ch34x-usb-serial-driver` + extension activée ;
+  aucun mode « boot » à forcer. Premier passage du portail sans serveur
+  personnalisé → « purchase a BYOD license » ; second passage Page Up + Page Down
+  2 s → Advanced > Custom Server. Wi-Fi Feynman-IoT, pas Feynman (WPA3+PMF).)
+- [x] Vérifier l'enrôlement (ligne créée, écran d'accueil). (Fait : appareil
+  `B73199`, `reterminal_e1003`, firmware 1.8.10, annonce **1872×1404**, pile
+  4,04 V / 82 %, RSSI −46, première image tirée en HTTPS 5 s après le setup.)
+- [x] Sur l'écran réel : orientation et aspect du 1-bit OK (2026-09-04).
+- [ ] Plafond de `refresh_rate` accepté la nuit (regarder `dernierContact` demain
+  matin) ; calibrer les tailles à 2–3 m ; noter dans la spec.
 
 ## Vérification
 
