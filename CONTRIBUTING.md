@@ -19,7 +19,9 @@ cd web && npm install && npm run dev     # http://localhost:5173 — proxy /api,
 ```
 
 Comptes seed : `alain` / `ariane`, mot de passe `45234523` (dans
-`server/HouseOs.Api/appsettings.Development.json`). Santé : `GET /api/sante`.
+`server/HouseOs.Api/appsettings.Development.json`). Ce mot de passe est public et
+réservé au dev local : ne jamais le réutiliser sur une instance réelle, qui définit
+ses comptes dans le `.env` (`COMPTE_n_MDP`). Santé : `GET /api/sante`.
 Le backend ne recharge pas à chaud : relancer `dotnet run` après un changement C#.
 
 Réglages personnels de dev (clé Anthropic, URL d'un Seq…) : dans

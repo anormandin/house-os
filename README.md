@@ -55,8 +55,11 @@ cd web && npm install && npm run dev     # UI sur http://localhost:5173, proxy v
 ```
 
 Comptes de dev : `alain` et `ariane`, mot de passe `45234523`
-(`server/HouseOs.Api/appsettings.Development.json`). Le reste — tests, conventions,
-flux de contribution — est dans [CONTRIBUTING.md](CONTRIBUTING.md).
+(`server/HouseOs.Api/appsettings.Development.json`). **Ce mot de passe est public :
+il ne sert qu'en dev local.** Une vraie instance prend ses comptes du `.env`
+(`COMPTE_n_MDP`, requis, sans défaut) — voir [docs/installation.md](docs/installation.md).
+Le reste — tests, conventions, flux de contribution — est dans
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Structure du dépôt
 

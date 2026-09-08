@@ -37,7 +37,7 @@ personnelles hors du code, docs d'installation et de contribution, CI, licence.
   `.env.bak-20260903`), `docker-compose.override.yml` GELF, `git pull` +
   `up -d --build` ; santé 200, nouveau bundle, 2 comptes inchangés, driver gelf
   confirmé ; fiche LXC 105 mise à jour dans le dépôt infra.
-- [ ] Passage du dépôt GitHub en public (geste du mainteneur).
+- [x] Passage du dépôt GitHub en public (geste du mainteneur) — fait le 2026-09-08 : description, sujets, secret scanning + push protection activés.
 
 ## Vérification
 
