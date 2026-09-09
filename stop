@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Arrête la pile dev démarrée par ./start (API, Vite, Postgres).
+# Le volume Postgres persiste — ./start la relance telle quelle.
+set -uo pipefail
+cd "$(dirname "$0")"
+
+for nom in api vite; do
+  pidfile="/tmp/houseos-$nom.pid"
+  if [ -f "$pidfile" ]; then
+    kill "$(cat "$pidfile")" 2>/dev/null
+    rm -f "$pidfile"
+  fi
+done
+# Filet de sécurité si les PID ont changé (dotnet run et Vite relancent des enfants)
+pkill -f HouseOs.Api 2>/dev/null
+pkill -f "house-os/web/node_modules/.*vite" 2>/dev/null
+
+docker compose stop postgres
+
+echo "Pile dev arrêtée."

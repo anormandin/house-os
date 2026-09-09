@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Démarre la pile dev : Postgres (docker), API .NET (:5000), web Vite (:5173).
+# Logs : /tmp/houseos-api.log et /tmp/houseos-vite.log. Arrêt : ./stop
+set -euo pipefail
+cd "$(dirname "$0")"
+
+docker compose up -d postgres
+
+pkill -f HouseOs.Api 2>/dev/null && sleep 1 || true
+nohup dotnet run --project server/HouseOs.Api > /tmp/houseos-api.log 2>&1 &
+echo $! > /tmp/houseos-api.pid
+
+if ! curl -s -o /dev/null --max-time 2 http://localhost:5173/; then
+  (cd web && nohup npm run dev > /tmp/houseos-vite.log 2>&1 & echo $! > /tmp/houseos-vite.pid)
+fi
+
+# ControlCenter/AirPlay répond 403 sur *:5000 — seul un 200 confirme l'API.
+printf 'API démarre'
+for _ in $(seq 1 45); do
+  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 http://localhost:5000/api/sante || true)
+  [ "$code" = "200" ] && break
+  printf '.'
+  sleep 2
+done
+echo
+if [ "${code:-}" != "200" ]; then
+  echo "L'API ne répond pas (dernier code : ${code:-aucun}) — voir /tmp/houseos-api.log" >&2
+  exit 1
+fi
+
+echo "API  : http://localhost:5000 (sante OK)"
+echo "Web  : http://localhost:5173"
+echo "Logs : /tmp/houseos-api.log, /tmp/houseos-vite.log"

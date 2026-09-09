@@ -54,6 +54,10 @@ dotnet run --project server/HouseOs.Api  # API sur http://localhost:5000 (migrat
 cd web && npm install && npm run dev     # UI sur http://localhost:5173, proxy vers l'API
 ```
 
+Ou, une fois `npm install` fait : `./start` lance les trois (Postgres, API en
+arrière-plan, Vite) et attend que l'API réponde ; `./stop` arrête tout. Logs dans
+`/tmp/houseos-api.log` et `/tmp/houseos-vite.log`.
+
 Comptes de dev : `alain` et `ariane`, mot de passe `45234523`
 (`server/HouseOs.Api/appsettings.Development.json`). **Ce mot de passe est public :
 il ne sert qu'en dev local.** Une vraie instance prend ses comptes du `.env`
