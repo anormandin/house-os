@@ -1,5 +1,5 @@
-using System.Globalization;
 using HouseOs.Api.Domaine.Ephemerides;
+using static HouseOs.Api.Features.FondsDeTiroir.Mots;
 
 namespace HouseOs.Api.Features.FondsDeTiroir;
 
@@ -28,15 +28,21 @@ public static class FaitsDuCiel
 
     public static IEnumerable<FaitDeTiroir> Produire(ContexteDuJour contexte)
     {
-        var ciel = Ciel.Calculer(contexte.Date, contexte.Lieu, contexte.Fuseau);
+        // Sans coordonnées ni fuseau, il n'y a pas de ciel à décrire — c'est une
+        // absence normale, comme la nuit polaire, jamais une erreur.
+        if (contexte.Ciel is not { } observation)
+        {
+            return [];
+        }
+        var ciel = Ciel.Calculer(contexte.Date, observation.Lieu, observation.Fuseau);
 
         var faits = new List<FaitDeTiroir?>
         {
             LeverEtCoucher(ciel),
             Derive(ciel),
             PhaseDeLune(ciel),
-            ProchaineSaison(ciel, contexte),
-            Equilibre(ciel, contexte),
+            ProchaineSaison(ciel, contexte, observation),
+            Equilibre(ciel, contexte, observation),
             BasculeHoraire(ciel, contexte.Date),
             Noirceur(ciel, contexte),
         };
@@ -136,13 +142,14 @@ public static class FaitsDuCiel
             new ScoreDeFait(Rarete.ParAn(25), 1, 1));
     }
 
-    private static FaitDeTiroir? ProchaineSaison(CielDuJour ciel, ContexteDuJour contexte)
+    private static FaitDeTiroir? ProchaineSaison(
+        CielDuJour ciel, ContexteDuJour contexte, PointDObservation observation)
     {
         var evenement = ciel.ProchainEvenementSaisonnier;
         // Le fuseau du foyer, jamais celui de la machine : l'équinoxe de septembre 2026
         // tombe le 23 à Greenwich et le 22 au soir au Québec, et un conteneur en UTC
         // afficherait la mauvaise date toute la journée.
-        var chezNous = TimeZoneInfo.ConvertTime(evenement.Instant, contexte.Fuseau);
+        var chezNous = TimeZoneInfo.ConvertTime(evenement.Instant, observation.Fuseau);
         var jourLocal = DateOnly.FromDateTime(chezNous.DateTime);
         var jours = jourLocal.DayNumber - contexte.Date.DayNumber;
         var nom = Nommer(evenement.Saison);
@@ -174,7 +181,8 @@ public static class FaitsDuCiel
             new ScoreDeFait(Rarete.ParAn(4 * JoursDApprocheSaison), 1, 1));
     }
 
-    private static FaitDeTiroir? Equilibre(CielDuJour ciel, ContexteDuJour contexte)
+    private static FaitDeTiroir? Equilibre(
+        CielDuJour ciel, ContexteDuJour contexte, PointDObservation observation)
     {
         if (ciel.Soleil.Duree is not { } aujourdhui)
         {
@@ -182,8 +190,8 @@ public static class FaitsDuCiel
         }
         var demain = Soleil.Jour(
             contexte.Date.AddDays(1),
-            contexte.Lieu,
-            contexte.Fuseau.GetUtcOffset(DateTime.SpecifyKind(
+            observation.Lieu,
+            observation.Fuseau.GetUtcOffset(DateTime.SpecifyKind(
                 contexte.Date.AddDays(1).ToDateTime(new TimeOnly(12, 0)), DateTimeKind.Unspecified)));
         if (demain.Duree is not { } lendemain)
         {
@@ -284,17 +292,4 @@ public static class FaitsDuCiel
         Saison.EquinoxeDeSeptembre => "Équinoxe de septembre",
         _ => "Solstice de décembre",
     };
-
-    /// <summary>« 6 h 30 » — l'heure à la québécoise (OQLF), comme dans le reste de l'app.</summary>
-    private static string Heure(TimeOnly heure) => $"{heure.Hour} h {heure.Minute:00}";
-
-    private static string Duree(TimeSpan duree) => $"{(int)duree.TotalHours} h {duree.Minutes:00}";
-
-    /// <summary>« 1er novembre », « 22 septembre » — le premier du mois est ordinal.</summary>
-    private static string DateLongue(DateOnly date) =>
-        date.Day == 1
-            ? $"1er {date.ToString("MMMM", Francais)}"
-            : date.ToString("d MMMM", Francais);
-
-    private static readonly CultureInfo Francais = CultureInfo.GetCultureInfo("fr-CA");
 }

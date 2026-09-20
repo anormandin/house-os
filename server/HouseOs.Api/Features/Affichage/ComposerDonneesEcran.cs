@@ -127,7 +127,176 @@ public static class ComposerDonneesEcran
             maintenant, ouvertes, faites, phrase, previsions, evenements, comptes, lieu,
             premiereEntree is { } d ? DateOnly.FromDateTime(d.LocalDateTime) : null,
             options is null ? null : new ReglagesDuCiel(
-                new Lieu(options.Latitude, options.Longitude), Fuseau(options), zonesDehors.ToHashSet()));
+                new Lieu(options.Latitude, options.Longitude), Fuseau(options), zonesDehors.ToHashSet()),
+            await LireLaMaisonAsync(db, aujourdhui),
+            await LireLeCalendrierAsync(db, aujourdhui));
+    }
+
+    /// <summary>
+    /// Le journal de complétion, les équipements et les zones, réduits à la matière de
+    /// la famille « la maison » (vault : Fonds De Tiroir). Aucune table neuve : c'est
+    /// tout l'intérêt de cette famille.
+    ///
+    /// <para>Le journal se lit <b>en entier</b>, parce que la série record se compte
+    /// depuis le premier jour. C'est une seule colonne de dates sur une table qui
+    /// grandit de quelques centaines de lignes par an dans un foyer de deux adultes ;
+    /// le jour où ce n'est plus vrai, c'est un problème mesurable, pas supposé.</para>
+    /// </summary>
+    private static async Task<EtatDeLaMaison> LireLaMaisonAsync(HouseOsDbContext db, DateOnly aujourdhui)
+    {
+        // Jointure À GAUCHE, et c'est tout le sujet : le journal de complétion survit à
+        // la suppression d'une tâche (HouseOsDbContext : « les ids restent comme
+        // références historiques »). Une jointure interne perdrait ces entrées en
+        // silence — une série de douze jours retomberait à quatre parce qu'une tâche a
+        // été effacée, et le mur afficherait un chiffre faux sans que rien ne le dise.
+        var journal = await db.Journal
+            .GroupJoin(db.Taches, e => e.TacheId, t => t.Id, (e, taches) => new { e, taches })
+            .SelectMany(x => x.taches.DefaultIfEmpty(), (x, t) => new
+            {
+                x.e.CompleteeLe,
+                x.e.Cout,
+                x.e.TacheId,
+                Titre = t == null ? null : t.Titre,
+                ZoneId = t == null ? null : t.ZoneId,
+            })
+            .ToListAsync();
+
+        // L'heure du foyer, pas celle d'UTC : une complétion à 20 h le 19 septembre au
+        // Québec est stockée au 20 en UTC, et compterait pour le mauvais jour de série.
+        var jours = journal
+            .Select(e => DateOnly.FromDateTime(e.CompleteeLe.LocalDateTime))
+            .Distinct()
+            .Order()
+            .ToList();
+
+        // Une tâche effacée ne peut plus être nommée : ses complétions comptent dans la
+        // série, mais elles ne font pas de « 27 séances de quoi ? ».
+        var seances = journal
+            .Where(e => e.Titre != null)
+            .GroupBy(e => e.TacheId)
+            .Select(g => new SeancesDeTache(
+                g.First().Titre!,
+                g.Count(),
+                g.Min(e => DateOnly.FromDateTime(e.CompleteeLe.LocalDateTime))))
+            .ToList();
+
+        var anneeCourante = journal
+            .Where(e => e.Cout is > 0 && e.CompleteeLe.LocalDateTime.Year == aujourdhui.Year)
+            .ToList();
+
+        // Ordre explicite : Postgres rend les lignes comme il veut, et le fait
+        // « ce jour-là l'an dernier » ne cite que le premier titre. Sans tri, il dirait
+        // « C'était Boîtes » à un rendu et « C'était Tondre » au suivant — un fait dont
+        // le texte change dans la journée ferait mentir l'édition matérialisée
+        // (ContexteDuJour : ce qui en dépend est figé pour la journée entière).
+        var lAnDernier = aujourdhui.AddYears(-1);
+        var faitLAnDernier = journal
+            .Where(e => e.Titre != null && DateOnly.FromDateTime(e.CompleteeLe.LocalDateTime) == lAnDernier)
+            .OrderBy(e => e.CompleteeLe)
+            .ThenBy(e => e.Titre, StringComparer.Ordinal)
+            .Select(e => e.Titre!)
+            .ToList();
+
+        // Le prochain entretien d'un équipement : l'échéance ouverte la plus proche
+        // parmi ses tâches. Rien d'ouvert, pas d'entretien à annoncer.
+        var entretiens = await db.Occurrences
+            .Where(o => o.Statut == StatutOccurrence.EnAttente && o.Echeance >= aujourdhui)
+            .Join(db.Taches, o => o.TacheId, t => t.Id, (o, t) => new { t.EquipementId, o.Echeance })
+            .Where(x => x.EquipementId != null)
+            .GroupBy(x => x.EquipementId!.Value)
+            .Select(g => new { EquipementId = g.Key, Prochaine = g.Min(x => x.Echeance) })
+            .ToListAsync();
+        var parEquipement = entretiens.ToDictionary(e => e.EquipementId, e => e.Prochaine);
+
+        var equipements = await db.Equipements
+            .Select(e => new { e.Id, e.Nom, e.DateAchat })
+            .ToListAsync();
+
+        var tachesParZone = await db.Taches
+            .Where(t => t.ZoneId != null)
+            .GroupBy(t => t.ZoneId!.Value)
+            .Select(g => new { ZoneId = g.Key, Nombre = g.Count() })
+            .ToListAsync();
+        var comptesParZone = tachesParZone.ToDictionary(z => z.ZoneId, z => z.Nombre);
+        var derniereParZone = journal
+            .Where(e => e.ZoneId is not null)
+            .GroupBy(e => e.ZoneId!.Value)
+            .ToDictionary(g => g.Key, g => g.Max(e => DateOnly.FromDateTime(e.CompleteeLe.LocalDateTime)));
+
+        var zones = await db.Zones.Select(z => new { z.Id, z.Nom }).ToListAsync();
+
+        // Les anniversaires : l'arrivée d'un équipement, et les dates qui ont déjà eu
+        // lieu au compte à rebours (l'emménagement d'il y a deux ans est toujours un
+        // anniversaire, même quand le compte à rebours est retombé à zéro).
+        var jalons = await db.ComptesARebours
+            .Where(c => c.DateCible < aujourdhui)
+            .Select(c => new { c.Titre, c.DateCible })
+            .ToListAsync();
+
+        return new EtatDeLaMaison(
+            jours,
+            seances,
+            [.. equipements.Select(e => new EquipementDeLaMaison(
+                e.Nom, e.DateAchat, parEquipement.TryGetValue(e.Id, out var p) ? p : null))],
+            [.. zones.Select(z => new ZoneDeLaMaison(
+                z.Nom,
+                comptesParZone.TryGetValue(z.Id, out var n) ? n : 0,
+                derniereParZone.TryGetValue(z.Id, out var d) ? d : null))],
+            anneeCourante.Sum(e => e.Cout!.Value),
+            anneeCourante.Count,
+            [
+                .. equipements.Where(e => e.DateAchat is not null)
+                    .Select(e => new AnniversaireDeLaMaison(e.Nom, e.DateAchat!.Value)),
+                .. jalons.Select(c => new AnniversaireDeLaMaison(c.Titre, c.DateCible)),
+            ],
+            faitLAnDernier);
+    }
+
+    /// <summary>
+    /// Les comptes à rebours, les échéances à venir, les fenêtres saisonnières et les
+    /// papiers qui expirent — la matière de la famille « le calendrier ».
+    /// </summary>
+    private static async Task<EtatDuCalendrier> LireLeCalendrierAsync(HouseOsDbContext db, DateOnly aujourdhui)
+    {
+        var horizon = aujourdhui.AddDays(FenetreJours);
+
+        var compte = await db.ComptesARebours
+            .Where(c => c.DateCible >= aujourdhui)
+            .OrderBy(c => c.DateCible)
+            .Select(c => new CompteDuCalendrier(c.Titre, c.DateCible))
+            .FirstOrDefaultAsync();
+
+        var caSEnVient = await db.Occurrences
+            .Where(o => o.Statut == StatutOccurrence.EnAttente
+                        && o.Echeance > aujourdhui && o.Echeance <= horizon)
+            .Join(db.Taches, o => o.TacheId, t => t.Id, (o, t) => new EcheanceProchaine(t.Titre, o.Echeance!.Value))
+            .ToListAsync();
+
+        // Les fenêtres saisonnières du moteur, exposées comme donnée lisible : quatre
+        // nombres en base deviennent deux dates autour d'aujourd'hui.
+        // AsNoTracking : la spec de récurrence est une entité possédée, et EF refuse de
+        // suivre un possédé sans son propriétaire. Cette lecture ne modifie rien.
+        var saisonnieres = await db.Taches
+            .AsNoTracking()
+            .Where(t => t.Recurrence.FenetreDebutMois != null)
+            .Select(t => new { t.Titre, t.Recurrence })
+            .ToListAsync();
+        var saisons = saisonnieres
+            .Select(t => (t.Titre, Fenetre: t.Recurrence.FenetreAutour(aujourdhui)))
+            .Where(t => t.Fenetre is not null)
+            .Select(t => new FenetreDeSaison(t.Titre, t.Fenetre!.Value.Debut, t.Fenetre!.Value.Fin))
+            .ToList();
+
+        var garanties = await db.Equipements
+            .Where(e => e.FinGarantie != null && e.FinGarantie >= aujourdhui)
+            .Select(e => new ExpirationProchaine(e.Nom, e.FinGarantie!.Value, true))
+            .ToListAsync();
+        var papiers = await db.Documents
+            .Where(d => d.Echeance != null && d.Echeance >= aujourdhui)
+            .Select(d => new ExpirationProchaine(d.Titre, d.Echeance!.Value, false))
+            .ToListAsync();
+
+        return new EtatDuCalendrier(compte, caSEnVient, saisons, [.. garanties, .. papiers]);
     }
 
     /// <summary>
@@ -151,17 +320,20 @@ public static class ComposerDonneesEcran
     /// aucun fait n'est pénalisé.
     /// </summary>
     private static List<FaitEcranDto> FondsDuJour(
-        DateOnly aujourdhui, IReadOnlyList<OccurrenceDto> ouvertes, ReglagesDuCiel? ciel)
+        DateOnly aujourdhui,
+        IReadOnlyList<OccurrenceDto> ouvertes,
+        ReglagesDuCiel? ciel,
+        EtatDeLaMaison? maison,
+        EtatDuCalendrier? calendrier)
     {
-        if (ciel is null)
-        {
-            return [];
-        }
+        // Chaque famille a sa source, et chacune est facultative : la composition sort
+        // avec ce qu'elle a, jamais en mode dégradé.
         var contexte = new ContexteDuJour(
             aujourdhui,
-            ciel.Coordonnees,
-            ciel.Fuseau,
-            ouvertes.Any(o => o.ZoneId is { } zone && ciel.ZonesExterieures.Contains(zone)));
+            ciel is null ? null : new PointDObservation(ciel.Coordonnees, ciel.Fuseau),
+            ciel is not null && ouvertes.Any(o => o.ZoneId is { } zone && ciel.ZonesExterieures.Contains(zone)),
+            maison,
+            calendrier);
 
         return [.. Tiroir.Ouvrir(contexte, HistoriqueDeParution.Vide)
             .Select(f => new FaitEcranDto(f.Cle, f.Famille.ToString(), f.Etiquette, f.Valeur, f.Texte))];
@@ -195,7 +367,9 @@ public static class ComposerDonneesEcran
         IReadOnlyList<CompteARebours> comptes,
         string? lieu = null,
         DateOnly? premiereParution = null,
-        ReglagesDuCiel? ciel = null)
+        ReglagesDuCiel? ciel = null,
+        EtatDeLaMaison? maison = null,
+        EtatDuCalendrier? calendrier = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
 
@@ -242,6 +416,6 @@ public static class ComposerDonneesEcran
                 .Select(c => new CompteEcranDto(c.Titre, c.DateCible)).FirstOrDefault(),
             string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim(),
             NumeroEdition(aujourdhui, premiereParution),
-            FondsDuJour(aujourdhui, ouvertes, ciel));
+            FondsDuJour(aujourdhui, ouvertes, ciel, maison, calendrier));
     }
 }

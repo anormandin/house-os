@@ -32,10 +32,12 @@ public class ComposerDonneesEcranTests
         IReadOnlyList<CompteARebours>? comptes = null,
         string? lieu = null,
         DateOnly? premiereParution = null,
-        ReglagesDuCiel? ciel = null) =>
+        ReglagesDuCiel? ciel = null,
+        EtatDeLaMaison? maison = null,
+        EtatDuCalendrier? calendrier = null) =>
         ComposerDonneesEcran.Composer(
             Maintenant, ouvertes ?? [], faites ?? [], phrase, meteo, evenements ?? [], comptes ?? [],
-            lieu, premiereParution, ciel);
+            lieu, premiereParution, ciel, maison, calendrier);
 
     [Fact]
     public void Les_ouvertes_precedent_les_faites_et_le_retard_est_marque()
@@ -213,11 +215,31 @@ public class ComposerDonneesEcranTests
     }
 
     [Fact]
-    public void Sans_reglages_de_ciel_la_composition_sort_sans_fonds_de_tiroir()
+    public void Sans_aucune_source_la_composition_sort_sans_fonds_de_tiroir()
     {
-        // Le fonds est facultatif : la page doit tenir même si les coordonnées
-        // manquent, comme tout le reste de l'écran.
+        // Chaque famille a sa source, et chacune est facultative : la page doit tenir
+        // même si les coordonnées manquent, comme tout le reste de l'écran.
         Assert.Empty(Composer().Faits);
+    }
+
+    [Fact]
+    public void La_maison_et_le_calendrier_arrivent_sans_reglages_de_ciel()
+    {
+        // Les trois familles sont indépendantes : un foyer sans coordonnées dans son
+        // `.env` doit quand même recevoir ce que son journal de complétion raconte.
+        var faits = Composer(
+            maison: new EtatDeLaMaison(
+                [.. Enumerable.Range(0, 9).Select(i => Aujourdhui.AddDays(-i))],
+                [], [], [], 0, 0, [], []),
+            calendrier: EtatDuCalendrier.Vide with
+            {
+                ProchainCompte = new CompteDuCalendrier("Déménagement", new DateOnly(2026, 10, 6)),
+            }).Faits;
+
+        Assert.Contains(faits, f => f.Cle == "maison.record" && f.Famille == nameof(FamilleDeFait.Maison));
+        Assert.Contains(faits, f => f.Cle == "calendrier.compte-a-rebours"
+                                    && f.Famille == nameof(FamilleDeFait.Calendrier));
+        Assert.DoesNotContain(faits, f => f.Famille == nameof(FamilleDeFait.Ciel));
     }
 
     [Fact]
@@ -227,6 +249,7 @@ public class ComposerDonneesEcranTests
 
         Assert.NotEmpty(faits);
         Assert.All(faits, f => Assert.Equal(nameof(FamilleDeFait.Ciel), f.Famille));
+        // Le fonds arrive déjà classé, et la composition ne réordonne rien.
         // Le fait le plus banal du fonds ferme la marche, toujours.
         Assert.Equal("ciel.jour", faits[^1].Cle);
     }

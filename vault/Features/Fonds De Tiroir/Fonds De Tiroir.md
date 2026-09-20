@@ -2,7 +2,7 @@
 type: feature
 status: building
 last-verified: 2026-09-20
-verified-against: c8c11b9
+verified-against: edc0157
 tags: [iot]
 ---
 
@@ -19,11 +19,11 @@ Matériau d'origine : [[Éditorialiste De L'Écran]] (trois tours de maquettes,
 2026-09-20). Premier consommateur : [[Journal De La Maison]]. Second consommateur prévu :
 la lettre du matin (courriel sortant), qui aura sa propre feature.
 
-> [!note] Bâti : le contrat et la famille « le ciel » (as of 2026-09-20).
+> [!note] Bâti : le contrat, « le ciel », « la maison » et « le calendrier » (as of 2026-09-20).
 > L'étape 2 du [[Plan 2026-09-20 Journal Éditorial]] a livré le fait, le moteur de score
-> et les sept items du ciel. Les cinq autres familles sont encore un contrat à
-> construire : climat (étape 5), maison et calendrier (étape 3), ville (étape 6),
-> hasard (étape 4). La **fraîcheur** lit un historique vide jusqu'à l'étape 7.
+> et les sept items du ciel ; l'étape 3 les huit items de la maison et les quatre du
+> calendrier. Restent trois familles : hasard (étape 4), climat (étape 5), ville
+> (étape 6). La **fraîcheur** lit un historique vide jusqu'à l'étape 7.
 
 ## Comportement
 
@@ -69,10 +69,20 @@ et la lettrine appartiennent au journal.
   consigne le jour du déménagement. Une pertinence nulle fait **disparaître** le fait :
   c'est comme ça qu'un fait contextuel se tait les jours ordinaires.
 
-La rareté se compte en **part de l'année** : l'inverse du nombre de parutions possibles
-(l'équinoxe, 1/4 ; la durée du jour, 1/365). La fraîcheur ne descend jamais à zéro — le
-jour où un fait ressassé est la seule chose vraie qui reste, mieux vaut se répéter qu'un
-trou dans le journal.
+La rareté se compte en **part de l'année** : l'inverse du nombre de **jours** où le fait
+peut paraître (l'équinoxe, 1/4 ; la durée du jour, 1/365). La fraîcheur ne descend jamais
+à zéro — le jour où un fait ressassé est la seule chose vraie qui reste, mieux vaut se
+répéter qu'un trou dans le journal.
+
+> [!warning] La rareté est un compte de jours, pas une envie.
+> Beaucoup de faits de la maison et du calendrier sont vrais **tous les jours** une fois
+> leur condition remplie : le doyen a toujours seize ans, la pièce est toujours négligée.
+> Les coter « quelques fois par an » parce qu'on ne voudrait les lire que rarement les
+> met en tête du journal **tous les matins de l'année** — la fraîcheur se remet à neuf au
+> bout de sept jours et ne retient rien de plus. Ces faits sont donc quotidiens, et c'est
+> la **pertinence** qui porte leur poids, sur une échelle écrite : 1 = de la décoration,
+> 1,5 = ça éclaire la journée, 2 = ça suggère un geste, 3 = ça engage la journée. Trouvé
+> en revue de code, 2026-09-20.
 
 **La journée est-elle physique ?** La pertinence de « il fera noir à 18 h 25 » se décide
 sur les **zones extérieures** : au moins une occurrence ouverte du jour dans une zone de
@@ -84,14 +94,27 @@ Un fait dont une source manque **ne sort pas** ; il ne casse jamais la compositi
 delà des cercles polaires il n'y a ni lever ni coucher certains jours, et beaucoup de
 fuseaux n'ont pas de changement d'heure : ce sont des absences normales.
 
+La même règle vaut **à l'échelle de la famille** : chaque famille porte son matériau
+dans `ContexteDuJour`, et il est facultatif. Sans coordonnées le ciel se tait, sans
+journal de complétion la maison se tait, sans calendrier le calendrier se tait — un
+foyer qui n'a pas rempli `METEO_LATITUDE` garde tout le reste de son journal.
+
+> [!warning] Les noms saisis par le foyer vivent dans le **texte long**.
+> L'invariant « le texte ne redit jamais l'étiquette » se compare sans distinction de
+> casse. Une pièce nommée « Aucune » ferait donc mentir un texte qui commence par
+> « Aucune tâche n'y a été cochée… ». Les faits qui parlent d'une zone, d'une tâche ou
+> d'un équipement portent une **étiquette fixe** et une **valeur chiffrée** ; le nom
+> passe au texte. Seul `calendrier.compte-a-rebours` garde son titre en étiquette —
+> c'est son sujet, et « DANS 16 JOURS » tout seul ne dit rien. Trouvé à l'étape 3.
+
 ### Les six familles
 
 | Famille | Ce qu'elle donne | Dépendance |
 |---|---|---|
 | **Le ciel** ✅ | lever, coucher, durée du jour, dérive quotidienne, phase lunaire, équinoxes et solstices, changement d'heure, bascule jour/nuit, « il fera noir à » | calcul local depuis `METEO_LATITUDE`/`METEO_LONGITUDE` — aucune |
 | **Le climat** | premier gel, première neige, dernière journée à 20°, « il a fait X° ce jour-là l'an dernier » | normales matérialisées + tables de [[Météo]] |
-| **La maison** | ce jour-là l'an dernier, série en cours et record, N séances depuis, plus vieil équipement, zone la plus négligée, coût de l'année | journal de complétion — **ne donne rien la première année** |
-| **Le calendrier** | compte à rebours, ça s'en vient (7–30 j), travaux de la saison, garantie qui expire | [[Comptes À Rebours]], occurrences, fenêtres saisonnières, [[Documents]] |
+| **La maison** ✅ | ce jour-là l'an dernier, série en cours et record, N séances depuis, plus vieil équipement, zone la plus négligée, coût de l'année | journal de complétion — **ne donne rien la première année** |
+| **Le calendrier** ✅ | compte à rebours, ça s'en vient (7–30 j), travaux de la saison, garantie qui expire | [[Comptes À Rebours]], occurrences, fenêtres saisonnières, [[Documents]] |
 | **La ville** | prochaine collecte, collecte spéciale, événement municipal | [[Flux Externes]] — ICS pour les collectes, flux poussé pour les événements |
 | **Le hasard** | dicton météo québécois, fête ou journée nationale | banque locale |
 
@@ -117,6 +140,43 @@ Détail par item, avec source et rareté : la table du fonds de tiroir dans
 > elle compte** — le fait doit comparer à partir de la veille, et parler au passé ce
 > jour-là. Trouvé en revue de code, 2026-09-20.
 
+### La maison, en détail (as of 2026-09-20)
+
+Les seuils sont éditoriaux, pas techniques : ils disent à partir de quand une chose
+vraie devient une chose qu'on a envie de lire.
+
+| Clé | Rareté | Pertinence | Ne sort que si |
+|---|---|---|---|
+| `maison.serie` | tous les jours | 1,5 | trois jours d'affilée au moins, et la série n'est **pas** le record |
+| `maison.record` | 6×/an | 2 | la série en cours **égale ou dépasse** le record, à partir de cinq jours |
+| `maison.seances` | tous les jours | 1,5 · **3** aux dizaines | une tâche a été cochée dix fois ou plus |
+| `maison.doyen` | tous les jours | 1,5 · **3** si l'entretien est dans la quinzaine | le plus vieil équipement daté a au moins un an |
+| `maison.piece-oubliee` | tous les jours | 2 · **3** passé six mois | une zone **qui a des tâches** n'a rien eu de coché depuis soixante jours (ou jamais) |
+| `maison.cout` | tous les jours | 1,5 | au moins un coût consigné depuis le 1er janvier |
+| `maison.anniversaire` | 12×/an | 2 | un équipement ou un jalon du foyer a son mois-jour aujourd'hui, et au moins un an |
+| `maison.an-dernier` | 180×/an | 1,5 | quelque chose a été coché un an jour pour jour avant aujourd'hui |
+
+> [!note] La série se compte **jusqu'à hier** quand la journée n'a rien donné.
+> À six heures du matin rien n'est encore fait. Exiger une complétion du jour ferait
+> annoncer « série rompue » chaque matin et « douze jours » chaque soir — un journal qui
+> se contredit entre deux réveils. La série se casse à la fin de la journée, pas à son
+> premier café.
+
+### Le calendrier, en détail (as of 2026-09-20)
+
+| Clé | Rareté | Pertinence | Ne sort que si |
+|---|---|---|---|
+| `calendrier.compte-a-rebours` | tous les jours | 1,5 · **3** la dernière semaine | la cible est devant et à moins de cent vingt jours |
+| `calendrier.ca-s-en-vient` | tous les jours | 1,5 | **au moins deux** échéances ouvertes entre 7 et 30 jours — en deçà de sept, la liste du jour les montre déjà |
+| `calendrier.saison` | 56×/an (fermeture), 28×/an (ouverture) | 2 · 1 | une fenêtre saisonnière se referme dans la quinzaine, sinon une qui s'est ouverte dans la semaine |
+| `calendrier.expiration` | 60×/an | 1,5 · **3** dans la quinzaine | une garantie d'équipement ou l'échéance d'un document tombe dans les soixante jours |
+
+> [!warning] Le compte à rebours sort **deux fois** si le consommateur n'y prend garde.
+> [[Journal De La Maison]] dessine déjà son encadré, et le fonds ne sait pas qu'un
+> encadré existe — c'est la décision, et la lettre du matin voudra le fait. C'est donc
+> au consommateur d'écarter le doublon : `CLES_DEJA_AU_JOURNAL`
+> (`web/src/lib/ecran-vues.ts`), testé. Trouvé à l'étape 3.
+
 ### Les sources
 
 - **Éphémérides** : formules NOAA écrites à la main dans `Domaine/Ephemerides/`, aucune
@@ -129,8 +189,11 @@ Détail par item, avec source et rareté : la table du fonds de tiroir dans
 - **Normales climatiques** : un tirage annuel de l'archive Open-Meteo (ERA5) pour les
   coordonnées du `.env`, matérialisé
   ([[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]]).
-- **La maison** : lectures du journal de complétion, des [[Équipements]] et des
-  zones ([[D-2026-08-23 Zones Plates]]) — rien de neuf en base.
+- **La maison** et **le calendrier** ✅ : lectures du journal de complétion, des
+  [[Équipements]], des zones ([[D-2026-08-23 Zones Plates]]), des
+  [[Comptes À Rebours]], des occurrences et des [[Documents]] — **rien de neuf en
+  base**, aucune migration. Les fenêtres saisonnières du moteur de récurrence
+  ([[Tâches]]) sont exposées comme deux dates par `SpecRecurrence.FenetreAutour`.
 - **La ville** : rien de municipal dans le code
   ([[D-2026-09-20 Sources Municipales Séparées Par Solidité]]). Les collectes entrent
   par un ICS régénéré à la main une fois l'an
@@ -169,10 +232,17 @@ Bâties :
   `ChangementHeure.cs`, assemblés par `Ciel.cs`. Pur calcul, aucune base.
 - `server/HouseOs.Api/Features/FondsDeTiroir/` — `FaitDeTiroir.cs` (le contrat),
   `Tiroir.cs` (le score), `HistoriqueDeParution.cs` (la fraîcheur),
-  `ContexteDuJour.cs`, `FaitsDuCiel.cs`. Aucune référence à l'affichage.
-- Côté consommateur : `ComposerDonneesEcran.cs` (`ReglagesDuCiel`, `FaitEcranDto`) et
-  `web/src/lib/ecran-vues.ts` (`formeDuCiel`, `rangeesDuCiel`) — c'est là, et nulle
-  part ailleurs, que la densité se décide.
+  `ContexteDuJour.cs` (le matériau de chaque famille), `Mots.cs` (les tournures
+  partagées), `FaitsDuCiel.cs`, `EtatDeLaMaison.cs` + `FaitsDeLaMaison.cs`,
+  `EtatDuCalendrier.cs` + `FaitsDuCalendrier.cs`. Aucune référence à l'affichage.
+- `server/HouseOs.Api/Domaine/SpecRecurrence.cs` — `FenetreAutour` : la fenêtre
+  saisonnière lue comme deux dates plutôt que comme quatre nombres.
+- Côté consommateur : `ComposerDonneesEcran.cs` (`ReglagesDuCiel`, `FaitEcranDto`,
+  `LireLaMaisonAsync`, `LireLeCalendrierAsync`) et `web/src/lib/ecran-vues.ts`
+  (`formeDuCiel`, `rangeesDuCiel`, `faitsEnWidgets`, `faitAvecTexteLong`,
+  `placesDuFonds`) — c'est là, et nulle part ailleurs, que la densité et l'ordre des
+  widgets se décident. **Le journal ne retrie jamais le fonds** : il replie le ciel en
+  un bloc d'une seule place et coupe au budget du rang.
 
 À créer :
 

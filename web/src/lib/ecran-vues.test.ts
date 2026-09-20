@@ -17,8 +17,11 @@ import {
   resteAAnnoncer,
   surtitreEdition,
   etatDuJour,
+  faitAvecTexteLong,
   faitsDeLaFamille,
+  faitsEnWidgets,
   formeDuCiel,
+  placesDuFonds,
   LONGUEUR_RANGEE_CIEL,
   MAX_RANGEES_CIEL,
   rangeesDuCiel,
@@ -273,4 +276,76 @@ test('un ciel qui ne tient pas en rangées renonce au tableau', () => {
   }))
   // De la place, mais pas de matière : trois rangées, sinon la phrase.
   expect(formeDuCiel(rangeesDuCiel(longs).length, 7)).toBe('phrase')
+})
+
+test("le compte à rebours ne se dit pas deux fois : l'encadré le montre déjà", () => {
+  // Le fonds de tiroir ne sait pas qu'un encadré existe, et c'est voulu — la lettre
+  // du matin n'en aura pas. C'est donc le journal qui écarte le doublon, et lui seul.
+  const faits = [
+    fait('calendrier.compte-a-rebours', 'Calendrier'),
+    fait('maison.record', 'Maison'),
+    fait('ciel.jour'),
+  ]
+
+  expect(faitsEnWidgets(faits).map((f) => f.cle)).toEqual(['maison.record', 'ciel.jour'])
+  // Et l'ordre du score est intact : le journal écarte, il ne retrie pas.
+  expect(faitsEnWidgets([fait('ciel.jour')]).map((f) => f.cle)).toEqual(['ciel.jour'])
+})
+
+test('un fait perd son texte long au rang le plus serré, comme le ciel', () => {
+  // Rang « événement » : un seul widget, et c'est celui qui sert.
+  expect(faitAvecTexteLong(1)).toBe(false)
+  expect(faitAvecTexteLong(2)).toBe(true)
+  expect(faitAvecTexteLong(7)).toBe(true)
+})
+
+test('le bloc du ciel prend une place, pas toute sa famille', () => {
+  // Un jour d'équinoxe au rang « resserré » : quatre widgets, le ciel en « phrase ».
+  // Le bloc n'absorbe que le meilleur fait du ciel ; les autres retournent au
+  // classement et sortent à leur propre score. Sans ça, la durée du jour — le fait le
+  // plus banal du fonds — passait devant une garantie soixante fois mieux classée.
+  const faits = [
+    fait('ciel.saison'),
+    fait('maison.record', 'Maison'),
+    fait('calendrier.expiration', 'Calendrier'),
+    fait('ciel.derive'),
+    fait('ciel.jour'),
+  ]
+
+  const places = placesDuFonds(faits, new Set(['ciel.saison']))
+
+  expect(places.map((p) => (p.type === 'fait' ? p.fait.cle : 'bloc-ciel'))).toEqual([
+    'bloc-ciel',
+    'maison.record',
+    'calendrier.expiration',
+    'ciel.derive',
+    'ciel.jour',
+  ])
+})
+
+test('le tableau du ciel absorbe ses rangées et les retire du classement, une seule fois', () => {
+  const faits = [
+    fait('ciel.saison'),
+    fait('maison.record', 'Maison'),
+    fait('ciel.derive'),
+    fait('ciel.jour'),
+  ]
+
+  // En forme « tableau », trois faits du ciel deviennent des rangées : le bloc les
+  // remplace tous les trois, à la place du mieux classé d'entre eux.
+  const places = placesDuFonds(faits, new Set(['ciel.saison', 'ciel.derive', 'ciel.jour']))
+
+  expect(places.map((p) => (p.type === 'fait' ? p.fait.cle : 'bloc-ciel'))).toEqual([
+    'bloc-ciel',
+    'maison.record',
+  ])
+})
+
+test('sans ciel, le fonds garde exactement son ordre', () => {
+  const faits = [fait('maison.record', 'Maison'), fait('calendrier.expiration', 'Calendrier')]
+
+  expect(placesDuFonds(faits, new Set()).map((p) => (p.type === 'fait' ? p.fait.cle : 'bloc-ciel'))).toEqual([
+    'maison.record',
+    'calendrier.expiration',
+  ])
 })

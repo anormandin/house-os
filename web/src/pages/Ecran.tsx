@@ -7,8 +7,11 @@ import {
   capaciteListe,
   dimensionsEcran,
   etatDuJour,
+  faitAvecTexteLong,
   faitsDeLaFamille,
+  faitsEnWidgets,
   formeDuCiel,
+  placesDuFonds,
   grilleDuJour,
   MAX_RANGEES_CIEL,
   rangeesDuCiel,
@@ -402,9 +405,40 @@ function widgetsDuJour(donnees: DonneesEcran, grille: Grille): WidgetEcran[] {
     widgets.push({ cle: 'verdict', etiquette: 'Dehors', valeur: pastille.texte, detail: pastille.raison })
   }
 
-  widgets.push(...widgetsDuCiel(donnees.faits, grille))
+  widgets.push(...widgetsDuFonds(donnees.faits, grille))
   return widgets
 }
+
+/**
+ * Le fonds de tiroir, dans l'ordre où il a classé ses faits — c'est tout l'intérêt du
+ * score : le journal ne réordonne rien, il coupe à la fin. Chaque fait devient un
+ * widget empilé à sa place, sauf ceux que le bloc du ciel absorbe : le bloc prend
+ * **une seule place**, celle du meilleur fait qu'il contient.
+ *
+ * Le budget du rang est tenu par l'appelant, qui tronque cette liste — ce qui déborde
+ * du budget disparaît de lui-même, sans avoir à être compté deux fois ici.
+ */
+function widgetsDuFonds(faits: FaitEcran[], grille: Grille): WidgetEcran[] {
+  const utiles = faitsEnWidgets(faits)
+  const bloc = blocDuCiel(faitsDeLaFamille(utiles, 'Ciel'), grille)
+  const avecTexte = faitAvecTexteLong(grille.widgets)
+
+  return placesDuFonds(utiles, bloc?.prises ?? VIDE).flatMap((place) => {
+    if (place.type === 'bloc-ciel') {
+      return bloc === null ? [] : [bloc.widget]
+    }
+    return [
+      {
+        cle: place.fait.cle,
+        etiquette: place.fait.etiquette,
+        valeur: place.fait.valeur,
+        detail: avecTexte ? place.fait.texte : undefined,
+      },
+    ]
+  })
+}
+
+const VIDE: ReadonlySet<string> = new Set()
 
 /**
  * Le ciel, aux trois densités : « les widgets rétrécissent avant de disparaître »
@@ -412,16 +446,18 @@ function widgetsDuJour(donnees: DonneesEcran, grille: Grille): WidgetEcran[] {
  * la place manque, dans l'ordre : ses rangées de tableau, puis son texte long, puis
  * tout sauf le premier fait.
  *
- * Le budget du rang est tenu par l'appelant, qui tronque cette liste — ce qui déborde
- * du budget disparaît de lui-même, sans avoir à être compté deux fois ici.
- *
- * Le ciel est la seule famille branchée pour l'instant ; les cinq autres arrivent aux
- * étapes 3 à 6 du plan et prendront leur part du même budget.
+ * Il rend **un** widget et la liste des clés qu'il a absorbées. Les faits du ciel qui
+ * restent dehors ne suivent pas le bloc : ils retournent au classement et sortent à
+ * leur propre score, comme n'importe quel autre fait. Sans ça, un jour d'équinoxe, la
+ * durée du jour — le fait le plus banal du fonds — passait devant une garantie qui
+ * expire, soixante fois mieux classée (trouvé en revue de code, 2026-09-20).
  */
-function widgetsDuCiel(faits: FaitEcran[], grille: Grille): WidgetEcran[] {
-  const ciel = faitsDeLaFamille(faits, 'Ciel')
+function blocDuCiel(
+  ciel: FaitEcran[],
+  grille: Grille,
+): { widget: WidgetEcran; prises: Set<string> } | null {
   if (ciel.length === 0) {
-    return []
+    return null
   }
 
   const court = (f: FaitEcran): WidgetEcran => ({ cle: f.cle, etiquette: f.etiquette, valeur: f.valeur })
@@ -429,21 +465,21 @@ function widgetsDuCiel(faits: FaitEcran[], grille: Grille): WidgetEcran[] {
   const forme = formeDuCiel(rangees.length, grille.widgets)
 
   if (forme === 'demi-phrase') {
-    return [court(ciel[0])]
+    return { widget: court(ciel[0]), prises: new Set([ciel[0].cle]) }
   }
   if (forme === 'phrase') {
-    // Le premier fait garde son texte long ; les suivants se contentent de leur
-    // valeur, et remplissent ce qui reste du budget du rang.
-    return [{ ...court(ciel[0]), detail: ciel[0].texte }, ...ciel.slice(1).map(court)]
+    return {
+      widget: { ...court(ciel[0]), detail: ciel[0].texte },
+      prises: new Set([ciel[0].cle]),
+    }
   }
 
   // Ce que le tableau n'a pas pris garde sa place de widget empilé, où il a deux
   // lignes pour se dire — un fait trop long ne se fait pas couper, il change de forme.
-  const prises = new Set(rangees.map((f) => f.cle))
-  return [
-    { cle: 'ciel', etiquette: 'Le ciel', valeur: <TableauDuCiel faits={rangees} /> },
-    ...ciel.filter((f) => !prises.has(f.cle)).map((f) => ({ ...court(f), detail: f.texte })),
-  ]
+  return {
+    widget: { cle: 'ciel', etiquette: 'Le ciel', valeur: <TableauDuCiel faits={rangees} /> },
+    prises: new Set(rangees.map((f) => f.cle)),
+  }
 }
 
 /* Le tableau du ciel : une rangée par fait, l'étiquette à gauche et la valeur à

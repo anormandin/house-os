@@ -14,7 +14,7 @@ public class FondsDeTiroirTests
     private static readonly TimeZoneInfo FuseauQuebec = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
 
     private static ContexteDuJour Jour(DateOnly date, bool dehors = false) =>
-        new(date, Quebec, FuseauQuebec, dehors);
+        new(date, new PointDObservation(Quebec, FuseauQuebec), dehors);
 
     private static IReadOnlyList<FaitDeTiroir> Ouvrir(DateOnly date, bool dehors = false) =>
         Tiroir.Ouvrir(Jour(date, dehors), HistoriqueDeParution.Vide);
@@ -196,11 +196,14 @@ public class FondsDeTiroirTests
         var hobart = TimeZoneInfo.FindSystemTimeZoneById("Australia/Hobart");
         var lieuHobart = new Lieu(-42.88, 147.32);
         Assert.DoesNotContain(
-            Tiroir.Ouvrir(new ContexteDuJour(new DateOnly(2026, 9, 22), lieuHobart, hobart, false), HistoriqueDeParution.Vide),
+            Tiroir.Ouvrir(
+                new ContexteDuJour(new DateOnly(2026, 9, 22), new PointDObservation(lieuHobart, hobart), false),
+                HistoriqueDeParution.Vide),
             f => f.Cle == "ciel.saison");
 
         var faitsHobart = Tiroir.Ouvrir(
-            new ContexteDuJour(new DateOnly(2026, 9, 23), lieuHobart, hobart, false), HistoriqueDeParution.Vide);
+            new ContexteDuJour(new DateOnly(2026, 9, 23), new PointDObservation(lieuHobart, hobart), false),
+            HistoriqueDeParution.Vide);
         Assert.Contains(faitsHobart, f => f.Cle == "ciel.saison");
         // Au sud, c'est le jour qui s'allonge en septembre — et c'est l'étiquette qui
         // porte le sens, pour que la valeur tienne sur une rangée de tableau.
@@ -210,8 +213,9 @@ public class FondsDeTiroirTests
             Ouvrir(new DateOnly(2026, 9, 23)).Single(f => f.Cle == "ciel.derive").Etiquette);
 
         var svalbard = new ContexteDuJour(
-            new DateOnly(2026, 12, 21), new Lieu(78.22, 15.63),
-            TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo"), true);
+            new DateOnly(2026, 12, 21),
+            new PointDObservation(new Lieu(78.22, 15.63), TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo")),
+            true);
         var faitsSvalbard = Tiroir.Ouvrir(svalbard, HistoriqueDeParution.Vide);
         // Pas de lever, pas de coucher : le fait « il fera noir » n'a aucun sens et ne
         // sort pas, mais la nuit polaire, elle, se dit.

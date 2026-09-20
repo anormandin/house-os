@@ -241,19 +241,119 @@ est la règle, pas un défaut. **Aucun avertissement de débordement** sur les s
 Que des lectures de tables existantes — le journal de complétion, les [[Équipements]],
 les [[Comptes À Rebours]], les [[Documents]]. Aucune migration.
 
-- [ ] Faits « la maison » : série en cours et record, N séances depuis, plus vieil
-      équipement et son prochain entretien, zone la plus négligée, coût de l'année,
-      anniversaires. « Ce jour-là l'an dernier » est écrit mais **ne donnera rien avant
-      septembre 2027** — c'est un argument pour le bâtir tôt, pas tard.
-- [ ] Faits « le calendrier » : compte à rebours actif, « ça s'en vient » (7–30 j),
-      travaux de la saison (les fenêtres saisonnières du moteur, exposées comme donnée
-      lisible), garantie ou document qui expire.
-- [ ] Chaque fait rend une valeur courte **et** un texte long : le journal choisit selon
+- [x] Faits « la maison » (`FaitsDeLaMaison.cs`) : série en cours et record, N séances
+      depuis, plus vieil équipement et son prochain entretien, zone la plus négligée,
+      coût de l'année, anniversaires. « Ce jour-là l'an dernier » est écrit mais **ne
+      donnera rien avant septembre 2027** — c'est un argument pour le bâtir tôt, pas
+      tard.
+- [x] Faits « le calendrier » (`FaitsDuCalendrier.cs`) : compte à rebours actif, « ça
+      s'en vient » (7–30 j), travaux de la saison (les fenêtres saisonnières du moteur,
+      exposées comme donnée lisible par `SpecRecurrence.FenetreAutour`), garantie ou
+      document qui expire.
+- [x] Chaque fait rend une valeur courte **et** un texte long : le journal choisit selon
       le rang.
 
 **Vérification** — `dotnet test` avec des fixtures de journal de complétion ; sur la
 prod par [[Serveur MCP]] (`bilan_taches`, `lister_equipements`), vérifier que les
 chiffres sortis correspondent au réel.
+
+#### Ce que l'étape 3 a dû trancher en chemin
+
+- [x] **Une famille sans source se tait, et c'est la même règle pour les trois.**
+      `ContexteDuJour` portait des coordonnées obligatoires ; la maison et le calendrier
+      n'en ont pas besoin, et un foyer sans `METEO_LATITUDE` aurait perdu son journal de
+      complétion avec son ciel. Chaque famille a maintenant son matériau facultatif
+      (`PointDObservation`, `EtatDeLaMaison`, `EtatDuCalendrier`) et rend une liste vide
+      quand il manque — le pendant, à l'échelle de la famille, de la règle « un fait dont
+      la source manque ne sort pas ».
+- [x] **Les noms saisis par le foyer vivent dans le texte long, pas dans l'étiquette.**
+      L'invariant « le texte ne redit jamais l'étiquette » se compare sans distinction de
+      casse : une pièce nommée « Aucune » le ferait mentir. Les faits de la maison
+      portent donc une étiquette fixe et une valeur chiffrée, et le nom de la pièce, de
+      la tâche ou de l'équipement passe au texte. Seul le compte à rebours garde son
+      titre en étiquette — c'est son sujet, et « DANS 16 JOURS » tout seul ne dit rien.
+- [x] **Le compte à rebours serait sorti deux fois.** Le journal dessine déjà son
+      encadré ; le fonds, lui, ne sait pas qu'un encadré existe et ne doit pas le savoir
+      (la lettre du matin n'en aura pas). C'est le **consommateur** qui écarte le
+      doublon : `CLES_DEJA_AU_JOURNAL` dans `web/src/lib/ecran-vues.ts`, testé.
+- [x] **La série se compte jusqu'à hier quand la journée n'a encore rien donné.** Sinon
+      l'écran annonçait « série rompue » chaque matin et « 12 jours » chaque soir — un
+      journal qui se contredit tout seul entre deux réveils.
+- [x] **Une zone sans tâche est vide, pas négligée.** Quatre des cinq pièces de la prod
+      n'ont aucune tâche : les coiffer « jamais rien » serait un reproche adressé à
+      personne. Le compte de tâches par zone sert exactement à faire cette nuance.
+- [x] **`widgetsDuCiel` ne savait rendre qu'une famille.** Le journal parcourt maintenant
+      le fonds **dans l'ordre du score** (`widgetsDuFonds`) : chaque famille donne des
+      widgets empilés, et le ciel se replie en un bloc à trois densités à la place de son
+      meilleur fait. Le score sert enfin à quelque chose — le journal ne retrie rien, il
+      coupe à la fin.
+- [x] **Bug : la jointure interne perdait les complétions des tâches effacées.** Le
+      journal de complétion **survit à la suppression d'une tâche** — le
+      `HouseOsDbContext` le dit en toutes lettres (« pas de FK vers Tache/Occurrence,
+      les ids restent comme références historiques »). Une jointure interne les écartait
+      **en silence** : une série de six jours retombait à zéro parce qu'une tâche avait
+      été effacée, et le mur affichait un chiffre faux sans que rien ne le signale.
+      Corrigé en jointure à gauche ; une tâche disparue compte encore dans la série, le
+      coût et « l'an dernier », mais ne peut plus être **nommée** (« 27 séances de
+      quoi ? »). Couvert par `LecturesDuFondsTests`, qui teste les lectures sur Sqlite —
+      les faits, eux, se testent toujours sans base.
+- [x] **Bug trouvé au premier rendu réel : EF refuse de projeter une entité possédée.**
+      `Select(t => new { t.Titre, t.Recurrence })` sur une requête suivie fait tomber
+      `/api/affichage/donnees` en 500 — la spec de récurrence est possédée par la tâche.
+      Aucun test unitaire ne pouvait le voir (le fonds se teste sans base). Corrigé par
+      `AsNoTracking`, qui est de toute façon juste : la composition ne modifie rien.
+
+#### Ce que la revue de code a corrigé, à l'étape 3
+
+- [x] **La rareté était une envie, pas un compte de jours.** `maison.doyen`,
+      `maison.piece-oubliee`, `maison.cout` et `maison.seances` sont vrais **tous les
+      jours** une fois leur condition remplie — le doyen a toujours seize ans. Cotés
+      « douze fois par an », ils prenaient la tête du journal **tous les matins de
+      l'année**, puisque la fraîcheur se remet à neuf au bout de sept jours : exactement
+      le radotage que le score existe pour empêcher. La rareté se compte en **jours de
+      parution possibles**, comme pour le ciel, et c'est la **pertinence** qui dit ce
+      qu'un fait change à aujourd'hui — barème écrit dans les deux familles :
+      1 = décoration, 1,5 = ça éclaire la journée, 2 = ça suggère un geste, 3 = ça engage
+      la journée. Un test le garde (« un fait vrai tous les jours ne prend pas la place
+      d'un fait rare »).
+- [x] **Le bloc du ciel prenait la place de toute sa famille.** Il se dépliait en
+      plusieurs widgets à la position de son meilleur fait : un jour d'équinoxe au rang
+      « resserré », la bande devenait `[équinoxe, dérive, durée du jour, record]` et la
+      **durée du jour** — le fait le plus banal du fonds, celui dont un test dit qu'il
+      ne bat rien — passait devant une garantie qui expire soixante fois mieux classée,
+      que la troncature du budget coupait ensuite. Le bloc prend maintenant **une seule
+      place** et les faits du ciel restés dehors retournent au classement
+      (`placesDuFonds`, testé).
+- [x] **« Ce jour-là l'an dernier » citait un titre au hasard.** La liste venait d'un
+      `ToListAsync` sans `OrderBy` : Postgres rend les lignes comme il veut, et le fait
+      disait « C'était Boîtes » à un rendu et « C'était Tondre » au suivant. C'est
+      précisément ce que `ContexteDuJour` interdit (« figé pour la journée entière »), et
+      ça aurait fait mentir l'édition matérialisée de l'étape 7. Tri explicite.
+- [x] **Bug pré-existant : le maximum de la météo au trait d'union.** `signe()` existe
+      pour qu'un « −1 » ne se lise pas comme une coupure de mot à trois mètres, mais il
+      n'était appliqué qu'à la température courante : une journée de janvier écrivait
+      « −18 °C · max -9 », le vrai moins et le trait d'union sur la même ligne. Au
+      Québec ce n'est pas un cas limite, c'est l'hiver.
+
+**Rendu vérifié** (aperçus à 1872×1404, `apercu.png`, données de dev) : rang
+« chronique » (0 due) → « La pièce oubliée » et « Ça s'en vient » à côté du tableau du
+ciel, l'encadré de compte à rebours **non doublé** ; rang « sommaire » (12 dues) → les
+deux familles en bande de pied ; rang « événement » (plancher, retard de 20 jours) → un
+seul widget, et les faits du fonds disparaissent comme la règle le veut. **Aucun
+avertissement de débordement** sur les trois tirages, ni sur les deux repris **après
+la revue** — où l'ordre du fonds est visiblement meilleur : l'équinoxe ouvre la bande,
+la pièce oubliée suit, et les faits quotidiens du ciel ferment la marche.
+`npm test` 216 verts (211 au départ), `dotnet test` 729 verts (698 au départ).
+
+**Chiffres recoupés sur la prod** ([[Serveur MCP]], 2026-09-20) : `bilan_taches` donne
+46 complétions sur quatre semaines, dont **12 pour « Boites! »** depuis le 28 août — ce
+que `maison.seances` annoncerait. La série est à **zéro** (rien le 19 ni le 20), donc ni
+série ni record : correct. `lister_equipements` + `obtenir_equipement` : un seul
+équipement daté (vélo, 2026-07-26, moins d'un an), donc **pas de doyen** — « une maison
+neuve n'a pas de doyen ». Deux zones seulement portent des tâches, et la Cuisine n'a
+jamais rien eu de coché : `maison.piece-oubliee` sortirait « Jamais rien ». Aucune tâche
+de prod ne porte de fenêtre saisonnière et le seul document daté expire le
+2027-09-01 : `calendrier.saison` et `calendrier.expiration` se taisent, comme prévu.
 
 ### 4 — Le hasard
 

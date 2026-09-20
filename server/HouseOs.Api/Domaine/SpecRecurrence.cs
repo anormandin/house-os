@@ -50,6 +50,41 @@ public class SpecRecurrence
     public bool JourSemainePlanifie(DayOfWeek jour) =>
         ((JoursSemaineMasque ?? 0) >> (int)jour & 1) == 1;
 
+    /// <summary>
+    /// La fenêtre saisonnière vue comme deux dates plutôt que comme quatre nombres :
+    /// celle qui est ouverte à <paramref name="reference"/>, sinon la prochaine à
+    /// s'ouvrir. Null quand la tâche n'a pas de fenêtre.
+    ///
+    /// <para>Une fenêtre qui chevauche le jour de l'An (novembre → mars) appartient à
+    /// deux années civiles : on essaie donc l'ancrage de l'an dernier avant celui de
+    /// cette année, sans quoi le 15 janvier tomberait « hors saison ».</para>
+    /// </summary>
+    public (DateOnly Debut, DateOnly Fin)? FenetreAutour(DateOnly reference)
+    {
+        if (AFenetre == false)
+        {
+            return null;
+        }
+        for (var annee = reference.Year - 1; annee <= reference.Year + 1; annee++)
+        {
+            var debut = JourBorne(annee, FenetreDebutMois!.Value, FenetreDebutJour!.Value);
+            var fin = JourBorne(annee, FenetreFinMois!.Value, FenetreFinJour!.Value);
+            if (fin < debut)
+            {
+                fin = JourBorne(annee + 1, FenetreFinMois!.Value, FenetreFinJour!.Value);
+            }
+            if (reference <= fin)
+            {
+                return (debut, fin);
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Le 31 d'un mois court est le dernier jour du mois, comme pour JourDuMois.</summary>
+    private static DateOnly JourBorne(int annee, int mois, int jour) =>
+        new(annee, mois, Math.Min(jour, DateTime.DaysInMonth(annee, mois)));
+
     /// <summary>La date tombe-t-elle dans la fenêtre saisonnière (bornes incluses)?</summary>
     public bool DansFenetre(DateOnly date)
     {

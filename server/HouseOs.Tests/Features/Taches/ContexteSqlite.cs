@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Meteo;
 using HouseOs.Api.Infrastructure;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +40,9 @@ public class HouseOsDbContextSqlite(DbContextOptions<HouseOsDbContext> options)
             .HasConversion(new DateTimeOffsetToBinaryConverter());
         // Les listes de documents (REST et MCP) trient par CreeLe.
         modelBuilder.Entity<Document>().Property(d => d.CreeLe)
+            .HasConversion(new DateTimeOffsetToBinaryConverter());
+        // La lecture météo (partagée avec la vue e-ink) trie par RecupereLe.
+        modelBuilder.Entity<ReleveMeteo>().Property(r => r.RecupereLe)
             .HasConversion(new DateTimeOffsetToBinaryConverter());
     }
 }

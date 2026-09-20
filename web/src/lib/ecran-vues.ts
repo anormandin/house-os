@@ -334,6 +334,65 @@ export function formeDuCiel(rangeesPossibles: number, budgetDeWidgets: number): 
   return budgetDeWidgets >= 2 ? 'phrase' : 'demi-phrase'
 }
 
+/**
+ * Les clés que le journal montre **déjà ailleurs** qu'en widget. Le fonds de tiroir ne
+ * sait pas qu'un encadré de compte à rebours existe, et c'est voulu : la lettre du
+ * matin n'en aura pas et voudra le fait (vault : D-2026-09-20 Fonds De Tiroir Séparé
+ * Du Journal). C'est donc ici, chez le consommateur, qu'on évite de le dire deux fois —
+ * le défaut « deux colonnes voisines coiffées DEHORS » de l'étape 2, en pire : le même
+ * titre et le même chiffre, à dix centimètres l'un de l'autre.
+ */
+export const CLES_DEJA_AU_JOURNAL = ['calendrier.compte-a-rebours']
+
+/** Le fonds de tiroir, moins ce que le journal dessine autrement. */
+export function faitsEnWidgets(faits: FaitEcran[]): FaitEcran[] {
+  return faits.filter((f) => CLES_DEJA_AU_JOURNAL.includes(f.cle) === false)
+}
+
+/**
+ * Un fait a-t-il droit à son texte long ? Même règle que pour le ciel, qui perd sa
+ * phrase avant de disparaître : au rang le plus serré (un seul widget), il ne reste
+ * que l'étiquette et la valeur.
+ */
+export function faitAvecTexteLong(budgetDeWidgets: number): boolean {
+  return budgetDeWidgets >= 2
+}
+
+/**
+ * Une place dans la bande de widgets : soit un fait, soit le bloc du ciel — qui en
+ * absorbe plusieurs et n'en occupe qu'une.
+ */
+export type PlaceDuFonds = { type: 'fait'; fait: FaitEcran } | { type: 'bloc-ciel' }
+
+/**
+ * Les places de la bande, **dans l'ordre du score** : le journal ne réordonne rien, il
+ * coupe à la fin. Le bloc du ciel prend une seule place, celle du meilleur fait qu'il
+ * absorbe ; les faits du ciel restés dehors gardent la leur et sortent à leur propre
+ * score, comme n'importe quel autre fait.
+ *
+ * Trouvé en revue de code (2026-09-20) : en rendant le bloc **et** toute sa famille
+ * d'un coup, un jour d'équinoxe au rang « resserré » la bande devenait
+ * `[équinoxe, dérive du jour, durée du jour, record]` — la durée du jour, le fait le
+ * plus banal du fonds, passait devant une garantie qui expire soixante fois mieux
+ * classée, et se faisait couper à la troncature du budget.
+ */
+export function placesDuFonds(faits: FaitEcran[], prisesDuCiel: ReadonlySet<string>): PlaceDuFonds[] {
+  const places: PlaceDuFonds[] = []
+  let blocPlace = false
+
+  for (const fait of faits) {
+    if (prisesDuCiel.has(fait.cle)) {
+      if (blocPlace === false) {
+        blocPlace = true
+        places.push({ type: 'bloc-ciel' })
+      }
+      continue
+    }
+    places.push({ type: 'fait', fait })
+  }
+  return places
+}
+
 /** Les faits d'une famille, dans l'ordre où le fonds de tiroir les a classés. */
 export function faitsDeLaFamille(faits: FaitEcran[], famille: FaitEcran['famille']): FaitEcran[] {
   return faits.filter((f) => f.famille === famille)

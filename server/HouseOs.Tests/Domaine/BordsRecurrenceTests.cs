@@ -49,6 +49,65 @@ public class BordsRecurrenceTests
         Assert.Equal(attendu, spec.DansFenetre(new DateOnly(2026, mois, jour)));
     }
 
+    // --- Fenêtre lue comme deux dates (le fonds de tiroir, famille « le calendrier ») ---
+
+    [Fact]
+    public void FenetreAutour_EnPleineSaison_RendLaFenetreOuverte()
+    {
+        var spec = AvecFenetre(new SpecRecurrence(), 5, 1, 10, 31);
+
+        var fenetre = Assert.NotNull(spec.FenetreAutour(new DateOnly(2026, 9, 20)));
+
+        Assert.Equal(new DateOnly(2026, 5, 1), fenetre.Debut);
+        Assert.Equal(new DateOnly(2026, 10, 31), fenetre.Fin);
+    }
+
+    [Fact]
+    public void FenetreAutour_HorsSaison_RendLaProchaine()
+    {
+        var spec = AvecFenetre(new SpecRecurrence(), 5, 1, 10, 31);
+
+        var fenetre = Assert.NotNull(spec.FenetreAutour(new DateOnly(2026, 11, 2)));
+
+        Assert.Equal(new DateOnly(2027, 5, 1), fenetre.Debut);
+        Assert.Equal(new DateOnly(2027, 10, 31), fenetre.Fin);
+    }
+
+    [Fact]
+    public void FenetreAutour_Chevauchante_NeCassePasAuJourDeLAn()
+    {
+        // Le piège : une fenêtre novembre → mars appartient à deux années civiles. En
+        // n'essayant que l'ancrage de l'année en cours, le 15 janvier tomberait « hors
+        // saison » alors qu'on est en plein dedans.
+        var spec = AvecFenetre(new SpecRecurrence(), 11, 1, 3, 31);
+
+        var janvier = Assert.NotNull(spec.FenetreAutour(new DateOnly(2027, 1, 15)));
+        Assert.Equal(new DateOnly(2026, 11, 1), janvier.Debut);
+        Assert.Equal(new DateOnly(2027, 3, 31), janvier.Fin);
+
+        var septembre = Assert.NotNull(spec.FenetreAutour(new DateOnly(2026, 9, 20)));
+        Assert.Equal(new DateOnly(2026, 11, 1), septembre.Debut);
+        Assert.Equal(new DateOnly(2027, 3, 31), septembre.Fin);
+    }
+
+    [Fact]
+    public void FenetreAutour_Borne_LeDernierJourDUnMoisCourt()
+    {
+        // Le 31 février n'existe pas : la borne se clampe au dernier jour, comme
+        // JourDuMois le fait déjà.
+        var spec = AvecFenetre(new SpecRecurrence(), 1, 15, 2, 31);
+
+        var fenetre = Assert.NotNull(spec.FenetreAutour(new DateOnly(2027, 1, 20)));
+
+        Assert.Equal(new DateOnly(2027, 2, 28), fenetre.Fin);
+    }
+
+    [Fact]
+    public void FenetreAutour_SansFenetre_NeRendRien()
+    {
+        Assert.Null(new SpecRecurrence().FenetreAutour(new DateOnly(2026, 9, 20)));
+    }
+
     [Fact]
     public void Fenetre_DUnSeulJour_EstValide()
     {
