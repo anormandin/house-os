@@ -224,6 +224,18 @@ Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
   d'humeur borné à deux lignes, icône et température de la météo à 150 px (elles
   étaient à 190), zones du côté droit en `py-7` — 1006 px, avec 22 px de marge.
 
+## Suite envisagée (non planifiée, as of 2026-09-20)
+
+Trois tours de maquettes ont retenu une refonte éditoriale de la vue : une broadsheet à
+densité variable, alimentée par un fonds de tiroir de faits (le ciel, le climat, la
+maison, le calendrier, la ville, le hasard) et écrite par un éditorialiste LLM. Matériau
+complet, règles et faisabilité des sources municipales : [[Éditorialiste De L'Écran]].
+Rien n'est implémenté ; « Contenu de l'écran » ci-dessus décrit toujours le code.
+
+Deux points de la section « Hors périmètre » seraient à rouvrir par décision si cette
+suite est retenue : *plusieurs mises en page* (la règle de bascule en suppose au moins
+deux) et l'ajout d'une source externe municipale.
+
 ## Historique
 
 - [[Plan 2026-09-03 Affichage E-ink V1]] · [[Recap Affichage E-ink]] (étape 5 —
