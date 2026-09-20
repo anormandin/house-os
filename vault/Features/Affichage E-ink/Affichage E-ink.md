@@ -224,17 +224,28 @@ Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
   d'humeur borné à deux lignes, icône et température de la météo à 150 px (elles
   étaient à 190), zones du côté droit en `py-7` — 1006 px, avec 22 px de marge.
 
-## Suite envisagée (non planifiée, as of 2026-09-20)
+## Suite planifiée (2026-09-20, non exécutée)
 
-Trois tours de maquettes ont retenu une refonte éditoriale de la vue : une broadsheet à
-densité variable, alimentée par un fonds de tiroir de faits (le ciel, le climat, la
-maison, le calendrier, la ville, le hasard) et écrite par un éditorialiste LLM. Matériau
-complet, règles et faisabilité des sources municipales : [[Éditorialiste De L'Écran]].
-Rien n'est implémenté ; « Contenu de l'écran » ci-dessus décrit toujours le code.
+La refonte éditoriale retenue aux maquettes est **planifiée** depuis le 2026-09-20 et
+vit dans deux features distinctes : [[Fonds De Tiroir]] (les faits — le ciel, le climat,
+la maison, le calendrier, la ville, le hasard — et leur score) et
+[[Journal De La Maison]] (la broadsheet à densité variable et l'éditorialiste LLM).
+Matériau d'origine : [[Éditorialiste De L'Écran]]. Plan d'exécution :
+[[Plan 2026-09-20 Journal Éditorial]].
 
-Deux points de la section « Hors périmètre » seraient à rouvrir par décision si cette
-suite est retenue : *plusieurs mises en page* (la règle de bascule en suppose au moins
-deux) et l'ajout d'une source externe municipale.
+Cette note reste la spec de **l'appareil** : protocole TRMNL, cadence, pile, interaction
+physique, capture Chromium, registre des appareils. Rien de tout cela ne change. La
+section « Contenu de l'écran » ci-dessus décrit **toujours le code** ; elle sera
+remplacée par un pointeur vers [[Journal De La Maison]] quand le plan sera exécuté.
+
+Les deux points que la suite semblait devoir rouvrir ont été tranchés sans supersession :
+
+- **Plusieurs mises en page** reste hors périmètre —
+  [[D-2026-09-20 Une Seule Mise En Page À Rangs]] retient une grille unique dont le rang
+  est une fonction, pas un second gabarit.
+- **La source municipale** n'entre pas ici —
+  [[D-2026-09-20 Sources Municipales Séparées Par Solidité]] la renvoie à
+  [[Flux Externes]] (ICS pour les collectes, flux poussé pour les événements).
 
 ## Historique
 

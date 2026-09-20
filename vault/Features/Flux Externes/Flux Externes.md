@@ -58,12 +58,25 @@ que [[Météo]].
 - Scrapers spécifiques par municipalité (patron hacs_waste_collection_schedule) —
   v1 = ICS par URL seulement.
 
+## Suite planifiée (2026-09-20, non exécutée)
+
+[[D-2026-09-20 Flux Externe Poussé]] ajoute une **source poussée** : `Url` devient
+nullable et un endpoint authentifié remplace les événements d'un flux en transaction,
+sous le même contrat que le rafraîchissement ICS. Le gratteur vit hors dépôt
+([[D-2026-09-20 Sources Municipales Séparées Par Solidité]]) — la ligne « scrapers
+spécifiques par municipalité » du hors périmètre ci-dessus **reste vraie**.
+
+Piège identifié à la planification : le rafraîchissement de 6 h doit **ignorer** les flux
+sans URL, sinon il les vide. Plan : [[Plan 2026-09-20 Journal Éditorial]], étape 6.
+
 ## Décisions
 
 - [[D-2026-08-24 Flux ICS Dans L'app Affichage Seul]] — gestion in-app,
   affichage Aujourd'hui + Cette semaine, aucune tâche générée.
 - [[D-2026-08-24 Tables Flux Externes]] — tables normalisées, cadence 6 h,
   fenêtre 60 jours, validation par téléchargement à la création.
+- [[D-2026-09-20 Flux Externe Poussé]] — source poussée plutôt qu'une table de faits
+  séparée (planifiée, non exécutée).
 
 ## Ancres de code
 

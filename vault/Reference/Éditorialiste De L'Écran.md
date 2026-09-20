@@ -1,7 +1,7 @@
 ---
 type: reference
 last-verified: 2026-09-20
-verified-against: 3b91507
+verified-against: eb62d0e
 tags: [iot]
 ---
 
@@ -21,6 +21,13 @@ variable, le fonds de tiroir et la règle de bascule, rendus). Index :
 > [!warning] Rien de ceci n'est implémenté (as of 2026-09-20).
 > La vue `/ecran` en prod est encore la liste + zones décrite dans [[Affichage E-ink]].
 > Cette note est le matériau d'une planification, pas un état du code.
+
+> [!note] Planifié le 2026-09-20.
+> Ce matériau a été tranché en neuf décisions et découpé en deux features :
+> [[Fonds De Tiroir]] (les faits et leur score) et [[Journal De La Maison]] (la mise en
+> page et l'éditorialiste). Le plan d'exécution est
+> [[Plan 2026-09-20 Journal Éditorial]]. Cette note reste le **matériau** : quand une
+> règle d'ici et une spec de feature se contredisent, la spec a raison.
 
 ## La forme retenue
 
@@ -126,16 +133,29 @@ la Colline tombe le **jeudi 8**, deux jours après l'emménagement.
 
 ## Ce qui manque au modèle
 
-- Une **catégorie ou étiquette** sur la tâche, pour grouper les journées chargées
-  (« Gouvernements / Argent / Le reste »). Sans elle, 14 tâches redeviennent 14 lignes.
-- Les **fenêtres saisonnières** exposées comme donnée lisible (le moteur les a déjà :
-  plage mois-jour).
-- Une table de **jours fériés** québécois.
-- Un contrat de **source municipale** (collectes, événements, avis) comme flux externe.
-- Des **éphémérides** calculées et des normales climatiques (aucune dépendance réseau).
+Tranché le 2026-09-20 — ce qui suit dit maintenant ce qui a été décidé, pas ce qui reste
+ouvert :
+
+- Une **catégorie ou étiquette** sur la tâche : **refusée**
+  ([[D-2026-09-20 Regroupement Sans Catégorie De Tâche]]). Le regroupement se fait sur la
+  zone, et l'éditorialiste nomme le paquet qui n'en a pas.
+- Les **fenêtres saisonnières** exposées comme donnée lisible : retenues, famille « le
+  calendrier » de [[Fonds De Tiroir]].
+- Une table de **jours fériés** québécois : retenue, en données de configuration et non
+  en dur ([[Distribution]]).
+- Un contrat de **source municipale** : **pas dans le dépôt**
+  ([[D-2026-09-20 Sources Municipales Séparées Par Solidité]]) — ICS pour les collectes,
+  flux poussé pour les événements ([[D-2026-09-20 Flux Externe Poussé]]).
+- Des **éphémérides** calculées : formules NOAA écrites à la main, aucune dépendance. Les
+  normales climatiques viennent de l'archive Open-Meteo
+  ([[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]]), pas de constantes
+  québécoises.
 
 ## Notes liées
 
+- [[Fonds De Tiroir]] — la feature qui produit et classe les faits.
+- [[Journal De La Maison]] — la feature qui les publie.
+- [[Plan 2026-09-20 Journal Éditorial]] — le plan d'exécution commun.
 - [[Affichage E-ink]] — la spec vivante de la vue actuelle (état du code).
 - [[Affichage Mural Et E-ink]] — la grammaire 1-bit, inchangée.
 - [[Titre D'humeur]] — la couche LLM dont l'éditorialiste est l'extension.

@@ -51,7 +51,8 @@ Recherche initiale : `docs/research/` (3 rapports, 2026-08-23).
 - [[Architecture]] — stack, structure du monorepo, feuille de route par phases.
 - [[Distribution]] — dépôt public : contrat d'installation (`.env`), contribution, CI.
 - [[Éditorialiste De L'Écran]] — la direction retenue pour l'écran mural (2026-09-20) :
-  fonds de tiroir, règle de bascule, sources municipales. Matériau de planification.
+  fonds de tiroir, règle de bascule, sources municipales. Matériau, planifié le
+  2026-09-20 en [[Fonds De Tiroir]] + [[Journal De La Maison]].
 - [[Banque D'idées]] — sac d'idées de features tiré du balayage du marché
   (110 apps notées, catalogue par catégorie, leçons de monétisation).
 
