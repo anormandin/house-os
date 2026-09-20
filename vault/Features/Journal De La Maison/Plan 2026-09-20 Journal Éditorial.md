@@ -303,6 +303,16 @@ chiffres sortis correspondent au réel.
       Aucun test unitaire ne pouvait le voir (le fonds se teste sans base). Corrigé par
       `AsNoTracking`, qui est de toute façon juste : la composition ne modifie rien.
 
+> [!note] Laissé en suspens à l'étape 3, à trancher par Alain.
+> Le texte long d'un fait qui **cite un titre saisi par le foyer** se fait tronquer au
+> mur quand le titre est long : « La première le 28 septembre : Homelab — plan de
+> migratio… ». C'est le clamp à deux lignes du widget, le même que le verdict météo
+> subit depuis l'étape 1 — donc un comportement déjà livré, pas une régression de
+> l'étape 3. Mais c'est « rapetisser » là où la règle du chantier est « élaguer » :
+> le fait pourrait couper le titre lui-même à une longueur lisible, ou ne pas le citer
+> du tout. Touche `calendrier.ca-s-en-vient`, `maison.seances`, `maison.an-dernier` et
+> `calendrier.saison`.
+
 #### Ce que la revue de code a corrigé, à l'étape 3
 
 - [x] **La rareté était une envie, pas un compte de jours.** `maison.doyen`,
@@ -484,10 +494,13 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
   recréer ou à ignorer selon le besoin.
+- **Où en est la prod** (as of 2026-09-20) : le LXC 105 tourne **l'étape 1**
+  (commit `8d7b8cf`). Les étapes **2 et 3 sont commitées sur `main` mais pas
+  déployées** — elles partiront ensemble au prochain release.
 - **Au release, `MAISON_LIEU` doit être posé dans le `.env` de prod** (étape 2 : nouvelle
   clé, `Affichage:Lieu`). Sans elle l'oreille centrale du bloc-titre reste vide — ce
   n'est pas une panne, mais ce n'est pas le rendu voulu. Le dev le lit depuis
-  `appsettings.local.json`.
+  `appsettings.local.json`. C'est le seul geste manuel que le release demande.
 - Validateur du vault : `python3 ~/.claude/skills/vault/scripts/validate-vault.py vault`.
 - Dépôt public : `grep -rni "villescjc\|jacques-cartier\|pdftotext\|colline" server/ web/`
   ne retourne rien ; tout ce qui est propre au foyer est dans le `.env` ou hors dépôt.
