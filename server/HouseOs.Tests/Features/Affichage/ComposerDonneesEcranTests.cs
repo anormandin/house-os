@@ -27,9 +27,12 @@ public class ComposerDonneesEcranTests
         PhraseDuJour? phrase = null,
         MeteoDto? meteo = null,
         IReadOnlyList<EvenementExterneDto>? evenements = null,
-        IReadOnlyList<CompteARebours>? comptes = null) =>
+        IReadOnlyList<CompteARebours>? comptes = null,
+        string? lieu = null,
+        DateOnly? premiereParution = null) =>
         ComposerDonneesEcran.Composer(
-            Maintenant, ouvertes ?? [], faites ?? [], phrase, meteo, evenements ?? [], comptes ?? []);
+            Maintenant, ouvertes ?? [], faites ?? [], phrase, meteo, evenements ?? [], comptes ?? [],
+            lieu, premiereParution);
 
     [Fact]
     public void Les_ouvertes_precedent_les_faites_et_le_retard_est_marque()
@@ -176,5 +179,33 @@ public class ComposerDonneesEcranTests
         Assert.Equal("On avance.", Composer(phrase: phrase).Phrase!.Titre);
         Assert.Null(Composer().Phrase);
         Assert.Equal(Aujourdhui, Composer().Date);
+    }
+
+    [Fact]
+    public void Le_lieu_de_publication_vient_de_la_configuration_et_peut_manquer()
+    {
+        // Le dépôt est public : rien de propre à un foyer n'a de défaut dans le code.
+        Assert.Null(Composer().Lieu);
+        Assert.Null(Composer(lieu: "   ").Lieu);
+        Assert.Equal("Rue Fraser, Québec", Composer(lieu: "  Rue Fraser, Québec  ").Lieu);
+    }
+
+    [Fact]
+    public void Le_numero_d_edition_compte_les_jours_depuis_la_premiere_entree_du_journal()
+    {
+        // Le jour même de la première entrée, c'est l'édition numéro 1.
+        Assert.Equal(1, ComposerDonneesEcran.NumeroEdition(Aujourdhui, Aujourdhui));
+        Assert.Equal(461, ComposerDonneesEcran.NumeroEdition(Aujourdhui, Aujourdhui.AddDays(-460)));
+        Assert.Equal(461, Composer(premiereParution: Aujourdhui.AddDays(-460)).NumeroEdition);
+    }
+
+    [Fact]
+    public void Sans_journal_ou_avec_un_journal_du_futur_il_n_y_a_pas_de_numero()
+    {
+        // Installation neuve : pas de numéro plutôt qu'un « N° 1 » qui vieillirait mal.
+        Assert.Null(Composer().NumeroEdition);
+        // Une entrée datée de demain (horloge de travers, import) ne sort pas un
+        // numéro nul ou négatif.
+        Assert.Null(ComposerDonneesEcran.NumeroEdition(Aujourdhui, Aujourdhui.AddDays(1)));
     }
 }

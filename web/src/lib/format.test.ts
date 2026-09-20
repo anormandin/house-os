@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { dateLisible, dodosAvant, jourCourt } from '@/lib/format'
+import { dateJournal, dateLisible, dodosAvant, jourCourt } from '@/lib/format'
 
 afterEach(() => vi.useRealTimers())
 
@@ -30,4 +30,11 @@ test('dodosAvant est négatif pour une date passée, jamais NaN pour une date va
 
 test('jourCourt rend le jour sans point final', () => {
   expect(jourCourt('2026-08-24')).not.toContain('.')
+})
+
+test("la dateline du journal porte l'année, contrairement au reste de l'app", () => {
+  // L'écran mural est un objet dans une pièce : rien autour ne dit quelle année
+  // on est, alors que l'app est ouverte dans un navigateur daté.
+  expect(dateJournal(new Date(2026, 10, 8, 12))).toBe('dimanche 8 novembre 2026')
+  expect(dateJournal(new Date(2026, 8, 20, 12))).toBe('dimanche 20 septembre 2026')
 })

@@ -89,6 +89,25 @@ Ce que les six aperçus ont révélé et qui n'était pas prévu :
       Supprimée quand il n'y a ni assigné ni complétion.
 - [x] Compression de rangée conditionnelle (`rangeeSerree`) : on ne tronque plus des
       titres pour de la place qu'on n'utilise pas.
+- [x] **Le bloc-titre n'était pas celui des maquettes** (relevé par Alain au rendu,
+      2026-09-20). Trois écarts, dont deux de fond. La forme : les **oreilles** (une
+      seule ligne à gauche au lieu de trois — édition, lieu, numéro), le **nom** en
+      bas-de-casse à 88 px et espacé au lieu de capitales à 126 px resserrées, la
+      **dateline** en 60 px sans centre. Le fond : le **lieu de publication** est propre
+      au foyer et n'existait nulle part (`Affichage:Lieu` / `MAISON_LIEU`, vide par
+      défaut — [[Distribution]]) ; et l'**état du jour** (« Rien au programme »)
+      appartient à la dateline, pas au surtitre de la manchette. Dans les six maquettes,
+      le surtitre du corps est une ligne **éditoriale** (« Le condo est vendu depuis le
+      1er septembre ») : le mettre au même endroit que le compte du jour effaçait la
+      place que l'étape 7 doit remplir. `etatDuJour` (dateline) et `surtitreManchette`
+      (plancher seulement) sont maintenant deux choses distinctes.
+- [x] **Numéro d'édition** : une par jour depuis la première entrée du journal de
+      complétion (`ComposerDonneesEcran.NumeroEdition`), nul sur une installation neuve.
+      À l'étape 7 le compte d'éditions matérialisées le remplace sans rien changer au
+      rendu. Choix d'Alain, 2026-09-20.
+- [x] **La météo du bloc-titre se dit en mots** (`meteoEnMots`, `libelleMeteo`) au lieu
+      d'une icône de 52 px : à trois mètres et en 1-bit, un mot se lit plus vite qu'un
+      pictogramme. Le maximum ne sort que s'il reste à venir.
 
 > [!warning] Trouvé à l'étape 1, non résolu : « échéance ferme ».
 > Le plancher devait couvrir trois cas. Deux sont calculables (retard > 3 jours,
@@ -97,6 +116,12 @@ Ce que les six aperçus ont révélé et qui n'était pas prévu :
 > `Occurrence` ne distinguent pas une échéance négociable d'une date imposée du
 > dehors. Livré sans, et à trancher par une décision avant l'étape 7, où
 > l'éditorialiste devra savoir ce qu'il n'a pas le droit de reléguer.
+
+> [!note] Tranché le 2026-09-20, avant l'étape 2.
+> [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] : un booléen `EcheanceFerme`
+> sur `Tache`, coché à la main, porté jusqu'au DTO de l'écran — aucune déduction. Bâti
+> à l'**étape 7**, dans la même migration que l'entité d'édition. Le plancher tourne
+> donc sur deux cas jusque-là, et c'est voulu.
 
 **Rendu vérifié** (aperçus à 1872×1404, `apercu.png`) : rang « événement » (9 dues,
 plancher à 20 jours de retard), rang « chronique » (0 due, 9 faites), rang « sommaire »

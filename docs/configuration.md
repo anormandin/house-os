@@ -25,6 +25,7 @@ les clés dans `appsettings.local.json`.
 | `JOURNALISATION_SEQ_CLE` | non | — | `Journalisation:Seq:CleApi` | ingestion anonyme si le Seq l'accepte |
 | `COMPOSE_PROFILES` | non | — | — | `funnel` démarre le sidecar Tailscale |
 | `TS_AUTHKEY` | non | — | — | requis si `funnel` |
+| `MAISON_LIEU` | non | vide | `Affichage:Lieu` | le bloc-titre de l'écran mural n'imprime pas de lieu |
 | `ICAL_URL_PUBLIQUE_BASE` | non | vide | `Ical:UrlPubliqueBase` | l'UI n'affiche que l'URL interne |
 | `COURRIEL_R2_ENDPOINT`, `COURRIEL_R2_BUCKET`, `COURRIEL_R2_CLE_ACCES`, `COURRIEL_R2_CLE_SECRETE` | non | — | `Courriel:R2:*` | relevé des courriels désactivé (il faut les quatre) |
 

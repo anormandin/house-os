@@ -244,3 +244,37 @@ export function resteAAnnoncer(
 export function surtitreEdition(renduLe: string): string {
   return new Date(renduLe).getHours() < 12 ? 'Édition du matin' : 'Édition du soir'
 }
+
+export type EtatDuJour = { texte: string; urgent: boolean }
+
+/**
+ * Ce que la dateline dit du jour, entre la date et la météo — la place qu'un
+ * quotidien donne à sa ligne de sous-titre (maquettes, `une-editorialiste.html`).
+ * C'est un état, pas une manchette : la manchette porte l'éditorial, la dateline
+ * porte le compte.
+ *
+ * Le plancher y met une mention inversée. Elle ne peut jamais coexister avec la
+ * bande du sommaire : dès que le plancher se déclenche, le rang devient
+ * « événement » (voir `grilleDuJour`), donc la règle d'une seule bande inversée
+ * tient (vault : Affichage Mural Et E-ink).
+ */
+export function etatDuJour(
+  aPlancher: Plancher | null,
+  ouvertes: number,
+  faites: number,
+): EtatDuJour {
+  if (aPlancher !== null) {
+    return {
+      texte: aPlancher.raison === 'compte' ? "C'est aujourd'hui" : 'En retard',
+      urgent: true,
+    }
+  }
+  if (ouvertes === 0) {
+    const regle = `Tout est fait — ${faites} réglée${faites > 1 ? 's' : ''}`
+    return { texte: faites > 0 ? regle : 'Rien au programme', urgent: false }
+  }
+  if (ouvertes === 1) {
+    return { texte: 'Une seule chose au programme', urgent: false }
+  }
+  return { texte: `${ouvertes} choses au programme`, urgent: false }
+}

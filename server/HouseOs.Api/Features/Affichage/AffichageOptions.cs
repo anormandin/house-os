@@ -32,6 +32,15 @@ public sealed class AffichageOptions
     /// </summary>
     public int PlafondSecondes { get; set; } = 3600;
 
+    /// <summary>
+    /// Le lieu de publication, dans l'oreille centrale du bloc-titre du journal,
+    /// comme le nom de ville d'un quotidien — « 12 rue des Lilas », « Rue Untel,
+    /// Trois-Rivières ». Propre au foyer, donc vide par défaut et jamais dans le code
+    /// (vault : Distribution) ; le bloc-titre s'équilibre tout seul quand la valeur
+    /// manque. `.env` : MAISON_LIEU.
+    /// </summary>
+    public string Lieu { get; set; } = "";
+
     /// <summary>Base des URL d'image renvoyées à l'appareil ; vide = déduite de la requête.</summary>
     public string? UrlBase { get; set; }
 }

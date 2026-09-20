@@ -1,4 +1,5 @@
 using HouseOs.Api.Infrastructure;
+using Microsoft.Extensions.Options;
 
 namespace HouseOs.Api.Features.Affichage;
 
@@ -16,13 +17,14 @@ public static class AffichageEndpoints
         // Anonyme pour la policy globale, mais gardé à la main : le cookie d'un humain
         // (aperçu dans le navigateur) ou le jeton du navigateur de rendu du serveur.
         app.MapGet("/api/affichage/donnees", async (
-            HttpContext contexte, JetonRendu jeton, HouseOsDbContext db) =>
+            HttpContext contexte, JetonRendu jeton, HouseOsDbContext db,
+            IOptions<AffichageOptions> options) =>
         {
             if (jeton.Autorise(contexte) == false)
             {
                 return Results.Unauthorized();
             }
-            return Results.Ok(await ComposerDonneesEcran.LireAsync(db, DateTime.Now));
+            return Results.Ok(await ComposerDonneesEcran.LireAsync(db, DateTime.Now, options.Value.Lieu));
         }).AllowAnonymous();
 
         // L'outil de conception avant la livraison, de diagnostic ensuite : le PNG

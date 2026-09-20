@@ -16,6 +16,7 @@ import {
   repartitionColonnes,
   resteAAnnoncer,
   surtitreEdition,
+  etatDuJour,
 } from '@/lib/ecran-vues'
 
 afterEach(() => vi.useRealTimers())
@@ -178,4 +179,30 @@ test('« + N autres » ne compte que ce qui reste à faire', () => {
   expect(resteAAnnoncer(lignes, lignes.slice(0, 1), 0)).toBe(1)
   // Et l'élagage du serveur s'ajoute (il élague les ouvertes en dernier).
   expect(resteAAnnoncer(lignes, lignes.slice(0, 2), 3)).toBe(3)
+})
+
+test('la dateline dit le compte du jour, et le plancher le dit en inversé', () => {
+  expect(etatDuJour(null, 0, 0)).toEqual({ texte: 'Rien au programme', urgent: false })
+  // Une journée vide qui ne l'était pas ce matin n'est pas « rien au programme ».
+  expect(etatDuJour(null, 0, 1)).toEqual({ texte: 'Tout est fait — 1 réglée', urgent: false })
+  expect(etatDuJour(null, 0, 9)).toEqual({ texte: 'Tout est fait — 9 réglées', urgent: false })
+  expect(etatDuJour(null, 1, 0)).toEqual({ texte: 'Une seule chose au programme', urgent: false })
+  expect(etatDuJour(null, 14, 9)).toEqual({ texte: '14 choses au programme', urgent: false })
+  // Le plancher prend la place, quel que soit le compte.
+  expect(etatDuJour({ raison: 'compte', titre: 'Le camion' }, 14, 0)).toEqual({
+    texte: "C'est aujourd'hui",
+    urgent: true,
+  })
+  expect(etatDuJour({ raison: 'retard', titre: 'Remettre les clés' }, 3, 0)).toEqual({
+    texte: 'En retard',
+    urgent: true,
+  })
+})
+
+test("l'état urgent et la bande du sommaire ne peuvent jamais sortir ensemble", () => {
+  // La règle d'une seule bande inversée tient parce que le plancher force le rang
+  // « événement » : le sommaire, qui a sa propre bande, ne peut pas coexister.
+  expect(grilleDuJour(14, true).rang).toBe('evenement')
+  expect(etatDuJour({ raison: 'compte', titre: 'Le camion' }, 14, 0).urgent).toBe(true)
+  expect(etatDuJour(null, 14, 0).urgent).toBe(false)
 })

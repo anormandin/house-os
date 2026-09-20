@@ -1,4 +1,4 @@
-import { createElement, useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
@@ -6,6 +6,7 @@ import { api, type DonneesEcran, type LigneEcran } from '@/lib/api'
 import {
   capaciteListe,
   dimensionsEcran,
+  etatDuJour,
   grilleDuJour,
   initiales,
   manchetteDuJour,
@@ -17,12 +18,13 @@ import {
   repartitionColonnes,
   resteAAnnoncer,
   surtitreEdition,
+  type EtatDuJour,
   type Grille,
   type Plancher,
 } from '@/lib/ecran-vues'
-import { dateLongue, dodosAvant, heureQuebec } from '@/lib/format'
+import { dateJournal, dodosAvant, heureQuebec } from '@/lib/format'
 import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
-import { iconeMeteo, pastillesMeteo } from '@/lib/meteo-vues'
+import { meteoEnMots, pastillesMeteo } from '@/lib/meteo-vues'
 import { cn } from '@/lib/utils'
 
 /*
@@ -141,7 +143,12 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
 
   return (
     <div className="flex h-full flex-col">
-      <BlocTitre donnees={donnees} date={date} surtitre={surtitreEdition(donnees.renduLe)} />
+      <BlocTitre
+        donnees={donnees}
+        date={date}
+        surtitre={surtitreEdition(donnees.renduLe)}
+        etat={etatDuJour(aPlancher, donnees.ouvertes, donnees.faites)}
+      />
 
       {grille.rang === 'sommaire' ? (
         // La seule bande inversée du journal, et elle ne sort qu'au sommaire :
@@ -153,13 +160,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
           </span>
         </div>
       ) : (
-        <Manchette
-          grille={grille}
-          aPlancher={aPlancher}
-          donnees={donnees}
-          phrase={phrase}
-          pleinePage={corpsVide}
-        />
+        <Manchette grille={grille} aPlancher={aPlancher} phrase={phrase} pleinePage={corpsVide} />
       )}
 
       {!corpsVide && (
@@ -229,37 +230,64 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
   )
 }
 
-/* Le bloc-titre du journal : surtitre, nom, date, et la météo du moment en
-   sous-ligne — la seule chose qu'on veut lire sans s'arrêter. */
+/*
+ * Le bloc-titre du journal, dans l'ordre d'un quotidien (maquettes,
+ * `design/maquettes/une-editorialiste.html`) : les oreilles (l'édition, le lieu de
+ * publication, le numéro), le nom en capitales entre deux filets, puis la dateline
+ * — date, état du jour, temps qu'il fait. Les nombres sont ceux des maquettes, qui
+ * sont dans le même espace que cette page (1872 × 1404).
+ *
+ * Le lieu et le numéro peuvent manquer (`MAISON_LIEU` vide, journal vierge) : les
+ * oreilles se composent alors avec ce qui reste, sans trou.
+ */
 function BlocTitre({
   donnees,
   date,
   surtitre,
+  etat,
 }: {
   donnees: DonneesEcran
   date: Date
   surtitre: string
+  etat: EtatDuJour
 }) {
+  const oreilles: ReactNode[] = [surtitre]
+  if (donnees.lieu !== null) oreilles.push(donnees.lieu)
+  if (donnees.numeroEdition !== null) {
+    oreilles.push(
+      <>
+        N<sup className="text-[0.62em]">o</sup> {donnees.numeroEdition}
+      </>,
+    )
+  }
+
   return (
-    <header className="shrink-0 px-16 pt-8">
-      <div className="text-[28px] font-extrabold uppercase tracking-[0.18em]">{surtitre}</div>
-      <div className="mt-2 border-y-[3px] border-black py-2 text-center font-titre text-[88px] font-bold leading-none tracking-[0.06em]">
-        La maison
-      </div>
-      <div className="flex items-baseline justify-between gap-12 border-b-[6px] border-black py-3">
-        <span className="font-titre text-[60px] font-bold leading-none">{dateLongue(date)}</span>
-        {donnees.meteo !== null && (
-          <span className="flex shrink-0 items-center gap-4 text-[40px] font-bold">
-            {createElement(iconeMeteo(donnees.meteo.codeMeteo), {
-              className: 'size-[52px] shrink-0',
-              strokeWidth: 2.5,
-            })}
-            {Math.round(donnees.meteo.temperatureC)} °C · de {Math.round(donnees.meteo.tempMin)} à{' '}
-            {Math.round(donnees.meteo.tempMax)}
-            {donnees.meteo.probabilitePrecipitation >= 30 &&
-              ` · ${donnees.meteo.probabilitePrecipitation} % de pluie`}
+    <header className="shrink-0 border-b-[6px] border-black px-16 pt-8">
+      <div className="flex items-end justify-between gap-10 pb-2 text-[24px] font-extrabold uppercase tracking-[0.18em]">
+        {oreilles.map((oreille, i) => (
+          <span key={i} className="truncate">
+            {oreille}
           </span>
-        )}
+        ))}
+      </div>
+      <div className="border-y-[3px] border-black pb-3 pt-1.5 text-center">
+        <span className="block font-titre text-[126px] font-black uppercase leading-[0.95] tracking-[-0.02em]">
+          La maison
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-10 pb-[11px] pt-[9px] text-[28px] font-bold">
+        <span className="shrink-0">{dateJournal(date)}</span>
+        <span
+          className={cn(
+            'truncate',
+            etat.urgent
+              ? 'bg-black px-5 py-1 font-extrabold uppercase tracking-[0.12em] text-white'
+              : 'tracking-[0.05em]',
+          )}
+        >
+          {etat.texte}
+        </span>
+        <span className="shrink-0">{donnees.meteo === null ? '' : meteoEnMots(donnees.meteo)}</span>
       </div>
     </header>
   )
@@ -270,17 +298,16 @@ function BlocTitre({
 function Manchette({
   grille,
   aPlancher,
-  donnees,
   phrase,
   pleinePage,
 }: {
   grille: Grille
   aPlancher: Plancher | null
-  donnees: DonneesEcran
   phrase: { titre: string; sousTitre: string }
   pleinePage: boolean
 }) {
   const titre = aPlancher === null ? phrase.titre : aPlancher.titre
+  const surtitre = surtitreManchette(aPlancher)
   const { taille, lettrine } = manchetteDuJour(titre, grille)
 
   return (
@@ -290,9 +317,9 @@ function Manchette({
         pleinePage && 'min-h-0 flex-1',
       )}
     >
-      <div className="text-[30px] font-extrabold uppercase tracking-[0.14em]">
-        {surtitreManchette(grille, aPlancher, donnees)}
-      </div>
+      {surtitre !== null && (
+        <div className="text-[30px] font-extrabold uppercase tracking-[0.14em]">{surtitre}</div>
+      )}
       <h1 className="mt-2 font-titre font-bold leading-[1.02]" style={{ fontSize: taille }}>
         {lettrine ? (
           <>
@@ -316,19 +343,20 @@ function Manchette({
   )
 }
 
-/** Ce que la manchette annonce, en gabarit — l'éditorialiste l'écrira (étape 7). */
-function surtitreManchette(grille: Grille, aPlancher: Plancher | null, donnees: DonneesEcran): string {
-  if (aPlancher !== null) {
-    return aPlancher.raison === 'compte'
-      ? 'Le compte à rebours est à zéro'
-      : 'En retard depuis plus de trois jours'
+/**
+ * Le surtitre de la manchette. Dans les maquettes c'est une ligne éditoriale
+ * (« Le condo est vendu depuis le 1er septembre »), pas le compte du jour — celui-ci
+ * vit dans la dateline du bloc-titre (`etatDuJour`). Tant que l'éditorialiste n'écrit
+ * pas (étape 7), la seule chose vraie qu'on ait à mettre là est la raison du plancher ;
+ * sinon la place reste vide plutôt que de répéter la dateline mot pour mot.
+ */
+function surtitreManchette(aPlancher: Plancher | null): string | null {
+  if (aPlancher === null) {
+    return null
   }
-  if (grille.rang === 'chronique') {
-    return donnees.faites > 0
-      ? `Tout est fait — ${donnees.faites} chose${donnees.faites > 1 ? 's' : ''} réglée${donnees.faites > 1 ? 's' : ''}`
-      : 'Rien au programme'
-  }
-  return donnees.ouvertes === 1 ? 'Une seule chose au programme' : `${donnees.ouvertes} choses au programme`
+  return aPlancher.raison === 'compte'
+    ? 'Le compte à rebours est à zéro'
+    : 'En retard depuis plus de trois jours'
 }
 
 type WidgetEcran = { cle: string; etiquette: string; valeur: ReactNode; detail?: ReactNode }

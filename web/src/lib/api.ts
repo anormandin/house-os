@@ -411,6 +411,10 @@ export type DonneesEcran = {
   evenementsDuJour: EvenementExterne[]
   prochaineCollecte: EvenementExterne | null
   prochainCompte: { titre: string; dateCible: string } | null
+  /** Le lieu de publication du bloc-titre (`MAISON_LIEU`) ; null = rien à imprimer. */
+  lieu: string | null
+  /** Une édition par jour depuis la première entrée du journal ; null si vide. */
+  numeroEdition: number | null
 }
 
 export type PhraseDuJour = {

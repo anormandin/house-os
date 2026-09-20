@@ -5,6 +5,20 @@ export function dateLongue(date = new Date()): string {
   return date.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
+/**
+ * La dateline du journal mural : le jour, la date et l'année, comme un quotidien.
+ * L'année ne sert à rien dans l'app (on sait quel jour on est) et sert au mur, où
+ * l'écran est un objet qu'on regarde de loin.
+ */
+export function dateJournal(date: Date): string {
+  return date.toLocaleDateString('fr-CA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
 export function jourCourt(dateIso: string): string {
   const date = new Date(`${dateIso}T00:00:00`)
   return date.toLocaleDateString('fr-CA', { weekday: 'short' }).replace('.', '')

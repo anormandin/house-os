@@ -46,7 +46,9 @@ public record DonneesEcran(
     MeteoEcranDto? Meteo,
     List<EvenementExterneDto> EvenementsDuJour,
     EvenementExterneDto? ProchaineCollecte,
-    CompteEcranDto? ProchainCompte);
+    CompteEcranDto? ProchainCompte,
+    string? Lieu,
+    int? NumeroEdition);
 
 public static class ComposerDonneesEcran
 {
@@ -61,7 +63,8 @@ public static class ComposerDonneesEcran
     private const int FenetreJours = 60;
 
     /// <summary>Lit tout ce qu'il faut puis compose. Une seule lecture d'horloge.</summary>
-    public static async Task<DonneesEcran> LireAsync(HouseOsDbContext db, DateTime maintenant)
+    public static async Task<DonneesEcran> LireAsync(
+        HouseOsDbContext db, DateTime maintenant, string? lieu = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
         // Bornes de la journée locale : le serveur vit en heure locale (TZ du
@@ -87,8 +90,31 @@ public static class ComposerDonneesEcran
             .OrderBy(c => c.DateCible)
             .Take(1)
             .ToListAsync();
+        // Le numéro d'édition compte les jours depuis la première chose que la maison
+        // a consignée. Journal vide (une installation neuve) : pas de numéro plutôt
+        // qu'un « N° 1 » qui vieillirait mal.
+        var premiereEntree = await db.Journal
+            .OrderBy(e => e.CompleteeLe)
+            .Select(e => (DateTimeOffset?)e.CompleteeLe)
+            .FirstOrDefaultAsync();
 
-        return Composer(maintenant, ouvertes, faites, phrase, meteo, evenements, comptes);
+        return Composer(
+            maintenant, ouvertes, faites, phrase, meteo, evenements, comptes, lieu,
+            premiereEntree is { } d ? DateOnly.FromDateTime(d.LocalDateTime) : null);
+    }
+
+    /// <summary>
+    /// Le numéro de l'édition : une par jour depuis la première chose consignée dans
+    /// le journal de complétion. Rien avant cette date (une reprise d'un vieux
+    /// journal ne doit pas sortir un numéro négatif), rien sans journal.
+    /// </summary>
+    public static int? NumeroEdition(DateOnly aujourdhui, DateOnly? premiereParution)
+    {
+        if (premiereParution is not { } debut || debut > aujourdhui)
+        {
+            return null;
+        }
+        return aujourdhui.DayNumber - debut.DayNumber + 1;
     }
 
     /// <summary>La composition pure — testée sans base.</summary>
@@ -99,7 +125,9 @@ public static class ComposerDonneesEcran
         PhraseDuJour? phrase,
         MeteoDto? meteo,
         IReadOnlyList<EvenementExterneDto> evenements,
-        IReadOnlyList<CompteARebours> comptes)
+        IReadOnlyList<CompteARebours> comptes,
+        string? lieu = null,
+        DateOnly? premiereParution = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
 
@@ -143,6 +171,8 @@ public static class ComposerDonneesEcran
             evenements.Where(e => e.Date == aujourdhui).ToList(),
             evenements.FirstOrDefault(e => e.Type == nameof(TypeFluxExterne.Collecte) && e.Date >= aujourdhui),
             comptes.Where(c => c.DateCible >= aujourdhui).OrderBy(c => c.DateCible)
-                .Select(c => new CompteEcranDto(c.Titre, c.DateCible)).FirstOrDefault());
+                .Select(c => new CompteEcranDto(c.Titre, c.DateCible)).FirstOrDefault(),
+            string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim(),
+            NumeroEdition(aujourdhui, premiereParution));
     }
 }

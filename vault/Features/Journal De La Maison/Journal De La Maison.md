@@ -61,6 +61,11 @@ livraison payée, date légale) et un **compte à rebours à zéro** ne peuvent 
 relégués sous un widget. Sans ce plancher, le jour où la lune passe devant « remettre
 les clés », l'écran perd sa crédibilité pour de bon.
 
+L'**échéance ferme** est un booléen explicite sur la tâche, coché à la main
+([[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]]) — rien ne se déduit d'une
+récurrence ou d'une date. Il arrive à l'étape 7 du [[Plan 2026-09-20 Journal Éditorial]] ;
+jusque-là le plancher tourne sur ses deux cas calculables.
+
 Le plancher est **réévalué à chaque rendu**, pas seulement à l'écriture de l'édition :
 s'il se déclenche après coup, il redéclenche une édition
 ([[D-2026-09-20 Une Édition Par Jour Matérialisée]]).
@@ -115,6 +120,8 @@ l'heure d'impression, la pile.
   nomme le reste ; aucun changement de schéma sur `Tache`.
 - [[D-2026-09-20 Fonds De Tiroir Séparé Du Journal]] — le journal consomme des faits
   déjà classés.
+- [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] — un booléen sur `Tache`, bâti
+  à l'étape 7 ; le troisième cas du plancher.
 - [[D-2026-09-03 Rendu E-ink Par Chromium Headless]] — la page React capturée, inchangé.
 
 ## Ancres de code

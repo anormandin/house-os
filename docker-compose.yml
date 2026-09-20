@@ -91,6 +91,9 @@ services:
       # convertit pas en int et ferait planter le binder d'options au démarrage.
       Affichage__CadenceJourSecondes: ${ECRAN_CADENCE_SECONDES:-900}
       Affichage__PlafondSecondes: ${ECRAN_PLAFOND_SECONDES:-3600}
+      # Le lieu de publication imprimé dans le bloc-titre du journal mural.
+      # Facultatif : vide, l'oreille centrale reste vide et le titre s'équilibre.
+      Affichage__Lieu: ${MAISON_LIEU:-}
     ports:
       - "${APP_PORT_HOTE:-8080}:8080"
     volumes:
