@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-20
-verified-against: 76810de
+verified-against: 3ef6404
 tags: [iot]
 ---
 
@@ -72,11 +72,34 @@ cookie de session :
   (`Plan 2026-09-03 Affichage E-ink V1`, case restée ouverte). Lever le plafond
   vaudrait ~7 réveils par jour, soit ~10 % du total à 15 min : à faire quand
   quelqu'un veut passer la nuit à observer `dernierContact`, pas avant.
-- Le bouton *Refresh* (dessus de l'appareil) force un réveil et un rendu
-  immédiat : rien à faire côté serveur. Le tactile de l'E1003 est ignoré par le
-  firmware TRMNL (SenseCraft seulement) : toucher l'écran ne fait rien.
+- Le bouton *Refresh* force un réveil et un rendu immédiat : rien à faire côté
+  serveur. Détail des boutons et du tactile : « Interaction physique » ci-dessous.
 - La tension de pile et le RSSI reçus sont des données de l'appareil ; « pile
   faible » comme tâche générée est une suite possible, hors v1.
+
+### Interaction physique (boutons et tactile)
+
+L'écran est en lecture seule par construction. Sous firmware TRMNL 1.8.10 sur
+l'E1003, un seul geste a un effet (relevé 2026-09-20) :
+
+| Geste | Effet |
+| --- | --- |
+| **Refresh** (bouton du dessus, appui simple) | Réveille l'appareil et déclenche un `GET /api/display` immédiat, donc un redessin. La seule interaction vivante. |
+| **Page Up** ou **Page Down** seul | Rien. La notion de playlist n'existe que dans le cloud TRMNL ; en BYOS le serveur sert une vue unique. |
+| **Page Up + Page Down**, 2 s | Portail Wi-Fi (SSID `TRMNL`, `http://4.3.2.1`) : reconfiguration, pas un geste du quotidien. |
+| **Tactile capacitif** | Rien. Le panneau tactile n'est piloté que par le firmware SenseCraft/Seeedash de Seeed ; TRMNL ne l'initialise jamais. |
+| **Interrupteur d'alimentation** (côté) | OFF puis ON = redémarrage. |
+
+Côté serveur non plus, rien n'est branché : la réponse `/api/display` porte
+`special_function: "none"` et aucun en-tête de raison de réveil n'est lu
+(`Telemetrie.cs`). Une requête déclenchée par *Refresh* est donc indiscernable d'un
+réveil de cadence — « bouton = compléter la première tâche » est hors d'atteinte sans
+changer de firmware.
+
+Si l'interaction au mur devient un besoin, deux pistes seulement : le NFC
+tap-pour-compléter déjà prévu en phase 3, ou un firmware ESPHome maison sur l'E1003
+(qui rend les boutons *et* le tactile, mais coûte le protocole BYOS et l'autonomie
+mesurée).
 
 ### Contenu de l'écran (paysage 1872×1404, choix utilisateur 2026-09-03)
 
@@ -171,6 +194,8 @@ Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
 - `docs/research/2026-09-03-ecrans-eink-candidats.md` — relevé du marché, prix,
   API par appareil, contrat BYOS.
 - `docs/research/2026-08-23-affichages-iot-hardware.md` — premier balayage.
+- Mapping des boutons par modèle et tactile réservé à SenseCraft :
+  `wiki.seeedstudio.com/reterminal_e10xx_trmnl` (vérifié 2026-09-20).
 - Contrat firmware : `github.com/usetrmnl/trmnl-firmware` (README, section API),
   `github.com/usetrmnl/terminus/doc/api.adoc` (en-têtes et réponses complets),
   `wiki.seeedstudio.com/reterminal_e10xx_trmnl` (flash de l'E1003).
