@@ -46,11 +46,13 @@ public class ComposerDonneesEcranTests
             l =>
             {
                 Assert.Equal("Sortir le bac", l.Titre);
-                Assert.True(l.EnRetard);
+                // En jours, pas en booléen : le plancher du journal se déclenche à
+                // partir de trois jours de retard.
+                Assert.Equal(2, l.JoursDeRetard);
                 Assert.False(l.Faite);
                 Assert.Equal("Alain", l.Assigne);
             },
-            l => Assert.False(l.EnRetard),
+            l => Assert.Equal(0, l.JoursDeRetard),
             l =>
             {
                 Assert.True(l.Faite);
@@ -66,18 +68,43 @@ public class ComposerDonneesEcranTests
     [Fact]
     public void Le_plafond_de_lignes_compte_ce_qui_deborde()
     {
-        var ouvertes = Enumerable.Range(1, 9)
+        var ouvertes = Enumerable.Range(1, 26)
             .Select(i => Occurrence($"Tâche {i}", Aujourdhui)).ToList();
         var faites = Enumerable.Range(1, 4)
             .Select(i => Occurrence($"Faite {i}", Aujourdhui, statut: "Completee", completeePar: Alain)).ToList();
 
         var donnees = Composer(ouvertes, faites);
 
-        // La mention « + N autres » prend la dixième place.
+        // La mention « + N autres » prend la dernière place.
         Assert.Equal(ComposerDonneesEcran.MaxLignes - 1, donnees.Lignes.Count);
         Assert.Equal(4, donnees.LignesEnPlus);
         // Les faites sont les premières élaguées : elles sont derrière.
-        Assert.Equal(9, donnees.Lignes.Count(l => l.Faite == false));
+        Assert.Equal(26, donnees.Lignes.Count(l => l.Faite == false));
+    }
+
+    [Fact]
+    public void La_journee_la_plus_chargee_de_la_prod_tient_sans_elagage()
+    {
+        // 14 tâches le 2026-10-20 : mesuré sur les maquettes, trois colonnes en
+        // tiennent ~27. Le plafond ne doit plus mordre sur une vraie journée.
+        var ouvertes = Enumerable.Range(1, 14)
+            .Select(i => Occurrence($"Démarche {i}", Aujourdhui)).ToList();
+
+        var donnees = Composer(ouvertes);
+
+        Assert.Equal(14, donnees.Lignes.Count);
+        Assert.Equal(0, donnees.LignesEnPlus);
+    }
+
+    [Fact]
+    public void Le_retard_est_compte_en_jours_et_les_faites_n_en_portent_pas()
+    {
+        var donnees = Composer(
+            ouvertes: [Occurrence("Vieille affaire", Aujourdhui.AddDays(-9), Alain)],
+            faites: [Occurrence("Traînée", Aujourdhui.AddDays(-5), Alain, "Completee", Alain)]);
+
+        Assert.Equal(9, donnees.Lignes[0].JoursDeRetard);
+        Assert.Equal(0, donnees.Lignes[1].JoursDeRetard);
     }
 
     [Fact]

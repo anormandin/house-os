@@ -381,7 +381,14 @@ export type EnveloppeBudgetDonnees = {
   echeancier?: Versement[] | null
 }
 
-export type LigneEcran = { titre: string; assigne: string | null; faite: boolean; enRetard: boolean }
+/** `joursDeRetard` vaut 0 quand la ligne n'est pas en retard — le plancher du journal
+ *  se déclenche en jours, pas en booléen (voir `lib/ecran-vues`). */
+export type LigneEcran = {
+  titre: string
+  assigne: string | null
+  faite: boolean
+  joursDeRetard: number
+}
 
 /** Tout ce que la vue e-ink (/ecran) affiche, composé par le serveur. */
 export type DonneesEcran = {

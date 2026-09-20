@@ -1,6 +1,6 @@
 ---
 type: plan
-status: draft
+status: approved
 date: 2026-09-20
 feature: "[[Journal De La Maison]]"
 ---
@@ -38,26 +38,71 @@ bons pour servir de repli).
 Aucune donnée neuve : on remet en page ce que `ComposerDonneesEcran` sert déjà. Le
 [[Titre D'humeur]] tient lieu de manchette jusqu'à l'étape 7.
 
-- [ ] Choix de rang comme fonction pure dans `web/src/lib/ecran-vues.ts` : entrée =
+- [x] Choix de rang comme fonction pure dans `web/src/lib/ecran-vues.ts` : entrée =
       tâches dues, plancher déclenché, budget ; sortie = grille du corps et nombre de
       widgets. Tests unitaires sur les six rangs du tableau de bascule.
-- [ ] Plancher (retard > 3 jours, compte à rebours à zéro, échéance ferme) comme
+- [x] Plancher (retard > 3 jours, compte à rebours à zéro, échéance ferme) comme
       fonction pure, testée séparément du rang.
-- [ ] Réécriture de `web/src/pages/Ecran.tsx` : bloc-titre, manchette avec lettrine,
+- [x] Réécriture de `web/src/pages/Ecran.tsx` : bloc-titre, manchette avec lettrine,
       trois colonnes aux filets, encadré de compte à rebours, pied. Classes partagées
       entre les rangs — la densité change, pas la grammaire.
-- [ ] Le `Rangee` actuel devient la liste du jour dans la colonne du milieu ; météo,
+- [x] Le `Rangee` actuel devient la liste du jour dans la colonne du milieu ; météo,
       collecte et compte à rebours passent en widgets de la colonne de droite.
-- [ ] `ComposerDonneesEcran.cs` : lever le plafond `MaxLignes = 10` (mesuré à ~27 avant
+- [x] `ComposerDonneesEcran.cs` : lever le plafond `MaxLignes = 10` (mesuré à ~27 avant
       saturation), et exposer ce qu'il faut au plancher (retard en jours, échéance
       ferme). Tests de composition mis à jour.
-- [ ] **Garde anti-débordement** (le bug du 2026-09-20 se jouait à 50 px) : mesurer la
+- [x] **Garde anti-débordement** (le bug du 2026-09-20 se jouait à 50 px) : mesurer la
       hauteur de contenu au rendu et journaliser un avertissement Serilog quand elle
       dépasse la hauteur disponible — visible dans Seq ([[Observabilité]]).
 
 **Vérification** — `npm test` dans `web/` (189 verts au départ) ; `dotnet test` ;
 `apercu.png` à 1872×1404 sur une journée à 0, 1, 3 et 14 tâches (données de dev) ;
 aucun avertissement de débordement dans le log.
+
+#### Étapes correctives de l'étape 1 (ajoutées au rendu, 2026-09-20)
+
+Ce que les six aperçus ont révélé et qui n'était pas prévu :
+
+- [x] **`scrollHeight` ne voit pas le débordement.** Dans une grille en
+      `overflow-hidden`, un bloc trop haut déborde sans agrandir la boîte : la garde
+      ne détectait rien alors que le pied était recouvert. Remplacée par la mesure du
+      plus bas des éléments (`debordementPx`, `Ecran.tsx`), et les colonnes clippent
+      désormais au lieu de peindre par-dessus le pied.
+- [x] **La manchette n'a pas de longueur bornée.** Tant que l'éditorialiste n'écrit
+      pas, elle peut être un titre de tâche de 60 caractères : à 116 px il mangeait
+      les deux tiers du mur. `manchetteDuJour` choisit la taille sur la longueur
+      autant que sur le rang, et retire la lettrine passé 55 caractères.
+- [x] **Le rang « événement » effaçait la journée.** Il forçait une seule colonne de
+      liste : neuf tâches dues devenaient une. Il hérite maintenant des colonnes et du
+      chapeau de la charge — le plancher impose la manchette, pas l'oubli du reste.
+- [x] **Le sommaire perdait le compte à rebours.** À trois colonnes de liste, l'aparté
+      disparaît et « 16 dodos » avec lui, le jour le plus chargé de l'année. Le compte
+      à rebours descend maintenant en tête de la bande de pied.
+- [x] **Deux tâches coupées en silence au sommaire.** Le plafond serveur (27) est celui
+      de la donnée, pas celui du papier : `capaciteListe` calcule ce que la colonne
+      peut montrer (le chapeau coûte une rangée) et le reste est annoncé.
+- [x] **« + N autres » comptait des tâches faites.** Une journée à quatre choses
+      annonçait « + 17 autres » parce que dix-sept étaient cochées. `resteAAnnoncer`
+      ne compte que ce qui reste à faire.
+- [x] **Bug pré-existant : le cercle d'assigné était dessiné vide.** Une tâche que
+      personne ne porte affichait une pastille muette qui coûtait ~60 px de titre.
+      Supprimée quand il n'y a ni assigné ni complétion.
+- [x] Compression de rangée conditionnelle (`rangeeSerree`) : on ne tronque plus des
+      titres pour de la place qu'on n'utilise pas.
+
+> [!warning] Trouvé à l'étape 1, non résolu : « échéance ferme ».
+> Le plancher devait couvrir trois cas. Deux sont calculables (retard > 3 jours,
+> compte à rebours à zéro). Le troisième — **l'échéance ferme** (notaire, livraison
+> payée, date légale) — **n'a aucune représentation dans le modèle** : `Tache` et
+> `Occurrence` ne distinguent pas une échéance négociable d'une date imposée du
+> dehors. Livré sans, et à trancher par une décision avant l'étape 7, où
+> l'éditorialiste devra savoir ce qu'il n'a pas le droit de reléguer.
+
+**Rendu vérifié** (aperçus à 1872×1404, `apercu.png`) : rang « événement » (9 dues,
+plancher à 20 jours de retard), rang « chronique » (0 due, 9 faites), rang « sommaire »
+(14 dues + 9 faites, « + 2 autres » annoncées, widgets en bande de pied), rang
+« resserré » (4 dues). Aucun avertissement de débordement dans le log sur les six
+tirages. `npm test` 200 verts (189 au départ), `dotnet test` 663 verts.
 
 ### 2 — Le ciel : éphémérides et contrat de widget
 

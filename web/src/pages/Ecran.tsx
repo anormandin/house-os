@@ -1,20 +1,40 @@
-import { createElement, useEffect } from 'react'
+import { createElement, useEffect, useRef, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { api, type DonneesEcran, type LigneEcran } from '@/lib/api'
-import { dimensionsEcran, initiales, libelleDodos, pileAnnoncee, quandCeJour } from '@/lib/ecran-vues'
+import {
+  capaciteListe,
+  dimensionsEcran,
+  grilleDuJour,
+  initiales,
+  manchetteDuJour,
+  libelleDodos,
+  pileAnnoncee,
+  plancher,
+  quandCeJour,
+  rangeeSerree,
+  repartitionColonnes,
+  resteAAnnoncer,
+  surtitreEdition,
+  type Grille,
+  type Plancher,
+} from '@/lib/ecran-vues'
 import { dateLongue, dodosAvant, heureQuebec } from '@/lib/format'
 import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
 import { iconeMeteo, pastillesMeteo } from '@/lib/meteo-vues'
 import { cn } from '@/lib/utils'
 
 /*
- * La vue e-ink — une page imprimée qui se réimprime (vault : Features/Affichage
- * E-ink, grammaire dans Inspiration UI/Affichage Mural Et E-ink). Noir plein sur
- * blanc, aucune nuance : tout gris disparaîtrait au seuillage 1-bit. Conçue pour
- * 1872×1404 (reTerminal E1003 en paysage) ; une autre taille passe par un zoom
- * uniforme, jamais par un layout desktop agrandi.
+ * Le journal de la maison — la vue e-ink (vault : Features/Journal De La Maison,
+ * grammaire dans Inspiration UI/Affichage Mural Et E-ink). Noir plein sur blanc,
+ * aucune nuance : tout gris disparaîtrait au seuillage 1-bit. Une seule mise en
+ * page, six remplissages : le rang est une fonction (lib/ecran-vues), jamais un
+ * second gabarit. Conçue pour 1872×1404 (reTerminal E1003 en paysage) ; une autre
+ * taille passe par un zoom uniforme, jamais par un layout desktop agrandi.
+ *
+ * La manchette est encore le titre d'humeur : l'éditorialiste arrive à l'étape 7
+ * du Plan 2026-09-20 Journal Éditorial.
  */
 
 const LARGEUR_CONCUE = 1872
@@ -33,27 +53,34 @@ export default function Ecran() {
     enabled: accueil === null,
   })
   const pret = accueil !== null || isSuccess || isError
+  const cadre = useRef<HTMLDivElement>(null)
+  const zoom = largeur / LARGEUR_CONCUE
 
   // Le signal « prêt » que le navigateur de rendu attend : polices chargées et
   // données rendues (ou l'échec, marqué — le serveur ne doit pas servir une page
-  // à moitié vide comme si de rien n'était).
+  // à moitié vide comme si de rien n'était). On en profite pour mesurer le
+  // débordement : c'est le mode de panne historique de cette vue, et il est
+  // invisible autrement (le bas est coupé, rien ne le dit).
   useEffect(() => {
     if (!pret) return
     let actif = true
     document.fonts.ready.then(() => {
       if (!actif) return
+      const boite = cadre.current
+      if (boite !== null) {
+        document.documentElement.dataset.debordement = String(debordementPx(boite, zoom))
+      }
       document.documentElement.dataset.pret = '1'
       if (isError) document.documentElement.dataset.erreur = '1'
     })
     return () => {
       actif = false
     }
-  }, [pret, isError])
-
-  const zoom = largeur / LARGEUR_CONCUE
+  }, [pret, isError, zoom])
 
   return (
     <div
+      ref={cadre}
       className="overflow-hidden bg-white font-sans text-black"
       style={{ zoom, width: LARGEUR_CONCUE, height: hauteur / zoom }}
     >
@@ -78,164 +105,379 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
       dodosDemenagement: dodosAvant(DATE_DEMENAGEMENT) > 0 ? dodosAvant(DATE_DEMENAGEMENT) : null,
     })
   const date = new Date(`${donnees.date}T12:00:00`)
-  const aCote = donnees.meteo !== null || donnees.prochaineCollecte !== null || donnees.prochainCompte !== null
+
+  const aPlancher = plancher(donnees.lignes, donnees.prochainCompte, donnees.date)
+  const grille = grilleDuJour(donnees.ouvertes, aPlancher !== null)
+  const widgets = widgetsDuJour(donnees).slice(0, grille.widgets)
+  const colonnes = repartitionColonnes(
+    donnees.lignes.length === 0 ? 0 : grille.colonnesListe,
+    widgets.length + (donnees.prochainCompte === null ? 0 : 1),
+  )
+  const corpsVide = colonnes.liste === 0 && colonnes.aparte === 0
+  const serree = rangeeSerree(donnees.lignes.length, colonnes.liste)
+  // Ce que le papier ne peut pas montrer est annoncé, jamais coupé en silence.
+  const visibles = donnees.lignes.slice(0, capaciteListe(colonnes.liste, serree, grille.chapeau))
+  const enPlus = resteAAnnoncer(donnees.lignes, visibles, donnees.lignesEnPlus)
+  // Au sommaire, l'aparté n'existe plus : le compte à rebours descend avec les
+  // widgets dans la bande de pied. Il ne disparaît jamais.
+  const bandeDePied = colonnes.bandeDePied
+    ? [
+        ...(donnees.prochainCompte === null
+          ? []
+          : [
+              <Widget
+                key="compte"
+                widget={{
+                  cle: 'compte',
+                  etiquette: donnees.prochainCompte.titre,
+                  valeur: libelleDodos(donnees.prochainCompte.dateCible),
+                }}
+                compact
+              />,
+            ]),
+        ...widgets.map((w) => <Widget key={w.cle} widget={w} compact />),
+      ].slice(0, 3)
+    : []
 
   return (
     <div className="flex h-full flex-col">
-      {/* La seule bande inversée de l'écran : la date, ancre du tableau mural. */}
-      <header className="flex items-end justify-between gap-16 bg-black px-16 pb-10 pt-11 text-white">
-        <h1 className="font-titre text-[104px] font-bold leading-none text-white">{dateLongue(date)}</h1>
-        <div className="max-w-[860px] text-right">
-          <div className="text-[52px] font-extrabold leading-[1.1]">{phrase.titre}</div>
-          <div className="mt-2 line-clamp-2 text-[36px] leading-tight">{phrase.sousTitre}</div>
+      <BlocTitre donnees={donnees} date={date} surtitre={surtitreEdition(donnees.renduLe)} />
+
+      {grille.rang === 'sommaire' ? (
+        // La seule bande inversée du journal, et elle ne sort qu'au sommaire :
+        // passé six tâches, la manchette n'a plus de sens (maquettes, 2026-09-20).
+        <div className="flex items-baseline justify-between bg-black px-16 py-5 text-white">
+          <span className="font-titre text-[76px] font-bold leading-none">Journée chargée</span>
+          <span className="text-[40px] font-extrabold uppercase tracking-[0.1em]">
+            {donnees.ouvertes} choses au programme
+          </span>
         </div>
-      </header>
+      ) : (
+        <Manchette
+          grille={grille}
+          aPlancher={aPlancher}
+          donnees={donnees}
+          phrase={phrase}
+          pleinePage={corpsVide}
+        />
+      )}
 
-      <main className={cn('grid min-h-0 flex-1', aCote ? 'grid-cols-[1fr_4px_640px]' : 'grid-cols-1')}>
-        <section className="flex min-h-0 flex-col px-16 pb-8 pt-9">
-          <div className="flex items-baseline justify-between">
-            <Etiquette>Aujourd&rsquo;hui</Etiquette>
-            {donnees.ouvertes > 0 && (
-              <span className="text-[34px] font-extrabold">
-                {donnees.faites > 0 ? `${donnees.faites} faite${donnees.faites > 1 ? 's' : ''} · ` : ''}
-                {donnees.ouvertes} à faire
-              </span>
-            )}
-          </div>
-
-          {donnees.evenementsDuJour.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-4">
-              {donnees.evenementsDuJour.map((e, i) => (
-                <span
-                  key={`${e.titre}-${i}`}
-                  className="rounded-full border-[5px] border-black px-7 py-1 text-[36px] font-extrabold"
-                >
-                  {e.titre} aujourd&rsquo;hui
+      {!corpsVide && (
+        <main
+          className="grid min-h-0 flex-1 border-t-[3px] border-black"
+          style={{ gridTemplateColumns: `repeat(${colonnes.liste + colonnes.aparte}, minmax(0, 1fr))` }}
+        >
+          {colonnes.liste > 0 && (
+            <section className="flex min-h-0 flex-col overflow-hidden px-14 pb-6 pt-7" style={{ gridColumn: `span ${colonnes.liste}` }}>
+              <div className="flex items-baseline justify-between">
+                <Etiquette>Aujourd&rsquo;hui</Etiquette>
+                <span className="text-[30px] font-extrabold">
+                  {donnees.faites > 0 && `${donnees.faites} faite${donnees.faites > 1 ? 's' : ''} · `}
+                  {donnees.ouvertes} à faire
                 </span>
-              ))}
-            </div>
-          )}
-
-          {donnees.lignes.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center pb-16">
-              <span className="font-titre text-[150px] font-bold leading-none text-black">
-                Tout est beau ✓
-              </span>
-            </div>
-          ) : (
-            <>
-              <ul className="mt-3 min-h-0 flex-1 overflow-hidden">
-                {donnees.lignes.map((ligne, i) => (
-                  // Peu de lignes : on laisse les titres respirer sur deux lignes ;
-                  // une liste pleine élague à une seule (jamais de débordement).
-                  <Rangee key={i} ligne={ligne} deuxLignes={donnees.lignes.length <= 5} />
+              </div>
+              <ul
+                className="mt-3 min-h-0 flex-1 overflow-hidden"
+                style={colonnes.liste > 1 ? { columnCount: colonnes.liste, columnGap: '56px' } : undefined}
+              >
+                {visibles.map((ligne, i) => (
+                  <Rangee key={i} ligne={ligne} serree={serree} />
                 ))}
               </ul>
-              {donnees.lignesEnPlus > 0 && (
-                <div className="shrink-0 pt-4 text-[32px] font-bold">
-                  + {donnees.lignesEnPlus} autre{donnees.lignesEnPlus > 1 ? 's' : ''}
+              {enPlus > 0 && (
+                <div className="shrink-0 pt-3 text-[30px] font-bold">
+                  + {enPlus} autre{enPlus > 1 ? 's' : ''}
                 </div>
               )}
-            </>
+            </section>
           )}
-        </section>
 
-        {aCote && (
-          <>
-            <div className="bg-black" />
-            <aside className="flex min-h-0 flex-col divide-y-4 divide-black px-14">
-              {donnees.meteo && <ZoneMeteo meteo={donnees.meteo} />}
-              {donnees.prochaineCollecte && (
-                <Zone etiquette="Collecte">
-                  <div className="line-clamp-1 text-[72px] font-extrabold leading-tight">
-                    {donnees.prochaineCollecte.titre}
-                  </div>
-                  <div className="text-[48px] font-bold">
-                    {quandCeJour(donnees.prochaineCollecte.date, donnees.date)}
-                  </div>
-                </Zone>
-              )}
-              {donnees.prochainCompte && (
-                <Zone etiquette={donnees.prochainCompte.titre}>
-                  <div className="font-titre text-[120px] font-bold leading-none text-black">
-                    {libelleDodos(donnees.prochainCompte.dateCible)}
-                  </div>
-                </Zone>
-              )}
-            </aside>
-          </>
-        )}
-      </main>
+          {colonnes.aparte > 0 &&
+            colonnesAparte(colonnes.aparte, donnees, widgets).map((contenu, i) => (
+              <aside
+                key={i}
+                className={cn(
+                  'flex min-h-0 flex-col divide-y-[3px] divide-black overflow-hidden px-12',
+                  (colonnes.liste > 0 || i > 0) && 'border-l-[3px] border-black',
+                )}
+              >
+                {contenu}
+              </aside>
+            ))}
+        </main>
+      )}
 
-      <footer className="flex items-center justify-between border-t-4 border-black px-16 py-4 text-[30px] font-bold">
-        <span>Rendu à {heureQuebec(donnees.renduLe)}</span>
-        {pile !== null && <span>Pile {pile} %</span>}
+      {bandeDePied.length > 0 && (
+        <div
+          className="grid shrink-0 divide-x-[3px] divide-black border-t-[3px] border-black"
+          style={{ gridTemplateColumns: `repeat(${bandeDePied.length}, minmax(0, 1fr))` }}
+        >
+          {bandeDePied.map((contenu, i) => (
+            <div key={i} className="px-12 py-4">
+              {contenu}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <footer className="flex shrink-0 items-center justify-between border-t-[6px] border-black px-16 py-4 text-[28px] font-bold">
+        <span>Imprimé à {heureQuebec(donnees.renduLe)}</span>
+        <span className="uppercase tracking-[0.2em]">House OS</span>
+        <span>{pile === null ? '' : `Pile ${pile} %`}</span>
       </footer>
     </div>
   )
 }
 
-function Rangee({ ligne, deuxLignes }: { ligne: LigneEcran; deuxLignes: boolean }) {
+/* Le bloc-titre du journal : surtitre, nom, date, et la météo du moment en
+   sous-ligne — la seule chose qu'on veut lire sans s'arrêter. */
+function BlocTitre({
+  donnees,
+  date,
+  surtitre,
+}: {
+  donnees: DonneesEcran
+  date: Date
+  surtitre: string
+}) {
   return (
-    <li className="flex items-center gap-6 border-b-[3px] border-black py-[14px]">
-      <span
-        className={cn(
-          'flex size-[60px] shrink-0 items-center justify-center rounded-full border-[5px] border-black text-[24px] font-extrabold leading-none tracking-tight',
-          ligne.faite && 'bg-black text-white',
+    <header className="shrink-0 px-16 pt-8">
+      <div className="text-[28px] font-extrabold uppercase tracking-[0.18em]">{surtitre}</div>
+      <div className="mt-2 border-y-[3px] border-black py-2 text-center font-titre text-[88px] font-bold leading-none tracking-[0.06em]">
+        La maison
+      </div>
+      <div className="flex items-baseline justify-between gap-12 border-b-[6px] border-black py-3">
+        <span className="font-titre text-[60px] font-bold leading-none">{dateLongue(date)}</span>
+        {donnees.meteo !== null && (
+          <span className="flex shrink-0 items-center gap-4 text-[40px] font-bold">
+            {createElement(iconeMeteo(donnees.meteo.codeMeteo), {
+              className: 'size-[52px] shrink-0',
+              strokeWidth: 2.5,
+            })}
+            {Math.round(donnees.meteo.temperatureC)} °C · de {Math.round(donnees.meteo.tempMin)} à{' '}
+            {Math.round(donnees.meteo.tempMax)}
+            {donnees.meteo.probabilitePrecipitation >= 30 &&
+              ` · ${donnees.meteo.probabilitePrecipitation} % de pluie`}
+          </span>
         )}
-      >
-        {ligne.faite ? <Check className="size-[38px]" strokeWidth={4} /> : initiales(ligne.assigne)}
-      </span>
+      </div>
+    </header>
+  )
+}
+
+/* La manchette : un surtitre qui dit de quoi il retourne, le titre, le chapeau.
+   Au rang « événement », le plancher prend le titre quoi qu'il arrive. */
+function Manchette({
+  grille,
+  aPlancher,
+  donnees,
+  phrase,
+  pleinePage,
+}: {
+  grille: Grille
+  aPlancher: Plancher | null
+  donnees: DonneesEcran
+  phrase: { titre: string; sousTitre: string }
+  pleinePage: boolean
+}) {
+  const titre = aPlancher === null ? phrase.titre : aPlancher.titre
+  const { taille, lettrine } = manchetteDuJour(titre, grille)
+
+  return (
+    <section
+      className={cn(
+        'flex flex-col justify-center overflow-hidden px-16 pb-6 pt-6',
+        pleinePage && 'min-h-0 flex-1',
+      )}
+    >
+      <div className="text-[30px] font-extrabold uppercase tracking-[0.14em]">
+        {surtitreManchette(grille, aPlancher, donnees)}
+      </div>
+      <h1 className="mt-2 font-titre font-bold leading-[1.02]" style={{ fontSize: taille }}>
+        {lettrine ? (
+          <>
+            {/* La lettrine : deux lignes de haut, comme au plomb. */}
+            <span
+              className="float-left mr-5 mt-2 font-titre font-bold leading-[0.74]"
+              style={{ fontSize: taille * 1.5 }}
+            >
+              {titre.slice(0, 1)}
+            </span>
+            {titre.slice(1)}
+          </>
+        ) : (
+          titre
+        )}
+      </h1>
+      {grille.chapeau && (
+        <p className="clear-both mt-4 line-clamp-2 text-[42px] font-bold leading-tight">{phrase.sousTitre}</p>
+      )}
+    </section>
+  )
+}
+
+/** Ce que la manchette annonce, en gabarit — l'éditorialiste l'écrira (étape 7). */
+function surtitreManchette(grille: Grille, aPlancher: Plancher | null, donnees: DonneesEcran): string {
+  if (aPlancher !== null) {
+    return aPlancher.raison === 'compte'
+      ? 'Le compte à rebours est à zéro'
+      : 'En retard depuis plus de trois jours'
+  }
+  if (grille.rang === 'chronique') {
+    return donnees.faites > 0
+      ? `Tout est fait — ${donnees.faites} chose${donnees.faites > 1 ? 's' : ''} réglée${donnees.faites > 1 ? 's' : ''}`
+      : 'Rien au programme'
+  }
+  return donnees.ouvertes === 1 ? 'Une seule chose au programme' : `${donnees.ouvertes} choses au programme`
+}
+
+type WidgetEcran = { cle: string; etiquette: string; valeur: ReactNode; detail?: ReactNode }
+
+/**
+ * Le fonds de tiroir, tel qu'il est à l'étape 1 : ce que le serveur compose déjà.
+ * Les six familles (le ciel, le climat, la maison, le calendrier, la ville, le
+ * hasard) arrivent aux étapes 2 à 6 du plan.
+ */
+function widgetsDuJour(donnees: DonneesEcran): WidgetEcran[] {
+  const widgets: WidgetEcran[] = []
+
+  for (const [i, evenement] of donnees.evenementsDuJour.entries()) {
+    widgets.push({
+      cle: `evenement-${i}`,
+      etiquette: "Aujourd'hui, au calendrier",
+      valeur: evenement.titre,
+    })
+  }
+
+  if (donnees.prochaineCollecte !== null) {
+    widgets.push({
+      cle: 'collecte',
+      etiquette: 'Dans la ville',
+      valeur: donnees.prochaineCollecte.titre,
+      detail: quandCeJour(donnees.prochaineCollecte.date, donnees.date),
+    })
+  }
+
+  const pastille = donnees.meteo === null ? undefined : pastillesMeteo(donnees.meteo.verdicts)[0]
+  if (pastille !== undefined) {
+    widgets.push({ cle: 'verdict', etiquette: 'Dehors', valeur: pastille.texte, detail: pastille.raison })
+  }
+
+  return widgets
+}
+
+/** Les widgets répartis en colonnes, l'encadré du compte à rebours en tête. */
+function colonnesAparte(nombre: number, donnees: DonneesEcran, widgets: WidgetEcran[]): ReactNode[] {
+  const colonnes: ReactNode[][] = Array.from({ length: nombre }, () => [])
+
+  if (donnees.prochainCompte !== null) {
+    colonnes[0].push(
+      <Encadre key="compte" titre={donnees.prochainCompte.titre}>
+        {libelleDodos(donnees.prochainCompte.dateCible)}
+      </Encadre>,
+    )
+  }
+  for (const [i, widget] of widgets.entries()) {
+    colonnes[(i + (donnees.prochainCompte === null ? 0 : 1)) % nombre].push(
+      <div key={widget.cle} className="py-6">
+        <Widget widget={widget} />
+      </div>,
+    )
+  }
+  return colonnes
+}
+
+function Widget({ widget, compact = false }: { widget: WidgetEcran; compact?: boolean }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Etiquette>{widget.etiquette}</Etiquette>
+      <div className={cn('line-clamp-2 font-bold leading-tight', compact ? 'text-[38px]' : 'text-[52px]')}>
+        {widget.valeur}
+      </div>
+      {widget.detail !== undefined && (
+        <div className={cn('line-clamp-2 font-bold', compact ? 'text-[30px]' : 'text-[36px]')}>
+          {widget.detail}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* L'encadré du compte à rebours : le seul bloc cerné du journal. */
+function Encadre({ titre, children }: { titre: string; children: ReactNode }) {
+  return (
+    <div className="my-6 border-[6px] border-black px-6 py-5 text-center">
+      <div className="line-clamp-1 text-[30px] font-extrabold uppercase tracking-[0.12em]">{titre}</div>
+      <div className="mt-2 font-titre text-[92px] font-bold leading-none">{children}</div>
+    </div>
+  )
+}
+
+function Rangee({ ligne, serree }: { ligne: LigneEcran; serree: boolean }) {
+  const marque = initiales(ligne.assigne)
+  return (
+    <li
+      className={cn(
+        'flex items-center gap-5 border-b-[3px] border-black',
+        // break-inside : en multi-colonnes, une rangée coupée en deux est illisible.
+        serree ? 'break-inside-avoid py-[10px]' : 'py-[13px]',
+      )}
+    >
+      {/* Pas de cercle vide : une tâche que personne ne porte n'a pas de pastille —
+          elle gagnait une soixantaine de pixels de titre à ne rien dire. */}
+      {(ligne.faite || marque !== '') && (
+        <span
+          className={cn(
+            'flex shrink-0 items-center justify-center rounded-full border-[4px] border-black font-extrabold leading-none tracking-tight',
+            serree ? 'size-[48px] text-[20px]' : 'size-[58px] text-[24px]',
+            ligne.faite && 'bg-black text-white',
+          )}
+        >
+          {ligne.faite ? <Check className={serree ? 'size-[30px]' : 'size-[36px]'} strokeWidth={4} /> : marque}
+        </span>
+      )}
       <span
         className={cn(
-          'text-[46px] font-bold leading-[1.2]',
-          deuxLignes ? 'line-clamp-2' : 'line-clamp-1',
+          // Serrée, la rangée tient sur une ligne : c'est ce qui fait entrer neuf
+          // items par colonne (mesuré aux maquettes). Élaguer, pas rapetisser.
+          'font-bold leading-[1.2]',
+          serree ? 'line-clamp-1 text-[34px]' : 'line-clamp-2 text-[44px]',
           ligne.faite && 'line-through decoration-[4px]',
         )}
       >
         {ligne.titre}
       </span>
-      {ligne.enRetard && (
-        <span className="ml-auto shrink-0 bg-black px-4 py-1 text-[24px] font-extrabold uppercase tracking-[0.1em] text-white">
-          en retard
+      {ligne.joursDeRetard > 0 && (
+        <span className="ml-auto shrink-0 bg-black px-3 py-1 text-[22px] font-extrabold uppercase tracking-[0.08em] text-white">
+          {ligne.joursDeRetard} j
         </span>
       )}
     </li>
   )
 }
 
-function ZoneMeteo({ meteo }: { meteo: NonNullable<DonneesEcran['meteo']> }) {
-  const pastille = pastillesMeteo(meteo.verdicts)[0]
+function Etiquette({ children }: { children: ReactNode }) {
   return (
-    <Zone etiquette="Dehors">
-      <div className="flex items-center gap-6">
-        {createElement(iconeMeteo(meteo.codeMeteo), { className: 'size-[150px] shrink-0', strokeWidth: 2 })}
-        <span className="font-titre text-[150px] font-bold leading-none text-black">
-          {Math.round(meteo.temperatureC)}°
-        </span>
-      </div>
-      <div className="text-[44px] font-bold">
-        {Math.round(meteo.tempMin)}° à {Math.round(meteo.tempMax)}°
-        {meteo.probabilitePrecipitation >= 30 && ` · ${meteo.probabilitePrecipitation} % de pluie`}
-      </div>
-      {pastille && <div className="line-clamp-2 text-[38px] font-bold leading-tight">{pastille.texte}</div>}
-    </Zone>
+    <div className="line-clamp-1 text-[28px] font-extrabold uppercase tracking-[0.12em]">{children}</div>
   )
 }
 
-function Zone({ etiquette, children }: { etiquette: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3 py-7">
-      <Etiquette>{etiquette}</Etiquette>
-      {children}
-    </div>
-  )
-}
-
-function Etiquette({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="line-clamp-1 text-[34px] font-extrabold uppercase tracking-[0.12em]">{children}</div>
-  )
+/**
+ * De combien le contenu dépasse le cadre, en pixels de l'appareil. Un `scrollHeight`
+ * ne suffit pas : dans une grille en `overflow-hidden`, un bloc trop haut déborde
+ * sans jamais agrandir la boîte — c'est exactement comme ça que le bas de l'écran
+ * s'est fait couper deux fois en un mois. On mesure donc le plus bas des éléments.
+ */
+function debordementPx(cadre: HTMLElement, zoom: number): number {
+  const bas = cadre.getBoundingClientRect().top + cadre.clientHeight
+  let plusBas = bas
+  for (const element of cadre.querySelectorAll('*')) {
+    const rect = element.getBoundingClientRect()
+    if (rect.height > 0 && rect.bottom > plusBas) {
+      plusBas = rect.bottom
+    }
+  }
+  return Math.round((plusBas - bas) * zoom)
 }
 
 /* Après l'enrôlement : l'appareil montre qu'il est reconnu, et son identifiant —

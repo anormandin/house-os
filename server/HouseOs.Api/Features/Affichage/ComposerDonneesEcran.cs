@@ -9,8 +9,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Features.Affichage;
 
-/// <summary>Une ligne de la liste du jour, déjà réduite à ce que l'écran montre.</summary>
-public record LigneEcranDto(string Titre, string? Assigne, bool Faite, bool EnRetard);
+/// <summary>
+/// Une ligne de la liste du jour, déjà réduite à ce que l'écran montre.
+/// <paramref name="JoursDeRetard"/> est 0 quand la ligne n'est pas en retard : le
+/// journal en a besoin en jours, pas en booléen, parce que son plancher se déclenche
+/// à partir d'un retard de trois jours (vault : Journal De La Maison).
+/// </summary>
+public record LigneEcranDto(string Titre, string? Assigne, bool Faite, int JoursDeRetard);
 
 public record PhraseEcranDto(string Titre, string SousTitre);
 
@@ -45,8 +50,12 @@ public record DonneesEcran(
 
 public static class ComposerDonneesEcran
 {
-    /// <summary>Au-delà, on élague : un écran mural ne se fait pas défiler.</summary>
-    public const int MaxLignes = 10;
+    /// <summary>
+    /// Au-delà, on élague : un écran mural ne se fait pas défiler. Mesuré en montant
+    /// les maquettes du journal, pas estimé — à ce corps, trois colonnes tiennent
+    /// ~9 items chacune, et la journée la plus chargée de toute la prod en compte 14.
+    /// </summary>
+    public const int MaxLignes = 27;
 
     /// <summary>Fenêtre de recherche de la prochaine collecte et du prochain compte à rebours.</summary>
     private const int FenetreJours = 60;
@@ -99,9 +108,9 @@ public static class ComposerDonneesEcran
         // qu'une liste qui déborde du cadre.
         var toutes = ouvertes
             .Select(o => new LigneEcranDto(o.Titre, o.AssigneA?.NomAffichage, Faite: false,
-                EnRetard: o.Echeance is { } e && e < aujourdhui))
+                JoursDeRetard: o.Echeance is { } e && e < aujourdhui ? aujourdhui.DayNumber - e.DayNumber : 0))
             .Concat(faites.Select(o => new LigneEcranDto(
-                o.Titre, o.CompleteePar?.NomAffichage ?? o.AssigneA?.NomAffichage, Faite: true, EnRetard: false)))
+                o.Titre, o.CompleteePar?.NomAffichage ?? o.AssigneA?.NomAffichage, Faite: true, JoursDeRetard: 0)))
             .ToList();
 
         MeteoEcranDto? meteoEcran = null;

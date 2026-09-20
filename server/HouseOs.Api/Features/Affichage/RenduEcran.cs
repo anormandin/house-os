@@ -86,6 +86,18 @@ public sealed class RenduEcranPlaywright(
                 throw new RenduEcranException("La page /ecran n'a pas pu charger ses données.");
             }
 
+            // Le débordement est le mode de panne historique de cette vue : le bas est
+            // coupé et rien ne le dit. La page mesure, le serveur journalise — visible
+            // dans Seq sans avoir à regarder le mur.
+            var debordement = await page.EvaluateAsync<int>(
+                "() => Number(document.documentElement.dataset.debordement ?? 0)");
+            if (debordement > 0)
+            {
+                journal.LogWarning(
+                    "Écran : le contenu déborde de {Debordement} px à {Largeur}×{Hauteur} — le bas est coupé.",
+                    debordement, largeur, hauteur);
+            }
+
             return await page.ScreenshotAsync(new PageScreenshotOptions
             {
                 Type = ScreenshotType.Png,
