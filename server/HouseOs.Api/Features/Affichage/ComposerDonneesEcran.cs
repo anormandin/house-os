@@ -1,6 +1,8 @@
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Ephemerides;
 using HouseOs.Api.Domaine.Humeur;
 using HouseOs.Api.Features.FluxExternes;
+using HouseOs.Api.Features.FondsDeTiroir;
 using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Taches;
@@ -30,6 +32,21 @@ public record MeteoEcranDto(
 public record CompteEcranDto(string Titre, DateOnly DateCible);
 
 /// <summary>
+/// Un fait du fonds de tiroir, tel que l'écran le reçoit. La <paramref name="Valeur"/>
+/// est la forme courte et le <paramref name="Texte"/> la forme longue : c'est le
+/// journal qui choisit celle qu'il a la place de montrer, jamais le fonds
+/// (vault : D-2026-09-20 Fonds De Tiroir Séparé Du Journal).
+/// </summary>
+public record FaitEcranDto(string Cle, string Famille, string Etiquette, string Valeur, string Texte);
+
+/// <summary>
+/// Ce qu'il faut à la composition pour ouvrir le fonds de tiroir : d'où l'on regarde
+/// le ciel, sous quel fuseau, et quelles zones sont dehors. Les coordonnées et le
+/// fuseau viennent du `.env` (Meteo:Latitude/Longitude, Meteo:FuseauHoraire).
+/// </summary>
+public sealed record ReglagesDuCiel(Lieu Coordonnees, TimeZoneInfo Fuseau, IReadOnlySet<Guid> ZonesExterieures);
+
+/// <summary>
 /// Tout ce que la page /ecran affiche, en un seul document : la page ne compose rien,
 /// elle met en forme. Les compteurs (ouvertes, en retard, faites) servent au repli
 /// client de la phrase du jour quand le serveur n'en a pas.
@@ -48,7 +65,8 @@ public record DonneesEcran(
     EvenementExterneDto? ProchaineCollecte,
     CompteEcranDto? ProchainCompte,
     string? Lieu,
-    int? NumeroEdition);
+    int? NumeroEdition,
+    List<FaitEcranDto> Faits);
 
 public static class ComposerDonneesEcran
 {
@@ -64,7 +82,7 @@ public static class ComposerDonneesEcran
 
     /// <summary>Lit tout ce qu'il faut puis compose. Une seule lecture d'horloge.</summary>
     public static async Task<DonneesEcran> LireAsync(
-        HouseOsDbContext db, DateTime maintenant, string? lieu = null)
+        HouseOsDbContext db, DateTime maintenant, string? lieu = null, MeteoOptions? options = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
         // Bornes de la journée locale : le serveur vit en heure locale (TZ du
@@ -77,7 +95,7 @@ public static class ComposerDonneesEcran
         var ouvertes = await OperationsTaches.ListerOccurrencesAsync(db, "aujourdhui", aujourdhui, null, null);
         var faites = await OperationsTaches.ListerOccurrencesAsync(db, "faites", aujourdhui, debutJour, finJour);
         var phrase = await HumeurEndpoints.PhraseCouranteAsync(db, aujourdhui);
-        var meteo = await MeteoEndpoints.LireAsync(db, maintenant);
+        var previsions = await MeteoEndpoints.LireAsync(db, maintenant);
         var fin = aujourdhui.AddDays(FenetreJours);
         var evenements = await db.EvenementsExternes
             .Where(e => e.Date >= aujourdhui && e.Date < fin)
@@ -97,10 +115,19 @@ public static class ComposerDonneesEcran
             .OrderBy(e => e.CompleteeLe)
             .Select(e => (DateTimeOffset?)e.CompleteeLe)
             .FirstOrDefaultAsync();
+        // Les zones extérieures : le seul signal « la journée est physique » que le
+        // modèle porte vraiment. Il n'y a pas de catégorie sur la tâche, et il n'y en
+        // aura pas (vault : D-2026-09-20 Regroupement Sans Catégorie De Tâche).
+        var zonesDehors = await db.Zones
+            .Where(z => z.Type == TypeZone.Exterieur)
+            .Select(z => z.Id)
+            .ToListAsync();
 
         return Composer(
-            maintenant, ouvertes, faites, phrase, meteo, evenements, comptes, lieu,
-            premiereEntree is { } d ? DateOnly.FromDateTime(d.LocalDateTime) : null);
+            maintenant, ouvertes, faites, phrase, previsions, evenements, comptes, lieu,
+            premiereEntree is { } d ? DateOnly.FromDateTime(d.LocalDateTime) : null,
+            options is null ? null : new ReglagesDuCiel(
+                new Lieu(options.Latitude, options.Longitude), Fuseau(options), zonesDehors.ToHashSet()));
     }
 
     /// <summary>
@@ -117,6 +144,46 @@ public static class ComposerDonneesEcran
         return aujourdhui.DayNumber - debut.DayNumber + 1;
     }
 
+    /// <summary>
+    /// Le fonds de tiroir du jour, déjà classé. L'historique de parution est
+    /// <b>vide</b> à cette étape : il se branche aux éditions matérialisées à l'étape 7
+    /// du plan (vault : D-2026-09-20 Une Édition Par Jour Matérialisée), et d'ici là
+    /// aucun fait n'est pénalisé.
+    /// </summary>
+    private static List<FaitEcranDto> FondsDuJour(
+        DateOnly aujourdhui, IReadOnlyList<OccurrenceDto> ouvertes, ReglagesDuCiel? ciel)
+    {
+        if (ciel is null)
+        {
+            return [];
+        }
+        var contexte = new ContexteDuJour(
+            aujourdhui,
+            ciel.Coordonnees,
+            ciel.Fuseau,
+            ouvertes.Any(o => o.ZoneId is { } zone && ciel.ZonesExterieures.Contains(zone)));
+
+        return [.. Tiroir.Ouvrir(contexte, HistoriqueDeParution.Vide)
+            .Select(f => new FaitEcranDto(f.Cle, f.Famille.ToString(), f.Etiquette, f.Valeur, f.Texte))];
+    }
+
+    /// <summary>
+    /// Le fuseau du foyer. Un identifiant inconnu (faute de frappe dans le `.env`, base
+    /// tzdata absente de l'image) ne doit pas faire tomber l'écran : on retombe sur
+    /// celui du conteneur, qui est déjà réglé par FUSEAU_HORAIRE.
+    /// </summary>
+    private static TimeZoneInfo Fuseau(MeteoOptions options)
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(options.FuseauHoraire);
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.Local;
+        }
+    }
+
     /// <summary>La composition pure — testée sans base.</summary>
     public static DonneesEcran Composer(
         DateTime maintenant,
@@ -127,7 +194,8 @@ public static class ComposerDonneesEcran
         IReadOnlyList<EvenementExterneDto> evenements,
         IReadOnlyList<CompteARebours> comptes,
         string? lieu = null,
-        DateOnly? premiereParution = null)
+        DateOnly? premiereParution = null,
+        ReglagesDuCiel? ciel = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
 
@@ -173,6 +241,7 @@ public static class ComposerDonneesEcran
             comptes.Where(c => c.DateCible >= aujourdhui).OrderBy(c => c.DateCible)
                 .Select(c => new CompteEcranDto(c.Titre, c.DateCible)).FirstOrDefault(),
             string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim(),
-            NumeroEdition(aujourdhui, premiereParution));
+            NumeroEdition(aujourdhui, premiereParution),
+            FondsDuJour(aujourdhui, ouvertes, ciel));
     }
 }

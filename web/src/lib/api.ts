@@ -390,6 +390,18 @@ export type LigneEcran = {
   joursDeRetard: number
 }
 
+/**
+ * Un fait du fonds de tiroir. `valeur` est la forme courte et `texte` la forme longue :
+ * c'est le journal qui choisit celle qu'il a la place de montrer.
+ */
+export type FaitEcran = {
+  cle: string
+  famille: 'Ciel' | 'Climat' | 'Maison' | 'Calendrier' | 'Ville' | 'Hasard'
+  etiquette: string
+  valeur: string
+  texte: string
+}
+
 /** Tout ce que la vue e-ink (/ecran) affiche, composé par le serveur. */
 export type DonneesEcran = {
   date: string
@@ -415,6 +427,8 @@ export type DonneesEcran = {
   lieu: string | null
   /** Une édition par jour depuis la première entrée du journal ; null si vide. */
   numeroEdition: number | null
+  /** Le fonds de tiroir du jour, déjà classé par score — au journal d'en prendre. */
+  faits: FaitEcran[]
 }
 
 export type PhraseDuJour = {

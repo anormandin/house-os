@@ -141,24 +141,100 @@ dans [[Tâches]] (« Dette connue »).
 Première famille du fonds de tiroir, et celle qui fait naître le contrat. Pur calcul,
 aucune dépendance réseau, aucun schéma.
 
-- [ ] `server/HouseOs.Api/Domaine/Ephemerides/` : lever, coucher, midi solaire, durée du
+- [x] `server/HouseOs.Api/Domaine/Ephemerides/` : lever, coucher, midi solaire, durée du
       jour, dérive quotidienne, phase lunaire, équinoxes et solstices, changement
-      d'heure. Formules NOAA écrites à la main, aucun NuGet.
-- [ ] Tests contre des valeurs connues pour Québec **et** un second point (hémisphère
-      sud ou haute latitude) : le dépôt est public, le calcul ne doit pas supposer le
-      Québec ([[Distribution]]).
-- [ ] `server/HouseOs.Api/Features/FondsDeTiroir/` : le fait (clé stable, famille,
+      d'heure. Formules NOAA écrites à la main, aucun NuGet. Quatre fichiers purs —
+      `Soleil.cs`, `Lune.cs`, `Saisons.cs`, `ChangementHeure.cs` — assemblés par
+      `Ciel.cs`. Le changement d'heure se lit dans **tzdata** (`TimeZoneInfo`) et non
+      dans une règle écrite à la main : un foyer à Phoenix n'en a pas, et c'est une
+      absence normale.
+- [x] Tests contre des valeurs connues pour Québec **et** un second point : trois points
+      en fait — Québec, **Hobart** (hémisphère sud) et **Longyearbyen** (au-delà du
+      cercle polaire, où le lever et le coucher n'existent pas certains jours)
+      ([[Distribution]]).
+- [x] `server/HouseOs.Api/Features/FondsDeTiroir/` : le fait (clé stable, famille,
       étiquette, valeur courte, texte long, composantes de score) et le moteur de score
-      `rareté × fraîcheur × pertinence`. La fraîcheur lit un historique **vide** à cette
-      étape — elle se branche à l'étape 7.
-- [ ] Les faits du ciel, avec leur rareté ; la pertinence du jour tient compte des
-      tâches du jour (« il fera noir à 18 h 25 » quand la journée est physique).
-- [ ] `ComposerDonneesEcran` appelle le fonds de tiroir et remplit le budget de widgets
-      du rang.
+      `rareté × fraîcheur × pertinence` (`Tiroir.cs`). La fraîcheur lit un historique
+      **vide** à cette étape — elle se branche à l'étape 7.
+- [x] Les faits du ciel, avec leur rareté (celles de la table des maquettes) ; la
+      pertinence du jour tient compte des tâches du jour. « Il fera noir à 18 h 25 » ne
+      sort que si une occurrence ouverte est dans une zone **extérieure** — le seul
+      signal « journée physique » que le modèle porte vraiment, puisqu'il n'y a pas de
+      catégorie sur la tâche ([[D-2026-09-20 Regroupement Sans Catégorie De Tâche]]).
+- [x] `ComposerDonneesEcran` appelle le fonds de tiroir et remplit le budget de widgets
+      du rang. Le ciel a trois densités (`formeDuCiel`, `web/src/lib/ecran-vues.ts`) :
+      tableau, phrase, demi-phrase.
 
 **Vérification** — tests du domaine sans base ; tests du score sur des cas fabriqués
 (l'équinoxe bat une démarche d'adresse, la durée du jour ne bat rien) ; `apercu.png` un
 jour vide montre le tableau du ciel et un jour chargé la demi-phrase.
+
+#### Ce que le rendu a corrigé, à l'étape 2
+
+- [x] **La « valeur courte » n'était pas courte.** « Équinoxe de septembre dans 2 jours »
+      se faisait couper au milieu dans une colonne de widget. Règle tirée de l'encadré
+      du compte à rebours : **l'étiquette porte le sujet, la valeur porte le chiffre**
+      (« Équinoxe de septembre » / « Dans 2 jours »). Un test balaie une année entière
+      et refuse toute valeur de plus de trente signes.
+- [x] **Le tableau coupait ses rangées.** Corrigé à la source plutôt qu'au CSS :
+      `rangeesDuCiel` n'admet dans le tableau que les faits dont l'étiquette et la
+      valeur tiennent ensemble sur une ligne (34 signes, mesurés au rendu) ; les autres
+      gardent leur forme de widget empilé, où ils ont deux lignes. **Élaguer, pas
+      rapetisser**, appliqué au fonds de tiroir.
+- [x] **Le budget de widgets restait inutilisé.** Le ciel ne rendait qu'un seul widget
+      quel que soit le rang ; il remplit maintenant ce qui reste du budget, le premier
+      fait avec son texte long et les suivants avec leur seule valeur.
+- [x] **Bug trouvé à la sonde : le fuseau du serveur au lieu de celui du foyer.**
+      `EvenementSaisonnier.Instant.LocalDateTime` prenait le fuseau de la machine. Un
+      conteneur en UTC aurait affiché « équinoxe le 23 septembre » toute la journée du
+      22 au Québec. Corrigé en `TimeZoneInfo.ConvertTime` sur le fuseau du `.env`, avec
+      un test dans les deux hémisphères.
+- [x] **Bug trouvé à la sonde : « L'solstice de décembre ».** L'article était collé
+      d'office. Il suit maintenant le mot, et un test le garde.
+
+#### Ce que la revue de code a corrigé, à l'étape 2
+
+- [x] **Bug : le changement d'heure disparaissait le jour même.** La bascule a lieu au
+      petit matin, donc à midi le jour J l'horloge porte déjà le nouveau décalage :
+      `ChangementHeure.Prochain` comparait à partir d'aujourd'hui et ne voyait rien,
+      puis filait sur la bascule suivante (133 jours), hors fenêtre. L'écran passait
+      d'un « dans 1 jour » la veille à **plus rien du tout** le jour même. La
+      comparaison part maintenant de la veille, et le fait parle au passé
+      (« C'était cette nuit »).
+- [x] **Le texte long redisait l'étiquette et la valeur.** « LE JOUR RACCOURCIT /
+      3 min par jour / Le jour raccourcit d'environ 3 minutes par jour » — trois lignes
+      de mur pour une idée, et c'était le **cas courant**, pas un cas limite. Les huit
+      textes longs ont été réécrits pour ajouter quelque chose (la dérive dit désormais
+      l'écart **sur une semaine**, qui est le chiffre qu'on sent vraiment), et un test
+      balaie l'année en refusant tout texte qui contient l'étiquette ou la valeur.
+- [x] **Deux colonnes voisines coiffées « DEHORS ».** Le verdict météo du journal et le
+      fait `ciel.noirceur` portaient le même titre, et sortent le même jour par
+      construction. Le fait s'appelle maintenant « La noirceur ».
+- [x] **Défaut pré-existant de l'étape 1 : `corpsVide` était inatteignable.**
+      `repartitionColonnes` rendait trois colonnes de liste même sans rien à y mettre,
+      si bien qu'une installation neuve (aucune tâche, aucune météo, aucun fait) peignait
+      un « Aujourd'hui · 0 à faire » sur trois colonnes blanches au lieu de la manchette
+      pleine page. Corrigé dans la fonction, pas dans la page.
+- [x] **Le clamp du widget ne s'applique plus qu'au texte.** Le tableau du ciel
+      échappait au `line-clamp-2` par un détail de `-webkit-box` — vrai, mais pas une
+      chose sur laquelle parier au mur.
+- [x] `ContexteDuJour.TachesOuvertes` était déclaré et jamais lu : retiré. La pertinence
+      du jour se décide sur les zones extérieures, pas sur le compte.
+
+**Rendu vérifié** (aperçus à 1872×1404) : jour vide (0 due, 23 faites) → **tableau du
+ciel** à trois rangées, rien de coupé ; jour à 4 dues → le ciel en **phrase** plus deux
+valeurs courtes ; jour à 10 dues → rang « sommaire », le ciel en **bande de pied** ;
+plancher (compte à rebours à zéro) → un seul widget, et le ciel **disparaît** — ce qui
+est la règle, pas un défaut. **Aucun avertissement de débordement** sur les six tirages
+(quatre avant la revue, deux après). `npm test` 211 verts (200 au départ),
+`dotnet test` 698 verts (663 au départ).
+
+> [!note] La demi-phrase ne se voit pas encore en pratique.
+> Au rang « événement » le budget est d'un widget, et ce widget est pris par ce qui
+> **engage la journée** (un événement du calendrier, la collecte, le verdict du dehors)
+> avant le ciel. La demi-phrase n'apparaît donc que les jours où le ciel est le seul
+> candidat — elle est couverte par un test unitaire (`formeDuCiel`), pas encore par un
+> aperçu. Les familles des étapes 3 à 6 rendront le cas courant.
 
 ### 3 — La maison et le calendrier
 

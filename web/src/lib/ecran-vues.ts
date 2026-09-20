@@ -1,7 +1,7 @@
 // Helpers purs de la vue e-ink (pages/Ecran.tsx). La page met en forme ; ce qui se
 // calcule se calcule ici, testé.
 
-import { dateLocaleIso, type LigneEcran } from '@/lib/api'
+import { dateLocaleIso, type FaitEcran, type LigneEcran } from '@/lib/api'
 import { dodosAvant, jourCourt } from '@/lib/format'
 
 /**
@@ -170,12 +170,21 @@ export function manchetteDuJour(titre: string, grille: Grille): { taille: number
 export type Repartition = { liste: number; aparte: number; bandeDePied: boolean }
 
 /**
- * Comment les trois colonnes du corps se partagent. Deux cas tordent la grille
- * théorique : sans widget à montrer, la liste prend tout (jamais une colonne vide) ;
- * et au sommaire, la liste prend les trois colonnes et les widgets descendent en
- * bande de pied.
+ * Comment les trois colonnes du corps se partagent. Trois cas tordent la grille
+ * théorique : quand il n'y a **rien** à mettre dans le corps, il n'y a pas de corps du
+ * tout et la manchette prend la page ; sans widget à montrer, la liste prend tout
+ * (jamais une colonne vide) ; et au sommaire, la liste prend les trois colonnes et les
+ * widgets descendent en bande de pied.
+ *
+ * Le premier cas est celui d'une installation neuve — aucune tâche, aucune météo
+ * relevée, aucun fait au fonds de tiroir. Sans lui, l'écran peignait une grille à trois
+ * colonnes coiffée d'un « Aujourd'hui · 0 à faire » et de deux colonnes blanches
+ * (défaut de l'étape 1, trouvé en revue à l'étape 2).
  */
 export function repartitionColonnes(colonnesListe: number, widgetsDisponibles: number): Repartition {
+  if (colonnesListe <= 0 && widgetsDisponibles === 0) {
+    return { liste: 0, aparte: 0, bandeDePied: false }
+  }
   if (widgetsDisponibles === 0) {
     return { liste: 3, aparte: 0, bandeDePied: false }
   }
@@ -277,4 +286,55 @@ export function etatDuJour(
     return { texte: 'Une seule chose au programme', urgent: false }
   }
   return { texte: `${ouvertes} choses au programme`, urgent: false }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Le fonds de tiroir vu du journal. Le fonds rend des faits sans mise en forme
+ * (vault : D-2026-09-20 Fonds De Tiroir Séparé Du Journal) ; c'est ici qu'on
+ * décide de la place qu'on leur donne.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Au-delà, le tableau du ciel devient une liste et perd sa lisibilité de loin. */
+export const MAX_RANGEES_CIEL = 4
+
+/**
+ * Étiquette et valeur réunies, en caractères : au-delà, la rangée ne tient plus sur
+ * une ligne dans une colonne de widget, et un tableau qui coupe ses valeurs (« Dans
+ * 2… ») ment sur le peu qu'il avait à dire. Mesuré au rendu 1872×1404 : ~34 signes à
+ * 28 px dans une colonne du tiers.
+ */
+export const LONGUEUR_RANGEE_CIEL = 34
+
+/**
+ * Les faits qui peuvent devenir une rangée de tableau. Les autres gardent leur place
+ * de widget empilé, où ils ont deux lignes pour se dire — c'est le même principe que
+ * partout ailleurs : élaguer, pas rapetisser.
+ */
+export function rangeesDuCiel(faits: FaitEcran[]): FaitEcran[] {
+  return faits.filter((f) => f.etiquette.length + f.valeur.length <= LONGUEUR_RANGEE_CIEL)
+}
+
+export type FormeDuCiel = 'tableau' | 'phrase' | 'demi-phrase'
+
+/**
+ * « Les widgets rétrécissent avant de disparaître » : le tableau du ciel devient une
+ * phrase, puis une demi-phrase (vault : D-2026-09-20 Une Seule Mise En Page À Rangs).
+ * Le ciel occupe **une seule place** de widget dans les trois formes — ce qui change,
+ * c'est la densité, jamais le nombre de colonnes.
+ *
+ * Le tableau demande deux choses : de la place (le rang doit accorder au moins cinq
+ * widgets) et de la matière — trois faits **qui tiennent sur une rangée**
+ * (`rangeesDuCiel`), sinon c'est un tableau à deux rangées, ce qui se lit moins bien
+ * qu'une phrase.
+ */
+export function formeDuCiel(rangeesPossibles: number, budgetDeWidgets: number): FormeDuCiel {
+  if (budgetDeWidgets >= 5 && rangeesPossibles >= 3) {
+    return 'tableau'
+  }
+  return budgetDeWidgets >= 2 ? 'phrase' : 'demi-phrase'
+}
+
+/** Les faits d'une famille, dans l'ordre où le fonds de tiroir les a classés. */
+export function faitsDeLaFamille(faits: FaitEcran[], famille: FaitEcran['famille']): FaitEcran[] {
+  return faits.filter((f) => f.famille === famille)
 }

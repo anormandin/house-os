@@ -2,12 +2,16 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
-import { api, type DonneesEcran, type LigneEcran } from '@/lib/api'
+import { api, type DonneesEcran, type FaitEcran, type LigneEcran } from '@/lib/api'
 import {
   capaciteListe,
   dimensionsEcran,
   etatDuJour,
+  faitsDeLaFamille,
+  formeDuCiel,
   grilleDuJour,
+  MAX_RANGEES_CIEL,
+  rangeesDuCiel,
   initiales,
   manchetteDuJour,
   libelleDodos,
@@ -110,11 +114,14 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
 
   const aPlancher = plancher(donnees.lignes, donnees.prochainCompte, donnees.date)
   const grille = grilleDuJour(donnees.ouvertes, aPlancher !== null)
-  const widgets = widgetsDuJour(donnees).slice(0, grille.widgets)
+  const widgets = widgetsDuJour(donnees, grille).slice(0, grille.widgets)
   const colonnes = repartitionColonnes(
     donnees.lignes.length === 0 ? 0 : grille.colonnesListe,
     widgets.length + (donnees.prochainCompte === null ? 0 : 1),
   )
+  // Rien du tout à mettre dans le corps : aucune tâche, aucun widget, aucun compte à
+  // rebours. C'est l'installation neuve (ou un serveur qui n'a pas encore de
+  // coordonnées) ; la manchette prend alors la page au lieu d'une grille blanche.
   const corpsVide = colonnes.liste === 0 && colonnes.aparte === 0
   const serree = rangeeSerree(donnees.lignes.length, colonnes.liste)
   // Ce que le papier ne peut pas montrer est annoncé, jamais coupé en silence.
@@ -362,11 +369,15 @@ function surtitreManchette(aPlancher: Plancher | null): string | null {
 type WidgetEcran = { cle: string; etiquette: string; valeur: ReactNode; detail?: ReactNode }
 
 /**
- * Le fonds de tiroir, tel qu'il est à l'étape 1 : ce que le serveur compose déjà.
- * Les six familles (le ciel, le climat, la maison, le calendrier, la ville, le
- * hasard) arrivent aux étapes 2 à 6 du plan.
+ * Ce que le journal a à montrer à côté de la liste, dans l'ordre. D'abord ce qui
+ * engage la journée — un événement au calendrier, la collecte, le verdict du dehors —
+ * puis le fonds de tiroir, qui remplit ce qu'il reste du budget du rang.
+ *
+ * Le fonds de tiroir rend des faits déjà classés et sans mise en forme : le choix de
+ * la densité est fait ici, et nulle part ailleurs
+ * (vault : D-2026-09-20 Fonds De Tiroir Séparé Du Journal).
  */
-function widgetsDuJour(donnees: DonneesEcran): WidgetEcran[] {
+function widgetsDuJour(donnees: DonneesEcran, grille: Grille): WidgetEcran[] {
   const widgets: WidgetEcran[] = []
 
   for (const [i, evenement] of donnees.evenementsDuJour.entries()) {
@@ -391,7 +402,69 @@ function widgetsDuJour(donnees: DonneesEcran): WidgetEcran[] {
     widgets.push({ cle: 'verdict', etiquette: 'Dehors', valeur: pastille.texte, detail: pastille.raison })
   }
 
+  widgets.push(...widgetsDuCiel(donnees.faits, grille))
   return widgets
+}
+
+/**
+ * Le ciel, aux trois densités : « les widgets rétrécissent avant de disparaître »
+ * (vault : D-2026-09-20 Une Seule Mise En Page À Rangs). Ce que le ciel perd quand
+ * la place manque, dans l'ordre : ses rangées de tableau, puis son texte long, puis
+ * tout sauf le premier fait.
+ *
+ * Le budget du rang est tenu par l'appelant, qui tronque cette liste — ce qui déborde
+ * du budget disparaît de lui-même, sans avoir à être compté deux fois ici.
+ *
+ * Le ciel est la seule famille branchée pour l'instant ; les cinq autres arrivent aux
+ * étapes 3 à 6 du plan et prendront leur part du même budget.
+ */
+function widgetsDuCiel(faits: FaitEcran[], grille: Grille): WidgetEcran[] {
+  const ciel = faitsDeLaFamille(faits, 'Ciel')
+  if (ciel.length === 0) {
+    return []
+  }
+
+  const court = (f: FaitEcran): WidgetEcran => ({ cle: f.cle, etiquette: f.etiquette, valeur: f.valeur })
+  const rangees = rangeesDuCiel(ciel).slice(0, MAX_RANGEES_CIEL)
+  const forme = formeDuCiel(rangees.length, grille.widgets)
+
+  if (forme === 'demi-phrase') {
+    return [court(ciel[0])]
+  }
+  if (forme === 'phrase') {
+    // Le premier fait garde son texte long ; les suivants se contentent de leur
+    // valeur, et remplissent ce qui reste du budget du rang.
+    return [{ ...court(ciel[0]), detail: ciel[0].texte }, ...ciel.slice(1).map(court)]
+  }
+
+  // Ce que le tableau n'a pas pris garde sa place de widget empilé, où il a deux
+  // lignes pour se dire — un fait trop long ne se fait pas couper, il change de forme.
+  const prises = new Set(rangees.map((f) => f.cle))
+  return [
+    { cle: 'ciel', etiquette: 'Le ciel', valeur: <TableauDuCiel faits={rangees} /> },
+    ...ciel.filter((f) => !prises.has(f.cle)).map((f) => ({ ...court(f), detail: f.texte })),
+  ]
+}
+
+/* Le tableau du ciel : une rangée par fait, l'étiquette à gauche et la valeur à
+   droite, aux dimensions des maquettes (28 px, filets de 3 px entre les rangées).
+   La valeur ne rétrécit jamais — c'est elle qui porte l'information ; si quelque
+   chose doit céder, c'est l'étiquette. En pratique `rangeesDuCiel` a déjà écarté
+   les faits trop longs, et rien ne cède. */
+function TableauDuCiel({ faits }: { faits: FaitEcran[] }) {
+  return (
+    <dl className="flex flex-col">
+      {faits.map((fait) => (
+        <div
+          key={fait.cle}
+          className="flex items-baseline justify-between gap-6 border-b-[3px] border-black py-[7px] last:border-b-0"
+        >
+          <dt className="truncate text-[28px] font-bold">{fait.etiquette}</dt>
+          <dd className="shrink-0 whitespace-nowrap text-[28px] font-extrabold">{fait.valeur}</dd>
+        </div>
+      ))}
+    </dl>
+  )
 }
 
 /** Les widgets répartis en colonnes, l'encadré du compte à rebours en tête. */
@@ -416,10 +489,20 @@ function colonnesAparte(nombre: number, donnees: DonneesEcran, widgets: WidgetEc
 }
 
 function Widget({ widget, compact = false }: { widget: WidgetEcran; compact?: boolean }) {
+  // Le clamp ne vaut que pour du texte : appliqué à un bloc (le tableau du ciel), il
+  // dépend d'un détail de `-webkit-box` pour ne rien couper, et ça n'est pas une chose
+  // sur laquelle on veut parier au mur.
+  const texte = typeof widget.valeur === 'string'
   return (
     <div className="flex flex-col gap-2">
       <Etiquette>{widget.etiquette}</Etiquette>
-      <div className={cn('line-clamp-2 font-bold leading-tight', compact ? 'text-[38px]' : 'text-[52px]')}>
+      <div
+        className={cn(
+          'font-bold leading-tight',
+          texte && 'line-clamp-2',
+          compact ? 'text-[38px]' : 'text-[52px]',
+        )}
+      >
         {widget.valeur}
       </div>
       {widget.detail !== undefined && (

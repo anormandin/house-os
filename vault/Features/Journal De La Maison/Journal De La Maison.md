@@ -1,8 +1,8 @@
 ---
 type: feature
-status: draft
+status: building
 last-verified: 2026-09-20
-verified-against: eb62d0e
+verified-against: c8c11b9
 tags: [iot]
 ---
 
@@ -19,9 +19,11 @@ Direction retenue par Alain et Ariane après trois tours de maquettes
 [[Affichage E-ink]] — la liste + zones — sans toucher au protocole de l'appareil ni à la
 grammaire 1-bit.
 
-> [!warning] Rien de ceci n'est implémenté (as of 2026-09-20).
-> La vue `/ecran` en prod est encore la liste + zones de [[Affichage E-ink]], qui reste
-> la description du code. Plan d'exécution : [[Plan 2026-09-20 Journal Éditorial]].
+> [!note] La broadsheet est en prod depuis le 2026-09-20.
+> Étapes 1 et 2 du [[Plan 2026-09-20 Journal Éditorial]] livrées : la grille à rangs, le
+> bloc-titre, et la famille « le ciel » de [[Fonds De Tiroir]] dans les widgets. La
+> **manchette est encore le [[Titre D'humeur]]** : l'éditorialiste arrive à l'étape 7.
+> [[Affichage E-ink]] reste la spec de l'appareil.
 
 ## Comportement
 
@@ -34,6 +36,26 @@ seule bande inversée, élaguer plutôt que rapetisser.
 
 **Une seule mise en page** ([[D-2026-09-20 Une Seule Mise En Page À Rangs]]) : le rang
 est une fonction du nombre de tâches dues et du plancher, pas un choix de gabarit.
+
+#### Le bloc-titre
+
+Trois rangs, dans l'ordre d'un quotidien : les **oreilles** (l'édition, le lieu de
+publication, le numéro), le **nom** en capitales entre deux filets, la **dateline**
+(date avec l'année, état du jour au centre, temps qu'il fait en mots).
+
+- Le **lieu** est propre au foyer, donc dans le `.env` (`MAISON_LIEU` →
+  `Affichage:Lieu`), vide par défaut ([[Distribution]]) ; les oreilles se composent
+  avec ce qui reste, sans trou.
+- Le **numéro d'édition** compte les jours depuis la première entrée du journal de
+  complétion — nul sur une installation neuve. À l'étape 7, le compte d'éditions
+  matérialisées le remplacera sans rien changer au rendu.
+- L'**état du jour** (« Rien au programme », « 10 choses au programme ») vit dans la
+  dateline. Il devient une **mention inversée** quand le plancher se déclenche
+  (« C'est aujourd'hui »), et ne peut jamais coexister avec la bande du sommaire :
+  le plancher force le rang « événement ».
+- Le **surtitre de la manchette** est autre chose : une ligne éditoriale, écrite à
+  l'étape 7. Jusque-là il ne porte que la raison du plancher, et reste vide le reste
+  du temps plutôt que de répéter la dateline.
 
 ### La règle de bascule
 
@@ -76,6 +98,22 @@ Au rang 10+, les tâches sont groupées par `Tache.ZoneId` puis `EquipementId` ;
 sans zone — les démarches administratives, justement — est **nommé par l'éditorialiste**
 ([[D-2026-09-20 Regroupement Sans Catégorie De Tâche]]). Repli obligatoire en liste
 plate quand l'API ne répond pas.
+
+### Les widgets et le fonds de tiroir
+
+Les widgets viennent de [[Fonds De Tiroir]], qui rend des faits **déjà classés et sans
+mise en forme**. Le journal choisit la densité, et lui seul. Pour la famille « le ciel »,
+trois formes (`formeDuCiel`, `web/src/lib/ecran-vues.ts`) :
+
+| Forme | Quand | Ce qu'on voit |
+|---|---|---|
+| **tableau** | budget ≥ 5 widgets et ≥ 3 faits qui tiennent sur une rangée | un bloc à quatre rangées au plus, étiquette à gauche et valeur à droite |
+| **phrase** | budget de 2 à 4 | le meilleur fait avec son texte long, les suivants avec leur seule valeur |
+| **demi-phrase** | budget de 1 | le meilleur fait, sa valeur courte seulement |
+
+Un fait dont l'étiquette et la valeur ne tiennent pas ensemble sur une ligne (34 signes,
+mesurés au rendu) **sort du tableau** et garde sa forme de widget empilé, où il a deux
+lignes : élaguer, pas rapetisser, appliqué jusque dans le tableau.
 
 ### Ce que l'éditorialiste écrit
 
@@ -128,7 +166,8 @@ l'heure d'impression, la pile.
 
 - `web/src/pages/Ecran.tsx` — la page, réécrite en place
   ([[Plan 2026-09-20 Journal Éditorial]]).
-- `web/src/lib/ecran-vues.ts` — les helpers purs de la vue ; le choix de rang s'y ajoute.
+- `web/src/lib/ecran-vues.ts` — les helpers purs de la vue : rang, plancher, capacité de
+  liste, état du jour, densité du ciel.
 - `server/HouseOs.Api/Features/Affichage/ComposerDonneesEcran.cs` — la composition
   serveur, à étendre au document d'édition.
 - `server/HouseOs.Api/Features/Humeur/` — le patron LLM à étendre (`ConstruireEtat.cs`,

@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import type { LigneEcran } from '@/lib/api'
+import type { FaitEcran, LigneEcran } from '@/lib/api'
 import {
   capaciteListe,
   dimensionsEcran,
@@ -17,6 +17,11 @@ import {
   resteAAnnoncer,
   surtitreEdition,
   etatDuJour,
+  faitsDeLaFamille,
+  formeDuCiel,
+  LONGUEUR_RANGEE_CIEL,
+  MAX_RANGEES_CIEL,
+  rangeesDuCiel,
 } from '@/lib/ecran-vues'
 
 afterEach(() => vi.useRealTimers())
@@ -141,6 +146,10 @@ test('répartition : jamais de colonne vide, et le sommaire renvoie les widgets 
   // Sans rien à mettre à côté, la liste prend tout.
   expect(repartitionColonnes(1, 0)).toEqual({ liste: 3, aparte: 0, bandeDePied: false })
   expect(repartitionColonnes(3, 3)).toEqual({ liste: 3, aparte: 0, bandeDePied: true })
+  // Rien à mettre dans le corps : pas de corps du tout, la manchette prend la page.
+  // Sans ça, une installation neuve peignait un « Aujourd'hui · 0 à faire » sur trois
+  // colonnes blanches.
+  expect(repartitionColonnes(0, 0)).toEqual({ liste: 0, aparte: 0, bandeDePied: false })
 })
 
 test("le surtitre suit l'heure du tirage", () => {
@@ -205,4 +214,63 @@ test("l'état urgent et la bande du sommaire ne peuvent jamais sortir ensemble",
   expect(grilleDuJour(14, true).rang).toBe('evenement')
   expect(etatDuJour({ raison: 'compte', titre: 'Le camion' }, 14, 0).urgent).toBe(true)
   expect(etatDuJour(null, 14, 0).urgent).toBe(false)
+})
+
+const fait = (cle: string, famille: FaitEcran['famille'] = 'Ciel'): FaitEcran => ({
+  cle,
+  famille,
+  etiquette: 'Le soleil',
+  valeur: '6 h 30 → 18 h 49',
+  texte: 'Le jour dure 12 h 19.',
+})
+
+test('le ciel rétrécit avant de disparaître', () => {
+  // Rang « chronique » : sept widgets, de quoi déployer le tableau.
+  expect(formeDuCiel(4, 7)).toBe('tableau')
+  // Assez de place mais pas assez de matière : un tableau à deux rangées se lit
+  // moins bien qu'une phrase.
+  expect(formeDuCiel(2, 7)).toBe('phrase')
+  // Rangs « resserré » et « court » : la phrase, avec son texte long.
+  expect(formeDuCiel(4, 4)).toBe('phrase')
+  expect(formeDuCiel(4, 2)).toBe('phrase')
+  // Rang « événement » : un seul widget, et c'est celui qui sert — le ciel n'a plus
+  // droit qu'à sa valeur courte.
+  expect(formeDuCiel(4, 1)).toBe('demi-phrase')
+  expect(formeDuCiel(0, 1)).toBe('demi-phrase')
+})
+
+test('le tableau du ciel ne dépasse jamais quatre rangées', () => {
+  // Sept faits du ciel un jour faste : le tableau en prend quatre, les autres
+  // deviennent des widgets ordinaires.
+  const sept = Array.from({ length: 7 }, (_, i) => fait(`ciel.${i}`))
+  expect(formeDuCiel(sept.length, 7)).toBe('tableau')
+  expect(sept.slice(0, MAX_RANGEES_CIEL)).toHaveLength(4)
+})
+
+test('le journal ne prend que la famille qu’il demande', () => {
+  const faits = [fait('ciel.jour'), fait('ville.collecte', 'Ville'), fait('ciel.lune')]
+  // L'ordre du fonds de tiroir est celui du score : le journal ne le retrie jamais.
+  expect(faitsDeLaFamille(faits, 'Ciel').map((f) => f.cle)).toEqual(['ciel.jour', 'ciel.lune'])
+  expect(faitsDeLaFamille(faits, 'Maison')).toEqual([])
+})
+
+test('une rangée de tableau n’accepte que ce qui tient sur une ligne', () => {
+  const court = { ...fait('ciel.jour'), etiquette: 'Le soleil', valeur: '6 h 28 → 18 h 47' }
+  const long = { ...fait('ciel.equilibre'), etiquette: 'Ce soir', valeur: 'La nuit passe devant le jour' }
+
+  expect(court.etiquette.length + court.valeur.length).toBeLessThanOrEqual(LONGUEUR_RANGEE_CIEL)
+  expect(long.etiquette.length + long.valeur.length).toBeGreaterThan(LONGUEUR_RANGEE_CIEL)
+  // Le fait trop long n'est pas coupé : il sort du tableau et garde sa place de
+  // widget empilé, où il a deux lignes pour se dire.
+  expect(rangeesDuCiel([court, long]).map((f) => f.cle)).toEqual(['ciel.jour'])
+})
+
+test('un ciel qui ne tient pas en rangées renonce au tableau', () => {
+  const longs = Array.from({ length: 5 }, (_, i) => ({
+    ...fait(`ciel.${i}`),
+    etiquette: 'Ce soir',
+    valeur: 'La nuit passe devant le jour',
+  }))
+  // De la place, mais pas de matière : trois rangées, sinon la phrase.
+  expect(formeDuCiel(rangeesDuCiel(longs).length, 7)).toBe('phrase')
 })

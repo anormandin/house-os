@@ -1,8 +1,10 @@
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Ephemerides;
 using HouseOs.Api.Domaine.Humeur;
 using HouseOs.Api.Features.Affichage;
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.FluxExternes;
+using HouseOs.Api.Features.FondsDeTiroir;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Features.Taches;
 
@@ -29,10 +31,11 @@ public class ComposerDonneesEcranTests
         IReadOnlyList<EvenementExterneDto>? evenements = null,
         IReadOnlyList<CompteARebours>? comptes = null,
         string? lieu = null,
-        DateOnly? premiereParution = null) =>
+        DateOnly? premiereParution = null,
+        ReglagesDuCiel? ciel = null) =>
         ComposerDonneesEcran.Composer(
             Maintenant, ouvertes ?? [], faites ?? [], phrase, meteo, evenements ?? [], comptes ?? [],
-            lieu, premiereParution);
+            lieu, premiereParution, ciel);
 
     [Fact]
     public void Les_ouvertes_precedent_les_faites_et_le_retard_est_marque()
@@ -208,4 +211,44 @@ public class ComposerDonneesEcranTests
         // numéro nul ou négatif.
         Assert.Null(ComposerDonneesEcran.NumeroEdition(Aujourdhui, Aujourdhui.AddDays(1)));
     }
+
+    [Fact]
+    public void Sans_reglages_de_ciel_la_composition_sort_sans_fonds_de_tiroir()
+    {
+        // Le fonds est facultatif : la page doit tenir même si les coordonnées
+        // manquent, comme tout le reste de l'écran.
+        Assert.Empty(Composer().Faits);
+    }
+
+    [Fact]
+    public void Le_fonds_de_tiroir_du_jour_arrive_deja_classe()
+    {
+        var faits = Composer(ciel: CielDeQuebec()).Faits;
+
+        Assert.NotEmpty(faits);
+        Assert.All(faits, f => Assert.Equal(nameof(FamilleDeFait.Ciel), f.Famille));
+        // Le fait le plus banal du fonds ferme la marche, toujours.
+        Assert.Equal("ciel.jour", faits[^1].Cle);
+    }
+
+    [Fact]
+    public void Une_tache_ouverte_dans_une_zone_exterieure_fait_sortir_la_noirceur()
+    {
+        var dehors = Guid.NewGuid();
+        var dedans = Guid.NewGuid();
+        var ciel = CielDeQuebec(dehors);
+
+        var aLInterieur = Composer(
+            ouvertes: [Occurrence("Plier le linge", Aujourdhui) with { ZoneId = dedans }], ciel: ciel);
+        Assert.DoesNotContain(aLInterieur.Faits, f => f.Cle == "ciel.noirceur");
+
+        var aLExterieur = Composer(
+            ouvertes: [Occurrence("Rentrer les boyaux", Aujourdhui) with { ZoneId = dehors }], ciel: ciel);
+        Assert.Contains(aLExterieur.Faits, f => f.Cle == "ciel.noirceur");
+    }
+
+    private static ReglagesDuCiel CielDeQuebec(params Guid[] zonesExterieures) =>
+        new(new Lieu(46.85, -71.62),
+            TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"),
+            zonesExterieures.ToHashSet());
 }
