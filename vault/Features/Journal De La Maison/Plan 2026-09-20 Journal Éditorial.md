@@ -104,6 +104,13 @@ plancher à 20 jours de retard), rang « chronique » (0 due, 9 faites), rang «
 « resserré » (4 dues). Aucun avertissement de débordement dans le log sur les six
 tirages. `npm test` 200 verts (189 au départ), `dotnet test` 663 verts.
 
+**Livré en prod le 2026-09-20** (commit `8d7b8cf`, LXC 105) : `/api/sante` 200, nouveau
+bundle, et surtout le **tirage de l'appareil réel confirmé** — `GET /api/display` 200 en
+594 ms, **zéro avertissement de débordement** sur les vraies données de prod. C'est la
+seule vérification que l'aperçu de dev ne pouvait pas donner : la prod a ses vraies
+longueurs de titres. Le seul `WRN` du log est une dette EF Core sans rapport, consignée
+dans [[Tâches]] (« Dette connue »).
+
 ### 2 — Le ciel : éphémérides et contrat de widget
 
 Première famille du fonds de tiroir, et celle qui fait naître le contrat. Pur calcul,
@@ -268,8 +275,13 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
 
 ## Vérification (globale)
 
-- `npm test` dans `web/` — 189 verts au départ, aucun test affaibli ni contourné.
+- `npm test` dans `web/` — aucun test affaibli ni contourné. Base : 189 avant l'étape 1,
+  **200 après** (as of 2026-09-20).
 - `dotnet test` — les trois couches ([[D-2026-08-25 Stratégie De Tests Trois Couches]]).
+  Base : **663 verts** après l'étape 1 (as of 2026-09-20).
+- Aperçu : `GET /api/affichage/apercu.png?largeur=1872&hauteur=1404` (cookie de session).
+  Les données de dev portent depuis l'étape 1 une quinzaine de tâches de test créées pour
+  voir les rangs chargés — jetables, à recréer ou à ignorer selon le besoin.
 - Validateur du vault : `python3 ~/.claude/skills/vault/scripts/validate-vault.py vault`.
 - Dépôt public : `grep -rni "villescjc\|jacques-cartier\|pdftotext\|colline" server/ web/`
   ne retourne rien ; tout ce qui est propre au foyer est dans le `.env` ou hors dépôt.
