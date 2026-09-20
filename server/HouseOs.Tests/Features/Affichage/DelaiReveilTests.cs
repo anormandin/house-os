@@ -41,6 +41,18 @@ public class DelaiReveilTests
     }
 
     [Fact]
+    public void Les_defauts_livres_menagent_la_pile()
+    {
+        // Régression : la cadence de 5 min du 2026-09-03 vidait la pile du reTerminal
+        // en quelques semaines (0,25 V en 16 jours). Le réveil Wi-Fi est ce qui coûte.
+        var defauts = new AffichageOptions();
+        Assert.Equal(900, DelaiReveil.Calculer(new DateTime(2026, 9, 20, 14, 0, 0), defauts));
+        // La nuit reste plafonnée : tant que 3600 s est la seule valeur éprouvée sur le
+        // firmware, elle se découpe en sommeils d'une heure plutôt qu'un seul.
+        Assert.Equal(3600, DelaiReveil.Calculer(new DateTime(2026, 9, 20, 22, 0, 0), defauts));
+    }
+
+    [Fact]
     public void Les_reglages_absurdes_sont_bornes()
     {
         var farfelu = new AffichageOptions { CadenceJourSecondes = 5, PlafondSecondes = 10 };

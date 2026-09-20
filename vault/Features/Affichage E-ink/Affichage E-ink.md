@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-03
-verified-against: bfc2719
+last-verified: 2026-09-20
+verified-against: 76810de
 tags: [iot]
 ---
 
@@ -58,13 +58,20 @@ cookie de session :
 
 ### Cadence et pile
 
-- `refresh_rate` de jour : 5 min (`Affichage:CadenceJourSecondes`, défaut 300 ;
-  choix utilisateur 2026-09-03, pile estimée ~2 mois). La latence d'affichage
-  est donc ≤ 5 min.
-- La nuit (`Affichage:NuitDebut` 22 h → `Affichage:NuitFin` 5 h 30, défauts),
-  le serveur répond un délai qui mène au prochain matin, borné à ce que le
-  firmware accepte (plafond de sécurité 1 h ; l'acceptation par le firmware
-  1.8.10 reste à confirmer sur une nuit).
+- `refresh_rate` de jour : **15 min** (`Affichage:CadenceJourSecondes`, défaut 900,
+  réglable par `ECRAN_CADENCE_SECONDES`). La latence d'affichage est donc ≤ 15 min.
+  C'était 5 min du 2026-09-03 au 2026-09-20 : mesuré sur l'appareil, ça faisait
+  ~198 réveils Wi-Fi par jour et **0,25 V en 16 jours** (4,04 V à l'enrôlement →
+  3,79 V le 2026-09-20). C'est le réveil Wi-Fi qui coûte, pas le rafraîchissement
+  du panneau — la cadence est le seul levier de pile qui compte.
+- La nuit (`Affichage:NuitDebut` 22 h → `Affichage:NuitFin` 5 h 30, défauts), le
+  serveur répond un délai qui mène au prochain matin, **borné par
+  `Affichage:PlafondSecondes` (1 h, `ECRAN_PLAFOND_SECONDES`)** : la nuit n'est donc
+  pas un seul sommeil mais ~8 réveils. 3600 s reste la seule valeur éprouvée sur le
+  firmware 1.8.10 ; au-delà, l'acceptation n'a jamais été confirmée sur une nuit
+  (`Plan 2026-09-03 Affichage E-ink V1`, case restée ouverte). Lever le plafond
+  vaudrait ~7 réveils par jour, soit ~10 % du total à 15 min : à faire quand
+  quelqu'un veut passer la nuit à observer `dernierContact`, pas avant.
 - Le bouton *Refresh* (dessus de l'appareil) force un réveil et un rendu
   immédiat : rien à faire côté serveur. Le tactile de l'E1003 est ignoré par le
   firmware TRMNL (SenseCraft seulement) : toucher l'écran ne fait rien.
@@ -183,6 +190,8 @@ Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
   renvoie vers trmnl.com (« purchase a BYOD license »).
 - Orientation et rendu 1-bit validés à l'œil sur le panneau. Reste ouvert : cadence
   de nuit, calibration des tailles à 2–3 m.
+- **2026-09-20** — 16 jours de service mesurés : 4,04 V → 3,79 V. Cadence de jour
+  ramenée de 5 à 15 min (voir « Cadence et pile »). La cadence de nuit reste ouverte.
 
 ## Historique
 

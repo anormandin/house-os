@@ -38,9 +38,9 @@ les clés dans `appsettings.local.json`.
 | `Humeur:Modele` | `claude-haiku-4-5` | modèle utilisé |
 | `Courriel:CadenceMinutes` | 2 | fréquence du relevé R2 |
 | `Courriel:R2:Prefixe` | `entrants/` | préfixe des objets relevés |
-| `Affichage:CadenceJourSecondes` | 300 | délai entre deux réveils de l'écran e-ink le jour |
-| `Affichage:NuitDebut`, `Affichage:NuitFin` | 22:00, 05:30 | la nuit, l'écran dort d'un trait jusqu'à `NuitFin` |
-| `Affichage:PlafondSecondes` | 3600 | plus long sommeil demandé au firmware |
+| `Affichage:CadenceJourSecondes` | 900 | délai entre deux réveils de l'écran e-ink le jour (`ECRAN_CADENCE_SECONDES`) |
+| `Affichage:NuitDebut`, `Affichage:NuitFin` | 22:00, 05:30 | la nuit, l'écran dort jusqu'à `NuitFin` — par tranches de `PlafondSecondes` |
+| `Affichage:PlafondSecondes` | 3600 | plus long sommeil demandé au firmware (`ECRAN_PLAFOND_SECONDES`) |
 | `Affichage:UrlEcran` | `http://localhost:8080/ecran` | la page que le Chromium du serveur capture (dev : Vite) |
 | `Affichage:UrlBase` | déduite de la requête | base des URL d'image renvoyées à l'appareil |
 | `Journalisation:SeuilRequeteLenteMs` | 1000 | seuil du log « requête lente » |

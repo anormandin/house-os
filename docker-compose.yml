@@ -84,6 +84,13 @@ services:
       Courriel__R2__Bucket: ${COURRIEL_R2_BUCKET:-}
       Courriel__R2__CleAcces: ${COURRIEL_R2_CLE_ACCES:-}
       Courriel__R2__CleSecrete: ${COURRIEL_R2_CLE_SECRETE:-}
+      # Écran e-ink mural : cadence de réveil le jour, et plus long sommeil qu'on
+      # ose demander au firmware. Plus la cadence est courte, plus la pile descend
+      # vite — c'est le réveil Wi-Fi qui coûte, pas le rafraîchissement du panneau.
+      # Les défauts sont répétés ici (et non laissés vides) : une chaîne vide ne se
+      # convertit pas en int et ferait planter le binder d'options au démarrage.
+      Affichage__CadenceJourSecondes: ${ECRAN_CADENCE_SECONDES:-900}
+      Affichage__PlafondSecondes: ${ECRAN_PLAFOND_SECONDES:-3600}
     ports:
       - "${APP_PORT_HOTE:-8080}:8080"
     volumes:

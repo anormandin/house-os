@@ -2,7 +2,8 @@ namespace HouseOs.Api.Features.Affichage;
 
 /// <summary>
 /// Combien de secondes l'appareil doit dormir avant de redemander l'écran : la
-/// cadence du jour, ou d'un trait jusqu'au matin pendant la nuit. Pur, testé.
+/// cadence du jour, ou le reste de la nuit — mais jamais plus que PlafondSecondes,
+/// donc la nuit se découpe aujourd'hui en sommeils d'une heure. Pur, testé.
 /// </summary>
 public static class DelaiReveil
 {
