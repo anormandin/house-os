@@ -2,7 +2,7 @@
 type: decision
 status: accepted
 date: 2026-09-19
-feature:
+feature: "[[Vue Téléphone]]"
 supersedes: "[[D-2026-08-23 Interface Desktop Et Écran E-ink]]"
 tags: []
 ---
@@ -77,7 +77,12 @@ gouverne les trois vues — mêmes tokens, même typographie.
 ## Confirmation
 
 `web/src/components/Layout.tsx` cible toujours le desktop (en-tête, pas de barre
-d'onglets du bas). L'existence d'un aiguillage de présentation propre au téléphone se
-vérifie côté code par un point de bascule unique et des composants téléphone distincts ;
-tant qu'il n'est pas implémenté, cette décision est une orientation, pas un état du code
-(as of 2026-09).
+d'onglets du bas). L'aiguillage propre au téléphone se vérifie par un point de bascule
+unique — `web/src/hooks/useFormatPhone.ts` doit rester le seul `matchMedia` de largeur
+de l'app — et par l'existence de composants téléphone distincts sous
+`web/src/components/telephone/` et `web/src/pages/telephone/`.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-20)
+> La clause « tant qu'il n'est pas implémenté, cette décision est une orientation
+> (as of 2026-09) » a été remplacée par la vérification ci-dessus : livré dans `a77b04a`.
+> Le corps de la décision n'a pas été touché — voir [[Vue Téléphone]].

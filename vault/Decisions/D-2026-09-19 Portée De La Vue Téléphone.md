@@ -2,7 +2,7 @@
 type: decision
 status: accepted
 date: 2026-09-19
-feature:
+feature: "[[Vue Téléphone]]"
 tags: []
 ---
 
@@ -64,5 +64,12 @@ est un signal qu'on s'éloigne du rôle de compagnon.
 ## Confirmation
 
 Aucun composant de la vue téléphone ne rend de commutateur de vue pour Budget ou
-Tâches, et aucun lien de la vue téléphone ne mène à un rendu Flux ou Année
-(as of 2026-09 : orientation, la vue téléphone n'est pas encore implémentée).
+Tâches, et aucun lien de la vue téléphone ne mène à un rendu Flux ou Année :
+`grep -rn "Flux\|Année" web/src/pages/telephone/` ne doit ramener **que des
+commentaires** expliquant l'absence (aujourd'hui deux : `TachesTelephone.tsx` et
+`BudgetTelephone.tsx`) — aucun commutateur, aucun `NavLink`, aucun composant rendu.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-20)
+> La parenthèse « la vue téléphone n'est pas encore implémentée (as of 2026-09) » a été
+> remplacée par la vérification ci-dessus : la vue est livrée depuis `a77b04a`. Le corps
+> de la décision n'a pas été touché — voir [[Vue Téléphone]].

@@ -41,6 +41,13 @@ le 105 — sa `.env` a déjà la clé d'ingestion) ; (2) hôte NPM `logs.alainno
 → `192.168.4.36:8081`, à créer dans l'UI de NPM ; (3) réservation DHCP pour le 106, dont
 l'IP est aujourd'hui en bail ; (4) **l'enquête elle-même** : attendre l'incident, puis
 lire la trace.
+
+> [!note] Point au 2026-09-20
+> (1), (2) et (3) sont faits — le dépôt d'infra `unifi` donne `.36` comme réservation
+> DHCP du LXC 106 et l'hôte NPM `logs.alainnormandin.dev → 192.168.4.36:8081` comme
+> servi. **(4) reste ouverte** : l'instrumentation du chemin du 503 a été construite
+> pour attraper l'incident, et aucune trace n'a été lue depuis. La diffusion SignalR
+> après commit demeure le suspect n°1 ([[Synchro]]).
 Écarté au passage — le « connection was stopped during negotiation » observé en dev est
 un artefact du double montage de React StrictMode (la seconde connexion réussit
 immédiatement), pas la piste du 503.

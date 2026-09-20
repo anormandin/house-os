@@ -1,6 +1,6 @@
 ---
 type: plan
-status: approved
+status: executed
 date: 2026-09-03
 feature: "[[Affichage E-ink]]"
 ---

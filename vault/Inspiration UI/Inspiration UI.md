@@ -9,7 +9,8 @@ tags: []
 
 Point d'entrée du dossier d'inspiration UI. Cibles de design (voir
 [[D-2026-08-23 Interface Desktop Et Écran E-ink]]) : **desktop d'abord**, écran
-e-ink mural comme seconde vue distincte ; téléphone non prioritaire.
+e-ink mural comme seconde vue distincte ; téléphone non prioritaire — renversé
+depuis : le téléphone a sa propre interface ([[Vue Téléphone]], 2026-09-20).
 
 ## Notes du dossier
 
