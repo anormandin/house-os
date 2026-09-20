@@ -381,8 +381,13 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
 - `dotnet test` — les trois couches ([[D-2026-08-25 Stratégie De Tests Trois Couches]]).
   Base : **663 verts** après l'étape 1 (as of 2026-09-20).
 - Aperçu : `GET /api/affichage/apercu.png?largeur=1872&hauteur=1404` (cookie de session).
-  Les données de dev portent depuis l'étape 1 une quinzaine de tâches de test créées pour
-  voir les rangs chargés — jetables, à recréer ou à ignorer selon le besoin.
+  Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
+  voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
+  recréer ou à ignorer selon le besoin.
+- **Au release, `MAISON_LIEU` doit être posé dans le `.env` de prod** (étape 2 : nouvelle
+  clé, `Affichage:Lieu`). Sans elle l'oreille centrale du bloc-titre reste vide — ce
+  n'est pas une panne, mais ce n'est pas le rendu voulu. Le dev le lit depuis
+  `appsettings.local.json`.
 - Validateur du vault : `python3 ~/.claude/skills/vault/scripts/validate-vault.py vault`.
 - Dépôt public : `grep -rni "villescjc\|jacques-cartier\|pdftotext\|colline" server/ web/`
   ne retourne rien ; tout ce qui est propre au foyer est dans le `.env` ou hors dépôt.
