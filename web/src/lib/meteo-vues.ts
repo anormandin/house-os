@@ -62,7 +62,10 @@ export function meteoEnMots(meteo: MeteoEnMots): string {
   const max = Math.round(meteo.tempMax)
   const bouts = [libelleMeteo(meteo.codeMeteo), `${signe(maintenant)} °C`]
   if (max > maintenant) {
-    bouts.push(`max ${max}`)
+    // Le maximum passe par `signe` lui aussi : une journée de janvier à −18 avec un
+    // max de −9 écrivait « −18 °C · max -9 », le vrai moins et le trait d'union côte
+    // à côte sur la même ligne. Au Québec ce n'est pas un cas limite, c'est l'hiver.
+    bouts.push(`max ${signe(max)}`)
   }
   if (meteo.probabilitePrecipitation >= 30) {
     bouts.push(`${meteo.probabilitePrecipitation} % de pluie`)

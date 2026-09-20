@@ -30,6 +30,11 @@ test('la météo de la dateline ne dit un maximum que s\'il reste à venir', () 
   expect(
     meteoEnMots({ codeMeteo: 61, temperatureC: 8, tempMax: 12, probabilitePrecipitation: 29 }),
   ).toBe('Pluie · 8 °C · max 12')
+  // Une journée de janvier : le maximum porte le vrai signe moins lui aussi, sinon
+  // « −18 °C · max -9 » met le trait d'union à côté du moins sur la même ligne.
+  expect(
+    meteoEnMots({ codeMeteo: 73, temperatureC: -18, tempMax: -9, probabilitePrecipitation: 40 }),
+  ).toBe('Neige · −18 °C · max −9 · 40 % de pluie')
 })
 
 test('les verdicts qui ne disent rien ne font pas de pastille', () => {
