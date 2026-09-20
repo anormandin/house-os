@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="fr-CA" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L'éditorialiste — la une à densité variable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Nunito+Sans:ital,opsz,wght@0,6..12,300..1000;1,6..12,300..1000&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ———————————————— coquille (Kanagawa Wave / Lotus) ———————————————— */
+:root{
+  --bg:#1f1f28; --panneau:#16161d; --surface:#2a2a37; --bord:#363646;
+  --texte:#dcd7ba; --doux:#c8c093; --muet:#727169;
+  --bleu:#7e9cd8; --bleuclair:#7fb4ca; --vert:#98bb6c; --jaune:#e6c384;
+  --orange:#ffa066; --violet:#957fb8; --aqua:#7aa89f; --rouge:#ff5d62;
+  --zoom:0.46;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#faf7ed; --panneau:#f2ecbc; --surface:#e9e2c4; --bord:#d5cda3;
+  --texte:#545464; --doux:#43436c; --muet:#8a8980;
+  --bleu:#4d699b; --bleuclair:#597b75; --vert:#6f894e; --jaune:#77713f;
+  --orange:#cc6d00; --violet:#624c83; --aqua:#597b75; --rouge:#c84053;}}
+:root[data-theme="light"]{
+  --bg:#faf7ed; --panneau:#f2ecbc; --surface:#e9e2c4; --bord:#d5cda3;
+  --texte:#545464; --doux:#43436c; --muet:#8a8980;
+  --bleu:#4d699b; --bleuclair:#597b75; --vert:#6f894e; --jaune:#77713f;
+  --orange:#cc6d00; --violet:#624c83; --aqua:#597b75; --rouge:#c84053;}
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--texte); font-family:"Nunito Sans",system-ui,sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased}
+a{color:var(--bleu)} code{font-family:"JetBrains Mono",monospace; font-size:.92em; color:var(--doux)}
+.enveloppe{max-width:1180px; margin:0 auto; padding:0 24px 120px}
+.barre{position:sticky; top:0; z-index:50; background:color-mix(in srgb, var(--panneau) 92%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--bord)}
+.barre-in{max-width:1180px; margin:0 auto; padding:12px 24px; display:flex; gap:18px; align-items:center; flex-wrap:wrap}
+.marque{font-family:Fraunces,serif; font-weight:800; font-size:19px; color:var(--doux)}
+.marque span{color:var(--muet); font-weight:400; font-family:"Nunito Sans",sans-serif; font-size:14px}
+.controles{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+button.ctl{background:var(--surface); color:var(--texte); border:1px solid var(--bord); border-radius:8px; padding:6px 12px; font:inherit; font-size:13px; cursor:pointer}
+button.ctl:hover{border-color:var(--bleu); color:var(--bleu)}
+button.ctl[aria-pressed="true"]{background:var(--bleu); border-color:var(--bleu); color:var(--panneau); font-weight:700}
+select.ctl{background:var(--surface); color:var(--texte); border:1px solid var(--bord); border-radius:8px; padding:6px 10px; font:inherit; font-size:13px}
+header.intro{padding:60px 0 28px; max-width:840px}
+header.intro h1{font-family:Fraunces,serif; font-size:clamp(34px,5vw,52px); line-height:1.05; margin:0 0 18px; color:var(--doux); font-weight:800; letter-spacing:-.02em}
+header.intro p{margin:0 0 14px}
+kbd{background:var(--surface); border:1px solid var(--bord); border-bottom-width:2px; border-radius:5px; padding:1px 6px; font-size:12.5px; font-family:"JetBrains Mono",monospace}
+.section-titre{margin:78px 0 6px; padding-top:24px; border-top:1px solid var(--bord); color:var(--bleuclair); font-size:13px; text-transform:uppercase; letter-spacing:.16em; font-weight:800}
+.section-chapeau{margin:0 0 10px; max-width:78ch; font-size:15.5px}
+figure.maquette{margin:0 0 56px; scroll-margin-top:70px}
+.cartouche{display:flex; gap:16px; align-items:flex-start; margin-bottom:14px}
+.numero{flex:none; width:52px; height:44px; border-radius:11px; display:grid; place-items:center; background:var(--surface); border:1px solid var(--bord); color:var(--bleu); font-family:Fraunces,serif; font-weight:800; font-size:18px}
+.cartouche h2{margin:0; font-family:Fraunces,serif; font-size:26px; font-weight:800; color:var(--doux); line-height:1.15}
+.cartouche .pitch{margin:4px 0 0; font-size:15.5px; max-width:78ch}
+.jauge{display:inline-flex; gap:3px; margin-left:12px; vertical-align:3px}
+.jauge i{width:9px; height:16px; border-radius:2px; background:var(--bord); display:block}
+.jauge i.on{background:var(--orange)}
+.cadre{width:calc(1872px * var(--zoom)); height:calc(1404px * var(--zoom)); overflow:hidden; border-radius:4px;
+  box-shadow:0 0 0 calc(14px * var(--zoom)) #d9d7d0, 0 0 0 calc(16px * var(--zoom)) #8d8b85, 0 24px 60px rgba(0,0,0,.45);
+  margin:0 0 30px calc(16px * var(--zoom))}
+body.recul .ecran{filter:blur(1.1px) contrast(1.15)}
+.notes{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:-8px}
+.note{background:var(--panneau); border:1px solid var(--bord); border-radius:12px; padding:14px 16px}
+.note h3{margin:0 0 6px; font-size:11.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--muet); font-weight:800}
+.note p{margin:0; font-size:14px; line-height:1.55}
+.note.ok h3{color:var(--vert)} .note.cout h3{color:var(--orange)} .note.futur h3{color:var(--violet)}
+table.banque{width:100%; border-collapse:collapse; font-size:14px; margin-top:14px}
+table.banque th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--muet); padding:8px 12px 8px 0; border-bottom:1px solid var(--bord)}
+table.banque td{padding:9px 12px 9px 0; border-bottom:1px solid var(--bord); vertical-align:top; line-height:1.45}
+table.banque tr:hover td{background:color-mix(in srgb, var(--surface) 55%, transparent)}
+table.banque .fam{font-weight:800; color:var(--bleuclair); white-space:nowrap}
+table.banque .rare{white-space:nowrap; font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muet)}
+
+/* ——————————————————————————————————————————————————————————
+   LA UNE — une seule grammaire, six remplissages.
+   Toutes les maquettes ci-dessous utilisent ces classes ; seules
+   la grille du corps et la quantité de widgets changent.
+   ————————————————————————————————————————————————————————— */
+.ecran{width:1872px; height:1404px; transform:scale(var(--zoom)); transform-origin:top left; background:#fff; color:#000; overflow:hidden; font-family:"Nunito Sans",sans-serif; font-weight:600; font-variant-numeric:tabular-nums; display:flex; flex-direction:column; padding:0 54px}
+.ecran .serif{font-family:Fraunces,serif}
+.inv{background:#000; color:#fff}
+.trame-25{background-image:repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 8px)}
+.trame-12{background-image:repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 16px)}
+.trame-50{background-image:repeating-conic-gradient(#000 0% 25%,#fff 0% 50%); background-size:8px 8px}
+.filet{background:#000}
+
+.bloctitre{border-bottom:6px solid #000; padding-top:32px}
+.oreilles{display:flex; justify-content:space-between; align-items:flex-end; font-size:24px; font-weight:800; text-transform:uppercase; letter-spacing:.18em; padding-bottom:8px}
+.titrejournal{border-top:2px solid #000; border-bottom:2px solid #000; padding:6px 0 12px; text-align:center}
+.titrejournal span{font-family:Fraunces,serif; font-size:126px; font-weight:900; line-height:.95; letter-spacing:-.02em; display:block}
+.dateline{display:flex; justify-content:space-between; align-items:center; font-size:28px; font-weight:700; padding:9px 0 11px}
+
+.corps{flex:1; min-height:0; display:grid; padding-top:20px}
+.col{min-height:0; overflow:hidden; display:flex; flex-direction:column}
+.col + .filet + .col{padding-left:26px}
+.col:not(:last-child){padding-right:26px}
+
+.surtitre{font-size:26px; font-weight:900; text-transform:uppercase; letter-spacing:.2em; padding-bottom:4px}
+.manchette{font-family:Fraunces,serif; font-size:84px; font-weight:900; line-height:.97; margin:0 0 4px; letter-spacing:-.02em}
+.chapeau{font-size:29px; font-weight:700; font-style:italic; border-bottom:2px solid #000; padding-bottom:11px; margin-bottom:13px}
+.corpstexte{font-size:33px; line-height:1.3; margin:0 0 10px; font-weight:600; text-align:justify; hyphens:auto}
+.lettrine{font-family:Fraunces,serif; float:left; font-size:124px; font-weight:900; line-height:.76; padding:6px 14px 0 0}
+.rubrique{font-size:25px; font-weight:900; text-transform:uppercase; letter-spacing:.2em; border-bottom:4px solid #000; padding-bottom:6px; margin-bottom:11px}
+.rubrique.mince{border-bottom-width:2px}
+
+ul.items{list-style:none; margin:0; padding:0}
+ul.items li{display:flex; gap:14px; align-items:baseline; padding:11px 0; border-bottom:2px solid #000; font-size:34px; font-weight:700; line-height:1.18}
+ul.items li b.qui{flex:none; width:44px; font-weight:900}
+ul.items li.faite{text-decoration:line-through; text-decoration-thickness:3px}
+ul.items li .marque-retard{margin-left:auto; flex:none; background:#000; color:#fff; padding:2px 10px; font-size:19px; font-weight:900; letter-spacing:.1em; text-transform:uppercase}
+
+.widget{padding:13px 0; border-bottom:2px solid #000}
+.widget:last-child{border-bottom:none}
+.wtitre{font-size:22px; font-weight:900; text-transform:uppercase; letter-spacing:.16em}
+.wvaleur{font-family:Fraunces,serif; font-size:56px; font-weight:900; line-height:1.02; margin-top:2px}
+.wvaleur.petit{font-size:38px; font-family:"Nunito Sans",sans-serif; font-weight:800; line-height:1.14}
+.wnote{font-size:25px; font-weight:600; line-height:1.22; margin-top:3px}
+.wligne{display:flex; justify-content:space-between; font-size:28px; font-weight:700; padding:5px 0}
+.wligne + .wligne{border-top:2px solid #000}
+.wligne b{font-weight:900}
+
+.encadre{border:6px solid #000; padding:14px 16px; text-align:center}
+.encadre .wtitre{font-size:23px}
+.encadre .gros{font-family:Fraunces,serif; font-size:118px; font-weight:900; line-height:1.2; padding-top:6px}
+.encadre .sous{font-size:31px; font-weight:800; margin-top:-4px}
+.encadre .fin{font-size:25px; font-weight:700; line-height:1.22}
+
+.pied{border-top:3px solid #000; display:flex; justify-content:space-between; font-size:23px; font-weight:700; padding:9px 0 11px}
+.bandeau{border-top:4px solid #000; display:flex; align-items:center; gap:28px; font-size:26px; font-weight:700; padding:12px 0}
+.bandeau b{font-weight:900; text-transform:uppercase; letter-spacing:.14em; font-size:22px}
+.bandeau span{white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div class="barre">
+  <div class="barre-in">
+    <div class="marque">L&rsquo;éditorialiste <span>· une seule grammaire, six remplissages</span></div>
+    <div class="controles">
+      <select class="ctl" id="saut" aria-label="Aller à une maquette"></select>
+      <button class="ctl" data-zoom="0.30">30 %</button>
+      <button class="ctl" data-zoom="0.46" aria-pressed="true">46 %</button>
+      <button class="ctl" data-zoom="0.62">62 %</button>
+      <button class="ctl" data-zoom="1">1:1</button>
+      <button class="ctl" id="recul" aria-pressed="false">Test du recul</button>
+      <button class="ctl" id="theme">☾</button>
+    </div>
+  </div>
+</div>
+
+<div class="enveloppe">
+
+<header class="intro">
+  <h1>Ce que le journal met quand il n&rsquo;y a rien à dire</h1>
+  <p>La une (A1) garde la mise en page. Ce qui change, c&rsquo;est qu&rsquo;elle a
+  maintenant un <b>fonds de tiroir</b> : une trentaine de petites choses vraies — le
+  ciel, l&rsquo;équinoxe, le premier gel, ce jour-là l&rsquo;an dernier, la série en
+  cours, et depuis ce tour-ci <b>la ville</b> (collectes, événements, nouvelles
+  municipales) — dont l&rsquo;éditorialiste tire ce qui adonne. Le jour où la maison ne
+  demande rien, le journal sort ses meilleures histoires. Le jour où elle en demande
+  quatorze, il les range et devient un sommaire.</p>
+  <p>Les six maquettes montrent <b>la même grammaire à six remplissages</b>, sur six
+  vraies journées de la prod. Les classes CSS sont littéralement partagées : seules
+  la grille du corps et le nombre de widgets changent. La règle de bascule est en bas
+  de page, avec le fonds de tiroir au complet.</p>
+  <p style="color:var(--muet); font-size:14.5px"><kbd>Test du recul</kbd> pour le coup
+  d&rsquo;œil du corridor. Les éphémérides (lever, coucher, lune) sont plausibles et
+  non calculées — c&rsquo;est le seul endroit où j&rsquo;ai inventé des chiffres.</p>
+</header>
+
+<div class="section-titre">Le journal respire</div>
+
+<!-- ═══════════════════ 1 — RIEN DU TOUT ═══════════════════ -->
+<figure class="maquette" id="m1">
+  <div class="cartouche">
+    <div class="numero">1</div>
+    <div>
+      <h2>Le 8 novembre — rien au programme<span class="jauge"><i></i><i></i><i></i><i></i><i></i><i></i></span></h2>
+      <p class="pitch"><b>0 tâche · 7 widgets.</b> Aucune occurrence en prod ce
+      dimanche-là. Le journal n&rsquo;a pas de trou : la manchette devient une
+      chronique, et les trois colonnes se remplissent de ce que la maison sait
+      d&rsquo;elle-même. C&rsquo;est le jour où on <i>veut</i> le lire.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran">
+    <div class="bloctitre">
+      <div class="oreilles"><span>Édition du matin</span><span>17 rue de la Colline</span><span>N<sup>o</sup> 461</span></div>
+      <div class="titrejournal"><span>LA MAISON</span></div>
+      <div class="dateline"><span>dimanche 8 novembre 2026</span><span style="letter-spacing:.05em">Rien au programme</span><span>Nuageux · −1 °C · max 4</span></div>
+    </div>
+
+    <div class="corps" style="grid-template-columns:1.55fr 3px 1fr 3px 1fr">
+      <section class="col">
+        <div class="surtitre">Première fin de semaine libre depuis le 26 août</div>
+        <h2 class="manchette">La maison ne demande rien</h2>
+        <div class="chapeau">Aucune occurrence due · 33 jours dans la maison · 41 tâches réglées depuis l&rsquo;emménagement</div>
+        <p class="corpstexte"><span class="lettrine">O</span>nze semaines que la liste
+          n&rsquo;avait pas été vide un dimanche. Les boîtes sont défaites, les serrures
+          changées, les compteurs relevés, et les quatorze démarches d&rsquo;adresse du
+          20 octobre sont derrière.</p>
+        <p class="corpstexte">Rien ne revient avant le 15, pour le chauffe-eau et les
+          deux foyers au propane. D&rsquo;ici là, la maison propose de ne rien faire.</p>
+        <div class="trame-25" style="height:5px; margin:14px 0"></div>
+        <div class="rubrique">Ce jour-là, l&rsquo;an dernier</div>
+        <p style="font-size:29px; line-height:1.26; margin:0; font-weight:600">Le 8 novembre 2025, au condo, il tombait 11 cm de neige et vous aviez passé la journée à chercher les pelles. Cette année, les pelles sont dans le garage, et il n&rsquo;y a pas de neige.</p>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="rubrique">Le ciel</div>
+        <div class="wligne"><span>Lever du soleil</span><b>6 h 37</b></div>
+        <div class="wligne"><span>Coucher</span><b>16 h 35</b></div>
+        <div class="wligne"><span>Durée du jour</span><b>9 h 58</b></div>
+        <div class="wligne"><span>On perd</span><b>2 min / jour</b></div>
+        <div class="widget" style="border-top:2px solid #000; margin-top:8px">
+          <div class="wtitre">La lune</div>
+          <div class="wvaleur petit">Dernier quartier jeudi. Le ciel sera noir pour les Léonides, autour du 17.</div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Première neige</div>
+          <div class="wvaleur">vers le 20</div>
+          <div class="wnote">normale 1991-2020, station de Québec. La souffleuse n&rsquo;a pas encore servi.</div>
+        </div>
+        <div class="widget" style="margin-top:auto; border-top:2px solid #000">
+          <div class="wtitre">La zone la plus tranquille</div>
+          <div class="wvaleur petit">Le sous-sol. Rien n&rsquo;y a été fait depuis l&rsquo;emménagement — et c&rsquo;est là que sont le chauffe-eau et le bassin.</div>
+        </div>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="encadre">
+          <div class="wtitre">Noël dans</div>
+          <div class="gros">47</div>
+          <div class="sous">dodos</div>
+        </div>
+        <div class="widget" style="border-top:4px solid #000; margin-top:16px">
+          <div class="wtitre">Ça s&rsquo;en vient</div>
+          <div class="wligne" style="padding-top:8px"><span>15 nov — chauffe-eau</span></div>
+          <div class="wligne"><span>15 nov — les deux foyers</span></div>
+          <div class="wligne"><span>30 nov — ocre ferreuse</span></div>
+          <div class="wligne"><span>1<sup>er</sup> déc — pneus obligatoires</span></div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Dans la ville</div>
+          <div class="wvaleur">jeudi 12</div>
+          <div class="wnote">déchets et bac brun. La collecte de feuilles de jeudi dernier n&rsquo;était pas la dernière : il en reste une le 19.</div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Le plus vieux de la maison</div>
+          <div class="wvaleur petit">Le chauffe-eau, 8 ans. Sa cuvette de sûreté arrive dans une semaine.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="pied"><span>Imprimé à 8 h 15</span><span>House OS — tirage d&rsquo;un exemplaire</span><span>Pile 71 %</span></div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça prouve</h3><p>Une journée vide est la <i>meilleure</i> journée du journal, pas sa pire. « Tout est beau ✓ » occupait un écran entier pour dire zéro ; ici, zéro devient sept faits vrais et une chronique.</p></div>
+    <div class="note futur"><h3>Ce qu'il faut pour ça</h3><p>Éphémérides calculées, normales climatiques, et surtout l'<b>historique</b> : « ce jour-là l'an dernier », « la série en cours », « 41 tâches depuis l'emménagement » viennent tous du journal de complétion, qui ne s'affiche nulle part.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ 2 — LA SURPRISE ═══════════════════ -->
+<figure class="maquette" id="m2">
+  <div class="cartouche">
+    <div class="numero">2</div>
+    <div>
+      <h2>Le 22 septembre — l&rsquo;équinoxe passe devant<span class="jauge"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span></h2>
+      <p class="pitch"><b>1 tâche · 5 widgets · manchette volée.</b> Même densité que la
+      maquette 3, décision éditoriale opposée : la tâche du jour est une démarche
+      administrative sans intérêt, et il se passe dehors quelque chose qui n&rsquo;arrive
+      que deux fois par année. L&rsquo;éditorialiste met l&rsquo;équinoxe en manchette et
+      relègue la tâche en brève. <b>C&rsquo;est ça, la surprise du matin.</b></p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran">
+    <div class="bloctitre">
+      <div class="oreilles"><span>Édition du matin</span><span>Rue Fraser, Québec</span><span>N<sup>o</sup> 414</span></div>
+      <div class="titrejournal"><span>LA MAISON</span></div>
+      <div class="dateline"><span>mardi 22 septembre 2026</span><span style="letter-spacing:.05em">Le jour et la nuit à égalité</span><span>Passages nuageux · 14 °C</span></div>
+    </div>
+
+    <div class="corps" style="grid-template-columns:1.55fr 3px 1fr 3px 1fr">
+      <section class="col">
+        <div class="surtitre">Deux fois par année, pas plus</div>
+        <h2 class="manchette">L&rsquo;équinoxe, ce matin à 10 h 05</h2>
+        <div class="chapeau">Douze heures de jour, douze heures de nuit · à partir de demain, la nuit gagne</div>
+        <p class="corpstexte"><span class="lettrine">À</span> 10 h 05 ce matin, le
+          soleil passe au-dessus de l&rsquo;équateur et l&rsquo;automne commence pour de
+          bon. Ce soir, pour la première fois depuis le 20 mars, la nuit sera plus longue
+          que le jour — et elle le restera 179 jours.</p>
+        <p class="corpstexte">Le soleil se couche à 18 h 51 et reculera de trois minutes
+          par jour jusqu&rsquo;à la fin d&rsquo;octobre. Dans deux semaines et demie,
+          il fera noir avant le souper.</p>
+        <div class="trame-25" style="height:5px; margin:14px 0"></div>
+        <div class="rubrique">Et sinon, aujourd&rsquo;hui</div>
+        <ul class="items">
+          <li><b class="qui">AR</b><span>Prêteur hypothécaire — l&rsquo;adresse du dossier</span></li>
+        </ul>
+        <p style="font-size:28px; line-height:1.24; margin:12px 0 0; font-weight:600">C&rsquo;est tout. Les boîtes ont été faites hier soir, et la signature de l&rsquo;hypothèque est demain.</p>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="rubrique">Le ciel</div>
+        <div class="wligne"><span>Lever du soleil</span><b>6 h 40</b></div>
+        <div class="wligne"><span>Coucher</span><b>18 h 51</b></div>
+        <div class="wligne"><span>Durée du jour</span><b>12 h 11</b></div>
+        <div class="wligne"><span>Demain, on perd</span><b>3 min</b></div>
+        <div class="widget" style="border-top:2px solid #000; margin-top:8px">
+          <div class="wtitre">Premier gel attendu</div>
+          <div class="wvaleur">le 8 octobre</div>
+          <div class="wnote">dans 16 jours. La tâche des robinets est au 15 : une semaine trop tard.</div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Le dicton</div>
+          <div class="wvaleur petit" style="font-family:Fraunces,serif; font-style:italic; font-weight:600">« Quand septembre est beau et doux, octobre est fou. »</div>
+        </div>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="encadre">
+          <div class="wtitre">Le camion arrive dans</div>
+          <div class="gros">14</div>
+          <div class="sous">dodos</div>
+          <div class="trame-25" style="height:4px; margin:10px 0"></div>
+          <div class="fin">6 octobre, 8 h à 9 h<br>17 rue de la Colline</div>
+        </div>
+        <div class="widget" style="border-top:4px solid #000; margin-top:16px">
+          <div class="wtitre">Demain</div>
+          <div class="wvaleur petit">Signature de l&rsquo;hypothèque, avec M<sup>e</sup> Nonvignon Armand Vigan.</div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Ça s&rsquo;en vient</div>
+          <div class="wligne" style="padding-top:8px"><span>1<sup>er</sup> oct — filtre du Jura</span></div>
+          <div class="wligne"><span>2 oct — tréteaux, 13 h 30</span></div>
+          <div class="wligne"><span>5 oct — solde Tanguay</span></div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Depuis le 26 août</div>
+          <div class="wvaleur">27 séances</div>
+          <div class="wnote">de boîtes, jamais deux jours de suite.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="pied"><span>Imprimé à 7 h 40</span><span>House OS — tirage d&rsquo;un exemplaire</span><span>Pile 76 %</span></div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Le mécanisme</h3><p>Chaque item du fonds de tiroir porte une <b>rareté</b> et une <b>fenêtre de pertinence</b>. L'équinoxe : deux fois par an, fenêtre d'un jour — score maximal. Une démarche d'adresse : fenêtre de trois semaines, score plancher. Quand le score du widget dépasse celui de la tâche la mieux classée, il prend la manchette.</p></div>
+    <div class="note cout"><h3>Le risque</h3><p>Le jour où l'éditorialiste met la lune en manchette et enterre « remettre les clés du condo », on perd confiance dans l'écran. Il faut un <b>plancher</b> : certaines tâches (échéance ferme, événement de compte à rebours, retard de plus de N jours) ne peuvent jamais être reléguées.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ 3 — UNE CHOSE ═══════════════════ -->
+<figure class="maquette" id="m3">
+  <div class="cartouche">
+    <div class="numero">3</div>
+    <div>
+      <h2>Le 20 septembre — une chose<span class="jauge"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span></h2>
+      <p class="pitch"><b>1 tâche · 4 widgets.</b> Le cas de référence : la tâche tient
+      la manchette, et le fonds de tiroir garnit les deux colonnes de droite sans jamais
+      passer devant.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran">
+    <div class="bloctitre">
+      <div class="oreilles"><span>Édition du matin</span><span>Rue Fraser, Québec</span><span>N<sup>o</sup> 412</span></div>
+      <div class="titrejournal"><span>LA MAISON</span></div>
+      <div class="dateline"><span>dimanche 20 septembre 2026</span><span style="letter-spacing:.05em">Une seule chose au programme</span><span>Dégagé · 17 °C · max 19 à 15 h</span></div>
+    </div>
+
+    <div class="corps" style="grid-template-columns:1.55fr 3px 1fr 3px 1fr">
+      <section class="col">
+        <div class="surtitre">Onzième dimanche d&rsquo;emballage</div>
+        <h2 class="manchette">Les boîtes, encore, et c&rsquo;est tout</h2>
+        <div class="chapeau">Tâche quotidienne · rollover activé · reportée d&rsquo;hier</div>
+        <p class="corpstexte"><span class="lettrine">S</span>eize dodos avant le camion,
+          et la seule chose que la maison demande aujourd&rsquo;hui est celle qu&rsquo;elle
+          demande tous les jours depuis le 26 août. Le rollover fait glisser
+          l&rsquo;occurrence au lieu de l&rsquo;empiler : il n&rsquo;y a donc pas onze
+          retards, il y en a un, toujours le même.</p>
+        <p class="corpstexte">La fenêtre est bonne — 19 degrés cet après-midi, et
+          c&rsquo;est la dernière fin de semaine complète avant la signature de mercredi.</p>
+        <div class="trame-25" style="height:5px; margin:14px 0"></div>
+        <div class="rubrique">Rien d&rsquo;autre n&rsquo;est dû</div>
+        <p style="font-size:29px; line-height:1.26; margin:0; font-weight:600">Le filtre du Jura tient jusqu&rsquo;au 1<sup>er</sup>, les draps jusqu&rsquo;au 26, et le plan de migration du homelab est à Alain pour le 28.</p>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="rubrique">Cette semaine</div>
+        <div class="wligne"><span>lun 21</span><b>Plier les vêtements</b></div>
+        <div class="wligne"><span>mar 22</span><b>Prêteur — adresse</b></div>
+        <div class="wligne" style="background:#000; color:#fff; padding:5px 8px"><span>mer 23</span><b>L&rsquo;hypothèque</b></div>
+        <div class="wligne"><span>sam 26</span><b>Changer les draps</b></div>
+        <div class="wligne"><span>lun 28</span><b>Homelab — migration</b></div>
+        <div class="widget" style="border-top:2px solid #000; margin-top:8px">
+          <div class="wtitre">Le ciel</div>
+          <div class="wvaleur petit">Lever 6&nbsp;h&nbsp;38, coucher 18&nbsp;h&nbsp;55. L&rsquo;équinoxe est dans deux jours.</div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Premier gel attendu</div>
+          <div class="wvaleur">le 8 octobre</div>
+          <div class="wnote">normale 1991-2020, station de Québec</div>
+        </div>
+        <div class="widget" style="margin-top:auto; border-top:2px solid #000">
+          <div class="wtitre">La ville où vous arrivez</div>
+          <div class="wvaleur petit">Dimanche, les Journées de la culture au parc du Grand-Héron. Vos collectes seront le jeudi : secteur Sud.</div>
+        </div>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="encadre">
+          <div class="wtitre">Le camion arrive dans</div>
+          <div class="gros">16</div>
+          <div class="sous">dodos</div>
+          <div class="trame-25" style="height:4px; margin:10px 0"></div>
+          <div class="fin">6 octobre, 8 h à 9 h<br>17 rue de la Colline</div>
+        </div>
+        <div class="widget" style="border-top:4px solid #000; margin-top:16px">
+          <div class="wtitre">Ça s&rsquo;en vient</div>
+          <div class="wligne" style="padding-top:8px"><span>1<sup>er</sup> oct — filtre du Jura</span></div>
+          <div class="wligne"><span>5 oct — solde Tanguay, 7 128 $</span></div>
+          <div class="wligne"><span>15 oct — robinets extérieurs</span></div>
+          <div class="wligne"><span>31 oct — gouttières</span></div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Le carnet</div>
+          <div class="wvaleur petit">2 octobre, 13 h 30 — les tréteaux, au 54 Marie-de-l&rsquo;Incarnation.</div>
+        </div>
+        <div class="widget" style="margin-top:auto; border-top:4px solid #000">
+          <div class="wvaleur petit" style="font-family:Fraunces,serif; font-style:italic; font-weight:600; font-size:31px">« Une boîte par jour, c&rsquo;est encore une maison qui tient debout. »</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="pied"><span>Imprimé à 14 h 30</span><span>House OS — tirage d&rsquo;un exemplaire</span><span>Pile 74 %</span></div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>C'est l'A1 que vous avez aimée, avec le fonds de tiroir branché : « le ciel » et « premier gel » remplacent le remplissage. Rien d'inventé côté tâches — la journée n'en a qu'une.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ 4 — QUATRE CHOSES ═══════════════════ -->
+<figure class="maquette" id="m4">
+  <div class="cartouche">
+    <div class="numero">4</div>
+    <div>
+      <h2>Le 9 octobre — la journée normale<span class="jauge"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></h2>
+      <p class="pitch"><b>3 à faire + 2 faites · 4 widgets.</b> Le point de bascule : la
+      liste réclame une colonne complète et le ciel passe de tableau à une phrase —
+      mais il reste de la place pour quatre widgets courts. La manchette reste éditoriale
+      parce que la journée en vaut la peine.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran">
+    <div class="bloctitre">
+      <div class="oreilles"><span>Édition du matin</span><span>17 rue de la Colline</span><span>N<sup>o</sup> 431</span></div>
+      <div class="titrejournal"><span>LA MAISON</span></div>
+      <div class="dateline"><span>vendredi 9 octobre 2026</span><span style="letter-spacing:.05em">Le dernier jour du condo</span><span>Éclaircies · 11 °C</span></div>
+    </div>
+
+    <div class="corps" style="grid-template-columns:1.45fr 3px 1.1fr 3px .85fr">
+      <section class="col">
+        <div class="surtitre">Le condo est vendu depuis le 1<sup>er</sup> septembre</div>
+        <h2 class="manchette">Les clés changent de main aujourd&rsquo;hui</h2>
+        <div class="chapeau">Après le ménage d&rsquo;hier · la nouvelle adresse à laisser sur le comptoir</div>
+        <p class="corpstexte"><span class="lettrine">C</span>&rsquo;est la dernière
+          chose qui vous rattache au condo. Les compteurs ont été relevés, la nouvelle
+          adresse est notée pour le courrier orphelin, et les services se ferment
+          aujourd&rsquo;hui — à la date de la remise des clés, pas à celle de la vente.</p>
+        <div class="trame-25" style="height:5px; margin:12px 0"></div>
+        <div class="rubrique mince">Et à la maison</div>
+        <p style="font-size:28px; line-height:1.24; margin:0; font-weight:600">Tanguay livre la table, les fauteuils et le meuble télé. Le meuble demande un assemblage : le contrat dit le 23, la livraison dit aujourd&rsquo;hui.</p>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="rubrique">Aujourd&rsquo;hui <span style="float:right; letter-spacing:0">3 à faire · 2 faites</span></div>
+        <ul class="items">
+          <li><b class="qui">—</b><span>Remettre les clés du condo aux nouveaux occupants</span></li>
+          <li><b class="qui">—</b><span>Fermer / transférer les services du condo</span></li>
+          <li><b class="qui">AL</b><span>Assembler le meuble télé Tanguay</span></li>
+          <li class="faite"><b class="qui">✓</b><span>Relever les compteurs des deux adresses</span></li>
+          <li class="faite"><b class="qui">✓</b><span>Laisser la nouvelle adresse aux occupants</span></li>
+        </ul>
+        <div class="widget" style="margin-top:14px; border-top:2px solid #000">
+          <div class="wtitre">Demain</div>
+          <div class="wvaleur petit">Pneus d&rsquo;hiver — un garage du nouveau secteur.</div>
+        </div>
+        <div class="widget" style="margin-top:auto; border-top:2px solid #000">
+          <div class="wtitre">Ce matin, dans la ville</div>
+          <div class="wvaleur petit">Nettoyage des berges, 9 h à 11 h, derrière le Normandin — Corporation du bassin de la Jacques-Cartier.</div>
+        </div>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="encadre">
+          <div class="wtitre">Dans la maison depuis</div>
+          <div class="gros">3</div>
+          <div class="sous">jours</div>
+        </div>
+        <div class="widget" style="border-top:4px solid #000; margin-top:14px">
+          <div class="wtitre">Le ciel</div>
+          <div class="wvaleur petit">Coucher à 18&nbsp;h&nbsp;20. Le premier gel est attendu d&rsquo;un jour à l&rsquo;autre.</div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Ça s&rsquo;en vient</div>
+          <div class="wligne" style="padding-top:8px"><span>jeudi — déchets, bac brun</span></div>
+          <div class="wligne"><span>13 oct — 9 démarches</span></div>
+          <div class="wligne"><span>15 oct — robinets</span></div>
+        </div>
+        <div class="widget" style="margin-top:auto; border-top:2px solid #000">
+          <div class="wtitre">Ce jour-là, l&rsquo;an dernier</div>
+          <div class="wvaleur petit">Le 9 octobre 2025 : 14 °C et trois heures sans internet.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="pied"><span>Imprimé à 7 h 10</span><span>House OS — tirage d&rsquo;un exemplaire</span><span>Pile 69 %</span></div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>La bascule</h3><p>Trois choses à faire, et le tableau du ciel se replie en une phrase. La règle mesurée : <b>chaque tâche au-delà de deux coûte une <i>ligne</i> de widget, pas un widget entier</b> — les blocs rétrécissent avant de disparaître.</p></div>
+    <div class="note cout"><h3>Ce qui accroche</h3><p>La manchette raconte « les clés changent de main » alors que la tâche la plus lourde de la journée est peut-être le meuble télé. L'éditorialiste choisit le <i>sens</i>, pas l'effort — c'est ce qui le rend intéressant et c'est aussi ce qui peut le rendre agaçant.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ 5 — QUATORZE CHOSES ═══════════════════ -->
+<figure class="maquette" id="m5">
+  <div class="cartouche">
+    <div class="numero">5</div>
+    <div>
+      <h2>Le 20 octobre — quatorze choses<span class="jauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></h2>
+      <p class="pitch"><b>14 tâches · 3 widgets, réduits à une bande de pied.</b> Le test de charge, sur une vraie
+      journée de la prod. Plus de manchette, plus de lettrine, plus de chronique : le
+      journal devient un <b>sommaire</b> : les quatorze démarches sont groupées par
+      rubrique plutôt qu&rsquo;empilées, et le fonds de tiroir quitte la colonne pour
+      une bande de pied. <b>Découverte en montant la maquette :</b> quatorze tâches ne
+      saturent pas une broadsheet — il reste de la place. Le vrai point de rupture est
+      plus haut que je pensais.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran">
+    <div class="bloctitre" style="padding-top:26px">
+      <div class="oreilles"><span>Édition du matin</span><span>17 rue de la Colline</span><span>N<sup>o</sup> 442</span></div>
+      <div class="titrejournal" style="padding:4px 0 8px"><span style="font-size:92px">LA MAISON</span></div>
+      <div class="dateline" style="padding:7px 0 9px"><span>mardi 20 octobre 2026</span><span style="letter-spacing:.05em">Journée chargée</span><span>Pluie · 8 °C</span></div>
+    </div>
+
+    <div class="inv" style="display:flex; align-items:center; justify-content:space-between; padding:14px 22px; margin-top:14px">
+      <div style="font-size:52px; font-weight:900; line-height:1">Quatorze fois la même adresse</div>
+      <div style="font-size:28px; font-weight:800; letter-spacing:.14em; text-transform:uppercase">3 Alain · 3 Ariane · 8 à deux</div>
+    </div>
+
+    <div class="corps" style="grid-template-columns:1fr 3px 1fr 3px 1fr; padding-top:16px">
+      <section class="col">
+        <div class="rubrique">Gouvernements</div>
+        <ul class="items">
+          <li><b class="qui">AL</b><span>Service Canada — adresse à jour</span></li>
+          <li><b class="qui">AR</b><span>Service Canada — adresse à jour</span></li>
+          <li><b class="qui">AL</b><span>Élections Canada — registre des électeurs</span></li>
+          <li><b class="qui">AR</b><span>Élections Canada — registre des électeurs</span></li>
+        </ul>
+        <p style="font-size:26px; line-height:1.22; margin:12px 0 0; font-weight:600">Mon dossier Service Canada met à jour AE, RPC et SV d&rsquo;un coup. Le NAS lui-même : rien à faire.</p>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="rubrique">Argent</div>
+        <ul class="items">
+          <li><b class="qui">—</b><span>Banques et caisses</span></li>
+          <li><b class="qui">—</b><span>Cartes de crédit</span></li>
+          <li><b class="qui">—</b><span>Prélèvements pré-autorisés — revue complète</span></li>
+          <li><b class="qui">—</b><span>Placements — REER, CELI, courtier</span></li>
+          <li><b class="qui">—</b><span>Assurances vie, invalidité, collectives</span></li>
+        </ul>
+        <p style="font-size:26px; line-height:1.22; margin:12px 0 0; font-weight:600">Une adresse de facturation périmée fait refuser des paiements. Un relevé de carte et un relevé de compte en main.</p>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="rubrique">Le reste</div>
+        <ul class="items">
+          <li><b class="qui">AL</b><span>Employeur — aviser RH et la paie</span></li>
+          <li><b class="qui">AR</b><span>Employeur — aviser RH et la paie</span></li>
+          <li><b class="qui">—</b><span>Médecin de famille / GMF</span></li>
+          <li><b class="qui">—</b><span>Vétérinaire et registre de la micropuce</span></li>
+          <li><b class="qui">—</b><span>Amazon — purger l&rsquo;ancienne adresse</span></li>
+        </ul>
+        <p style="font-size:26px; line-height:1.22; margin:12px 0 0; font-weight:600">Les T4 et Relevés 1 de 2026 partent en février : c&rsquo;est le dernier moment utile pour les employeurs.</p>
+      </section>
+    </div>
+
+    <div style="border-top:5px solid #000; display:grid; grid-template-columns:1fr 3px 1fr 3px 1fr; margin-top:6px">
+      <div style="padding:14px 26px 12px 0">
+        <div class="wtitre">Le ciel</div>
+        <div class="wvaleur petit">7&nbsp;h&nbsp;14 → 17&nbsp;h&nbsp;59. Le premier gel est tombé le 11 : les robinets ont été vidangés à temps.</div>
+      </div>
+      <div class="filet"></div>
+      <div style="padding:14px 26px 12px">
+        <div class="wtitre">Jeudi, dans la ville</div>
+        <div class="wvaleur petit">Bac bleu, bac brun, et les sacs de feuilles — la collecte des herbes et feuilles passe le 22.</div>
+      </div>
+      <div class="filet"></div>
+      <div style="padding:14px 0 12px 26px; display:flex; align-items:baseline; gap:18px">
+        <div class="wtitre" style="white-space:nowrap">Noël dans</div>
+        <div class="wvaleur" style="font-size:64px">66 dodos</div>
+      </div>
+    </div>
+    <div class="pied"><span>Imprimé à 6 h 50</span><span>House OS — tirage d&rsquo;un exemplaire</span><span>Pile 67 %</span></div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça prouve</h3><p>Quatorze items tiennent sans rapetisser quoi que ce soit — parce que le journal a <b>abandonné la manchette</b>, pas parce qu'il a rétréci son texte. Mêmes classes CSS que la maquette 1, remplissage opposé.</p></div>
+    <div class="note cout"><h3>Le chiffre à corriger</h3><p>Trois colonnes à ce corps tiennent environ <b>neuf items chacune</b>, soit ~27 tâches avant saturation réelle. La journée la plus chargée de toute la prod en compte 14. Autrement dit : le rang « 10 et + » du tableau de bascule est trop pessimiste — même au pire jour, il reste de quoi loger trois widgets courts. La contrainte réelle n'est pas la place, c'est la <b>manchette</b> : dès 6 items, la chronique n'a plus de sens.</p></div>
+    <div class="note cout"><h3>Ce que ça demande</h3><p>Le regroupement. « Gouvernements / Argent / Le reste » n'existe pas dans le modèle — aujourd'hui ces quatorze tâches n'ont ni catégorie ni zone. Sans rubriques, la journée chargée redevient une liste de quatorze lignes, et là ça ne tient plus.</p></div>
+    <div class="note futur"><h3>Placeholders</h3><p>Une catégorie (ou une étiquette) sur la tâche, et un regroupement automatique quand le compte dépasse le seuil.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ 6 — LE JOUR J ═══════════════════ -->
+<figure class="maquette" id="m6">
+  <div class="cartouche">
+    <div class="numero">6</div>
+    <div>
+      <h2>Le 6 octobre — le jour J<span class="jauge"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span></h2>
+      <p class="pitch"><b>2 tâches · 1 widget, choisi parce qu&rsquo;il sert.</b> Le
+      compte à rebours tombe à zéro : il prend la manchette quelle que soit la charge.
+      Le seul widget retenu est l&rsquo;heure du coucher du soleil — pas parce
+      qu&rsquo;elle est jolie, parce qu&rsquo;elle est <i>actionnable</i> aujourd&rsquo;hui.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran">
+    <div class="bloctitre">
+      <div class="oreilles"><span>Édition spéciale</span><span>Rue Fraser → 17 rue de la Colline</span><span>N<sup>o</sup> 428</span></div>
+      <div class="titrejournal"><span>LA MAISON</span></div>
+      <div class="dateline"><span>mardi 6 octobre 2026</span><span class="inv" style="padding:4px 20px; letter-spacing:.12em; text-transform:uppercase; font-weight:900">C&rsquo;est aujourd&rsquo;hui</span><span>Nuageux · 13 °C · pas de pluie</span></div>
+    </div>
+
+    <div class="corps" style="grid-template-columns:1.5fr 3px 1fr 3px 1fr">
+      <section class="col">
+        <div class="surtitre">Le compte à rebours est à zéro</div>
+        <h2 class="manchette" style="font-size:104px">Le camion arrive entre 8 h et 9 h</h2>
+        <div class="chapeau">Départ de la rue Fraser · arrivée au 17 rue de la Colline · occupation du condo jusqu&rsquo;au 9</div>
+        <p class="corpstexte"><span class="lettrine">Q</span>uarante et un jours que
+          ça se prépare. Les déménageurs sont confirmés ; il reste à exiger leur preuve
+          d&rsquo;assurance responsabilité avant qu&rsquo;ils chargent quoi que ce soit —
+          sans assurance « pleine valeur », leur responsabilité légale plafonne à
+          0,60 $ la livre.</p>
+        <p class="corpstexte">L&rsquo;animal est en garde pour la journée, les documents
+          précieux voyagent dans l&rsquo;auto, et le condo reste à vous jusqu&rsquo;au 9.</p>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="rubrique">L&rsquo;horaire</div>
+        <div class="wligne" style="font-size:31px"><span><b>8 h — 9 h</b></span><span>les déménageurs</span></div>
+        <div class="wligne" style="font-size:31px"><span><b>après-midi</b></span><span>transfert Bell</span></div>
+        <div style="font-size:26px; font-weight:700; padding:10px 0 0">Commande BLH7BJQT</div>
+
+        <div class="rubrique" style="margin-top:20px">Préparé pour aujourd&rsquo;hui</div>
+        <ul class="items">
+          <li class="faite"><b class="qui">✓</b><span>Garde de l&rsquo;animal</span></li>
+          <li class="faite"><b class="qui">✓</b><span>Documents précieux et disques dans l&rsquo;auto</span></li>
+          <li class="faite"><b class="qui">✓</b><span>Stationnement du camion au condo</span></li>
+          <li class="faite"><b class="qui">✓</b><span>Boîte « premiers jours »</span></li>
+        </ul>
+      </section>
+
+      <div class="filet"></div>
+
+      <section class="col">
+        <div class="encadre" style="border-width:8px; padding:10px 14px">
+          <div class="wtitre">Le déménagement</div>
+          <div class="gros" style="font-size:74px; line-height:1.12">c&rsquo;est<br>aujourd&rsquo;hui</div>
+          <div class="trame-25" style="height:4px; margin:10px 0"></div>
+          <div class="fin">dernier matin rue Fraser</div>
+        </div>
+        <div class="widget" style="border-top:4px solid #000; margin-top:16px">
+          <div class="wtitre">Le soleil se couche à</div>
+          <div class="wvaleur">18&nbsp;h&nbsp;25</div>
+          <div class="wnote">Neuf heures et demie pour vider et remplir.</div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Et dans la ville, aujourd&rsquo;hui</div>
+          <div class="wvaleur petit">Collecte des <b>encombrants</b>, secteur Sud — une des deux de l&rsquo;année. Ce qui ne monte pas peut rester au chemin.</div>
+        </div>
+        <div class="widget">
+          <div class="wtitre">Demain</div>
+          <div class="wvaleur petit">LUSINE livre le lit. Jeudi, première collecte : bac bleu et bac brun.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="pied"><span>Imprimé à 6 h 05</span><span>House OS — dernière édition rue Fraser</span><span>Pile 72 %</span></div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>La règle du plancher</h3><p>Un compte à rebours qui arrive à zéro prend la manchette, point — l'éditorialiste n'a pas le droit de lui préférer la lune. Même chose pour un retard de plus de N jours et pour une échéance ferme (notaire, livraison payée).</p></div>
+    <div class="note ok"><h3>Le bon widget</h3><p>« Coucher du soleil à 18 h 25 » serait de la décoration un mardi ordinaire. Aujourd'hui c'est une consigne. Le score de pertinence ne dépend pas que de la rareté du fait, mais de <b>ce qui se passe ce jour-là</b>.</p></div>
+  </div>
+</figure>
+
+<div class="section-titre">La règle de bascule</div>
+<p class="section-chapeau">Une seule mise en page, un seul budget. Les widgets
+<b>rétrécissent avant de disparaître</b> : le tableau du ciel devient une phrase, puis
+une demi-phrase. Ce qui part vraiment, c'est la <b>manchette</b> — et c'est elle, pas
+la place, qui fixe les rangs. Les nombres ci-dessous sont ceux mesurés sur les six
+maquettes, pas des estimations : trois colonnes tiennent environ neuf items chacune.</p>
+
+<table class="banque">
+  <tr><th>Tâches dues</th><th>Manchette</th><th>Colonne du milieu</th><th>Colonne de droite</th><th>Widgets</th></tr>
+  <tr><td class="fam">0</td><td>Une chronique : le ciel, la saison, ou la maison elle-même</td><td>Le ciel en tableau + 2 widgets</td><td>Compte à rebours + 3 widgets</td><td class="rare">7</td></tr>
+  <tr><td class="fam">1–2</td><td>La tâche — <i>ou</i> un widget assez rare pour la voler</td><td>La semaine + 2 widgets</td><td>Compte à rebours + 2 widgets</td><td class="rare">4–5</td></tr>
+  <tr><td class="fam">3–5</td><td>La tâche qui porte du sens, corps raccourci</td><td>La liste du jour + 1 widget</td><td>Compte à rebours + 3 widgets courts</td><td class="rare">4</td></tr>
+  <tr><td class="fam">6–9</td><td>Titre court, sans lettrine ni chronique</td><td>La liste, sur deux colonnes</td><td>Compte à rebours + 2 widgets</td><td class="rare">2–3</td></tr>
+  <tr><td class="fam">10 et +</td><td>Un sommaire en bande inversée</td><td colspan="2">La liste groupée par rubrique, sur les trois colonnes</td><td class="rare">3, en bande de pied</td></tr>
+  <tr><td class="fam">événement</td><td colspan="3">Le compte à rebours à zéro, l'échéance ferme ou le retard grave prennent la manchette quoi qu'il arrive</td><td class="rare">1, actionnable</td></tr>
+</table>
+
+<div class="notes" style="margin-top:22px">
+  <div class="note ok"><h3>Comment un widget gagne sa place</h3><p>Score = <b>rareté</b> (combien de fois par année il peut paraître) × <b>fraîcheur</b> (depuis quand il n'a pas paru) × <b>pertinence du jour</b> (est-ce qu'il change quelque chose à aujourd'hui). Les widgets se classent, le budget coupe la liste, et un widget sorti hier est pénalisé — c'est ce qui crée la surprise.</p></div>
+  <div class="note cout"><h3>Le plancher, non négociable</h3><p>Une tâche en retard de plus de trois jours, une échéance ferme (notaire, livraison payée, date légale) ou un compte à rebours à zéro ne peuvent jamais être relégués sous un widget. Sans ce plancher, le jour où la lune passe devant « remettre les clés », l'écran perd sa crédibilité pour de bon.</p></div>
+  <div class="note futur"><h3>Ce que l'éditorialiste écrit vraiment</h3><p>Le LLM n'invente aucun fait : il reçoit les faits classés et écrit le surtitre, la manchette, le chapeau et les deux paragraphes de corps. Tout le reste est du gabarit. Un appel par édition, avec mémoire des sept derniers jours pour ne pas radoter, et repli en gabarit si l'API ne répond pas.</p></div>
+</div>
+
+<div class="section-titre">Le fonds de tiroir</div>
+<p class="section-chapeau">Les petites choses vraies dans lesquelles l'éditorialiste
+pige. Aucune n'a besoin d'un service externe : le ciel se calcule, les normales
+climatiques sont des constantes, et le reste vit déjà dans le journal de complétion.</p>
+
+<table class="banque">
+  <tr><th>Famille</th><th>Ce qu'il dit</th><th>Source</th><th>Rareté</th></tr>
+
+  <tr><td class="fam" rowspan="7">Le ciel</td><td>Lever, coucher, durée du jour</td><td>calcul local (latitude, longitude)</td><td class="rare">tous les jours</td></tr>
+  <tr><td>« On perd trois minutes par jour » — et le jour où ça s'inverse</td><td>calcul local</td><td class="rare">tous les jours</td></tr>
+  <tr><td>Phase de la lune ; pleine ou nouvelle ce soir</td><td>calcul local</td><td class="rare">25×/an</td></tr>
+  <tr><td>Équinoxe ou solstice</td><td>calcul local</td><td class="rare">4×/an</td></tr>
+  <tr><td>Ce soir, la nuit devient plus longue que le jour</td><td>calcul local</td><td class="rare">2×/an</td></tr>
+  <tr><td>Changement d'heure dans N jours</td><td>fuseau</td><td class="rare">2×/an</td></tr>
+  <tr><td>« Il fera noir à 18 h 25 » — quand la journée est physique</td><td>calcul + tâches du jour</td><td class="rare">contextuel</td></tr>
+
+  <tr><td class="fam" rowspan="5">Le climat</td><td>Premier gel attendu, première neige attendue</td><td>normales 1991-2020</td><td class="rare">fenêtre saisonnière</td></tr>
+  <tr><td>Dernière journée à 20° de l'année (probable)</td><td>normales + prévisions</td><td class="rare">1×/an</td></tr>
+  <tr><td>« Il a fait 28° ce jour-là l'an dernier »</td><td>table météo, déjà en base</td><td class="rare">si l'écart est notable</td></tr>
+  <tr><td>Le mois le plus sec ou le plus pluvieux depuis qu'on mesure</td><td>table météo</td><td class="rare">quelques fois/an</td></tr>
+  <tr><td>Alerte de gel cette nuit → « rentrer les plantes »</td><td>prévisions</td><td class="rare">contextuel</td></tr>
+
+  <tr><td class="fam" rowspan="7">La maison</td><td>Ce jour-là, l'an dernier</td><td>journal de complétion</td><td class="rare">dès la 2<sup>e</sup> année</td></tr>
+  <tr><td>La série en cours sans rien manquer, et le record</td><td>journal de complétion</td><td class="rare">tous les jours</td></tr>
+  <tr><td>« 27 séances de boîtes depuis le 26 août »</td><td>journal de complétion</td><td class="rare">par tâche récurrente</td></tr>
+  <tr><td>Le plus vieil équipement de la maison, et son prochain entretien</td><td>équipements</td><td class="rare">quelques fois/an</td></tr>
+  <tr><td>La zone la plus négligée</td><td>occurrences par zone</td><td class="rare">quelques fois/an</td></tr>
+  <tr><td>Ce que la maison a coûté cette année, à date</td><td>journal (coûts) + enveloppes</td><td class="rare">mensuel</td></tr>
+  <tr><td>Anniversaire d'emménagement, de la toiture, du chauffe-eau</td><td>équipements, comptes à rebours</td><td class="rare">quelques fois/an</td></tr>
+
+  <tr><td class="fam" rowspan="4">Le calendrier</td><td>Le compte à rebours actif</td><td>comptes à rebours</td><td class="rare">tous les jours</td></tr>
+  <tr><td>Ça s'en vient — les échéances de 7 à 30 jours</td><td>occurrences</td><td class="rare">tous les jours</td></tr>
+  <tr><td>Les travaux de la saison</td><td>fenêtres saisonnières du moteur</td><td class="rare">par saison</td></tr>
+  <tr><td>Une garantie ou un document qui expire</td><td>documents</td><td class="rare">quelques fois/an</td></tr>
+
+  <tr><td class="fam" rowspan="7">La ville</td><td>La prochaine collecte : quel bac, quel jour</td><td>PDF Récolo, analysé une fois l'an</td><td class="rare">hebdomadaire</td></tr>
+  <tr><td>Une collecte spéciale : encombrants, herbes et feuilles</td><td>même PDF</td><td class="rare">~8×/an</td></tr>
+  <tr><td>Un événement municipal aujourd'hui, ou cette semaine</td><td><code>villescjc.com/evenements</code> (grattage)</td><td class="rare">~2×/mois</td></tr>
+  <tr><td>Séance du conseil ce soir</td><td>événements + calendrier municipal</td><td class="rare">mensuel</td></tr>
+  <tr><td>Une nouvelle de la ville</td><td><code>villescjc.com/actualites</code> (grattage)</td><td class="rare">~1×/mois</td></tr>
+  <tr><td>Une règle municipale qui entre en vigueur</td><td>calendrier municipal (PDF annuel)</td><td class="rare">~8×/an</td></tr>
+  <tr><td>Horaire de l'écocentre, fermeture, changement de service</td><td>actualités</td><td class="rare">quelques fois/an</td></tr>
+
+  <tr><td class="fam" rowspan="3">Le hasard</td><td>Un dicton météo québécois</td><td>banque locale</td><td class="rare">bouche-trou</td></tr>
+  <tr><td>Fête, jour férié, journée nationale</td><td>table locale</td><td class="rare">~20×/an</td></tr>
+  <tr><td>Une phrase de la maison, écrite pour aujourd'hui</td><td>LLM</td><td class="rare">bouche-trou</td></tr>
+</table>
+
+<div class="notes" style="margin-top:22px">
+  <div class="note ok"><h3>Ce qui est gratuit</h3><p>Tout « Le ciel » se calcule en local à partir de la latitude et de la longitude déjà dans le <code>.env</code> — aucune dépendance, aucun appel réseau, et ça marche pour n'importe quel foyer qui installe House OS. Les normales climatiques sont quatre constantes par région.</p></div>
+  <div class="note cout"><h3>Ce qui demande de l'historique</h3><p>La famille « La maison » est la plus riche et la plus personnelle, et elle ne donne rien la première année. « Ce jour-là l'an dernier » commence à parler en septembre 2027. C'est un argument pour la bâtir tôt, pas tard.</p></div>
+  <div class="note futur"><h3>Ce qui manque au modèle</h3><p>Une catégorie ou étiquette sur la tâche (pour grouper les journées chargées), un flux externe pour les règles municipales, et une table de jours fériés québécois.</p></div>
+</div>
+
+<div class="section-titre">La ville — ce que j&rsquo;ai vérifié au curl</div>
+<p class="section-chapeau">Les trois sources municipales sont accessibles, et la plus
+utile des trois est aussi la plus robuste. Vérifié le 2026-09-20.</p>
+
+<table class="banque">
+  <tr><th>Source</th><th>Ce que ça donne</th><th>Comment</th><th>Solidité</th></tr>
+  <tr>
+    <td class="fam">Le calendrier des collectes</td>
+    <td>Toutes les collectes de l'année : déchets, organiques, recyclables, encombrants, herbes et feuilles — par secteur et par jour. <b>Et l'index des rues par secteur.</b></td>
+    <td><code>villescjc.com/storage/app/media/collectes/sainte-catherine-2026.pdf</code> (763 ko, HTTP 200 au curl). <code>pdftotext -bbox-layout</code> donne les positions ; les codes <code>DS/DN OS/ON RS/RN ES/EN FS/FN</code> s'alignent sur les colonnes de jours de la grille.</td>
+    <td class="rare">solide<br>(un PDF/an)</td>
+  </tr>
+  <tr>
+    <td class="fam">Les événements</td>
+    <td>Date, rubrique, titre, lieu, heures, lien. Six à venir au moment du relevé, dont trois dans la fenêtre du déménagement.</td>
+    <td><code>villescjc.com/evenements</code>, HTML rendu au serveur. Cartes <code>c-event-card</code> : <code>__date</code>, <code>__surtitle</code>, <code>__title</code>, <code>__info-text</code>.</td>
+    <td class="rare">fragile<br>(gabarit)</td>
+  </tr>
+  <tr>
+    <td class="fam">Les actualités</td>
+    <td>Rubrique (Vie municipale, Loisirs et culture, Sécurité publique…), titre, lien. La date n'est que sur la page de l'article.</td>
+    <td><code>villescjc.com/actualites</code>, cartes <code>c-publication-card</code> ; date dans <code>c-infos-above-cms-content__date</code> sur le détail.</td>
+    <td class="rare">fragile<br>(gabarit)</td>
+  </tr>
+</table>
+
+<div class="notes" style="margin-top:22px">
+  <div class="note ok"><h3>La trouvaille</h3><p>Le PDF des collectes contient l'index des rues par secteur, et <b>« de la Colline » est dans la colonne SECTEUR SUD DE LA RIVIÈRE</b>. Les codes du secteur Sud tombent le <b>jeudi</b>. Le secteur n'a donc pas à être deviné ni configuré à la main : il se lit dans la source. Toutes les collectes montrées dans les six maquettes viennent de cette lecture.</p></div>
+  <div class="note ok"><h3>Deux coïncidences que l'éditorialiste devrait attraper</h3><p>Le <b>6 octobre</b>, jour du camion, est aussi la collecte des <b>encombrants</b> du secteur Sud — une des rares de l'année. Et la première collecte ordinaire au 17 rue de la Colline tombe le <b>jeudi 8</b>, deux jours après l'emménagement. Aucune liste de tâches ne fera jamais ce rapprochement.</p></div>
+  <div class="note cout"><h3>Ce qui est fragile</h3><p>Aucun flux RSS, aucun JSON-LD, pas de <code>robots.txt</code> : les deux pages sont du grattage de gabarit, et une refonte du site casse l'extraction. À traiter comme un widget qui a le droit de manquer — jamais comme une source d'échéance. Un tirage par jour, User-Agent identifiable, <code>If-Modified-Since</code>.</p></div>
+  <div class="note futur"><h3>Volume réel</h3><p>Huit actualités en tout, étalées sur des mois : ce n'est pas un fil quotidien, c'est un <b>bouche-trou</b>. Exactement le rôle prévu — sortir le jour où il n'y a rien d'autre à dire. Les événements, eux, méritent « ça s'en vient » à part entière.</p></div>
+</div>
+
+</div><!-- /enveloppe -->
+
+<script>
+const racine = document.documentElement
+document.querySelectorAll('button.ctl[data-zoom]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.body.classList.remove('recul')
+    document.getElementById('recul').setAttribute('aria-pressed', 'false')
+    document.querySelectorAll('button.ctl[data-zoom]').forEach(o => o.setAttribute('aria-pressed', String(o === b)))
+    racine.style.setProperty('--zoom', b.dataset.zoom)
+  })
+})
+document.getElementById('recul').addEventListener('click', e => {
+  const actif = e.currentTarget.getAttribute('aria-pressed') === 'true'
+  e.currentTarget.setAttribute('aria-pressed', String(!actif))
+  document.body.classList.toggle('recul', !actif)
+  racine.style.setProperty('--zoom', actif ? '0.46' : '0.13')
+  document.querySelectorAll('button.ctl[data-zoom]').forEach(o =>
+    o.setAttribute('aria-pressed', String(actif && o.dataset.zoom === '0.46')))
+})
+document.getElementById('theme').addEventListener('click', e => {
+  const clair = racine.getAttribute('data-theme') === 'light'
+  racine.setAttribute('data-theme', clair ? 'dark' : 'light')
+  e.currentTarget.textContent = clair ? '☾' : '☀'
+})
+const saut = document.getElementById('saut')
+saut.innerHTML = '<option value="">Aller à…</option>'
+document.querySelectorAll('figure.maquette').forEach(f => {
+  const o = document.createElement('option')
+  o.value = f.id
+  o.textContent = f.querySelector('.numero').textContent + ' — ' + f.querySelector('h2').childNodes[0].textContent.trim()
+  saut.appendChild(o)
+})
+saut.addEventListener('change', () => {
+  if (saut.value) document.getElementById(saut.value).scrollIntoView({behavior:'smooth', block:'start'})
+})
+</script>
+</body>
+</html>

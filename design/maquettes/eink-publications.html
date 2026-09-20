@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="fr-CA" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La maison publie — trois formes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Nunito+Sans:ital,opsz,wght@0,6..12,300..1000;1,6..12,300..1000&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ——————————————————————————————————————————————————————————
+   Coquille de galerie — Kanagawa Wave / Lotus.
+   Les écrans e-ink sont en noir pur sur blanc pur ; les courriels
+   sont dans la palette « Cuisine chaleureuse » de l'app.
+   ————————————————————————————————————————————————————————— */
+:root{
+  --bg:#1f1f28; --panneau:#16161d; --surface:#2a2a37; --bord:#363646;
+  --texte:#dcd7ba; --doux:#c8c093; --muet:#727169;
+  --bleu:#7e9cd8; --bleuclair:#7fb4ca; --vert:#98bb6c; --jaune:#e6c384;
+  --orange:#ffa066; --violet:#957fb8; --aqua:#7aa89f; --rouge:#ff5d62;
+  --zoom:0.46;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#faf7ed; --panneau:#f2ecbc; --surface:#e9e2c4; --bord:#d5cda3;
+    --texte:#545464; --doux:#43436c; --muet:#8a8980;
+    --bleu:#4d699b; --bleuclair:#597b75; --vert:#6f894e; --jaune:#77713f;
+    --orange:#cc6d00; --violet:#624c83; --aqua:#597b75; --rouge:#c84053;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#faf7ed; --panneau:#f2ecbc; --surface:#e9e2c4; --bord:#d5cda3;
+  --texte:#545464; --doux:#43436c; --muet:#8a8980;
+  --bleu:#4d699b; --bleuclair:#597b75; --vert:#6f894e; --jaune:#77713f;
+  --orange:#cc6d00; --violet:#624c83; --aqua:#597b75; --rouge:#c84053;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--texte); font-family:"Nunito Sans",system-ui,sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased}
+a{color:var(--bleu)}
+.enveloppe{max-width:1180px; margin:0 auto; padding:0 24px 120px}
+
+.barre{position:sticky; top:0; z-index:50; background:color-mix(in srgb, var(--panneau) 92%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--bord)}
+.barre-in{max-width:1180px; margin:0 auto; padding:12px 24px; display:flex; gap:18px; align-items:center; flex-wrap:wrap}
+.marque{font-family:Fraunces,serif; font-weight:800; font-size:19px; color:var(--doux); letter-spacing:-.01em}
+.marque span{color:var(--muet); font-weight:400; font-family:"Nunito Sans",sans-serif; font-size:14px; letter-spacing:0}
+.controles{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+button.ctl{background:var(--surface); color:var(--texte); border:1px solid var(--bord); border-radius:8px; padding:6px 12px; font:inherit; font-size:13px; cursor:pointer}
+button.ctl:hover{border-color:var(--bleu); color:var(--bleu)}
+button.ctl[aria-pressed="true"]{background:var(--bleu); border-color:var(--bleu); color:var(--panneau); font-weight:700}
+select.ctl{background:var(--surface); color:var(--texte); border:1px solid var(--bord); border-radius:8px; padding:6px 10px; font:inherit; font-size:13px}
+
+header.intro{padding:60px 0 28px; max-width:820px}
+header.intro h1{font-family:Fraunces,serif; font-size:clamp(34px,5vw,52px); line-height:1.05; margin:0 0 18px; color:var(--doux); font-weight:800; letter-spacing:-.02em}
+header.intro p{margin:0 0 14px}
+header.intro .rappel{color:var(--muet); font-size:14.5px}
+kbd{background:var(--surface); border:1px solid var(--bord); border-bottom-width:2px; border-radius:5px; padding:1px 6px; font-size:12.5px; font-family:"JetBrains Mono",monospace}
+code{font-family:"JetBrains Mono",monospace; font-size:.92em; color:var(--doux)}
+
+.section-titre{margin:78px 0 6px; padding-top:24px; border-top:1px solid var(--bord); color:var(--bleuclair); font-size:13px; text-transform:uppercase; letter-spacing:.16em; font-weight:800}
+.section-chapeau{margin:0 0 10px; max-width:76ch; color:var(--texte); font-size:15.5px}
+figure.maquette{margin:0 0 56px; scroll-margin-top:70px}
+.cartouche{display:flex; gap:16px; align-items:flex-start; margin-bottom:14px}
+.numero{flex:none; width:52px; height:44px; border-radius:11px; display:grid; place-items:center; background:var(--surface); border:1px solid var(--bord); color:var(--bleu); font-family:Fraunces,serif; font-weight:800; font-size:18px}
+.cartouche h2{margin:0; font-family:Fraunces,serif; font-size:26px; font-weight:800; color:var(--doux); line-height:1.15; letter-spacing:-.01em}
+.cartouche .pitch{margin:4px 0 0; font-size:15.5px; max-width:76ch}
+
+.cadre{width:calc(1872px * var(--zoom)); height:calc(1404px * var(--zoom)); overflow:hidden; border-radius:4px;
+  box-shadow:0 0 0 calc(14px * var(--zoom)) #d9d7d0, 0 0 0 calc(16px * var(--zoom)) #8d8b85, 0 24px 60px rgba(0,0,0,.45);
+  margin:0 0 30px calc(16px * var(--zoom))}
+.ecran{width:1872px; height:1404px; transform:scale(var(--zoom)); transform-origin:top left; background:#fff; color:#000; position:relative; overflow:hidden; font-family:"Nunito Sans",sans-serif; font-weight:600; font-variant-numeric:tabular-nums}
+body.recul .ecran{filter:blur(1.1px) contrast(1.15)}
+
+.notes{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:-8px}
+.note{background:var(--panneau); border:1px solid var(--bord); border-radius:12px; padding:14px 16px}
+.note h3{margin:0 0 6px; font-size:11.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--muet); font-weight:800}
+.note p{margin:0; font-size:14px; line-height:1.55}
+.note.ok h3{color:var(--vert)} .note.cout h3{color:var(--orange)} .note.futur h3{color:var(--violet)}
+
+/* — grammaire 1-bit — */
+.ecran .serif{font-family:Fraunces,serif}
+.ecran .mono{font-family:"JetBrains Mono",monospace}
+.inv{background:#000; color:#fff}
+.trame-50{background-image:repeating-conic-gradient(#000 0% 25%, #fff 0% 50%); background-size:8px 8px}
+.trame-25{background-image:repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 8px)}
+.trame-12{background-image:repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 16px)}
+.trame-pois{background-image:radial-gradient(#000 1.8px, #fff 1.9px); background-size:10px 10px}
+.filet{background:#000}
+.etiquette{font-size:30px; font-weight:900; text-transform:uppercase; letter-spacing:.14em}
+.rubrique{font-size:26px; font-weight:900; text-transform:uppercase; letter-spacing:.2em; border-bottom:4px solid #000; padding-bottom:6px; margin-bottom:12px}
+
+/* ——————————————————————————————————————————————————————————
+   Courriels — palette « Cuisine chaleureuse » de l'app
+   (web/src/index.css). Le client de courriel est du décor.
+   ————————————————————————————————————————————————————————— */
+.client{width:100%; max-width:760px; margin:0 0 26px; border-radius:16px; overflow:hidden; border:1px solid var(--bord); box-shadow:0 22px 50px rgba(0,0,0,.35)}
+.client.tel{max-width:400px}
+.client-chrome{background:#e8e3d4; color:#545464; padding:14px 20px; border-bottom:1px solid #d5cda3; font-size:14px}
+.client-sujet{font-family:Fraunces,serif; font-size:19px; font-weight:800; color:#43436c; margin-bottom:4px}
+.client-de{display:flex; gap:10px; align-items:center; color:#8a8980; font-size:13.5px}
+.client-de b{color:#545464; font-weight:700}
+.client-pastille{width:30px; height:30px; border-radius:999px; background:#f3e6cf; color:#cc6d00; display:grid; place-items:center; font-weight:800; font-size:14px; flex:none}
+.courriel{background:#f2ecbc; color:#545464; padding:30px 26px 34px; font-family:"Nunito Sans",sans-serif}
+.courriel .feuille{background:#faf7ed; border-radius:14px; padding:30px 32px}
+.courriel h1,.courriel h2,.courriel h3{font-family:Fraunces,serif; color:#43436c; margin:0}
+.courriel p{margin:0 0 15px; font-size:16.5px; line-height:1.62}
+.courriel .pied{color:#8a8980; font-size:12.5px; text-align:center; padding-top:18px; line-height:1.6}
+.courriel .pied a{color:#77713f}
+</style>
+</head>
+<body>
+
+<div class="barre">
+  <div class="barre-in">
+    <div class="marque">La maison publie <span>· 9 formes · une, almanach, lettre du matin</span></div>
+    <div class="controles">
+      <select class="ctl" id="saut" aria-label="Aller à une maquette"></select>
+      <button class="ctl" data-zoom="0.30">30 %</button>
+      <button class="ctl" data-zoom="0.46" aria-pressed="true">46 %</button>
+      <button class="ctl" data-zoom="0.62">62 %</button>
+      <button class="ctl" data-zoom="1">1:1</button>
+      <button class="ctl" id="recul" aria-pressed="false" title="Simule le coup d'œil à 2–3 m.">Test du recul</button>
+      <button class="ctl" id="theme">☾</button>
+    </div>
+  </div>
+</div>
+
+<div class="enveloppe">
+
+<header class="intro">
+  <h1>La maison publie</h1>
+  <p>Trois formes retenues, trois variantes chacune. Ce qu'elles ont en commun :
+  l'écran n'est pas un miroir de l'app. Il <i>édite</i> — il choisit quoi mettre en
+  manchette, il connaît la saison, il écrit des phrases. L'app reste l'endroit où on
+  coche ; la publication est l'endroit où on comprend.</p>
+  <p>Les données sont celles de la prod au <b>dimanche 20 septembre 2026</b>, prises
+  telles quelles : une seule occurrence due aujourd'hui (« Boîtes ! », rollover
+  quotidien), la signature de l'hypothèque mercredi chez Boilard Renaud, les tréteaux
+  le 2 octobre à 13 h 30, le filtre du Jura le 1<sup>er</sup>, les gouttières et les
+  robinets extérieurs dans les fenêtres d'octobre, le camion dans 16 dodos. C'est
+  justement une <b>journée maigre</b> : elle montre mieux que n'importe quelle journée
+  chargée ce que la forme éditoriale sait faire d'un jour où la liste dit presque rien.</p>
+  <p class="rappel"><kbd>Test du recul</kbd> pour le coup d'œil depuis le corridor.
+  Les trois derniers ne sont pas des écrans : ce sont des courriels, montrés dans un
+  client, à l'échelle réelle.</p>
+</header>
+
+<div class="section-titre">A — La une</div>
+<p class="section-chapeau">Le mur comme quotidien du matin : une hiérarchie vraie
+(une chose domine, le reste est brève), des filets fins, des colonnes. Les trois
+variantes se distinguent par la <b>densité</b> : combien de choses le journal accepte
+de dire à la fois.</p>
+
+<!-- ═══════════════════ A1 ═══════════════════ -->
+<figure class="maquette" id="a1">
+  <div class="cartouche">
+    <div class="numero">A1</div>
+    <div>
+      <h2>La broadsheet</h2>
+      <p class="pitch">La forme complète : bloc-titre, manchette avec lettrine, trois
+      colonnes de brèves, encadré du compte à rebours, la semaine en tableau. C'est la
+      #2 d'hier, resserrée sur les vraies données et rééquilibrée.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran" style="padding:0 54px; display:flex; flex-direction:column">
+
+    <div style="border-bottom:6px solid #000; padding-top:34px">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; font-size:25px; font-weight:800; text-transform:uppercase; letter-spacing:.18em; padding-bottom:8px">
+        <span>Édition du matin</span><span>Rue Fraser, Québec</span><span>N<sup>o</sup> 412</span>
+      </div>
+      <div style="border-top:2px solid #000; border-bottom:2px solid #000; padding:8px 0 14px; text-align:center">
+        <div class="serif" style="font-size:142px; font-weight:900; line-height:.95; letter-spacing:-.02em">LA MAISON</div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:29px; font-weight:700; padding:10px 0 12px">
+        <span>dimanche 20 septembre 2026</span>
+        <span style="letter-spacing:.05em">Une seule chose au programme</span>
+        <span>Dégagé · 17 °C · max 19 à 15 h</span>
+      </div>
+    </div>
+
+    <div style="flex:1; min-height:0; display:grid; grid-template-columns:1.6fr 3px 1fr 3px 1fr; padding-top:24px">
+
+      <article style="padding-right:36px; min-height:0; overflow:hidden">
+        <div style="font-size:27px; font-weight:900; text-transform:uppercase; letter-spacing:.2em; padding-bottom:4px">Onzième dimanche d'emballage</div>
+        <h2 class="serif" style="font-size:88px; font-weight:900; line-height:.97; margin:0 0 4px; letter-spacing:-.02em">Les boîtes, encore, et c'est tout</h2>
+        <div style="font-size:30px; font-weight:700; font-style:italic; border-bottom:2px solid #000; padding-bottom:12px; margin-bottom:14px">Tâche quotidienne · rollover activé · reportée d'hier</div>
+        <p style="font-size:34px; line-height:1.3; margin:0 0 10px; font-weight:600; text-align:justify; hyphens:auto">
+          <span class="serif" style="float:left; font-size:128px; font-weight:900; line-height:.76; padding:6px 14px 0 0">S</span>eize dodos avant le camion, et la seule chose que la
+          maison demande aujourd'hui est celle qu'elle demande tous les jours depuis
+          le 26 août. Le rollover fait glisser l'occurrence au lieu de l'empiler :
+          il n'y a donc pas onze retards, il y en a un, toujours le même.
+        </p>
+        <p style="font-size:34px; line-height:1.3; margin:0; font-weight:600; text-align:justify; hyphens:auto">
+          La fenêtre est bonne — 19 degrés cet après-midi, et c'est la dernière fin
+          de semaine complète avant la signature de mercredi.
+        </p>
+        <div class="trame-25" style="height:5px; margin:14px 0"></div>
+        <div style="font-size:27px; font-weight:900; text-transform:uppercase; letter-spacing:.2em; padding-bottom:6px">Rien d'autre n'est dû aujourd'hui</div>
+        <p style="font-size:30px; line-height:1.26; margin:0; font-weight:600">Le filtre du Jura tient jusqu'au 1<sup>er</sup>. Les draps, jusqu'au 26. Le plan de migration du homelab est à Alain pour le 28.</p>
+      </article>
+
+      <div class="filet"></div>
+
+      <section style="padding:0 28px; min-height:0; overflow:hidden">
+        <div class="rubrique">Cette semaine</div>
+        <table style="width:100%; border-collapse:collapse; font-size:29px; font-weight:700">
+          <tr><td style="padding:6px 16px 6px 0; width:112px; white-space:nowrap">lun 21</td><td>Plier les vêtements</td></tr>
+          <tr><td style="padding:6px 16px 6px 0; border-top:2px solid #000; white-space:nowrap">mar 22</td><td style="border-top:2px solid #000">Prêteur — adresse du dossier</td></tr>
+          <tr><td style="padding:6px 16px 6px 0; border-top:2px solid #000; white-space:nowrap"><b>mer 23</b></td><td style="border-top:2px solid #000"><b>Signature de l'hypothèque</b></td></tr>
+          <tr><td style="padding:6px 16px 6px 0; border-top:2px solid #000; white-space:nowrap">sam 26</td><td style="border-top:2px solid #000">Changer les draps</td></tr>
+          <tr><td style="padding:6px 16px 6px 0; border-top:2px solid #000; white-space:nowrap">lun 28</td><td style="border-top:2px solid #000">Homelab — migration</td></tr>
+        </table>
+
+        <div class="trame-50" style="height:6px; margin:18px 0"></div>
+
+        <div class="rubrique">Le carnet</div>
+        <p style="font-size:30px; line-height:1.28; margin:0 0 12px; font-weight:600"><b>Mercredi</b> — signature de la nouvelle hypothèque avec M<sup>e</sup> Nonvignon Armand Vigan.</p>
+        <p style="font-size:30px; line-height:1.28; margin:0; font-weight:600"><b>2 octobre, 13 h 30</b> — tréteaux à prendre au 54, Marie-de-l'Incarnation.</p>
+      </section>
+
+      <div class="filet"></div>
+
+      <section style="padding-left:28px; min-height:0; overflow:hidden; display:flex; flex-direction:column">
+        <div style="border:6px solid #000; padding:14px 16px; text-align:center">
+          <div style="font-size:25px; font-weight:900; text-transform:uppercase; letter-spacing:.16em">Le camion arrive dans</div>
+          <div class="serif" style="font-size:130px; font-weight:900; line-height:.95">16</div>
+          <div style="font-size:33px; font-weight:800; margin-top:-6px">dodos</div>
+          <div class="trame-25" style="height:4px; margin:12px 0"></div>
+          <div style="font-size:26px; font-weight:700; line-height:1.24">6 octobre, 8 h à 9 h<br>17 rue de la Colline</div>
+        </div>
+
+        <div class="rubrique" style="margin-top:20px">Ça s'en vient</div>
+        <ul style="list-style:none; margin:0; padding:0; font-size:29px; font-weight:700; line-height:1.2">
+          <li style="padding:8px 0; border-bottom:2px solid #000">1<sup>er</sup> oct — filtre du Jura</li>
+          <li style="padding:8px 0; border-bottom:2px solid #000">5 oct — solde Tanguay, 7 128 $</li>
+          <li style="padding:8px 0; border-bottom:2px solid #000">15 oct — robinets extérieurs</li>
+          <li style="padding:8px 0; border-bottom:2px solid #000">31 oct — gouttières</li>
+        </ul>
+
+        <div style="margin-top:auto; border-top:4px solid #000; padding-top:12px; font-size:27px; font-style:italic; font-weight:600; line-height:1.24">« Une boîte par jour, c'est encore une maison qui tient debout. »</div>
+      </section>
+    </div>
+
+    <div style="border-top:3px solid #000; display:flex; justify-content:space-between; font-size:23px; font-weight:700; padding:10px 0 12px">
+      <span>Imprimé à 14 h 30</span><span>House OS — tirage d'un exemplaire</span><span>Pile 74 %</span>
+    </div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>Une journée à une seule tâche ne fait pas un écran vide : la manchette raconte <i>pourquoi</i> c'est la seule, et les colonnes remplissent avec ce qui est vrai autour. C'est la promesse de la forme.</p></div>
+    <div class="note cout"><h3>Ce que ça demande</h3><p>Un éditeur : choisir la manchette (la plus en retard ? la plus lourde ? celle du compte à rebours ?) et écrire deux paragraphes de corps. Le titre d'humeur passe de deux lignes à ~60 mots — c'est un appel LLM par édition, pas par rendu.</p></div>
+    <div class="note futur"><h3>Placeholders</h3><p>« Onzième dimanche d'emballage » demande de compter les complétions d'une tâche récurrente — le journal l'a. Le dicton de pied demande une banque.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ A2 ═══════════════════ -->
+<figure class="maquette" id="a2">
+  <div class="cartouche">
+    <div class="numero">A2</div>
+    <div>
+      <h2>La manchette seule</h2>
+      <p class="pitch">Le journal réduit à son geste : une manchette qui prend la
+      moitié du mur, un chapeau, et un ourlet de trois brèves. Si le quotidien n'a
+      qu'une chose à dire, il la dit gros. C'est la variante qui survit au corridor.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran" style="padding:52px 64px; display:flex; flex-direction:column">
+
+    <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:3px solid #000; padding-bottom:12px; font-size:28px; font-weight:800; text-transform:uppercase; letter-spacing:.2em">
+      <span class="serif" style="font-size:44px; font-weight:900; letter-spacing:.06em">LA MAISON</span>
+      <span>dimanche 20 septembre 2026</span>
+      <span>Édition du matin</span>
+    </div>
+
+    <div style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; padding:20px 0">
+      <div style="font-size:34px; font-weight:900; text-transform:uppercase; letter-spacing:.22em; padding-bottom:16px">Onzième dimanche d'emballage</div>
+      <h1 class="serif" style="font-size:232px; font-weight:900; line-height:.88; margin:0; letter-spacing:-.035em">Les boîtes,<br>encore.</h1>
+      <div class="trame-50" style="height:8px; margin:34px 0 28px"></div>
+      <p style="font-size:54px; line-height:1.24; margin:0; font-weight:600; max-width:1500px">
+        C'est la seule chose due aujourd'hui, et c'est la même depuis le 26 août.
+        <b>Dix-neuf degrés cet après-midi</b> — la dernière fin de semaine complète
+        avant la signature de mercredi.
+      </p>
+    </div>
+
+    <div style="border-top:5px solid #000; padding-top:22px; display:grid; grid-template-columns:1fr 3px 1fr 3px 1fr; gap:0">
+      <div style="padding-right:34px">
+        <div style="font-size:25px; font-weight:900; text-transform:uppercase; letter-spacing:.2em">Le temps</div>
+        <div style="display:flex; align-items:baseline; gap:18px; margin-top:6px">
+          <span class="serif" style="font-size:82px; font-weight:900; line-height:1">17°</span>
+          <span style="font-size:32px; font-weight:700">9 → 19, dégagé</span>
+        </div>
+      </div>
+      <div class="filet"></div>
+      <div style="padding:0 34px">
+        <div style="font-size:25px; font-weight:900; text-transform:uppercase; letter-spacing:.2em">Mercredi</div>
+        <div style="font-size:42px; font-weight:800; line-height:1.12; margin-top:8px">Signature de<br>la nouvelle hypothèque</div>
+      </div>
+      <div class="filet"></div>
+      <div style="padding-left:34px; text-align:right">
+        <div style="font-size:25px; font-weight:900; text-transform:uppercase; letter-spacing:.2em">Le camion</div>
+        <div class="serif" style="font-size:82px; font-weight:900; line-height:1; margin-top:4px">16 dodos</div>
+      </div>
+    </div>
+
+    <div style="border-top:3px solid #000; margin-top:20px; padding-top:12px; display:flex; justify-content:space-between; font-size:24px; font-weight:700">
+      <span>Imprimé à 14 h 30</span><span>House OS</span><span>Pile 74 %</span>
+    </div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>La manchette est lisible du bout du corridor, et l'ourlet répond aux trois questions du matin sans rien ajouter. Une journée à une tâche devient une <i>bonne</i> journée pour cette forme au lieu d'un écran maigre.</p></div>
+    <div class="note cout"><h3>Ce qui accroche</h3><p>À cinq ou six tâches, la manchette devient arbitraire et l'écran cache le reste. Il faudrait basculer sur A1 quand la journée se remplit — donc deux gabarits, et une règle qui choisit. Ce n'est pas rien, mais c'est une règle C# testable, pas un modèle de données.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ A3 ═══════════════════ -->
+<figure class="maquette" id="a3">
+  <div class="cartouche">
+    <div class="numero">A3</div>
+    <div>
+      <h2>Le cahier</h2>
+      <p class="pitch">La page intérieure : six rubriques en colonnes minces —
+      aujourd'hui, le temps, immobilier, entretien, municipal, le carnet. Aucune
+      manchette, aucune hiérarchie : de la matière. C'est un écran de <i>bureau</i>,
+      pas de corridor — et il est rempli presque entièrement de vraies données de prod
+      qui ne sortent nulle part aujourd'hui.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran" style="padding:0 46px; display:flex; flex-direction:column">
+
+    <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:5px solid #000; padding:30px 0 12px">
+      <div class="serif" style="font-size:58px; font-weight:900; letter-spacing:-.01em">La maison <span style="font-size:32px; font-weight:700; letter-spacing:.2em; text-transform:uppercase">— cahier B</span></div>
+      <div style="font-size:30px; font-weight:700">dimanche 20 septembre 2026 · 17 °C · 16 dodos</div>
+    </div>
+
+    <div style="flex:1; min-height:0; display:grid; grid-template-columns:repeat(6, 1fr); column-gap:0; padding-top:20px">
+
+      <section style="padding:0 22px 0 0; border-right:3px solid #000; overflow:hidden">
+        <div class="rubrique" style="font-size:23px; letter-spacing:.16em">Aujourd'hui</div>
+        <div class="inv" style="padding:14px 16px; margin-bottom:14px">
+          <div style="font-size:20px; font-weight:900; letter-spacing:.14em; text-transform:uppercase">Reporté d'hier</div>
+          <div style="font-size:38px; font-weight:800; line-height:1.08; margin-top:6px">Boîtes !</div>
+        </div>
+        <p style="font-size:25px; line-height:1.3; margin:0 0 14px; font-weight:600">Quotidienne, rollover. Onzième dimanche d'affilée. Salle de bain et bureau restent à faire.</p>
+        <div class="trame-12" style="height:4px; margin:14px 0"></div>
+        <p style="font-size:25px; line-height:1.3; margin:0; font-weight:600"><b>Rien d'autre n'est dû.</b> Le filtre du Jura tient jusqu'au 1<sup>er</sup>, les draps jusqu'au 26.</p>
+      </section>
+
+      <section style="padding:0 22px; border-right:3px solid #000; overflow:hidden">
+        <div class="rubrique" style="font-size:23px; letter-spacing:.16em">Le temps</div>
+        <div class="serif" style="font-size:92px; font-weight:900; line-height:.95">17°</div>
+        <div style="font-size:30px; font-weight:800; margin-bottom:12px">9 → 19, dégagé</div>
+        <p style="font-size:25px; line-height:1.3; margin:0 0 12px; font-weight:600">Vent d'ouest 12 km/h. Max à 15 h. 10 % de pluie en soirée.</p>
+        <div class="trame-12" style="height:4px; margin:12px 0"></div>
+        <p style="font-size:25px; line-height:1.3; margin:0; font-weight:600"><b>Belle journée pour être dehors.</b> Premier gel normalement autour du 8 octobre.</p>
+      </section>
+
+      <section style="padding:0 22px; border-right:3px solid #000; overflow:hidden">
+        <div class="rubrique" style="font-size:23px; letter-spacing:.16em">Immobilier</div>
+        <ul style="list-style:none; margin:0; padding:0; font-size:25px; font-weight:600; line-height:1.28">
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>mer 23</b> — signature de l'hypothèque, M<sup>e</sup> Vigan</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>5 oct</b> — achat de la maison, Boilard Renaud</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>5 oct</b> — solde Tanguay 7 128,38 $, 72 h avant la livraison</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>7 oct</b> — LUSINE, lit et fauteuil (SO-948157)</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>9 oct</b> — remise des clés du condo</li>
+        </ul>
+      </section>
+
+      <section style="padding:0 22px; border-right:3px solid #000; overflow:hidden">
+        <div class="rubrique" style="font-size:23px; letter-spacing:.16em">Entretien</div>
+        <ul style="list-style:none; margin:0; padding:0; font-size:25px; font-weight:600; line-height:1.28">
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>1<sup>er</sup> oct</b> — filtre du Jura A1</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>15 oct</b> — robinets extérieurs, vidanger avant le gel</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>15 oct</b> — coupe-froid au silicone</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>31 oct</b> — gouttières (toiture)</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>15 nov</b> — cuvette sous le chauffe-eau</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>15 nov</b> — les deux foyers au propane</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>30 nov</b> — ocre ferreuse et drain français</li>
+        </ul>
+      </section>
+
+      <section style="padding:0 22px; border-right:3px solid #000; overflow:hidden">
+        <div class="rubrique" style="font-size:23px; letter-spacing:.16em">Municipal</div>
+        <p style="font-size:25px; line-height:1.3; margin:0 0 12px; font-weight:600"><b>Stationnement hivernal</b> — interdit dans les rues du 1<sup>er</sup> novembre au 15 avril, 23 h à 7 h. Trois semaines après l'arrivée.</p>
+        <div class="trame-12" style="height:4px; margin:12px 0"></div>
+        <p style="font-size:25px; line-height:1.3; margin:0 0 12px; font-weight:600"><b>Écocentre</b> — 150, Clément-Paquet. Mardi au samedi, 8 h à 16 h 45. Gratuit sur preuve de résidence, 3 m³ par visite.</p>
+        <div class="trame-12" style="height:4px; margin:12px 0"></div>
+        <p style="font-size:25px; line-height:1.3; margin:0; font-weight:600"><b>Récolo</b> — calendrier de collecte du secteur encore à récupérer.</p>
+      </section>
+
+      <section style="padding:0 0 0 22px; overflow:hidden; display:flex; flex-direction:column">
+        <div class="rubrique" style="font-size:23px; letter-spacing:.16em">Le carnet</div>
+        <ul style="list-style:none; margin:0; padding:0; font-size:25px; font-weight:600; line-height:1.28">
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>2 oct, 13 h 30</b> — tréteaux, 54 Marie-de-l'Incarnation</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>6 oct, 8 h-9 h</b> — les déménageurs au condo</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>6 oct, PM</b> — transfert Bell, commande BLH7BJQT</li>
+          <li style="padding:9px 0; border-bottom:2px solid #000"><b>7 oct</b> — changer serrures et codes</li>
+        </ul>
+        <div style="margin-top:auto; border-top:4px solid #000; padding-top:12px">
+          <div style="font-size:20px; font-weight:900; letter-spacing:.14em; text-transform:uppercase">Le camion</div>
+          <div class="serif" style="font-size:72px; font-weight:900; line-height:1">16 dodos</div>
+        </div>
+      </section>
+    </div>
+
+    <div style="border-top:3px solid #000; display:flex; justify-content:space-between; font-size:23px; font-weight:700; padding:10px 0 12px">
+      <span>Imprimé à 14 h 30</span><span>28 items au dossier, 6 rubriques</span><span>Pile 74 %</span>
+    </div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>Tout ce qui est écrit là existe vraiment dans la prod et ne s'affiche nulle part — les descriptions de tâches contiennent des numéros de contrat, des heures d'ouverture, des noms de notaires. Le cahier est le seul format qui leur donne une place.</p></div>
+    <div class="note cout"><h3>Ce qui accroche</h3><p>À 25 px, ça se lit à un mètre, pas à trois. Ce n'est pas l'écran de la cuisine : c'est celui du bureau, ou la deuxième page si l'écran tournait. Et les rubriques sont une taxonomie qui n'existe pas — il faudrait des catégories de tâche, ou les dériver de la zone et de l'équipement.</p></div>
+    <div class="note futur"><h3>Placeholders</h3><p>Rubriques (catégorie de tâche), calendrier Récolo, normales de gel.</p></div>
+  </div>
+</figure>
+
+<div class="section-titre">B — L'almanach</div>
+<p class="section-chapeau">Le mur comme page d'almanach : la maison dans son année, pas
+dans sa journée. Le ciel, les gels, les travaux de la saison. Les trois variantes se
+distinguent par l'<b>échelle de temps</b> : le jour, le mois, l'année.</p>
+
+<!-- ═══════════════════ B1 ═══════════════════ -->
+<figure class="maquette" id="b1">
+  <div class="cartouche">
+    <div class="numero">B1</div>
+    <div>
+      <h2>L'almanach du jour</h2>
+      <p class="pitch">Trois colonnes gravées : le ciel, les travaux de la saison, le
+      dedans. La #9 d'hier, branchée sur les vraies tâches annuelles de la prod — les
+      robinets et les coupe-froid du 15 octobre, les gouttières du 31, les pneus.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran" style="padding:32px">
+    <div style="height:100%; border:6px double #000; padding:8px">
+      <div style="height:100%; border:3px solid #000; padding:28px 42px; display:flex; flex-direction:column">
+
+        <div style="text-align:center; border-bottom:3px solid #000; padding-bottom:14px">
+          <div style="font-size:25px; font-weight:800; letter-spacing:.42em; text-transform:uppercase">❧ &nbsp;Almanach de la maison&nbsp; ❧</div>
+          <div class="serif" style="font-size:92px; font-weight:900; line-height:1; margin:4px 0; letter-spacing:-.01em">Le vingtième jour de septembre</div>
+          <div style="font-size:29px; font-weight:700; font-style:italic">an de grâce 2026 · rue Fraser, Québec · 46° 48′ N, 71° 13′ O</div>
+        </div>
+
+        <div style="flex:1; min-height:0; display:grid; grid-template-columns:1fr 3px 1.3fr 3px 1fr; padding-top:22px">
+
+          <section style="padding-right:32px; display:flex; flex-direction:column">
+            <div style="text-align:center; font-size:26px; font-weight:900; letter-spacing:.28em; text-transform:uppercase; border-bottom:3px solid #000; padding-bottom:8px">Le ciel</div>
+            <div style="display:flex; justify-content:center; padding:14px 0 8px">
+              <svg viewBox="0 0 200 200" style="width:166px;height:166px">
+                <defs>
+                  <pattern id="lune" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="#fff"/><rect width="4" height="9" fill="#000"/></pattern>
+                  <clipPath id="disque"><circle cx="100" cy="100" r="88"/></clipPath>
+                </defs>
+                <circle cx="100" cy="100" r="88" fill="#fff" stroke="#000" stroke-width="6"/>
+                <g clip-path="url(#disque)"><rect x="0" y="0" width="100" height="200" fill="url(#lune)"/><ellipse cx="100" cy="100" rx="30" ry="88" fill="#fff"/></g>
+                <circle cx="100" cy="100" r="88" fill="none" stroke="#000" stroke-width="6"/>
+                <circle cx="132" cy="70" r="11" fill="none" stroke="#000" stroke-width="4"/>
+                <circle cx="150" cy="118" r="7" fill="none" stroke="#000" stroke-width="4"/>
+                <circle cx="120" cy="138" r="14" fill="none" stroke="#000" stroke-width="4"/>
+              </svg>
+            </div>
+            <div style="text-align:center; font-size:33px; font-weight:800; line-height:1.14">Lune gibbeuse<br>croissante</div>
+            <div class="trame-25" style="height:4px; margin:16px 0"></div>
+            <table style="width:100%; border-collapse:collapse; font-size:31px; font-weight:700">
+              <tr><td style="padding:6px 0">Lever du soleil</td><td style="text-align:right; font-weight:800">6 h 38</td></tr>
+              <tr><td style="padding:6px 0; border-top:2px solid #000">Coucher</td><td style="text-align:right; font-weight:800; border-top:2px solid #000">18 h 55</td></tr>
+              <tr><td style="padding:6px 0; border-top:2px solid #000">Durée du jour</td><td style="text-align:right; font-weight:800; border-top:2px solid #000">12 h 17</td></tr>
+              <tr><td style="padding:6px 0; border-top:2px solid #000">On perd</td><td style="text-align:right; font-weight:800; border-top:2px solid #000">3 min / jour</td></tr>
+            </table>
+            <div style="margin-top:auto; text-align:center; border-top:3px solid #000; padding-top:12px">
+              <div style="font-size:25px; font-weight:900; letter-spacing:.2em; text-transform:uppercase">Équinoxe</div>
+              <div class="serif" style="font-size:54px; font-weight:800">dans 2 jours</div>
+            </div>
+          </section>
+
+          <div class="filet"></div>
+
+          <section style="padding:0 32px; display:flex; flex-direction:column">
+            <div style="text-align:center; font-size:26px; font-weight:900; letter-spacing:.28em; text-transform:uppercase; border-bottom:3px solid #000; padding-bottom:8px">Les travaux de la saison</div>
+            <ul style="list-style:none; margin:18px 0 0; padding:0; font-size:33px; font-weight:700; line-height:1.18">
+              <li style="display:flex; gap:16px; padding:9px 0; border-bottom:2px solid #000"><span style="flex:none; width:160px; font-weight:800; font-style:italic">10 octobre</span><span>Pneus d'hiver — garage du nouveau secteur</span></li>
+              <li style="display:flex; gap:16px; padding:9px 0; border-bottom:2px solid #000"><span style="flex:none; width:160px; font-weight:800; font-style:italic">15 octobre</span><span>Robinets extérieurs — fermer la valve et vidanger</span></li>
+              <li style="display:flex; gap:16px; padding:9px 0; border-bottom:2px solid #000"><span style="flex:none; width:160px; font-weight:800; font-style:italic">15 octobre</span><span>Lubrifier les coupe-froid au silicone</span></li>
+              <li style="display:flex; gap:16px; padding:9px 0; border-bottom:2px solid #000"><span style="flex:none; width:160px; font-weight:800; font-style:italic">31 octobre</span><span>Nettoyer les gouttières</span></li>
+            </ul>
+
+            <div class="inv" style="margin-top:16px; padding:14px 22px; text-align:center">
+              <div style="font-size:25px; font-weight:900; letter-spacing:.2em; text-transform:uppercase">Premier gel attendu</div>
+              <div class="serif" style="font-size:58px; font-weight:800; line-height:1.05">autour du 8 octobre</div>
+              <div style="font-size:27px; font-weight:700">normale 1991-2020, station de Québec</div>
+            </div>
+
+            <div style="margin-top:auto; text-align:center; border-top:3px solid #000; padding-top:14px">
+              <div class="serif" style="font-size:36px; font-style:italic; font-weight:600; line-height:1.26">« Quand septembre est beau et doux,<br>octobre est fou. »</div>
+            </div>
+          </section>
+
+          <div class="filet"></div>
+
+          <section style="padding-left:32px; display:flex; flex-direction:column">
+            <div style="text-align:center; font-size:26px; font-weight:900; letter-spacing:.28em; text-transform:uppercase; border-bottom:3px solid #000; padding-bottom:8px">Le dedans</div>
+            <div style="text-align:center; padding:16px 0 8px">
+              <span class="serif" style="font-size:92px; font-weight:900; line-height:1">17°</span>
+              <div style="font-size:29px; font-weight:700">dégagé · vent d'ouest 12 km/h</div>
+            </div>
+            <div class="trame-25" style="height:4px; margin:10px 0 16px"></div>
+            <div style="text-align:center">
+              <div style="font-size:25px; font-weight:900; letter-spacing:.2em; text-transform:uppercase">Une seule chose</div>
+              <div class="serif" style="font-size:62px; font-weight:800; line-height:1.08; margin-top:6px">Les boîtes</div>
+              <div style="font-size:29px; font-weight:700; margin-top:8px">onzième dimanche d'affilée</div>
+            </div>
+            <div class="trame-25" style="height:4px; margin:16px 0"></div>
+            <div style="font-size:29px; font-weight:700; line-height:1.24; text-align:center">Mercredi, la signature<br>de l'hypothèque</div>
+            <div style="margin-top:auto; text-align:center; border-top:3px solid #000; padding-top:12px">
+              <div style="font-size:25px; font-weight:900; letter-spacing:.2em; text-transform:uppercase">Le déménagement</div>
+              <div class="serif" style="font-size:86px; font-weight:900; line-height:1">16 dodos</div>
+              <div style="font-size:27px; font-weight:700">et Noël dans 96</div>
+            </div>
+          </section>
+        </div>
+
+        <div style="border-top:3px solid #000; margin-top:14px; padding-top:10px; display:flex; justify-content:space-between; font-size:23px; font-weight:700">
+          <span>✦ House OS ✦</span><span>tiré à un exemplaire, sur le mur de la cuisine</span><span>14 h 30 · pile 74 %</span>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>Les quatre « travaux de la saison » sont de vraies tâches annuelles de la prod, avec leurs vraies dates — elles n'apparaissent nulle part aujourd'hui parce qu'elles sont à trois semaines. L'almanach est le seul format qui a une raison de les montrer d'avance.</p></div>
+    <div class="note cout"><h3>Ce que ça coûte</h3><p>Le charme est dans la mise en page, pas dans les données. Fleurons, filets doubles, lune en SVG : du dessin sur mesure, à maintenir.</p></div>
+    <div class="note futur"><h3>Placeholders</h3><p>Éphémérides (lever, coucher, phase — ici plausibles, à brancher sur un calcul réel), normales de gel, banque de dictons.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ B2 ═══════════════════ -->
+<figure class="maquette" id="b2">
+  <div class="cartouche">
+    <div class="numero">B2</div>
+    <div>
+      <h2>La page du mois</h2>
+      <p class="pitch">L'almanach ouvert sur le mois qui vient. Une grille gravée, la
+      marge pour le ciel et les travaux, et les vraies dates de la prod dedans — le
+      6 octobre en bande inversée, les quatorze démarches d'adresse du 13 et du 20
+      agrégées plutôt qu'énumérées.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran" style="padding:30px">
+    <div style="height:100%; border:5px double #000; padding:26px 34px; display:flex; flex-direction:column">
+
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; border-bottom:4px solid #000; padding-bottom:12px">
+        <div>
+          <div style="font-size:24px; font-weight:800; letter-spacing:.38em; text-transform:uppercase">❧ Almanach de la maison ❧</div>
+          <div class="serif" style="font-size:108px; font-weight:900; line-height:.95; letter-spacing:-.02em">Octobre 2026</div>
+        </div>
+        <div style="text-align:right; font-size:29px; font-weight:700; line-height:1.25">le mois qui vient — dans 11 jours<br><b>le mois du déménagement</b></div>
+      </div>
+
+      <div style="flex:1; min-height:0; display:grid; grid-template-columns:1fr 3px 430px; padding-top:16px">
+
+        <!-- la grille -->
+        <div style="padding-right:26px; display:flex; flex-direction:column; min-height:0">
+          <div style="display:grid; grid-template-columns:repeat(7,1fr); border-bottom:3px solid #000; padding-bottom:6px; font-size:25px; font-weight:900; letter-spacing:.14em; text-transform:uppercase">
+            <span>dim</span><span>lun</span><span>mar</span><span>mer</span><span>jeu</span><span>ven</span><span>sam</span>
+          </div>
+          <div style="flex:1; min-height:0; display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(5,1fr)">
+
+            <!-- semaine 1 -->
+            <div class="jour trame-12"><i>27</i></div>
+            <div class="jour trame-12"><i>28</i><b>Homelab — migration</b></div>
+            <div class="jour trame-12"><i>29</i></div>
+            <div class="jour trame-12"><i>30</i></div>
+            <div class="jour"><i>1</i><b>Filtre du Jura</b></div>
+            <div class="jour"><i>2</i><b>Tréteaux, 13 h 30</b></div>
+            <div class="jour"><i>3</i></div>
+
+            <!-- semaine 2 -->
+            <div class="jour"><i>4</i><b>Boîte « premiers jours »</b><span>congélateur · produits interdits</span></div>
+            <div class="jour"><i>5</i><b>Achat de la maison</b><span>solde Tanguay · propane</span></div>
+            <div class="jour inv"><i>6</i><b>LE CAMION</b><span>déménageurs 8 h · Bell PM</span></div>
+            <div class="jour"><i>7</i><b>LUSINE — lit, fauteuil</b><span>serrures · courrier</span></div>
+            <div class="jour"><i>8</i><b>Panneau, eau, détecteurs</b></div>
+            <div class="jour"><i>9</i><b>Clés du condo</b><span>meuble télé · services</span></div>
+            <div class="jour"><i>10</i><b>Pneus d'hiver</b></div>
+
+            <!-- semaine 3 -->
+            <div class="jour"><i>11</i></div>
+            <div class="jour"><i>12</i></div>
+            <div class="jour"><i>13</i><b>9 démarches d'adresse</b><span>taxes SCJC · licence · ARC</span></div>
+            <div class="jour"><i>14</i></div>
+            <div class="jour"><i>15</i><b>Robinets extérieurs</b><span>coupe-froid au silicone</span></div>
+            <div class="jour"><i>16</i></div>
+            <div class="jour"><i>17</i></div>
+
+            <!-- semaine 4 -->
+            <div class="jour"><i>18</i></div>
+            <div class="jour"><i>19</i></div>
+            <div class="jour"><i>20</i><b>12 démarches d'adresse</b><span>banques · employeurs · RAMQ</span></div>
+            <div class="jour"><i>21</i></div>
+            <div class="jour"><i>22</i></div>
+            <div class="jour"><i>23</i></div>
+            <div class="jour"><i>24</i></div>
+
+            <!-- semaine 5 -->
+            <div class="jour"><i>25</i></div>
+            <div class="jour"><i>26</i></div>
+            <div class="jour"><i>27</i></div>
+            <div class="jour"><i>28</i></div>
+            <div class="jour"><i>29</i></div>
+            <div class="jour"><i>30</i></div>
+            <div class="jour"><i>31</i><b>Gouttières</b><span>écocentre · 6 autres</span></div>
+          </div>
+        </div>
+
+        <div class="filet"></div>
+
+        <!-- la marge -->
+        <aside style="padding-left:28px; display:flex; flex-direction:column; min-height:0">
+          <div style="text-align:center; font-size:25px; font-weight:900; letter-spacing:.24em; text-transform:uppercase; border-bottom:3px solid #000; padding-bottom:7px">Le ciel en octobre</div>
+          <table style="width:100%; border-collapse:collapse; font-size:29px; font-weight:700; margin-top:12px">
+            <tr><td style="padding:6px 0">Le 1<sup>er</sup>, lever</td><td style="text-align:right; font-weight:800">6 h 58</td></tr>
+            <tr><td style="padding:6px 0; border-top:2px solid #000">Le 31, lever</td><td style="text-align:right; font-weight:800; border-top:2px solid #000">7 h 42</td></tr>
+            <tr><td style="padding:6px 0; border-top:2px solid #000">Le jour perd</td><td style="text-align:right; font-weight:800; border-top:2px solid #000">1 h 22</td></tr>
+            <tr><td style="padding:6px 0; border-top:2px solid #000">Pleine lune</td><td style="text-align:right; font-weight:800; border-top:2px solid #000">le 25</td></tr>
+          </table>
+
+          <div class="trame-25" style="height:4px; margin:18px 0"></div>
+
+          <div style="text-align:center; font-size:25px; font-weight:900; letter-spacing:.24em; text-transform:uppercase; border-bottom:3px solid #000; padding-bottom:7px">À surveiller</div>
+          <ul style="list-style:none; margin:14px 0 0; padding:0; font-size:29px; font-weight:700; line-height:1.22">
+            <li style="padding:9px 0; border-bottom:2px solid #000"><b>8 octobre</b> — premier gel normal. Les robinets sont au 15 : c'est <i>serré</i>.</li>
+            <li style="padding:9px 0; border-bottom:2px solid #000"><b>1<sup>er</sup> novembre</b> — stationnement hivernal SCJC, 23 h à 7 h.</li>
+            <li style="padding:9px 0; border-bottom:2px solid #000"><b>1<sup>er</sup> décembre</b> — pneus d'hiver obligatoires.</li>
+          </ul>
+
+          <div style="margin-top:auto; border-top:3px solid #000; padding-top:14px; text-align:center">
+            <div style="font-size:25px; font-weight:900; letter-spacing:.2em; text-transform:uppercase">Aujourd'hui, le 20 septembre</div>
+            <div class="serif" style="font-size:58px; font-weight:800; line-height:1.08; margin-top:4px">Les boîtes</div>
+            <div style="font-size:28px; font-weight:700; margin-top:6px">17° · dégagé · 16 dodos</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div></div>
+  <style>
+    #b2 .jour{border-right:2px solid #000; border-bottom:2px solid #000; padding:8px 10px; overflow:hidden; display:flex; flex-direction:column; gap:3px}
+    #b2 .jour:nth-child(7n){border-right:none}
+    #b2 .jour i{font-family:Fraunces,serif; font-style:normal; font-size:42px; font-weight:800; line-height:1}
+    #b2 .jour b{font-size:23px; font-weight:800; line-height:1.14}
+    #b2 .jour span{font-size:21px; font-weight:600; line-height:1.14}
+    #b2 .jour.inv i{color:#fff} #b2 .jour.inv{border-color:#000}
+    /* Les jours de septembre sont tramés : le texte s'y poserait sur la hachure. */
+    #b2 .jour.trame-12 i, #b2 .jour.trame-12 b, #b2 .jour.trame-12 span{background:#fff; align-self:flex-start; padding:0 4px; box-shadow:0 0 0 4px #fff}
+    #b2 .jour b, #b2 .jour span{display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  </style>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>C'est la seule vue qui montre la <b>forme</b> du mois : trois jours écrasés, puis deux paquets de démarches, puis le vide. Le 13 et le 20 portent 21 tâches à eux deux dans la prod — les agréger (« 9 démarches d'adresse ») est plus honnête que d'en lister trois au hasard.</p></div>
+    <div class="note cout"><h3>Ce qui accroche</h3><p>Un mois, ça ne change pas d'heure en heure : l'écran serait identique pendant des jours. Il vaut comme <i>deuxième</i> page, ou comme la page qu'on affiche le dernier dimanche du mois.</p></div>
+    <div class="note futur"><h3>Placeholders</h3><p>Phases lunaires et heures de lever (plausibles ici), agrégation « N démarches » (un regroupement par jour, à écrire), normales de gel.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ B3 ═══════════════════ -->
+<figure class="maquette" id="b3">
+  <div class="cartouche">
+    <div class="numero">B3</div>
+    <div>
+      <h2>La roue de l'année</h2>
+      <p class="pitch">L'almanach comme instrument. L'année est un cadran, les fenêtres
+      saisonnières sont des arcs gravés, les échéances sont des repères numérotés, et
+      une aiguille dit où on est rendu. C'est la seule forme où l'on <i>voit</i> que
+      les robinets extérieurs tombent après le premier gel normal, et que le
+      stationnement hivernal commence trois semaines après l'arrivée.</p>
+    </div>
+  </div>
+  <div class="cadre"><div class="ecran" id="roue-ecran" style="display:flex; flex-direction:column">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; padding:28px 52px 12px; border-bottom:4px solid #000">
+      <div class="serif" style="font-size:62px; font-weight:900; letter-spacing:-.01em">La roue de l&rsquo;année</div>
+      <div style="font-size:28px; font-weight:800; letter-spacing:.2em; text-transform:uppercase">Almanach de la maison · 2026-2027</div>
+    </div>
+    <div style="flex:1; min-height:0; display:grid; grid-template-columns:1fr 4px 470px">
+      <div id="roue" style="padding:14px 10px 10px 30px; min-height:0"></div>
+      <div class="filet"></div>
+      <aside style="padding:22px 40px 18px 32px; display:flex; flex-direction:column; min-height:0">
+        <div style="font-size:24px; font-weight:900; letter-spacing:.22em; text-transform:uppercase; border-bottom:3px solid #000; padding-bottom:7px">Les repères</div>
+        <ol id="reperes" style="list-style:none; margin:10px 0 0; padding:0; font-size:25px; font-weight:700; line-height:1.14"></ol>
+        <div style="font-size:24px; font-weight:900; letter-spacing:.22em; text-transform:uppercase; border-bottom:3px solid #000; padding:16px 0 7px">Les fenêtres</div>
+        <div id="fenetres" style="margin-top:10px; display:flex; flex-direction:column; gap:8px; font-size:23px; font-weight:700"></div>
+        <div style="margin-top:auto; border-top:3px solid #000; padding-top:14px">
+          <div style="font-size:24px; font-weight:900; letter-spacing:.2em; text-transform:uppercase">Ce qu&rsquo;on voit</div>
+          <p style="font-size:24px; font-weight:600; line-height:1.22; margin:6px 0 0">Le gel normal (8 oct) tombe <b>avant</b> la tâche des robinets (15 oct). Et l&rsquo;hiver municipal commence 26 jours après l&rsquo;emménagement.</p>
+        </div>
+      </aside>
+    </div>
+    <div style="display:flex; justify-content:space-between; border-top:4px solid #000; padding:12px 52px; font-size:26px; font-weight:700">
+      <span>Gravé à 14 h 30 · dimanche 20 septembre 2026</span><span>Pile 74 %</span>
+    </div>
+  </div></div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça révèle</h3><p>Les fenêtres saisonnières du moteur de récurrence sont une donnée de premier ordre qui ne se voit nulle part. Mises en arcs, elles rendent visibles des collisions qu'aucune liste ne montre — « la tâche est après la date de gel » est un bug de planification qu'on ne peut littéralement pas voir autrement.</p></div>
+    <div class="note cout"><h3>Ce que ça coûte</h3><p>Du SVG calculé, et une lisibilité de bureau : les libellés en arc font ~27 px réels, ça se lit à un mètre. Et comme la page du mois, ça bouge lentement — une aiguille qui avance d'un degré par jour.</p></div>
+    <div class="note futur"><h3>Placeholders</h3><p>Fenêtres saisonnières exposées comme arcs (le modèle les a : plage mois-jour), normales de gel, règles municipales comme flux externe.</p></div>
+  </div>
+</figure>
+
+<div class="section-titre">C — La lettre du matin</div>
+<p class="section-chapeau">Pas un écran : un courriel, envoyé une fois par jour vers
+6 h 30, avant que la maison se lève. La forme la plus libre des trois — il n'y a ni
+distance de lecture, ni 1-bit, ni pile à ménager — mais la plus exigeante côté écriture.
+Les trois variantes se distinguent par le <b>registre</b> : la prose, le bulletin, la
+note. Montrées à l'échelle réelle dans un client.</p>
+
+<!-- ═══════════════════ C1 ═══════════════════ -->
+<figure class="maquette" id="c1">
+  <div class="cartouche">
+    <div class="numero">C1</div>
+    <div>
+      <h2>La lettre</h2>
+      <p class="pitch">De la prose, rien d'autre. Les faits sont calculés, le LLM ne
+      fait que les coudre. Ça se lit en entier, en vingt secondes, dans le lit.</p>
+    </div>
+  </div>
+  <div class="client">
+    <div class="client-chrome">
+      <div class="client-sujet">Il ne reste qu'une chose aujourd'hui</div>
+      <div class="client-de"><span class="client-pastille">M</span><span><b>La maison</b> &lt;maison@alainnormandin.dev&gt; · à Alain, Ariane</span><span style="margin-left:auto">dim. 6 h 30</span></div>
+    </div>
+    <div class="courriel"><div class="feuille">
+      <p style="font-size:15px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#8a8980; margin-bottom:18px">dimanche 20 septembre 2026</p>
+      <p>Bonjour vous deux.</p>
+      <p>Il me reste <b>seize dodos</b> avec vous. Aujourd'hui je ne demande qu'une
+      chose, et c'est la même que les dix derniers dimanches : les boîtes. La salle de
+      bain et le bureau, si le cœur vous en dit.</p>
+      <p>Dehors il fera <b>dix-neuf</b> cet après-midi, dégagé. C'est probablement la
+      dernière fin de semaine complète avant que ça se remplisse : mardi, l'adresse du
+      dossier chez le prêteur ; mercredi, la signature de l'hypothèque.</p>
+      <p>Rien d'autre n'est dû. Le filtre du Jura tient jusqu'au 1<sup>er</sup>, les
+      draps jusqu'au 26, et le plan de migration du homelab est à Alain pour le 28.</p>
+      <p style="margin-bottom:26px">Bonne journée.</p>
+      <p style="text-align:right; font-family:Fraunces,serif; font-style:italic; font-size:21px; color:#43436c; margin:0">— la maison</p>
+    </div>
+    <div class="pied">House OS · écrit à 6 h 28, envoyé à 6 h 30<br>
+      <a href="#">Ouvrir la journée</a> &nbsp;·&nbsp; <a href="#">Écrire moins souvent</a>
+    </div></div>
+  </div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>C'est la seule forme qui porte du contexte : « la même que les dix derniers dimanches », « la dernière fin de semaine complète ». Aucune tuile ne dit ça. Et le courriel règle le problème du mur : on le lit au lit, pas en passant dans le corridor.</p></div>
+    <div class="note cout"><h3>Ce que ça coûte</h3><p>Un appel LLM par jour — négligeable. Le vrai risque est le radotage : il faut une mémoire des formulations des sept derniers jours et un repli en gabarit quand l'API ne répond pas. Et un jour chargé donne une lettre longue : il faut un plafond.</p></div>
+    <div class="note futur"><h3>Placeholders</h3><p>Envoi sortant (SMTP ou l'API d'un service) — House OS reçoit du courriel, il n'en envoie pas encore. Mémoire des formulations. Heure d'envoi par personne.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ C2 ═══════════════════ -->
+<figure class="maquette" id="c2">
+  <div class="cartouche">
+    <div class="numero">C2</div>
+    <div>
+      <h2>Le bulletin</h2>
+      <p class="pitch">Même contenu, registre de journal : un titre, des sections aux
+      filets, des valeurs qui se scannent. Moins chaleureux, beaucoup plus rapide à
+      lire de travers — et beaucoup moins de LLM en jeu.</p>
+    </div>
+  </div>
+  <div class="client">
+    <div class="client-chrome">
+      <div class="client-sujet">La maison — dimanche 20 septembre</div>
+      <div class="client-de"><span class="client-pastille">M</span><span><b>La maison</b> &lt;maison@alainnormandin.dev&gt; · à Alain, Ariane</span><span style="margin-left:auto">dim. 6 h 30</span></div>
+    </div>
+    <div class="courriel"><div class="feuille" style="padding:0; overflow:hidden">
+      <div style="background:#43436c; color:#faf7ed; padding:22px 28px">
+        <div style="font-size:13px; letter-spacing:.2em; text-transform:uppercase; font-weight:800; opacity:.78">Édition du matin</div>
+        <h1 style="font-size:31px; font-weight:800; color:#faf7ed; line-height:1.14; margin-top:6px">Une seule chose aujourd&rsquo;hui</h1>
+      </div>
+
+      <div style="padding:24px 28px 26px">
+        <div style="font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:800; color:#8a8980; border-bottom:1px solid #ddd3ab; padding-bottom:7px">À faire</div>
+        <div style="display:flex; gap:14px; align-items:center; padding:16px 0 18px; border-bottom:1px solid #ddd3ab">
+          <span style="flex:none; width:38px; height:38px; border-radius:999px; background:#cdd9ec; color:#4d699b; display:grid; place-items:center; font-weight:800; font-size:14px">AL</span>
+          <span style="font-family:Fraunces,serif; font-size:22px; font-weight:800; color:#43436c; line-height:1.2">Boîtes ! — salle de bain et bureau</span>
+          <span style="margin-left:auto; flex:none; background:#fbf0dd; color:#cc6d00; border-radius:999px; padding:4px 12px; font-size:12px; font-weight:800; letter-spacing:.06em">11<sup>e</sup> jour</span>
+        </div>
+        <p style="font-size:14.5px; color:#8a8980; margin:12px 0 22px">Rien d&rsquo;autre n&rsquo;est dû. Filtre du Jura le 1<sup>er</sup>, draps le 26, homelab le 28.</p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:22px">
+          <div style="background:#f2ecbc; border-radius:12px; padding:16px 18px">
+            <div style="font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:800; color:#8a8980">Dehors</div>
+            <div style="font-family:Fraunces,serif; font-size:38px; font-weight:800; color:#43436c; line-height:1.05; margin-top:4px">17°</div>
+            <div style="font-size:14.5px; font-weight:700">9 à 19, dégagé</div>
+          </div>
+          <div style="background:#f2ecbc; border-radius:12px; padding:16px 18px">
+            <div style="font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:800; color:#8a8980">Le camion</div>
+            <div style="font-family:Fraunces,serif; font-size:38px; font-weight:800; color:#43436c; line-height:1.05; margin-top:4px">16 dodos</div>
+            <div style="font-size:14.5px; font-weight:700">6 octobre, 8 h</div>
+          </div>
+        </div>
+
+        <div style="font-size:12.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:800; color:#8a8980; border-bottom:1px solid #ddd3ab; padding-bottom:7px">Cette semaine</div>
+        <table style="width:100%; border-collapse:collapse; font-size:15.5px; font-weight:700; margin-top:6px">
+          <tr><td style="padding:11px 0; width:72px; color:#8a8980">lun 21</td><td>Plier les vêtements</td></tr>
+          <tr><td style="padding:11px 0; border-top:1px solid #ddd3ab; color:#8a8980">mar 22</td><td style="border-top:1px solid #ddd3ab">Prêteur — adresse du dossier <span style="color:#8a8980">(Ariane)</span></td></tr>
+          <tr><td style="padding:11px 0; border-top:1px solid #ddd3ab; color:#cc6d00"><b>mer 23</b></td><td style="border-top:1px solid #ddd3ab; color:#cc6d00"><b>Signature de la nouvelle hypothèque</b></td></tr>
+          <tr><td style="padding:11px 0; border-top:1px solid #ddd3ab; color:#8a8980">sam 26</td><td style="border-top:1px solid #ddd3ab">Changer les draps</td></tr>
+        </table>
+
+        <div style="background:#eef2e4; border-radius:12px; padding:14px 18px; margin-top:22px; font-size:14.5px; font-weight:700; color:#6f894e">
+          ✓ Fait cette semaine : le bassin de captation, le transfert de VertMax, le contrat de gaz, l&rsquo;inventaire des biens.
+        </div>
+      </div>
+    </div>
+    <div class="pied">House OS · envoyé à 6 h 30<br>
+      <a href="#">Ouvrir la journée</a> &nbsp;·&nbsp; <a href="#">Réglages du bulletin</a>
+    </div></div>
+  </div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>Scannable en trois secondes, et le seul à montrer ce qui a été <i>fait</i> — le journal de complétion a enfin un endroit où sortir. Presque zéro LLM : seul le titre est écrit, le reste est du gabarit.</p></div>
+    <div class="note cout"><h3>Ce qui accroche</h3><p>C'est un rapport, pas une lettre. Ça ressemble à toutes les infolettres de la boîte de réception — donc ça se fait ignorer comme elles. La chaleur de C1 est exactement ce qui fait ouvrir le courriel.</p></div>
+  </div>
+</figure>
+
+<!-- ═══════════════════ C3 ═══════════════════ -->
+<figure class="maquette" id="c3">
+  <div class="cartouche">
+    <div class="numero">C3</div>
+    <div>
+      <h2>La note</h2>
+      <p class="pitch">Écrit pour l'aperçu de notification, pas pour le corps du
+      courriel : sujet + quatre lignes. Si on l'ouvre, tant mieux ; si on ne l'ouvre
+      pas, on a quand même su. Montré à la largeur d'un téléphone.</p>
+    </div>
+  </div>
+  <div class="client tel">
+    <div class="client-chrome">
+      <div class="client-sujet">Une seule chose : les boîtes</div>
+      <div class="client-de"><span class="client-pastille">M</span><span><b>La maison</b> · 6 h 30</span></div>
+    </div>
+    <div class="courriel" style="padding:20px 16px 24px"><div class="feuille" style="padding:24px 22px">
+      <p style="font-size:17px; line-height:1.6; margin:0 0 14px"><b>Les boîtes</b> — salle de bain et bureau. Onzième jour d&rsquo;affilée.</p>
+      <p style="font-size:17px; line-height:1.6; margin:0 0 14px">17°, montera à 19. Dégagé.</p>
+      <p style="font-size:17px; line-height:1.6; margin:0 0 14px">Mercredi, la signature de l&rsquo;hypothèque.</p>
+      <p style="font-size:17px; line-height:1.6; margin:0 0 20px"><b>16 dodos</b> avant le camion.</p>
+      <div style="border-top:1px solid #ddd3ab; padding-top:16px">
+        <a href="#" style="display:block; text-align:center; background:#cc6d00; color:#faf7ed; text-decoration:none; border-radius:10px; padding:12px; font-weight:800; font-size:15px">Ouvrir la journée</a>
+      </div>
+    </div>
+    <div class="pied">House OS · <a href="#">réglages</a></div></div>
+  </div>
+  <div class="notes">
+    <div class="note ok"><h3>Ce que ça fait bien</h3><p>Le seul format qui fonctionne <i>sans être ouvert</i> : sur l'écran verrouillé, le sujet et les deux premières lignes suffisent. Zéro coût, zéro entretien, et c'est celui qu'on lirait vraiment tous les jours.</p></div>
+    <div class="note cout"><h3>Ce qui accroche</h3><p>Aucune chaleur, aucun contexte, rien qu'on n'aurait pas eu en ouvrant l'app. C'est le plancher utile — à garder comme repli quand la lettre échoue, pas comme ambition.</p></div>
+  </div>
+</figure>
+
+<div class="section-titre">Et maintenant</div>
+<div class="notes" style="margin-top:18px">
+  <div class="note ok"><h3>Le trio qui se tient</h3><p><b>A2</b> au mur (lisible du corridor, une manchette), <b>B3</b> ou <b>B2</b> comme seconde page pour l'échelle de l'année, <b>C1</b> le matin dans la boîte. Les trois disent la même journée à trois distances : trois mètres, un mois, vingt secondes au lit.</p></div>
+  <div class="note cout"><h3>Le vrai coût partagé</h3><p>Deux gabarits d'écran et une règle qui choisit entre eux ; un envoi sortant de courriel (House OS en reçoit, il n'en envoie pas) ; et un « éditorialiste » — un appel LLM par édition, avec mémoire et repli en gabarit.</p></div>
+  <div class="note futur"><h3>Données qui manquent vraiment</h3><p>Éphémérides et normales de gel (calcul local, aucune dépendance), calendrier Récolo du nouveau secteur, et une catégorie ou rubrique sur la tâche pour que le cahier et l'almanach sachent où ranger quoi.</p></div>
+</div>
+
+</div><!-- /enveloppe -->
+
+<script>
+/* — barre de contrôle — */
+const racine = document.documentElement
+document.querySelectorAll('button.ctl[data-zoom]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.body.classList.remove('recul')
+    document.getElementById('recul').setAttribute('aria-pressed', 'false')
+    document.querySelectorAll('button.ctl[data-zoom]').forEach(o => o.setAttribute('aria-pressed', String(o === b)))
+    racine.style.setProperty('--zoom', b.dataset.zoom)
+  })
+})
+document.getElementById('recul').addEventListener('click', e => {
+  const actif = e.currentTarget.getAttribute('aria-pressed') === 'true'
+  e.currentTarget.setAttribute('aria-pressed', String(!actif))
+  document.body.classList.toggle('recul', !actif)
+  racine.style.setProperty('--zoom', actif ? '0.46' : '0.13')
+  document.querySelectorAll('button.ctl[data-zoom]').forEach(o =>
+    o.setAttribute('aria-pressed', String(actif && o.dataset.zoom === '0.46')))
+})
+document.getElementById('theme').addEventListener('click', e => {
+  const clair = racine.getAttribute('data-theme') === 'light'
+  racine.setAttribute('data-theme', clair ? 'dark' : 'light')
+  e.currentTarget.textContent = clair ? '☾' : '☀'
+})
+const saut = document.getElementById('saut')
+saut.innerHTML = '<option value="">Aller à…</option>'
+document.querySelectorAll('figure.maquette').forEach(f => {
+  const o = document.createElement('option')
+  o.value = f.id
+  o.textContent = f.querySelector('.numero').textContent + ' — ' + f.querySelector('h2').childNodes[0].textContent.trim()
+  saut.appendChild(o)
+})
+saut.addEventListener('change', () => {
+  if (saut.value) document.getElementById(saut.value).scrollIntoView({behavior:'smooth', block:'start'})
+})
+
+/* ——————————————————————————————————————————————————————————
+   B3 — la roue de l'année.
+   L'année est un cadran : 0° au sommet, sens horaire, un degré
+   par jour ou presque. Tout est calculé à partir de dates
+   réelles pour que les collisions se voient.
+   ————————————————————————————————————————————————————————— */
+;(function graverLaRoue () {
+  const hote = document.getElementById('roue')
+  if (!hote) return
+
+  const C = 500, JOURS = [31,28,31,30,31,30,31,31,30,31,30,31]
+  const MOIS = ['janv','févr','mars','avril','mai','juin','juil','août','sept','oct','nov','déc']
+  const jourAnnee = (m, j) => JOURS.slice(0, m - 1).reduce((s, n) => s + n, 0) + j
+  const ang = jour => (jour / 365) * 360 - 90
+  const pt = (r, a) => [C + r * Math.cos(a * Math.PI / 180), C + r * Math.sin(a * Math.PI / 180)]
+  const f = n => n.toFixed(2)
+
+  // Secteur d'anneau entre deux angles (a2 > a1, sens horaire).
+  function secteur (r1, r2, a1, a2) {
+    const grand = (a2 - a1) > 180 ? 1 : 0
+    const [xa, ya] = pt(r2, a1), [xb, yb] = pt(r2, a2)
+    const [xc, yc] = pt(r1, a2), [xd, yd] = pt(r1, a1)
+    return `M${f(xa)} ${f(ya)} A${r2} ${r2} 0 ${grand} 1 ${f(xb)} ${f(yb)} L${f(xc)} ${f(yc)} A${r1} ${r1} 0 ${grand} 0 ${f(xd)} ${f(yd)} Z`
+  }
+  // Chemin d'appui pour un texte courbe.
+  function arc (r, a1, a2) {
+    const grand = (a2 - a1) > 180 ? 1 : 0
+    const [xa, ya] = pt(r, a1), [xb, yb] = pt(r, a2)
+    return `M${f(xa)} ${f(ya)} A${r} ${r} 0 ${grand} 1 ${f(xb)} ${f(yb)}`
+  }
+
+  const FENETRES = [
+    { nom: 'Avant le gel', de: [9, 15], a: [10, 31], r: [370, 428], trame: 'h25' },
+    { nom: 'Stationnement hivernal SCJC', de: [11, 1], a: [4, 15], r: [370, 428], trame: 'h50' },
+    { nom: 'Arrosage réglementé', de: [5, 1], a: [10, 31], r: [312, 364], trame: 'h12' },
+    { nom: 'Pneus d’hiver obligatoires', de: [12, 1], a: [3, 15], r: [302, 356], trame: 'h12b' },
+  ]
+  const REPERES = [
+    { n: 1, d: [10, 6],  t: 'Le camion — 17 rue de la Colline' },
+    { n: 2, d: [10, 8],  t: 'Premier gel normal', creux: true },
+    { n: 3, d: [10, 15], t: 'Robinets extérieurs · coupe-froid' },
+    { n: 4, d: [10, 31], t: 'Gouttières · écocentre' },
+    { n: 5, d: [11, 15], t: 'Chauffe-eau · les deux foyers' },
+    { n: 6, d: [11, 30], t: 'Ocre ferreuse et drain français' },
+    { n: 7, d: [12, 25], t: 'Noël' },
+    { n: 8, d: [3, 6],   t: 'Bassin de captation (aux 6 mois)' },
+  ]
+
+  let s = ''
+  // anneau des mois
+  for (let m = 0; m < 12; m++) {
+    const a1 = ang(jourAnnee(m + 1, 1)), a2 = ang(jourAnnee(m + 1, JOURS[m]) + 1)
+    s += `<path d="${secteur(432, 474, a1, a2)}" fill="${m % 2 ? '#fff' : 'url(#h12)'}" stroke="#000" stroke-width="3"/>`
+    s += `<path id="mois${m}" d="${arc(446, a1 + 1.5, a2 - 1.5)}" fill="none"/>`
+    s += `<text font-size="24" font-weight="800" letter-spacing="3" text-anchor="middle"><textPath href="#mois${m}" startOffset="50%">${MOIS[m].toUpperCase()}</textPath></text>`
+  }
+  // fenêtres saisonnières
+  FENETRES.forEach((fen, i) => {
+    let d1 = jourAnnee(fen.de[0], fen.de[1]), d2 = jourAnnee(fen.a[0], fen.a[1])
+    if (d2 < d1) d2 += 365
+    const a1 = ang(d1), a2 = ang(d2)
+    s += `<path d="${secteur(fen.r[0], fen.r[1], a1, a2)}" fill="url(#${fen.trame})" stroke="#000" stroke-width="4"/>`
+    const rt = (fen.r[0] + fen.r[1]) / 2 - 8
+    s += `<path id="fen${i}" d="${arc(rt, a1 + 3, a2 - 3)}" fill="none"/>`
+    s += `<text font-size="23" font-weight="900" letter-spacing="2.4" text-anchor="middle" stroke="#fff" stroke-width="7" paint-order="stroke"><textPath href="#fen${i}" startOffset="50%">${fen.nom.toUpperCase()}</textPath></text>`
+  })
+  // repères — deux rayons en alternance : 6° d'écart ne suffit pas à loger
+  // deux pastilles côte à côte, et octobre en empile quatre en dix jours.
+  let precedent = -99, interieur = false
+  REPERES.map(r => ({ ...r, a: ang(jourAnnee(r.d[0], r.d[1])) }))
+    .sort((x, y) => x.a - y.a)
+    .forEach(rep => {
+      interieur = (rep.a - precedent < 7) ? !interieur : false
+      precedent = rep.a
+      const rp = interieur ? 254 : 292
+      const [x1, y1] = pt(238, rep.a), [x2, y2] = pt(432, rep.a)
+      s += `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="#fff" stroke-width="9"/>`
+      s += `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="#000" stroke-width="${rep.creux ? 2 : 3.5}" ${rep.creux ? 'stroke-dasharray="9 7"' : ''}/>`
+      const [cx, cy] = pt(rp, rep.a)
+      s += `<circle cx="${f(cx)}" cy="${f(cy)}" r="17" fill="${rep.creux ? '#fff' : '#000'}" stroke="#000" stroke-width="4"/>`
+      s += `<text x="${f(cx)}" y="${f(cy + 7.5)}" font-size="21" font-weight="900" text-anchor="middle" fill="${rep.creux ? '#000' : '#fff'}">${rep.creux ? '✳' : rep.n}</text>`
+    })
+  // disque central, aiguille, cercles décoratifs
+  const aAuj = ang(jourAnnee(9, 20))
+  const [ax, ay] = pt(462, aAuj), [bx, by] = pt(224, aAuj)
+  const [px, py] = pt(482, aAuj), [qx, qy] = pt(450, aAuj - 2.8), [rx, ry] = pt(450, aAuj + 2.8)
+  s += `<circle cx="${C}" cy="${C}" r="236" fill="#fff" stroke="#000" stroke-width="6"/>`
+  s += `<circle cx="${C}" cy="${C}" r="488" fill="none" stroke="#000" stroke-width="5"/>`
+  s += `<circle cx="${C}" cy="${C}" r="496" fill="none" stroke="#000" stroke-width="2"/>`
+  s += `<line x1="${f(bx)}" y1="${f(by)}" x2="${f(ax)}" y2="${f(ay)}" stroke="#fff" stroke-width="17"/>`
+  s += `<line x1="${f(bx)}" y1="${f(by)}" x2="${f(ax)}" y2="${f(ay)}" stroke="#000" stroke-width="9"/>`
+  s += `<polygon points="${f(px)},${f(py)} ${f(qx)},${f(qy)} ${f(rx)},${f(ry)}" fill="#000"/>`
+  s += `<circle cx="${C}" cy="${C}" r="236" fill="none" stroke="#000" stroke-width="6"/>`
+  // le cœur du cadran
+  s += `<text x="${C}" y="${C - 108}" font-size="23" font-weight="900" letter-spacing="7" text-anchor="middle">AUJOURD’HUI</text>
+        <text x="${C}" y="${C - 42}" font-family="Fraunces" font-size="56" font-weight="900" text-anchor="middle">dimanche 20</text>
+        <text x="${C}" y="${C + 16}" font-family="Fraunces" font-size="56" font-weight="900" text-anchor="middle">septembre</text>
+        <line x1="${C - 130}" y1="${C + 44}" x2="${C + 130}" y2="${C + 44}" stroke="#000" stroke-width="4"/>
+        <text x="${C}" y="${C + 88}" font-size="30" font-weight="800" text-anchor="middle">Une seule chose : les boîtes</text>
+        <text x="${C}" y="${C + 140}" font-family="Fraunces" font-size="48" font-weight="900" text-anchor="middle">16 dodos</text>
+        <text x="${C}" y="${C + 178}" font-size="25" font-weight="700" text-anchor="middle">avant le camion</text>`
+
+  hote.innerHTML = `<svg viewBox="0 0 1000 1000" style="width:100%;height:100%" preserveAspectRatio="xMidYMid meet" font-family="Nunito Sans">
+    <defs>
+      <pattern id="h12" width="26" height="26" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#fff"/><rect width="4" height="26" fill="#000"/></pattern>
+      <pattern id="h12b" width="26" height="26" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#fff"/><rect width="4" height="26" fill="#000"/></pattern>
+      <pattern id="h25" width="13" height="13" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="13" height="13" fill="#fff"/><rect width="5" height="13" fill="#000"/></pattern>
+      <pattern id="h50" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#fff"/><rect width="6" height="6" fill="#000"/><rect x="6" y="6" width="6" height="6" fill="#000"/></pattern>
+    </defs>${s}</svg>`
+
+  document.getElementById('reperes').innerHTML = REPERES.map(r => {
+    const d = `${r.d[1]} ${MOIS[r.d[0] - 1]}`
+    const puce = r.creux
+      ? '<span style="flex:none;width:32px;height:32px;border-radius:999px;border:4px solid #000;display:grid;place-items:center;font-size:18px">✳</span>'
+      : `<span style="flex:none;width:32px;height:32px;border-radius:999px;background:#000;color:#fff;display:grid;place-items:center;font-size:19px;font-weight:900">${r.n}</span>`
+    return `<li style="display:flex;gap:12px;align-items:center;padding:6px 0;border-bottom:2px solid #000">${puce}<span><b>${d}</b> — ${r.t}</span></li>`
+  }).join('')
+
+  document.getElementById('fenetres').innerHTML = FENETRES.map(fen =>
+    `<div style="display:flex;gap:12px;align-items:center">
+       <span class="trame-${ {h12:'12',h12b:'12',h25:'25',h50:'50'}[fen.trame] }" style="flex:none;width:50px;height:30px;border:3px solid #000"></span>
+       <span>${fen.nom}</span>
+     </div>`).join('')
+})()
+</script>
+</body>
+</html>
