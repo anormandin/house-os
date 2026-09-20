@@ -20,8 +20,11 @@ public sealed class GestionnaireExceptions(
     {
         var identifiant = Trace.Identifiant(contexte);
 
-        // Un client qui referme son onglet en plein vol n'est pas une panne : le
-        // distinguer évite de noyer les vraies exceptions sous du bruit.
+        // Filet inerte, gardé par prudence — pas le mécanisme. Mesuré en prod du
+        // 2026-09-06 au 2026-09-20 : 16 requêtes abandonnées, 0 ligne ici.
+        // ExceptionHandlerMiddleware court-circuite une requête abandonnée en 499
+        // AVANT d'appeler les IExceptionHandler, donc ce bloc n'est jamais atteint.
+        // Qui enquête sur un abandon client cherche le statut 499, pas ce log.
         if (contexte.RequestAborted.IsCancellationRequested && exception is OperationCanceledException)
         {
             journal.LogWarning(

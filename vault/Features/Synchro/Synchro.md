@@ -114,7 +114,9 @@ la même durée. Le minuteur reste un confort : la rangée complétée garde son
   inverse et le lavis de la rangée.
 - [[D-2026-08-29 Journalisation Structurée Serilog Et Seq]] — la diffusion est
   chronométrée (Warning au-delà de 500 ms) et ses pannes journalisées : elle se produit
-  dans la requête, après le commit, et reste le suspect n°1 du 503 de complétion.
+  dans la requête, après le commit. **Elle était le suspect n°1 du 503 de complétion ;
+  la mesure l'a disculpée** le 2026-09-20 (diffusion ≤ 1 ms sur 17 complétions, aucune
+  diffusion lente ni annulée) — voir [[Recap Observabilité]], point 4.
 
 ## Ancres de code
 

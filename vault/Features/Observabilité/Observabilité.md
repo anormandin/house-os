@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-02
-verified-against: 884b383
+last-verified: 2026-09-20
+verified-against: 431db04
 tags: []
 ---
 
@@ -27,17 +27,22 @@ survécu à trois sessions d'enquête faute de preuves.
 - **Durées de phase sur le chemin de complétion** : écriture (`SaveChanges`, avec la
   matérialisation de l'occurrence suivante pour une récurrente) et diffusion du geste
   mesurées **séparément**, plus la durée de chaque envoi SignalR. Une diffusion au-delà
-  de 500 ms sort en Warning. C'est ce qui permettra de localiser le 503 : il se produit
-  après le commit et avant l'écriture de la réponse.
+  de 500 ms sort en Warning. Cette mesure a servi : elle a **disculpé la diffusion**
+  (voir [[Recap Observabilité]], point 4).
 - **Cycle de vie du hub** journalisé (connexion, transport, déconnexion propre ou en
-  erreur) — la connexion fantôme est le suspect n°1 du 503.
+  erreur).
 - **Écritures métier** en Information avec l'id et l'acteur, dans toutes les tranches ;
   **refus de validation** en Warning via un helper unique ; **connexion et échec de
   connexion** en Information/Warning avec l'IP ; **rejets du rate limiter** en Warning ;
   **appels d'outils MCP** (nom, noms d'arguments, issue, durée) via un filtre unique ;
   **passages des services d'arrière-plan** avec durée et compteurs.
 - **Exceptions non gérées** : journalisées puis rendues en ProblemDetails portant le
-  `traceId`. Un abandon client est distingué d'une panne.
+  `traceId`. Un abandon client est distingué d'une panne — mais **par le cadriciel, pas
+  par nous** : `ExceptionHandlerMiddleware` court-circuite une requête abandonnée en
+  **499** avant d'appeler nos `IExceptionHandler`. La garde d'abandon de
+  `GestionnaireExceptions` est donc un filet qui n'a jamais servi (0 ligne pour
+  16 abandons mesurés en prod, 2026-09-06 → 2026-09-20). Ne pas la lire comme le
+  mécanisme.
 - **Piste de session du navigateur** expédiée par lots à `/api/journal-client` :
   navigation, chaque appel API (statut, durée, `TraceId`), erreurs de requête et de
   mutation, gestes de complétion et d'annulation, états de connexion SignalR, erreurs
