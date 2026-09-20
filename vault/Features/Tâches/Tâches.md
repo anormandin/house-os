@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: e19a4fb
+last-verified: 2026-09-20
+verified-against: 8d7b8cf
 tags: []
 ---
 
@@ -220,6 +220,31 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   max(complétion, échéance). L'annulation reste sur Aujourd'hui (rangée verte
   du jour). Compléter/annuler depuis Aujourd'hui invalide aussi la requête
   `taches` de la console.
+
+## Dette connue (as of 2026-09-20)
+
+**Produit cartésien sur la liste des tâches.** `OperationsTaches.ListerTachesAsync`
+(`server/HouseOs.Api/Features/Taches/OperationsTaches.cs`) charge deux navigations de
+collection dans une seule requête — `Tache.Occurrences` **et** `Tache.Documents` — sans
+`AsSplitQuery()`. EF Core l'annonce à chaque appel en prod, relevé le 2026-09-20 dans les
+logs du LXC 105 :
+
+> Compiling a query which loads related collections for more than one collection
+> navigation […] no 'QuerySplittingBehavior' has been configured.
+
+Le SQL produit rend `occurrences × documents` lignes par tâche, et les colonnes de la
+tâche sont répétées dans chacune. Aujourd'hui c'est bénin — une centaine de tâches, peu
+de documents liés — mais ça grossit en **produit**, pas en somme : c'est la liste
+complète (`GET /api/taches`, page Tâches) qui paiera en premier, et elle est appelée à
+chaque ouverture de la page.
+
+Quatre autres appels portent le même double `Include` — le GET et le PUT d'une tâche
+(`TachesEndpoints.cs`) et deux outils MCP (`Mcp/OutilsTaches.cs`) — mais ils visent **une
+seule tâche par identifiant** : l'explosion y est bornée et sans conséquence.
+
+Non corrigé volontairement : le correctif (`AsSplitQuery()`, ou deux requêtes explicites)
+change le nombre d'allers-retours SQL et mérite d'être mesuré, pas appliqué au jugé. À
+reprendre quand la page Tâches ralentira, ou quand quelqu'un touchera cette requête.
 
 ## Hors périmètre
 
