@@ -16,7 +16,7 @@ test('créer récurrente → compléter → la prochaine occurrence se matérial
   await ouvrirConsoleTaches(page)
 
   // Créer une tâche « après la dernière fois » aux 7 jours
-  await page.getByRole('button', { name: 'Nouvelle' }).click()
+  await page.getByRole('button', { name: 'Nouvelle', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Nouvelle tâche' })).toBeVisible()
   await page.getByLabel('Titre').fill(titre)
   await page.getByRole('button', { name: 'Après la dernière fois' }).click()

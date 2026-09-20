@@ -19,7 +19,7 @@ test('login → créer → éditer sans perte → compléter → annuler → sup
   await ouvrirConsoleTaches(page)
 
   // Créer via « Nouvelle » : le modal complet s'ouvre
-  await page.getByRole('button', { name: 'Nouvelle' }).click()
+  await page.getByRole('button', { name: 'Nouvelle', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Nouvelle tâche' })).toBeVisible()
   await page.getByLabel('Titre').fill(titre)
   await page.getByLabel('Description').fill('Ligne 1\nLigne 2')

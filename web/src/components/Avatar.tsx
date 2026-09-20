@@ -56,7 +56,9 @@ export default function Avatar({
       style={{
         width: taille,
         height: taille,
-        fontSize: Math.round(taille * 0.38),
+        // Plancher de 10 px : à 0,38 × la taille, les petits avatars des listes
+        // (18-22 px) tombaient à 7-8 px, illisibles. Le nom reste dans `title`.
+        fontSize: Math.max(10, Math.round(taille * 0.38)),
         background: palette.fond,
         color: palette.texte,
       }}

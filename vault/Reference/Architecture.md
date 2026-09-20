@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-09-02
-verified-against: 884b383
+last-verified: 2026-09-19
+verified-against: a051c03
 tags: []
 ---
 
@@ -14,8 +14,11 @@ cette note décrit comment ça s'assemble.
 
 Un monolithe .NET 10 ([[D-2026-08-23 Monolithe Modulaire Tranches Verticales]]) sert
 l'API ; une app web React française ([[D-2026-08-23 Frontend Vite React PWA]]),
-**desktop d'abord** avec une future vue e-ink distincte
-([[D-2026-08-23 Interface Desktop Et Écran E-ink]]), est la première interface ; PostgreSQL ([[D-2026-08-23 PostgreSQL]]) stocke tout. Le tout
+**desktop d'abord**, est la première interface. Elle rend trois présentations
+distinctes du même domaine : le **bureau** (la vue complète), le **téléphone**
+(compagnon tactile sous 900 px de large — [[D-2026-09-19 Interface Téléphone Distincte]]
+et [[D-2026-09-19 Portée De La Vue Téléphone]]) et l'**e-ink** mural, rendu côté
+serveur. La parité écran-par-écran entre elles n'est pas un objectif ; PostgreSQL ([[D-2026-08-23 PostgreSQL]]) stocke tout. Le tout
 tourne en Docker Compose sur une machine maison, joignable via Tailscale, avec
 une unique exception au « jamais exposé » : le flux iCal publié par Tailscale
 Funnel ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]], qui supersède

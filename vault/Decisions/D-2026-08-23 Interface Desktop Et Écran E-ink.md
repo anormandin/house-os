@@ -1,7 +1,8 @@
 ---
 type: decision
-status: accepted
+status: superseded
 date: 2026-08-23
+superseded-by: "[[D-2026-09-19 Interface Téléphone Distincte]]"
 feature:
 tags: []
 ---
