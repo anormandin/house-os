@@ -217,6 +217,12 @@ Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
   de nuit, calibration des tailles à 2–3 m.
 - **2026-09-20** — 16 jours de service mesurés : 4,04 V → 3,79 V. Cadence de jour
   ramenée de 5 à 15 min (voir « Cadence et pile »). La cadence de nuit reste ouverte.
+- **2026-09-20** — la colonne de droite débordait : mesurée à 1078 px de contenu pour
+  1028 px disponibles dès que la date passe sur deux lignes (ce qu'elle fait pour la
+  plupart des jours longs, « dimanche 20 septembre » faisant 1046 px à 104 px), donc
+  le bas du compte à rebours était coupé. Corrigé dans `Ecran.tsx` : sous-titre
+  d'humeur borné à deux lignes, icône et température de la météo à 150 px (elles
+  étaient à 190), zones du côté droit en `py-7` — 1006 px, avec 22 px de marge.
 
 ## Historique
 

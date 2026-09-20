@@ -87,7 +87,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
         <h1 className="font-titre text-[104px] font-bold leading-none text-white">{dateLongue(date)}</h1>
         <div className="max-w-[860px] text-right">
           <div className="text-[52px] font-extrabold leading-[1.1]">{phrase.titre}</div>
-          <div className="mt-2 text-[36px] leading-tight">{phrase.sousTitre}</div>
+          <div className="mt-2 line-clamp-2 text-[36px] leading-tight">{phrase.sousTitre}</div>
         </div>
       </header>
 
@@ -143,7 +143,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
         {aCote && (
           <>
             <div className="bg-black" />
-            <aside className="flex flex-col divide-y-4 divide-black px-14">
+            <aside className="flex min-h-0 flex-col divide-y-4 divide-black px-14">
               {donnees.meteo && <ZoneMeteo meteo={donnees.meteo} />}
               {donnees.prochaineCollecte && (
                 <Zone etiquette="Collecte">
@@ -209,8 +209,8 @@ function ZoneMeteo({ meteo }: { meteo: NonNullable<DonneesEcran['meteo']> }) {
   return (
     <Zone etiquette="Dehors">
       <div className="flex items-center gap-6">
-        {createElement(iconeMeteo(meteo.codeMeteo), { className: 'size-[190px] shrink-0', strokeWidth: 2 })}
-        <span className="font-titre text-[190px] font-bold leading-none text-black">
+        {createElement(iconeMeteo(meteo.codeMeteo), { className: 'size-[150px] shrink-0', strokeWidth: 2 })}
+        <span className="font-titre text-[150px] font-bold leading-none text-black">
           {Math.round(meteo.temperatureC)}°
         </span>
       </div>
@@ -218,14 +218,14 @@ function ZoneMeteo({ meteo }: { meteo: NonNullable<DonneesEcran['meteo']> }) {
         {Math.round(meteo.tempMin)}° à {Math.round(meteo.tempMax)}°
         {meteo.probabilitePrecipitation >= 30 && ` · ${meteo.probabilitePrecipitation} % de pluie`}
       </div>
-      {pastille && <div className="mt-2 text-[38px] font-bold leading-tight">{pastille.texte}</div>}
+      {pastille && <div className="line-clamp-2 text-[38px] font-bold leading-tight">{pastille.texte}</div>}
     </Zone>
   )
 }
 
 function Zone({ etiquette, children }: { etiquette: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-3 py-8">
+    <div className="flex flex-col gap-3 py-7">
       <Etiquette>{etiquette}</Etiquette>
       {children}
     </div>
