@@ -1,3 +1,4 @@
+using HouseOs.Api.Features.FondsDeTiroir;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Infrastructure;
 using Microsoft.Extensions.Options;
@@ -19,14 +20,15 @@ public static class AffichageEndpoints
         // (aperçu dans le navigateur) ou le jeton du navigateur de rendu du serveur.
         app.MapGet("/api/affichage/donnees", async (
             HttpContext contexte, JetonRendu jeton, HouseOsDbContext db,
-            IOptions<AffichageOptions> options, IOptions<MeteoOptions> meteo) =>
+            IOptions<AffichageOptions> options, IOptions<MeteoOptions> meteo,
+            BanqueDuHasard banqueDuHasard) =>
         {
             if (jeton.Autorise(contexte) == false)
             {
                 return Results.Unauthorized();
             }
-            return Results.Ok(
-                await ComposerDonneesEcran.LireAsync(db, DateTime.Now, options.Value.Lieu, meteo.Value));
+            return Results.Ok(await ComposerDonneesEcran.LireAsync(
+                db, DateTime.Now, options.Value.Lieu, meteo.Value, banqueDuHasard));
         }).AllowAnonymous();
 
         // L'outil de conception avant la livraison, de diagnostic ensuite : le PNG

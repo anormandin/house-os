@@ -83,7 +83,8 @@ public static class FaitsDuCalendrier
             valeur,
             // Sans temps de verbe : le fait se dit aussi bien la veille que le jour même.
             $"Au calendrier, le {DateAvecAnnee(compte.DateCible)}.",
-            new ScoreDeFait(Rarete.Quotidien, 1, jours <= 7 ? 3d : 1.5));
+            new ScoreDeFait(
+                Rarete.Quotidien, 1, jours <= 7 ? Pertinence.EngageLaJournee : Pertinence.EclaireLaJournee));
     }
 
     private static FaitDeTiroir? CaSEnVient(EtatDuCalendrier calendrier, DateOnly aujourdhui)
@@ -109,8 +110,8 @@ public static class FaitsDuCalendrier
             FamilleDeFait.Calendrier,
             "Ça s'en vient",
             $"{horizon.Count} échéances",
-            $"La première le {DateLongue(premiere.Echeance)} : {SansPonctuationFinale(premiere.Titre)}.",
-            new ScoreDeFait(Rarete.Quotidien, 1, 1.5));
+            $"La première le {DateLongue(premiere.Echeance)} : {TitreCourt(premiere.Titre)}.",
+            new ScoreDeFait(Rarete.Quotidien, 1, Pertinence.EclaireLaJournee));
     }
 
     private static FaitDeTiroir? TravauxDeLaSaison(EtatDuCalendrier calendrier, DateOnly aujourdhui)
@@ -131,8 +132,8 @@ public static class FaitsDuCalendrier
                 FamilleDeFait.Calendrier,
                 "La saison se ferme",
                 reste == 0 ? "C'est le dernier jour" : $"Il reste {Jours(reste)}",
-                $"Après, {SansPonctuationFinale(fermeture.Titre)} attendra l'an prochain.",
-                new ScoreDeFait(Rarete.ParAn(4 * JoursDeFermeture), 1, 2));
+                $"Après, {TitreCourt(fermeture.Titre)} attendra l'an prochain.",
+                new ScoreDeFait(Rarete.ParAn(4 * JoursDeFermeture), 1, Pertinence.SuggereUnGeste));
         }
 
         var ouverture = calendrier.Saisons
@@ -151,8 +152,8 @@ public static class FaitsDuCalendrier
             FamilleDeFait.Calendrier,
             "La saison s'ouvre",
             depuis == 0 ? "C'est aujourd'hui" : $"Depuis {Jours(depuis)}",
-            $"{SansPonctuationFinale(ouverture.Titre)} redevient possible jusqu'au {DateLongue(ouverture.Fermeture)}.",
-            new ScoreDeFait(Rarete.ParAn(4 * JoursDOuverture), 1, 1));
+            $"{TitreCourt(ouverture.Titre)} redevient possible jusqu'au {DateLongue(ouverture.Fermeture)}.",
+            new ScoreDeFait(Rarete.ParAn(4 * JoursDOuverture), 1, Pertinence.Decoration));
     }
 
     private static FaitDeTiroir? Expiration(EtatDuCalendrier calendrier, DateOnly aujourdhui)
@@ -173,7 +174,10 @@ public static class FaitsDuCalendrier
             FamilleDeFait.Calendrier,
             expiration.EstUneGarantie ? "Une garantie expire" : "Un papier expire",
             jours == 0 ? "C'est aujourd'hui" : $"Dans {Jours(jours)}",
-            $"{expiration.Quoi}, jusqu'au {DateAvecAnnee(expiration.Date)}.",
-            new ScoreDeFait(Rarete.ParAn(JoursDExpiration), 1, jours <= 14 ? 3d : 1.5));
+            $"{TitreCourt(expiration.Quoi)}, jusqu'au {DateAvecAnnee(expiration.Date)}.",
+            new ScoreDeFait(
+                Rarete.ParAn(JoursDExpiration),
+                1,
+                jours <= 14 ? Pertinence.EngageLaJournee : Pertinence.EclaireLaJournee));
     }
 }

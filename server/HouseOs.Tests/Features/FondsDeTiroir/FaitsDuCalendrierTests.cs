@@ -51,6 +51,31 @@ public class FaitsDuCalendrierTests
         Assert.Null(Fait(demenagement, "calendrier.compte-a-rebours", new DateOnly(2026, 5, 1)));
     }
 
+    /// <summary>
+    /// Le titre cité vient du foyer et n'a pas de longueur bornée. Le consommateur
+    /// coupait la phrase en cours de route et lui faisait perdre sa fin — « La première
+    /// le 28 septembre : Homelab — plan de migratio… ». C'est le titre qu'on élague,
+    /// pas la phrase : élaguer, pas rapetisser (laissé en suspens à l'étape 3,
+    /// tranché à l'étape 4).
+    /// </summary>
+    [Fact]
+    public void Un_titre_cite_est_elague_pour_que_la_phrase_garde_sa_fin()
+    {
+        var long_ = EtatDuCalendrier.Vide with
+        {
+            CaSEnVient =
+            [
+                new EcheanceProchaine("Homelab — plan de migration des services vers le nouveau rack", Aujourdhui.AddDays(8)),
+                new EcheanceProchaine("Changer filtre Jura", Aujourdhui.AddDays(11)),
+            ],
+        };
+
+        var fait = Assert.IsType<FaitDeTiroir>(Fait(long_, "calendrier.ca-s-en-vient"));
+        Assert.Equal("La première le 28 septembre : Homelab — plan de migration des…", fait.Texte);
+        // Et « … . » ne s'écrit pas : les points de suspension achèvent la phrase.
+        Assert.DoesNotContain("….", fait.Texte);
+    }
+
     [Fact]
     public void Ca_s_en_vient_commence_a_sept_jours_et_demande_au_moins_deux_echeances()
     {

@@ -36,7 +36,7 @@ public static class FaitsDeLaMaison
     /// <summary>En deçà, une série n'est pas une série : c'est deux jours de suite.</summary>
     private const int SerieMinimale = 3;
 
-    /// <summary>Un record en dessous d'une semaine ne vaut pas la manchette.</summary>
+    /// <summary>En deçà, un « record » n'en est pas un : c'est une bonne lancée.</summary>
     private const int RecordMinimal = 5;
 
     /// <summary>En deçà, « N séances depuis le… » n'a pas encore d'histoire à raconter.</summary>
@@ -118,14 +118,22 @@ public static class FaitsDeLaMaison
             "Un record de la maison",
             $"{Jours(serie)} d'affilée",
             "Jamais elle n'avait tenu aussi longtemps sans une journée blanche.",
-            new ScoreDeFait(Rarete.ParAn(6), 1, 2));
+            new ScoreDeFait(Rarete.ParAn(6), 1, Pertinence.SuggereUnGeste));
     }
 
     private static FaitDeTiroir? SerieDuJour(int serie, int record)
     {
-        // Quand la série est le record, c'est le fait du dessus qui parle : deux
-        // colonnes voisines pour le même chiffre, c'est une colonne perdue.
-        if (serie < SerieMinimale || serie >= record)
+        if (serie < SerieMinimale)
+        {
+            return null;
+        }
+        // Se taire quand la série est le record, oui — mais seulement quand le fait du
+        // dessus parle vraiment, c'est-à-dire à partir de cinq jours. Sans cette
+        // seconde condition, une maison qui coche trois jours d'affilée pour la
+        // première fois n'a personne pour le dire : la série se tait parce qu'elle est
+        // le record, et le record se tait parce qu'il est trop court. C'était
+        // exactement le premier moment que ce fait existe pour raconter.
+        if (serie >= record && serie >= RecordMinimal)
         {
             return null;
         }
@@ -134,8 +142,12 @@ public static class FaitsDeLaMaison
             FamilleDeFait.Maison,
             "La série en cours",
             $"{Jours(serie)} d'affilée",
-            $"Le record de la maison est de {Jours(record)}.",
-            new ScoreDeFait(Rarete.Quotidien, 1, 1.5));
+            // Citer « le record est de trois jours » quand la série EST ces trois jours
+            // serait redire le chiffre du dessus au lieu d'ajouter quelque chose.
+            serie >= record
+                ? "C'est ce que la maison a fait de mieux jusqu'ici."
+                : $"Le record de la maison est de {Jours(record)}.",
+            new ScoreDeFait(Rarete.Quotidien, 1, Pertinence.EclaireLaJournee));
     }
 
     private static FaitDeTiroir? Seances(EtatDeLaMaison maison)
@@ -159,8 +171,8 @@ public static class FaitsDeLaMaison
             FamilleDeFait.Maison,
             $"Depuis le {DateLongue(tete.Premiere)}",
             $"{tete.Nombre} séances",
-            $"Toutes pour la même tâche, {SansPonctuationFinale(tete.Titre)}.",
-            new ScoreDeFait(Rarete.Quotidien, 1, rond ? 3 : 1.5));
+            $"Toutes pour la même tâche, {TitreCourt(tete.Titre)}.",
+            new ScoreDeFait(Rarete.Quotidien, 1, rond ? Pertinence.EngageLaJournee : Pertinence.EclaireLaJournee));
     }
 
     private static FaitDeTiroir? Doyen(EtatDeLaMaison maison, DateOnly aujourdhui)
@@ -184,11 +196,13 @@ public static class FaitsDeLaMaison
 
         var entretien = doyen.ProchainEntretien;
         var texte = entretien is { } prochain
-            ? $"{doyen.Nom}, dont le prochain entretien est le {DateLongue(prochain)}."
-            : $"{doyen.Nom}, entré dans la maison en {achat.Year}.";
+            ? $"{TitreCourt(doyen.Nom)}, dont le prochain entretien est le {DateLongue(prochain)}."
+            : $"{TitreCourt(doyen.Nom)}, entré dans la maison en {achat.Year}.";
         // Le doyen ne change pas d'âge d'un jour à l'autre : il est vrai tous les
         // jours. Ce qui engage la journée, c'est son entretien qui approche.
-        var pertinence = entretien is { } date && date.DayNumber - aujourdhui.DayNumber <= 14 ? 3d : 1.5;
+        var pertinence = entretien is { } date && date.DayNumber - aujourdhui.DayNumber <= 14
+            ? Pertinence.EngageLaJournee
+            : Pertinence.EclaireLaJournee;
 
         return new FaitDeTiroir(
             "maison.doyen",
@@ -221,8 +235,8 @@ public static class FaitsDeLaMaison
                 FamilleDeFait.Maison,
                 "La pièce oubliée",
                 "Jamais rien",
-                $"{oubliee.Nom} : aucune de ses tâches n'a encore été cochée.",
-                new ScoreDeFait(Rarete.Quotidien, 1, 2));
+                $"{TitreCourt(oubliee.Nom)} : aucune de ses tâches n'a encore été cochée.",
+                new ScoreDeFait(Rarete.Quotidien, 1, Pertinence.SuggereUnGeste));
         }
 
         var jours = aujourdhui.DayNumber - derniere.DayNumber;
@@ -237,8 +251,9 @@ public static class FaitsDeLaMaison
             FamilleDeFait.Maison,
             "La pièce oubliée",
             Jours(jours),
-            $"{oubliee.Nom} : rien de coché depuis le {DateLongue(derniere)}.",
-            new ScoreDeFait(Rarete.Quotidien, 1, jours >= 180 ? 3 : 2));
+            $"{TitreCourt(oubliee.Nom)} : rien de coché depuis le {DateLongue(derniere)}.",
+            new ScoreDeFait(
+                Rarete.Quotidien, 1, jours >= 180 ? Pertinence.EngageLaJournee : Pertinence.SuggereUnGeste));
     }
 
     private static FaitDeTiroir? CoutDeLAnnee(EtatDeLaMaison maison)
@@ -253,7 +268,7 @@ public static class FaitsDeLaMaison
             "Depuis le 1er janvier",
             Montant(maison.CoutDeLAnnee),
             $"Réparti sur {maison.InterventionsDeLAnnee} intervention{Marque(maison.InterventionsDeLAnnee)} consignée{Marque(maison.InterventionsDeLAnnee)}.",
-            new ScoreDeFait(Rarete.Quotidien, 1, 1.5));
+            new ScoreDeFait(Rarete.Quotidien, 1, Pertinence.EclaireLaJournee));
     }
 
     private static FaitDeTiroir? Anniversaire(EtatDeLaMaison maison, DateOnly aujourdhui)
@@ -275,8 +290,8 @@ public static class FaitsDeLaMaison
             FamilleDeFait.Maison,
             "Un anniversaire",
             $"{anniversaire.Ans} an{Marque(anniversaire.Ans)} aujourd'hui",
-            $"{anniversaire.Quoi}, depuis {anniversaire.Depuis.Year}.",
-            new ScoreDeFait(Rarete.ParAn(12), 1, 2));
+            $"{TitreCourt(anniversaire.Quoi)}, depuis {anniversaire.Depuis.Year}.",
+            new ScoreDeFait(Rarete.ParAn(12), 1, Pertinence.SuggereUnGeste));
     }
 
     private static FaitDeTiroir? LAnDernier(EtatDeLaMaison maison)
@@ -288,7 +303,7 @@ public static class FaitsDeLaMaison
             return null;
         }
         var nombre = maison.FaitLAnDernier.Count;
-        var premier = SansPonctuationFinale(maison.FaitLAnDernier[0]);
+        var premier = TitreCourt(maison.FaitLAnDernier[0]);
 
         return new FaitDeTiroir(
             "maison.an-dernier",
@@ -298,7 +313,7 @@ public static class FaitsDeLaMaison
             nombre == 1 ? $"C'était {premier}." : $"Dont {premier}, entre autres.",
             // Il ne peut sortir que les jours qui avaient eux-mêmes donné quelque chose
             // un an plus tôt — soit, dans une maison tenue, environ un jour sur deux.
-            new ScoreDeFait(Rarete.ParAn(180), 1, 1.5));
+            new ScoreDeFait(Rarete.ParAn(180), 1, Pertinence.EclaireLaJournee));
     }
 
     /// <summary>L'âge en années révolues : un 29 février compte au 1er mars les autres ans.</summary>

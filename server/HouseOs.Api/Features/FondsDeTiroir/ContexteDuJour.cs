@@ -20,9 +20,13 @@ public sealed record PointDObservation(Lieu Lieu, TimeZoneInfo Fuseau);
 /// une zone extérieure. C'est le seul signal « la journée est physique » que le modèle
 /// porte vraiment : il n'y a pas de catégorie sur la tâche, et il n'y en aura pas
 /// (vault : D-2026-09-20 Regroupement Sans Catégorie De Tâche).</param>
+/// <param name="Hasard">Les dictons et les fêtes, lus une fois au démarrage dans un
+/// fichier remplaçable. C'est le seul matériau du fonds qui ne vient ni d'un calcul ni
+/// d'une table (vault : D-2026-09-20 Banque Du Hasard En Fichier De Données).</param>
 public sealed record ContexteDuJour(
     DateOnly Date,
     PointDObservation? Ciel,
     bool TachesDehors,
     EtatDeLaMaison? Maison = null,
-    EtatDuCalendrier? Calendrier = null);
+    EtatDuCalendrier? Calendrier = null,
+    BanqueDuHasard? Hasard = null);

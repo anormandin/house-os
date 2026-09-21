@@ -43,7 +43,24 @@ public sealed record FaitDeTiroir(
     string Etiquette,
     string Valeur,
     string Texte,
-    ScoreDeFait Score);
+    ScoreDeFait Score)
+{
+    /// <summary>
+    /// Le texte long, achevé. Un titre élagué finit par des points de suspension, et
+    /// la phrase qui le cite finit par un point : « … . » ne s'écrit pas, et le
+    /// corriger dans chaque famille serait une règle qu'une famille future oublierait.
+    /// C'est le pendant, à l'autre bout de la phrase, de la ponctuation finale qu'on
+    /// retire d'un titre avant de le citer.
+    /// </summary>
+    public string Texte { get; init; } = Texte.Replace("….", "…");
+
+    /// <summary>
+    /// Au-delà, la forme courte se fait couper dans une colonne étroite — « Équinoxe de
+    /// septembre dans 2 jours » coupé au milieu, au mur, le 2026-09-20. Un test balaie
+    /// l'année et le vérifie pour toutes les familles.
+    /// </summary>
+    public const int LongueurDeValeur = 30;
+}
 
 /// <summary>
 /// La rareté d'un item : « combien de fois par année il peut paraître »
@@ -57,4 +74,27 @@ public static class Rarete
 
     /// <summary>Un fait que rien n'empêche de sortir chaque jour.</summary>
     public static readonly double Quotidien = ParAn(365);
+}
+
+/// <summary>
+/// L'échelle de pertinence, écrite plutôt que devinée (vault : Fonds De Tiroir). Elle
+/// existe parce que la <see cref="Rarete"/> ne se négocie pas : elle compte des jours
+/// de parution possibles, et rien d'autre. Beaucoup de faits sont vrais <b>tous les
+/// jours</b> une fois leur condition remplie — le doyen a toujours seize ans. C'est
+/// donc la pertinence qui porte tout le poids éditorial : ce que le fait change à
+/// <i>aujourd'hui</i>.
+/// </summary>
+public static class Pertinence
+{
+    /// <summary>
+    /// Ça ne change rien à la journée : c'est là pour ne pas laisser de trou. Un cran
+    /// <b>sous</b> la décoration, et c'est voulu — un bouche-trou doit passer derrière
+    /// le fait le plus banal du fonds, sans quoi il ne serait plus un bouche-trou.
+    /// </summary>
+    public const double BoucheTrou = 0.5;
+
+    public const double Decoration = 1;
+    public const double EclaireLaJournee = 1.5;
+    public const double SuggereUnGeste = 2;
+    public const double EngageLaJournee = 3;
 }

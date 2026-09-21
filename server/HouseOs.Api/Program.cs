@@ -6,6 +6,7 @@ using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.FluxIcal;
+using HouseOs.Api.Features.FondsDeTiroir;
 using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Journalisation;
 using HouseOs.Api.Features.Affichage;
@@ -219,6 +220,15 @@ builder.Services.AddSingleton<IEnrichisseurCourriel, EnrichisseurAnthropic>();
 builder.Services.AddSingleton<CourrielEntrantService>();
 builder.Services.AddHostedService<CourrielEntrantHote>();
 
+// La banque du hasard (dictons, fêtes) : de la donnée d'édition, lue une fois au
+// démarrage — un fichier immobile n'a pas à être relu à chaque rendu d'écran
+// (D-2026-09-20 Banque Du Hasard En Fichier De Données).
+builder.Services.Configure<HasardOptions>(builder.Configuration.GetSection("Hasard"));
+builder.Services.AddSingleton(sp => LectureDeLaBanque.Lire(
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<HasardOptions>>().Value.Fichier,
+    sp.GetRequiredService<IHostEnvironment>().ContentRootPath,
+    sp.GetRequiredService<ILoggerFactory>().CreateLogger("HouseOs.FondsDeTiroir")));
+
 // Vue e-ink (D-2026-09-03 Rendu E-ink Par Chromium Headless) : le jeton que le
 // serveur donne à son propre navigateur, et ce navigateur, préchauffé au démarrage.
 builder.Services.Configure<AffichageOptions>(builder.Configuration.GetSection("Affichage"));
@@ -229,6 +239,12 @@ builder.Services.AddHostedService<HoteRenduEcran>();
 builder.Services.AddSingleton<CacheImages>();
 
 var app = builder.Build();
+
+// La banque du hasard se lit ICI, et pas à la première requête d'écran : un
+// HASARD_FICHIER fautif doit se voir dans le log de démarrage, là où l'opérateur le
+// cherche après un redémarrage (docs/configuration.md). Un singleton paresseux aurait
+// gardé l'avertissement pour lui jusqu'au prochain tirage du mur.
+app.Services.GetRequiredService<BanqueDuHasard>();
 
 // Avant tout le reste : le schéma/IP vus par l'app (cookie Secure, partition du
 // rate limiter) doivent être ceux du client, pas ceux du proxy.

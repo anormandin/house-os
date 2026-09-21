@@ -26,6 +26,7 @@ les clés dans `appsettings.local.json`.
 | `COMPOSE_PROFILES` | non | — | — | `funnel` démarre le sidecar Tailscale |
 | `TS_AUTHKEY` | non | — | — | requis si `funnel` |
 | `MAISON_LIEU` | non | vide | `Affichage:Lieu` | le bloc-titre de l'écran mural n'imprime pas de lieu |
+| `HASARD_FICHIER` | non | vide | `Hasard:Fichier` | la banque du hasard livrée avec l'app sert (dictons et fêtes du Québec) |
 | `ICAL_URL_PUBLIQUE_BASE` | non | vide | `Ical:UrlPubliqueBase` | l'UI n'affiche que l'URL interne |
 | `COURRIEL_R2_ENDPOINT`, `COURRIEL_R2_BUCKET`, `COURRIEL_R2_CLE_ACCES`, `COURRIEL_R2_CLE_SECRETE` | non | — | `Courriel:R2:*` | relevé des courriels désactivé (il faut les quatre) |
 
@@ -49,6 +50,22 @@ les clés dans `appsettings.local.json`.
 | `Fichiers:Chemin` | `<racine>/donnees/fichiers` | stockage des fichiers (volume `fichiers` en compose) |
 | `Securite:CheminCles` | profil utilisateur | clés du cookie (volume `protection` en compose) |
 | `Serilog:*` | console, `HouseOs` en Debug | niveaux et sinks |
+
+## La banque du hasard
+
+La famille « le hasard » du fonds de tiroir (dicton de l'almanach, fête du jour) lit un
+fichier de données, jamais une table en dur. L'app en livre une version québécoise
+(`server/HouseOs.Api/Features/FondsDeTiroir/banque-du-hasard.qc.json`) ; son en-tête
+documente le format, qui tolère les commentaires et les virgules finales.
+
+Pour un autre pays : copier ce fichier, le traduire, et régler `HASARD_FICHIER` sur son
+chemin **dans le conteneur** (donc le monter, par exemple
+`- ./banque-du-hasard.json:/app/banque-du-hasard.json:ro` dans un
+`docker-compose.override.yml`). Un chemin réglé mais introuvable ou illisible **ne
+retombe pas** sur la banque québécoise : la famille se tait, et le reste du journal
+sort normalement — servir des jours fériés du Québec à un foyer qui a justement demandé
+les siens serait pire que le silence. Le démarrage journalise le fichier lu et le nombre
+d'entrées retenues.
 
 ## Variables de la session Claude Code (`.mcp.json`)
 

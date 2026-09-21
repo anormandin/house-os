@@ -1,0 +1,168 @@
+// La banque du hasard — version québécoise, livrée avec l'app.
+//
+// Un foyer ailleurs copie ce fichier, le traduit, et règle HASARD_FICHIER sur son
+// chemin (docs/configuration.md). Rien ici n'est du code : c'est de la donnée
+// d'édition, et les commentaires et virgules finales sont tolérés à la lecture.
+//
+// DICTONS — un par entrée, rattaché au mois qui le porte. Le journal en sort un par
+// jour, en tournant dans la liste du mois. C'est le bouche-trou du fonds : il ne
+// paraît que lorsque rien de mieux ne remplit la place.
+//
+// FÊTES — « nom » est la forme courte (30 signes au plus, élaguée au-delà),
+// « texte » ajoute ce que le nom ne dit pas, « ferie » distingue un jour chômé d'une
+// journée qu'on souligne. « quand » prend l'une de quatre formes :
+//   { "mois": 6, "jour": 24 }                          — une date fixe
+//   { "mois": 9, "jourDeSemaine": "lundi", "rang": 1 }  — le 1er lundi du mois (−1 = le dernier)
+//   { "mois": 5, "jourDeSemaine": "lundi", "jour": 25 } — le lundi qui précède le 25
+//   { "depuisPaques": -2 }                              — un décalage depuis Pâques
+{
+  "dictons": [
+    { "mois": 1, "texte": "Janvier sec et sage est un bon présage." },
+    { "mois": 1, "texte": "Neige de janvier vaut du fumier." },
+    { "mois": 2, "texte": "Quand il pleut à la Chandeleur, il pleut six semaines de plus." },
+    { "mois": 2, "texte": "Février le court, le pire de tous." },
+    { "mois": 3, "texte": "Mars venteux, verger pompeux." },
+    { "mois": 3, "texte": "En mars, quand il fait beau, prends ton manteau." },
+    { "mois": 4, "texte": "En avril, ne te découvre pas d'un fil." },
+    { "mois": 4, "texte": "Avril pluvieux, mai joyeux." },
+    { "mois": 5, "texte": "En mai, fais ce qu'il te plaît." },
+    { "mois": 5, "texte": "Mai frais et venteux, an plantureux." },
+    { "mois": 6, "texte": "Juin bien fleuri, vrai paradis." },
+    { "mois": 6, "texte": "Beau temps à la Saint-Jean, blé abondant." },
+    { "mois": 7, "texte": "Juillet sans orage, famine au village." },
+    { "mois": 7, "texte": "Petite pluie de juillet rend l'automne plus gai." },
+    { "mois": 8, "texte": "Quand août est bon, abondance à la maison." },
+    { "mois": 8, "texte": "Brouillard du matin en août annonce une belle journée." },
+    { "mois": 9, "texte": "Quand septembre est beau et doux, octobre est fou." },
+    { "mois": 9, "texte": "Septembre se nomme le mai de l'automne." },
+    { "mois": 10, "texte": "Octobre ensoleillé, décembre emmitouflé." },
+    { "mois": 10, "texte": "Gelée d'octobre rend le paysan sobre." },
+    { "mois": 11, "texte": "À la Sainte-Catherine, l'hiver s'achemine." },
+    { "mois": 11, "texte": "Novembre brumeux, hiver neigeux." },
+    { "mois": 12, "texte": "Noël au balcon, Pâques au tison." },
+    { "mois": 12, "texte": "Décembre trop beau, été dans l'eau." }
+  ],
+
+  "fetes": [
+    {
+      "nom": "Le jour de l'An",
+      "texte": "Première page de l'almanach : on repart à zéro.",
+      "ferie": true,
+      "quand": { "mois": 1, "jour": 1 }
+    },
+    {
+      "nom": "La Saint-Valentin",
+      "texte": "Le milieu de février a toujours eu besoin d'une raison de sortir.",
+      "ferie": false,
+      "quand": { "mois": 2, "jour": 14 }
+    },
+    {
+      "nom": "La Journée des femmes",
+      "texte": "Journée internationale des droits des femmes, depuis 1977.",
+      "ferie": false,
+      "quand": { "mois": 3, "jour": 8 }
+    },
+    {
+      "nom": "La Saint-Patrick",
+      "texte": "Le défilé de Montréal est le plus vieux d'Amérique du Nord.",
+      "ferie": false,
+      "quand": { "mois": 3, "jour": 17 }
+    },
+    {
+      "nom": "Le Vendredi saint",
+      "texte": "Congé pascal au Québec, avec le lundi suivant, au choix de l'employeur.",
+      "ferie": true,
+      "quand": { "depuisPaques": -2 }
+    },
+    {
+      "nom": "Le lundi de Pâques",
+      "texte": "L'autre congé de la fin de semaine pascale, au choix de l'employeur.",
+      "ferie": true,
+      "quand": { "depuisPaques": 1 }
+    },
+    {
+      "nom": "Le Jour de la Terre",
+      "texte": "Né en 1970 ; le Québec l'a adopté en 1995.",
+      "ferie": false,
+      "quand": { "mois": 4, "jour": 22 }
+    },
+    {
+      "nom": "La fête des Mères",
+      "texte": "Deuxième dimanche de mai, par tradition.",
+      "ferie": false,
+      "quand": { "mois": 5, "jourDeSemaine": "dimanche", "rang": 2 }
+    },
+    {
+      "nom": "La Journée des patriotes",
+      "texte": "Le Québec commémore les insurrections de 1837 et 1838.",
+      "ferie": true,
+      "quand": { "mois": 5, "jourDeSemaine": "lundi", "jour": 25 }
+    },
+    {
+      "nom": "La fête des Pères",
+      "texte": "Troisième dimanche de juin, par tradition.",
+      "ferie": false,
+      "quand": { "mois": 6, "jourDeSemaine": "dimanche", "rang": 3 }
+    },
+    {
+      "nom": "Les peuples autochtones",
+      "texte": "Au solstice d'été, reconnue au Canada depuis 1996.",
+      "ferie": false,
+      "quand": { "mois": 6, "jour": 21 }
+    },
+    {
+      "nom": "La Saint-Jean",
+      "texte": "Fête nationale du Québec : feux, défilés et congé.",
+      "ferie": true,
+      "quand": { "mois": 6, "jour": 24 }
+    },
+    {
+      "nom": "La fête du Canada",
+      "texte": "L'anniversaire de la Confédération, signée en 1867.",
+      "ferie": true,
+      "quand": { "mois": 7, "jour": 1 }
+    },
+    {
+      "nom": "La fête du Travail",
+      "texte": "Le dernier long congé de l'été, et la rentrée juste après.",
+      "ferie": true,
+      "quand": { "mois": 9, "jourDeSemaine": "lundi", "rang": 1 }
+    },
+    {
+      "nom": "La vérité et la réconciliation",
+      "texte": "Le chandail orange, en mémoire des pensionnats.",
+      "ferie": false,
+      "quand": { "mois": 9, "jour": 30 }
+    },
+    {
+      "nom": "L'Action de grâce",
+      "texte": "La récolte est rentrée ; c'est la fin de semaine des couleurs.",
+      "ferie": true,
+      "quand": { "mois": 10, "jourDeSemaine": "lundi", "rang": 2 }
+    },
+    {
+      "nom": "L'Halloween",
+      "texte": "Les citrouilles sortent, et parfois la première neige.",
+      "ferie": false,
+      "quand": { "mois": 10, "jour": 31 }
+    },
+    {
+      "nom": "Le jour du Souvenir",
+      "texte": "Onze heures, onzième jour du onzième mois.",
+      "ferie": false,
+      "quand": { "mois": 11, "jour": 11 }
+    },
+    {
+      "nom": "Noël",
+      "texte": "Tout est fermé, même l'épicerie du coin.",
+      "ferie": true,
+      "quand": { "mois": 12, "jour": 25 }
+    },
+    {
+      "nom": "La veille du jour de l'An",
+      "texte": "Dernière page de l'almanach.",
+      "ferie": false,
+      "quand": { "mois": 12, "jour": 31 }
+    }
+  ]
+}

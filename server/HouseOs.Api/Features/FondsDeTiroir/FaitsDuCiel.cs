@@ -64,7 +64,7 @@ public static class FaitsDuCiel
                 soleil.NuitPolaire
                     ? "Il ne franchira pas l'horizon de la journée."
                     : "Il restera au-dessus de l'horizon toute la journée.",
-                new ScoreDeFait(Rarete.ParAn(60), 1, 1.5));
+                new ScoreDeFait(Rarete.ParAn(60), 1, Pertinence.EclaireLaJournee));
         }
 
         return new FaitDeTiroir(
@@ -75,7 +75,7 @@ public static class FaitsDuCiel
             // La durée, et seulement elle : redire les deux heures qui sont déjà
             // au-dessus ne vaut pas une ligne de journal.
             $"Cela fait {Duree(ciel.Soleil.Duree!.Value)} de clarté.",
-            new ScoreDeFait(Rarete.Quotidien, 1, 1));
+            new ScoreDeFait(Rarete.Quotidien, 1, Pertinence.Decoration));
     }
 
     private static FaitDeTiroir? Derive(CielDuJour ciel)
@@ -113,7 +113,7 @@ public static class FaitsDuCiel
             sallonge ? "Le jour s'allonge" : "Le jour raccourcit",
             $"{minutes} min par jour",
             texte,
-            new ScoreDeFait(Rarete.Quotidien, 1, 1));
+            new ScoreDeFait(Rarete.Quotidien, 1, Pertinence.Decoration));
     }
 
     private static FaitDeTiroir? PhaseDeLune(CielDuJour ciel)
@@ -139,7 +139,7 @@ public static class FaitsDuCiel
             ciel.Lune.Nom == NomPhaseLunaire.PleineLune
                 ? "Elle se lève au coucher du soleil et brille jusqu'au matin."
                 : "Le ciel sera au plus noir cette nuit.",
-            new ScoreDeFait(Rarete.ParAn(25), 1, 1));
+            new ScoreDeFait(Rarete.ParAn(25), 1, Pertinence.Decoration));
     }
 
     private static FaitDeTiroir? ProchaineSaison(
@@ -162,7 +162,7 @@ public static class FaitsDuCiel
                 "Aujourd'hui",
                 nom,
                 $"À {Heure(TimeOnly.FromDateTime(chezNous.DateTime))}, heure d'ici.",
-                new ScoreDeFait(Rarete.ParAn(4), 1, 2));
+                new ScoreDeFait(Rarete.ParAn(4), 1, Pertinence.SuggereUnGeste));
         }
         if (jours < 0 || jours > JoursDApprocheSaison)
         {
@@ -178,7 +178,7 @@ public static class FaitsDuCiel
             nom,
             $"Dans {jours} jour{(jours > 1 ? "s" : "")}",
             $"Le {DateLongue(jourLocal)}, à {Heure(TimeOnly.FromDateTime(chezNous.DateTime))}.",
-            new ScoreDeFait(Rarete.ParAn(4 * JoursDApprocheSaison), 1, 1));
+            new ScoreDeFait(Rarete.ParAn(4 * JoursDApprocheSaison), 1, Pertinence.Decoration));
     }
 
     private static FaitDeTiroir? Equilibre(
@@ -211,7 +211,7 @@ public static class FaitsDuCiel
                 "Ce soir",
                 "La nuit passe devant le jour",
                 "À partir de demain, la nuit dure plus longtemps que le jour.",
-                new ScoreDeFait(Rarete.ParAn(2), 1, 1.5));
+                new ScoreDeFait(Rarete.ParAn(2), 1, Pertinence.EclaireLaJournee));
         }
         if (aujourdhui <= douzeHeures && lendemain > douzeHeures)
         {
@@ -221,7 +221,7 @@ public static class FaitsDuCiel
                 "Ce soir",
                 "Le jour repasse devant la nuit",
                 "À partir de demain, le jour dure plus longtemps que la nuit.",
-                new ScoreDeFait(Rarete.ParAn(2), 1, 1.5));
+                new ScoreDeFait(Rarete.ParAn(2), 1, Pertinence.EclaireLaJournee));
         }
         return null;
     }
@@ -257,7 +257,10 @@ public static class FaitsDuCiel
             "Le changement d'heure",
             valeur,
             texte,
-            new ScoreDeFait(Rarete.ParAn(2 * JoursDApprocheChangementHeure), 1, jours <= 2 ? 2 : 1));
+            new ScoreDeFait(
+                Rarete.ParAn(2 * JoursDApprocheChangementHeure),
+                1,
+                jours <= 2 ? Pertinence.SuggereUnGeste : Pertinence.Decoration));
     }
 
     private static FaitDeTiroir? Noirceur(CielDuJour ciel, ContexteDuJour contexte)
@@ -280,7 +283,7 @@ public static class FaitsDuCiel
             "La noirceur",
             $"À {Heure(coucher)}",
             "Il y a du travail dehors aujourd'hui.",
-            new ScoreDeFait(Rarete.Quotidien, 1, 2));
+            new ScoreDeFait(Rarete.Quotidien, 1, Pertinence.SuggereUnGeste));
     }
 
     private static string Nommer(Saison saison) => saison switch

@@ -91,6 +91,32 @@ public class FaitsDeLaMaisonTests
     }
 
     [Fact]
+    public void La_premiere_serie_d_une_maison_neuve_se_dit_quand_meme()
+    {
+        // Le trou trouvé en revue à l'étape 4 : une série qui est AUSSI le record, mais
+        // trop courte pour en être un, se taisait deux fois. La série se taisait parce
+        // qu'elle était le record ; le record se taisait parce qu'il n'avait pas cinq
+        // jours. Une maison qui coche trois jours d'affilée pour la première fois —
+        // exactement ce que ce fait existe pour raconter — n'affichait rien.
+        foreach (var jours in new[] { 3, 4 })
+        {
+            var neuve = EtatDeLaMaison.Vide with { JoursActifs = Serie(Aujourdhui, jours) };
+
+            Assert.Null(Fait(neuve, "maison.record"));
+            var serie = Assert.IsType<FaitDeTiroir>(Fait(neuve, "maison.serie"));
+            Assert.Equal($"{jours} jours d'affilée", serie.Valeur);
+            // Et le texte n'y redit pas le chiffre du dessus sous prétexte que la série
+            // est le record : il ajoute, comme partout ailleurs dans le fonds.
+            Assert.Equal("C'est ce que la maison a fait de mieux jusqu'ici.", serie.Texte);
+        }
+
+        // Passé cinq jours, c'est bien le record qui reprend la parole, seul.
+        var recordAtteint = EtatDeLaMaison.Vide with { JoursActifs = Serie(Aujourdhui, 5) };
+        Assert.NotNull(Fait(recordAtteint, "maison.record"));
+        Assert.Null(Fait(recordAtteint, "maison.serie"));
+    }
+
+    [Fact]
     public void Les_seances_attendent_la_dixieme_et_la_dizaine_les_remonte()
     {
         var neuf = EtatDeLaMaison.Vide with
@@ -112,6 +138,23 @@ public class FaitsDeLaMaisonTests
         // La dizaine franchie est le chiffre qu'on retient : ce jour-là, le fait remonte.
         var trente = neuf with { Seances = [new SeancesDeTache("Boîtes!", 30, new DateOnly(2026, 8, 26))] };
         Assert.True(Fait(trente, "maison.seances")!.Score.Total > fait.Score.Total);
+    }
+
+    [Fact]
+    public void Un_titre_de_tache_trop_long_est_elague_a_un_mot_entier()
+    {
+        // Même règle que pour « ça s'en vient » : le widget coupait la phrase et lui
+        // faisait perdre sa ponctuation. On coupe le titre, à un mot entier, et la
+        // phrase reste entière (laissé en suspens à l'étape 3, tranché à l'étape 4).
+        var maison = EtatDeLaMaison.Vide with
+        {
+            Seances = [new SeancesDeTache(
+                "Vider et trier les boîtes du sous-sol avant le déménagement!", 12, new DateOnly(2026, 8, 26))],
+        };
+
+        var fait = Assert.IsType<FaitDeTiroir>(Fait(maison, "maison.seances"));
+        Assert.Equal("Toutes pour la même tâche, Vider et trier les boîtes du…", fait.Texte);
+        Assert.DoesNotContain("….", fait.Texte);
     }
 
     [Fact]

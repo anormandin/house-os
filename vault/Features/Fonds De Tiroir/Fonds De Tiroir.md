@@ -2,7 +2,7 @@
 type: feature
 status: building
 last-verified: 2026-09-20
-verified-against: edc0157
+verified-against: 0d1eda7
 tags: [iot]
 ---
 
@@ -19,11 +19,11 @@ Matériau d'origine : [[Éditorialiste De L'Écran]] (trois tours de maquettes,
 2026-09-20). Premier consommateur : [[Journal De La Maison]]. Second consommateur prévu :
 la lettre du matin (courriel sortant), qui aura sa propre feature.
 
-> [!note] Bâti : le contrat, « le ciel », « la maison » et « le calendrier » (as of 2026-09-20).
+> [!note] Bâti : le contrat, « le ciel », « la maison », « le calendrier » et « le hasard » (as of 2026-09-20).
 > L'étape 2 du [[Plan 2026-09-20 Journal Éditorial]] a livré le fait, le moteur de score
 > et les sept items du ciel ; l'étape 3 les huit items de la maison et les quatre du
-> calendrier. Restent trois familles : hasard (étape 4), climat (étape 5), ville
-> (étape 6). La **fraîcheur** lit un historique vide jusqu'à l'étape 7.
+> calendrier ; l'étape 4 les deux du hasard. Restent deux familles : climat (étape 5) et
+> ville (étape 6). La **fraîcheur** lit un historique vide jusqu'à l'étape 7.
 
 ## Comportement
 
@@ -80,9 +80,18 @@ répéter qu'un trou dans le journal.
 > Les coter « quelques fois par an » parce qu'on ne voudrait les lire que rarement les
 > met en tête du journal **tous les matins de l'année** — la fraîcheur se remet à neuf au
 > bout de sept jours et ne retient rien de plus. Ces faits sont donc quotidiens, et c'est
-> la **pertinence** qui porte leur poids, sur une échelle écrite : 1 = de la décoration,
-> 1,5 = ça éclaire la journée, 2 = ça suggère un geste, 3 = ça engage la journée. Trouvé
-> en revue de code, 2026-09-20.
+> la **pertinence** qui porte leur poids, sur une échelle écrite : **0,5 = bouche-trou**,
+> 1 = de la décoration, 1,5 = ça éclaire la journée, 2 = ça suggère un geste,
+> 3 = ça engage la journée. Trouvé en revue de code, 2026-09-20. L'échelle vit dans le
+> code depuis l'étape 4 (`Pertinence`, `FaitDeTiroir.cs`) : un barème qui n'existe qu'en
+> commentaire n'est pas un barème.
+
+> [!note] Le bouche-trou est un cran **sous** la décoration.
+> Un dicton d'almanach peut paraître tous les jours — sa rareté est donc celle d'un fait
+> quotidien, et la rareté ne se négocie pas. Ce qui le met en queue de classement, c'est
+> sa pertinence : il ne change rien à aujourd'hui, et il doit passer **derrière le fait
+> le plus banal du fonds**, sans quoi il ne serait plus un bouche-trou. D'où le cran à
+> 0,5. Ajouté à l'étape 4.
 
 **La journée est-elle physique ?** La pertinence de « il fera noir à 18 h 25 » se décide
 sur les **zones extérieures** : au moins une occurrence ouverte du jour dans une zone de
@@ -116,7 +125,7 @@ foyer qui n'a pas rempli `METEO_LATITUDE` garde tout le reste de son journal.
 | **La maison** ✅ | ce jour-là l'an dernier, série en cours et record, N séances depuis, plus vieil équipement, zone la plus négligée, coût de l'année | journal de complétion — **ne donne rien la première année** |
 | **Le calendrier** ✅ | compte à rebours, ça s'en vient (7–30 j), travaux de la saison, garantie qui expire | [[Comptes À Rebours]], occurrences, fenêtres saisonnières, [[Documents]] |
 | **La ville** | prochaine collecte, collecte spéciale, événement municipal | [[Flux Externes]] — ICS pour les collectes, flux poussé pour les événements |
-| **Le hasard** | dicton météo québécois, fête ou journée nationale | banque locale |
+| **Le hasard** ✅ | dicton de l'almanach, fête ou journée nationale | fichier de données remplaçable — aucune |
 
 Détail par item, avec source et rareté : la table du fonds de tiroir dans
 `design/maquettes/une-editorialiste.html`. ✅ = famille branchée.
@@ -147,7 +156,7 @@ vraie devient une chose qu'on a envie de lire.
 
 | Clé | Rareté | Pertinence | Ne sort que si |
 |---|---|---|---|
-| `maison.serie` | tous les jours | 1,5 | trois jours d'affilée au moins, et la série n'est **pas** le record |
+| `maison.serie` | tous les jours | 1,5 | trois jours d'affilée au moins, et le fait `maison.record` ne parle pas (donc : série < record, **ou** série trop courte pour être un record) |
 | `maison.record` | 6×/an | 2 | la série en cours **égale ou dépasse** le record, à partir de cinq jours |
 | `maison.seances` | tous les jours | 1,5 · **3** aux dizaines | une tâche a été cochée dix fois ou plus |
 | `maison.doyen` | tous les jours | 1,5 · **3** si l'entretien est dans la quinzaine | le plus vieil équipement daté a au moins un an |
@@ -155,6 +164,16 @@ vraie devient une chose qu'on a envie de lire.
 | `maison.cout` | tous les jours | 1,5 | au moins un coût consigné depuis le 1er janvier |
 | `maison.anniversaire` | 12×/an | 2 | un équipement ou un jalon du foyer a son mois-jour aujourd'hui, et au moins un an |
 | `maison.an-dernier` | 180×/an | 1,5 | quelque chose a été coché un an jour pour jour avant aujourd'hui |
+
+> [!warning] Deux seuils qui se croisent font un trou, et il faut les croiser exprès.
+> La série se tait quand elle **est** le record (deux colonnes pour le même chiffre,
+> c'est une colonne perdue) et le record ne parle qu'**à partir de cinq jours**. Pris
+> séparément, les deux seuils laissaient muette une série de trois ou quatre jours qui
+> est aussi le record — c'est-à-dire **la première série d'une maison neuve**, le moment
+> précis que ce fait existe pour raconter. La série ne se tait donc que lorsque le record
+> parle vraiment, et elle change de texte quand elle est le meilleur résultat à ce jour,
+> plutôt que de citer un record égal au chiffre qu'elle affiche déjà. Trouvé en revue de
+> code, étape 4.
 
 > [!note] La série se compte **jusqu'à hier** quand la journée n'a rien donné.
 > À six heures du matin rien n'est encore fait. Exiger une complétion du jour ferait
@@ -177,6 +196,46 @@ vraie devient une chose qu'on a envie de lire.
 > au consommateur d'écarter le doublon : `CLES_DEJA_AU_JOURNAL`
 > (`web/src/lib/ecran-vues.ts`), testé. Trouvé à l'étape 3.
 
+### Le hasard, en détail (as of 2026-09-20)
+
+Deux items, et rien qui vienne d'un calcul ou d'une table : la matière est un **fichier
+de données remplaçable** ([[D-2026-09-20 Banque Du Hasard En Fichier De Données]]).
+L'app en livre une version québécoise ; `HASARD_FICHIER` la remplace.
+
+| Clé | Rareté | Pertinence | Ne sort que si |
+|---|---|---|---|
+| `hasard.fete` | le nombre de fêtes **de la banque** (20 dans celle du Québec) | 2 si c'est un jour chômé, sinon 1,5 | une fête de la banque tombe aujourd'hui |
+| `hasard.dicton` | tous les jours | **0,5** (bouche-trou) | la banque a au moins un dicton pour le mois |
+
+La rareté de la fête **se compte dans la banque elle-même** : « combien de jours par
+année le fait peut paraître » est exactement le nombre d'entrées. Un foyer qui n'inscrit
+que ses huit jours chômés obtient un fait deux fois plus rare que celui qui en inscrit
+vingt — et c'est exact, là où un nombre écrit en dur aurait menti pour l'un des deux.
+
+Le dicton du jour est choisi par le **quantième**, dans la liste du mois : figé pour la
+journée (comme tout `ContexteDuJour`), différent le lendemain. Rien d'aléatoire, malgré
+le nom de la famille — un journal qui change de dicton entre deux réveils se contredirait
+tout seul.
+
+> [!note] Le dicton est le seul fait dont la matière vit dans le **texte long**.
+> Un proverbe n'a pas de chiffre à mettre en valeur, et il ne tient pas dans les trente
+> signes de la forme courte : c'est donc l'étiquette qui dit « Le dicton », la valeur qui
+> dit le mois, et le texte qui porte le proverbe. Ça tombe bien — un bouche-trou ne
+> paraît que lorsque le journal a de la place, donc lorsqu'il montre les textes longs.
+> **Relevé au rendu de l'étape 4** : la hiérarchie typographique du widget s'en trouve
+> inversée (le mois en gros, le proverbe en petit). C'est vivable et c'est le seul
+> découpage qui ne coupe pas le proverbe ; à revoir avec l'éditorialiste (étape 7), pas
+> avant.
+
+> [!warning] Les fêtes mobiles sont la moitié des jours fériés du Québec.
+> Pâques et ses deux congés, la Journée des patriotes, la fête du Travail, l'Action de
+> grâce : une banque de dates fixes serait fausse quatre jours par an. Une fête déclare
+> donc **quand elle tombe** sous l'une de quatre formes déclaratives — date fixe ;
+> n-ième jour de semaine du mois (rang négatif = depuis la fin) ; dernier jour de semaine
+> **avant** une date (« le lundi qui précède le 25 mai », strictement avant, même quand le
+> 25 est lui-même un lundi) ; décalage en jours depuis Pâques. Le comput grégorien est
+> écrit à la main, comme les éphémérides.
+
 ### Les sources
 
 - **Éphémérides** : formules NOAA écrites à la main dans `Domaine/Ephemerides/`, aucune
@@ -194,6 +253,11 @@ vraie devient une chose qu'on a envie de lire.
   [[Comptes À Rebours]], des occurrences et des [[Documents]] — **rien de neuf en
   base**, aucune migration. Les fenêtres saisonnières du moteur de récurrence
   ([[Tâches]]) sont exposées comme deux dates par `SpecRecurrence.FenetreAutour`.
+- **Le hasard** ✅ : un fichier JSON de données, lu **une fois au démarrage**
+  ([[D-2026-09-20 Banque Du Hasard En Fichier De Données]]). L'app en livre une version
+  québécoise ; `HASARD_FICHIER` (`Hasard:Fichier`) la remplace, et un chemin réglé mais
+  illisible fait **taire** la famille au lieu de retomber sur celle du Québec.
+  Référence : `docs/configuration.md`.
 - **La ville** : rien de municipal dans le code
   ([[D-2026-09-20 Sources Municipales Séparées Par Solidité]]). Les collectes entrent
   par un ICS régénéré à la main une fois l'an
@@ -222,6 +286,8 @@ vraie devient une chose qu'on a envie de lire.
   pour les coordonnées du `.env`, générique pour tout foyer.
 - [[D-2026-09-20 Flux Externe Poussé]] — `FluxExterne` gagne une source poussée plutôt
   qu'une table de faits séparée.
+- [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] — dictons et fêtes en fichier
+  remplaçable, quatre formes de date déclaratives, jamais de table en dur.
 - [[D-2026-08-23 Pas De N8n Dans Le Cœur]] — les règles sont des classes C# testables.
 
 ## Ancres de code
@@ -234,7 +300,11 @@ Bâties :
   `Tiroir.cs` (le score), `HistoriqueDeParution.cs` (la fraîcheur),
   `ContexteDuJour.cs` (le matériau de chaque famille), `Mots.cs` (les tournures
   partagées), `FaitsDuCiel.cs`, `EtatDeLaMaison.cs` + `FaitsDeLaMaison.cs`,
-  `EtatDuCalendrier.cs` + `FaitsDuCalendrier.cs`. Aucune référence à l'affichage.
+  `EtatDuCalendrier.cs` + `FaitsDuCalendrier.cs`, `BanqueDuHasard.cs` +
+  `LectureDeLaBanque.cs` + `HasardOptions.cs` + `FaitsDuHasard.cs` et la banque livrée
+  `banque-du-hasard.qc.json`. Aucune référence à l'affichage.
+- `FaitDeTiroir.cs` — `Rarete` et `Pertinence` : les deux barèmes du score, écrits dans
+  le code et non seulement en commentaire, depuis l'étape 4.
 - `server/HouseOs.Api/Domaine/SpecRecurrence.cs` — `FenetreAutour` : la fenêtre
   saisonnière lue comme deux dates plutôt que comme quatre nombres.
 - Côté consommateur : `ComposerDonneesEcran.cs` (`ReglagesDuCiel`, `FaitEcranDto`,

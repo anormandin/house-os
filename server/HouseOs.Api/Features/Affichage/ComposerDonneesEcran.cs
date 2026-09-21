@@ -82,7 +82,8 @@ public static class ComposerDonneesEcran
 
     /// <summary>Lit tout ce qu'il faut puis compose. Une seule lecture d'horloge.</summary>
     public static async Task<DonneesEcran> LireAsync(
-        HouseOsDbContext db, DateTime maintenant, string? lieu = null, MeteoOptions? options = null)
+        HouseOsDbContext db, DateTime maintenant, string? lieu = null, MeteoOptions? options = null,
+        BanqueDuHasard? banqueDuHasard = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
         // Bornes de la journée locale : le serveur vit en heure locale (TZ du
@@ -129,7 +130,8 @@ public static class ComposerDonneesEcran
             options is null ? null : new ReglagesDuCiel(
                 new Lieu(options.Latitude, options.Longitude), Fuseau(options), zonesDehors.ToHashSet()),
             await LireLaMaisonAsync(db, aujourdhui),
-            await LireLeCalendrierAsync(db, aujourdhui));
+            await LireLeCalendrierAsync(db, aujourdhui),
+            banqueDuHasard);
     }
 
     /// <summary>
@@ -324,7 +326,8 @@ public static class ComposerDonneesEcran
         IReadOnlyList<OccurrenceDto> ouvertes,
         ReglagesDuCiel? ciel,
         EtatDeLaMaison? maison,
-        EtatDuCalendrier? calendrier)
+        EtatDuCalendrier? calendrier,
+        BanqueDuHasard? hasard)
     {
         // Chaque famille a sa source, et chacune est facultative : la composition sort
         // avec ce qu'elle a, jamais en mode dégradé.
@@ -333,7 +336,8 @@ public static class ComposerDonneesEcran
             ciel is null ? null : new PointDObservation(ciel.Coordonnees, ciel.Fuseau),
             ciel is not null && ouvertes.Any(o => o.ZoneId is { } zone && ciel.ZonesExterieures.Contains(zone)),
             maison,
-            calendrier);
+            calendrier,
+            hasard);
 
         return [.. Tiroir.Ouvrir(contexte, HistoriqueDeParution.Vide)
             .Select(f => new FaitEcranDto(f.Cle, f.Famille.ToString(), f.Etiquette, f.Valeur, f.Texte))];
@@ -369,7 +373,8 @@ public static class ComposerDonneesEcran
         DateOnly? premiereParution = null,
         ReglagesDuCiel? ciel = null,
         EtatDeLaMaison? maison = null,
-        EtatDuCalendrier? calendrier = null)
+        EtatDuCalendrier? calendrier = null,
+        BanqueDuHasard? hasard = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
 
@@ -416,6 +421,6 @@ public static class ComposerDonneesEcran
                 .Select(c => new CompteEcranDto(c.Titre, c.DateCible)).FirstOrDefault(),
             string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim(),
             NumeroEdition(aujourdhui, premiereParution),
-            FondsDuJour(aujourdhui, ouvertes, ciel, maison, calendrier));
+            FondsDuJour(aujourdhui, ouvertes, ciel, maison, calendrier, hasard));
     }
 }

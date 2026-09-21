@@ -94,6 +94,9 @@ services:
       # Le lieu de publication imprimé dans le bloc-titre du journal mural.
       # Facultatif : vide, l'oreille centrale reste vide et le titre s'équilibre.
       Affichage__Lieu: ${MAISON_LIEU:-}
+      # La banque du hasard : vide, celle qui est livrée avec l'image sert. Un autre
+      # pays monte la sienne et pointe cette clé dessus (docs/configuration.md).
+      Hasard__Fichier: ${HASARD_FICHIER:-}
     ports:
       - "${APP_PORT_HOTE:-8080}:8080"
     volumes:

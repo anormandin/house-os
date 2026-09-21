@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-02
-verified-against: 884b383
+last-verified: 2026-09-20
+verified-against: 0d1eda7
 tags: []
 ---
 
@@ -28,7 +28,9 @@ lab du mainteneur.
   `COMPTE_1_AFFICHAGE`, `COMPTE_2_*`, `FUSEAU_HORAIRE` (défaut `America/Toronto`,
   alimente `TZ` et `Meteo:FuseauHoraire`), `APP_PORT_HOTE`, `POSTGRES_PORT_HOTE`,
   `RESEAU_PROXIES_CONNUS` (vide = aucun proxy de confiance), `ANTHROPIC_API_KEY`,
-  `JOURNALISATION_SEQ_URL/CLE`, Funnel, `COURRIEL_R2_*`.
+  `JOURNALISATION_SEQ_URL/CLE`, Funnel, `COURRIEL_R2_*`, `MAISON_LIEU` (le lieu de
+  publication du journal mural), `HASARD_FICHIER` (la banque de dictons et de fêtes qui
+  remplace celle du Québec — [[D-2026-09-20 Banque Du Hasard En Fichier De Données]]).
 - **Comptes** : `Seed:Utilisateurs` est vide dans `appsettings.json` ; le compose
   alimente deux entrées depuis `COMPTE_n_*` ; l'amorçage ignore une entrée sans nom
   (second compte facultatif) ou sans mot de passe, et prend le nom d'utilisateur
@@ -45,7 +47,10 @@ lab du mainteneur.
   (`web/src/components/Avatar.tsx`, registre alimenté par `Layout`), prompts LLM
   « un couple québécois » / « une maison au Québec », exemples de dossier
   génériques, `wrangler.toml` sans adresses (`EXPEDITEURS_PERMIS` passé par
-  `wrangler deploy --var`), défauts météo = ville de Québec.
+  `wrangler deploy --var`), défauts météo = ville de Québec. Ce qui est **régional**
+  (et non propre au foyer) a le droit d'être un défaut, à condition d'être remplaçable
+  par la configuration : c'est le cas des coordonnées météo et de la banque du hasard,
+  livrée en version québécoise et échangée par `HASARD_FICHIER`.
 - **Claude Code** : `.mcp.json` vise `http://localhost:5000/mcp` par défaut ;
   `CLAUDE.md` est le contexte projet, `CLAUDE.local.md` (gitignoré) le contexte
   personnel ; les skills `demarrer` et `planifier-taches` sont génériques.
@@ -67,10 +72,13 @@ lab du mainteneur.
 
 - [[D-2026-09-02 Dépôt Public AGPL Et Instance Générique]] — visibilité, licence,
   généricité par config, split du contexte personnel.
+- [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] — le contenu régional est un
+  fichier de données remplaçable, jamais une table en dur.
 
 ## Ancres de code
 
-- `docker-compose.yml`, `.env.example` — le contrat d'installation.
+- `docker-compose.yml`, `.env.example`, `docs/configuration.md` — le contrat
+  d'installation, et la référence de toutes les variables et clés.
 - `server/HouseOs.Api/Infrastructure/AmorcageDb.cs` — seed des comptes.
 - `web/src/components/Avatar.tsx` — teintes par rang.
 - `infra/courriel-worker/wrangler.toml`, `infra/courriel-worker/README.md`.
