@@ -866,6 +866,12 @@ péremption, vue de bout en bout. Le 26 septembre, les trois faits sortent, dont
       maintenant les dodos du **prochain compte à rebours** de l'API — et sur l'écran,
       depuis la date composée par le serveur. Trouvé en revue de code, hors du
       périmètre de l'étape mais dans la règle du dépôt.
+- [x] **Le rattrapage du démarrage et une régénération à la main se sont télescopés
+      au release** : deux appels Opus pour le 21, une seule ligne possible sur l'index
+      unique de la date, et la régénération à la main a rendu une exception
+      (`23505`). Le même garde-fou que le rendu : le perdant relit la ligne du gagnant,
+      et y pose son texte s'il devait remplacer. Vu en prod, corrigé dans la foulée
+      (`fix` du 2026-09-21).
 - [x] **Sept surtitres datés par le jour de semaine** : « Le dernier lundi… », « Le
       premier mercredi… », « Le samedi où… ». La mémoire des sept jours était bien
       dans le prompt, mais « ne reprends pas la formule » ne suffisait pas ; le prompt
@@ -941,12 +947,17 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
   recréer ou à ignorer selon le besoin.
-- **Où en est la prod** (as of 2026-09-21) : le LXC 105 tourne **`e8e34ac`**, donc les
-  **étapes 1 à 6** ; l'étape 7 est bâtie en dev et **pas encore livrée**. À poser au
-  release de l'étape 7 : rien de nouveau dans le `.env` (`ANTHROPIC_API_KEY` y est
-  déjà, `Edition:Modele` a son défaut) ; la migration
-  `AjouterEditionEtEcheanceFerme` s'applique au démarrage ; le premier rendu après
-  le release pose un gabarit et l'éditorialiste rattrape dans la minute. Posé à la main pour l'étape 6 : `HOUSEOS_POUSSEE_CLE` dans
+- **Où en est la prod** (as of 2026-09-21, fin de journée) : le LXC 105 tourne
+  l'**étape 7** (`4352573` puis le `fix` de la course du release). Rien de nouveau
+  dans le `.env` (`ANTHROPIC_API_KEY` y était, `Edition:Modele` a son défaut).
+  Vérifié au release : `/api/sante` 200, bundle `index-CojqZ-s8.js`, migration
+  `AjouterEditionEtEcheanceFerme` appliquée au démarrage, et dès le démarrage
+  l'éditorialiste a écrit l'édition du 21 avec Opus (rang manchette, 7 clés
+  publiées : « Treize séances d'affilée pour la même tâche / Quinze dodos, et des
+  boîtes »). Régénération du mur par le MCP : 1872×1404, édition et phrase via Llm,
+  image en 462 ms, aucun avertissement de débordement. Cache de build pruné avant
+  (27 % du disque avant le build, 54 % après).
+  Historique : au 2026-09-21 matin la prod tournait `e8e34ac`, soit les étapes 1 à 6. Posé à la main pour l'étape 6 : `HOUSEOS_POUSSEE_CLE` dans
   `/opt/house-os/.env` (la clé de la poussée, distincte de celle du MCP), les deux flux
   (« Collectes 2026 », ICS sur R2, 10 événements ; « Ville », poussé, 6 événements), la
   tâche annuelle « Régénérer le calendrier de collectes » (échéance 2027-01-12) et le

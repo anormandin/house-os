@@ -174,7 +174,8 @@ public static class GenerationEdition
         texte ??= GabaritEdition.Ecrire(cadre.Plancher, await PhraseDeRepli(db, date, ct));
 
         var edition = existante ?? new Edition { Date = date, Manchette = "" };
-        Appliquer(edition, texte, cadre, source, source == SourceEdition.Llm ? redacteur.Modele : null);
+        var modele = source == SourceEdition.Llm ? redacteur.Modele : null;
+        Appliquer(edition, texte, cadre, source, modele);
         // Le drapeau tombe même en gabarit : un modèle qui a échoué ne se rappelle pas
         // à chaque réveil, il se rappelle demain matin. Il reste levé sur une édition
         // écrite pour un autre jour (un essai) : le matin venu, l'éditorialiste la
@@ -184,7 +185,27 @@ public static class GenerationEdition
         {
             db.Editions.Add(edition);
         }
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException) when (existante is null)
+        {
+            // Le rattrapage du démarrage et une régénération à la main ont écrit la
+            // même journée à la même minute (vu en prod au release de l'étape 7 : deux
+            // appels Opus, une seule ligne possible). Le perdant relit la ligne du
+            // gagnant ; s'il devait remplacer, il y pose son texte, sinon il la sert.
+            db.Entry(edition).State = EntityState.Detached;
+            var gagnante = await db.Editions.SingleAsync(e => e.Date == date, ct);
+            if (remplacer == false)
+            {
+                return (gagnante, false);
+            }
+            Appliquer(gagnante, texte, cadre, source, modele);
+            gagnante.ReeditionEnAttente = autreJour;
+            await db.SaveChangesAsync(ct);
+            edition = gagnante;
+        }
         journal.LogInformation("Édition du {Date} écrite via {Source} — rang {Rang}, {Cles} clés publiées.",
             date, source, cadre.Rang, cadre.ClesPubliees.Count);
         return (edition, true);

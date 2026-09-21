@@ -3,6 +3,7 @@ using HouseOs.Api.Domaine.Editorial;
 using HouseOs.Api.Features.Affichage;
 using HouseOs.Api.Features.Editorial;
 using HouseOs.Api.Features.Humeur;
+using HouseOs.Api.Infrastructure;
 using HouseOs.Tests.Features.Taches;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -221,6 +222,32 @@ public class GenerationEditionTests : TestAvecSqlite
 
         Assert.Equal(Aujourdhui.AddDays(1), _redacteur.DerniereMatiere!.Date);
         Assert.Single(_redacteur.DerniereMatiere.TachesDues);
+    }
+
+    [Fact]
+    public async Task Deux_ecritures_de_la_meme_journee_ne_font_pas_deux_lignes()
+    {
+        // Le rattrapage du démarrage et une régénération à la main, à la même minute
+        // (vu en prod) : un seul gagnant sur l'index unique, l'autre relit — et
+        // remplace s'il devait remplacer.
+        _redacteur.Texte = TexteOpus;
+        await using var autre = new HouseOsDbContextSqlite(
+            new DbContextOptionsBuilder<HouseOsDbContext>().UseSqlite(Connexion).Options);
+        var (premiere, _) = await GenerationEdition.GenererAsync(
+            autre, _redacteur, null, null, null, NullLogger.Instance, Aujourdhui, Matin,
+            remplacer: false, CancellationToken.None);
+        Assert.Equal(SourceEdition.Llm, premiere.Source);
+
+        // Le contexte du test a lu « rien » avant que l'autre écrive ; il écrit à son tour.
+        _redacteur.Texte = TexteOpus with { Manchette = "La seconde" };
+        Db.ChangeTracker.Clear();
+        var (perdante, generee) = await GenerationEdition.GenererAsync(
+            Db, _redacteur, null, null, null, NullLogger.Instance, Aujourdhui, Matin,
+            remplacer: true, CancellationToken.None);
+
+        Assert.True(generee);
+        Assert.Equal("La seconde", perdante.Manchette);
+        Assert.Single(await Db.Editions.ToListAsync());
     }
 
     [Fact]
