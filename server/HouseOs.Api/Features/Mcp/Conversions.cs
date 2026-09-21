@@ -1,5 +1,7 @@
 using ModelContextProtocol;
 
+using HouseOs.Api.Infrastructure;
+
 namespace HouseOs.Api.Features.Mcp;
 
 /// <summary>Conversions communes des paramètres d'outils MCP.</summary>
@@ -27,9 +29,9 @@ public static class Conversions
     public static string NormaliserAction(string? action) =>
         action?.Trim().ToLowerInvariant() ?? string.Empty;
 
-    /// <summary>Parse un nom d'enum en tolérant la casse, en refusant les valeurs numériques.</summary>
+    /// <summary>Parse un nom d'enum en tolérant la casse, en refusant les valeurs
+    /// numériques. La règle a déménagé dans <see cref="ParseurEnum"/> : REST en a le
+    /// même besoin, et l'avait perdu (revue de code, étape 6).</summary>
     public static bool ParserEnum<T>(string valeur, out T resultat) where T : struct, Enum =>
-        Enum.TryParse(valeur, ignoreCase: true, out resultat)
-        && char.IsDigit(valeur.Trim()[0]) == false
-        && Enum.IsDefined(resultat);
+        ParseurEnum.Lire(valeur, out resultat);
 }

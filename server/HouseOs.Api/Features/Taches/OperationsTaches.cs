@@ -704,7 +704,9 @@ public static class OperationsTaches
             }
             return (SpecRecurrence.Ponctuelle(), null);
         }
-        if (Enum.TryParse<ModeRecurrence>(dto.Mode, out var mode) == false)
+        // ParseurEnum : Enum.TryParse accepterait « 9 », et une tâche au mode indéfini
+        // traverserait le moteur de récurrence sans jamais correspondre à rien.
+        if (ParseurEnum.Lire<ModeRecurrence>(dto.Mode, out var mode) == false)
         {
             return (SpecRecurrence.Ponctuelle(), $"Mode inconnu : {dto.Mode}.");
         }
@@ -749,7 +751,7 @@ public static class OperationsTaches
         }
 
         // Mode fixe
-        if (Enum.TryParse<TypeFixe>(dto.FixeType, out var fixeType) == false)
+        if (ParseurEnum.Lire<TypeFixe>(dto.FixeType ?? "", out var fixeType) == false)
         {
             return (spec, "FixeType requis en mode fixe (JoursSemaine, JourDuMois ou Annuelle).");
         }
@@ -826,7 +828,7 @@ public static class OperationsTaches
         {
             return (StrategieAssignation.Fixe, null);
         }
-        return Enum.TryParse<StrategieAssignation>(strategie, out var valeur)
+        return ParseurEnum.Lire<StrategieAssignation>(strategie, out var valeur)
             ? (valeur, null)
             : (StrategieAssignation.Fixe, $"Stratégie inconnue : {strategie}.");
     }
