@@ -4,7 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HouseOs.Api.Infrastructure;
 
-public record UtilisateurSeed(string NomUtilisateur = "", string NomAffichage = "", string MotDePasse = "");
+public record UtilisateurSeed(
+    string NomUtilisateur = "", string NomAffichage = "", string MotDePasse = "", string Courriel = "");
 
 public static class AmorcageDb
 {
@@ -16,6 +17,18 @@ public static class AmorcageDb
         await db.Database.MigrateAsync();
 
         var seeds = app.Configuration.GetSection("Seed:Utilisateurs").Get<List<UtilisateurSeed>>() ?? [];
+        await AmorcerUtilisateursAsync(db, seeds, app.Logger);
+    }
+
+    /// <summary>
+    /// Crée les comptes manquants et aligne ce que le .env est seul à dire : l'adresse
+    /// de courriel suit la config à chaque démarrage (vide = effacée), là où le mot de
+    /// passe n'est posé qu'à la création (D-2026-09-21 Adresse De Courriel Sur
+    /// L'Utilisateur).
+    /// </summary>
+    public static async Task AmorcerUtilisateursAsync(
+        HouseOsDbContext db, IReadOnlyList<UtilisateurSeed> seeds, ILogger logger)
+    {
         var hasher = new PasswordHasher<Utilisateur>();
         foreach (var seed in seeds)
         {
@@ -31,13 +44,15 @@ public static class AmorcageDb
                 // Jamais de compte à secret vide. Le mot de passe vient de
                 // appsettings.Development.json en dev et de COMPTE_n_MDP (exigé par le
                 // compose) en prod — ce garde-fou couvre les lancements hors compose.
-                app.Logger.LogWarning(
+                logger.LogWarning(
                     "Amorçage : aucun mot de passe fourni pour {Nom} — compte non créé.", nom);
                 continue;
             }
-            var existe = await db.Utilisateurs.AnyAsync(u => u.NomUtilisateur == nom);
-            if (existe)
+            var courriel = CourrielNormalise(seed.Courriel);
+            var existant = await db.Utilisateurs.SingleOrDefaultAsync(u => u.NomUtilisateur == nom);
+            if (existant is not null)
             {
+                existant.Courriel = courriel;
                 continue;
             }
 
@@ -47,6 +62,7 @@ public static class AmorcageDb
                 NomUtilisateur = nom,
                 NomAffichage = string.IsNullOrWhiteSpace(seed.NomAffichage) ? seed.NomUtilisateur.Trim() : seed.NomAffichage,
                 MotDePasseHash = string.Empty,
+                Courriel = courriel,
             };
             utilisateur.MotDePasseHash = hasher.HashPassword(utilisateur, seed.MotDePasse);
             db.Utilisateurs.Add(utilisateur);
@@ -66,4 +82,7 @@ public static class AmorcageDb
 
         await db.SaveChangesAsync();
     }
+
+    internal static string? CourrielNormalise(string? brut) =>
+        string.IsNullOrWhiteSpace(brut) ? null : brut.Trim().ToLowerInvariant();
 }

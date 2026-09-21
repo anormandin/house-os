@@ -17,7 +17,7 @@ quatorze, il doit rester de quoi remplir une bande de pied.
 
 Matériau d'origine : [[Éditorialiste De L'Écran]] (trois tours de maquettes,
 2026-09-20). Premier consommateur : [[Journal De La Maison]]. Second consommateur prévu :
-la lettre du matin (courriel sortant), qui aura sa propre feature.
+[[Lettre Du Matin]] (courriel sortant, spec 2026-09-21).
 
 > [!note] Bâti : les six familles (as of 2026-09-21).
 > L'étape 2 du [[Plan 2026-09-20 Journal Éditorial]] a livré le fait, le moteur de score
@@ -419,7 +419,7 @@ tout seul.
 - Une **catégorie ou étiquette** sur la tâche
   ([[D-2026-09-20 Regroupement Sans Catégorie De Tâche]]).
 - Un gratteur, un analyseur PDF ou un client municipal dans le dépôt.
-- La lettre du matin et l'envoi de courriel sortant — feature à part, plus tard.
+- La lettre du matin et l'envoi de courriel sortant — [[Lettre Du Matin]].
 
 ## Décisions
 

@@ -26,8 +26,8 @@ tort — corriger dans la même session. Maintenu sous le contrat du skill globa
 
 > [!warning] Ne lis pas les notes `Plan …` par défaut
 > Un plan est immuable une fois exécuté ; la vérité courante est dans la spec et le
-> Recap de la feature. Ouvre un plan seulement pour le reprendre (aucun en cours as
-> of 2026-09-21) ou pour l'archéologie d'un choix. Certains dépassent 80 Ko.
+> Recap de la feature. Ouvre un plan seulement pour le reprendre (en cours as of
+> 2026-09-21 : [[Plan 2026-09-21 Lettre Du Matin]]) ou pour l'archéologie d'un choix. Certains dépassent 80 Ko.
 
 ## Échelle de cérémonie (ce qu'une tâche doit au vault)
 
@@ -71,6 +71,7 @@ Une décision transversale gouverne plusieurs features.
 - **Vue Téléphone** — [[D-2026-09-19 Interface Téléphone Distincte]] · [[D-2026-09-19 Portée De La Vue Téléphone]]
 - **Affichage E-ink** — [[D-2026-09-03 Protocole TRMNL BYOS Comme API D'affichage]] · [[D-2026-09-03 Registre Des Appareils D'affichage]] · [[D-2026-09-03 Rendu E-ink Par Chromium Headless]]
 - **Fonds De Tiroir** — [[D-2026-09-20 Fonds De Tiroir Séparé Du Journal]] · [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] · [[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]] · [[D-2026-09-20 Sources Municipales Séparées Par Solidité]] · [[D-2026-09-20 Calendrier De Collectes Régénéré À La Main]]
+- **Lettre Du Matin** — [[D-2026-09-21 Courriel Sortant Par SMTP]] · [[D-2026-09-21 Une Lettre Au Foyer]] · [[D-2026-09-21 Adresse De Courriel Sur L'Utilisateur]] · [[D-2026-09-21 Lettre Écrite À Part Sur La Même Matière]] · [[D-2026-09-21 Lettre Matérialisée Et Rattrapée Le Jour Même]]
 - **Journal De La Maison** — [[D-2026-09-20 Une Édition Par Jour Matérialisée]] · [[D-2026-09-20 Édition Écrite Par Opus]] · [[D-2026-09-20 Une Seule Mise En Page À Rangs]] · [[D-2026-09-20 Regroupement Sans Catégorie De Tâche]] · [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] · [[D-2026-09-21 Réédition En Deux Temps]] · [[D-2026-09-21 Matière Conservée Sur L'Édition]]
 
 ### Features
@@ -99,6 +100,7 @@ Liste en texte (le `.base` ci-dessus ne se lit que dans Obsidian). Statut as of
 - [[Affichage E-ink]] — écran mural TRMNL BYOS, rendu Chromium headless, registre d'appareils.
 - [[Fonds De Tiroir]] — les petits faits datés que la maison sait d'elle-même (normales climatiques, banque du hasard, sources municipales).
 - [[Journal De La Maison]] — l'éditorialiste de l'écran : une édition par jour, écrite par Opus, mise en page à rangs.
+- [[Lettre Du Matin]] — le courriel du matin : la maison écrit à ses habitants, même matière que le journal, SMTP (bâti 2026-09-21, release en attente des réglages SMTP).
 
 ### Référence
 - [[Architecture]] — stack, structure du monorepo, feuille de route par phases.

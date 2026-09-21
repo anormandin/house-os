@@ -2,6 +2,12 @@ using System.Diagnostics;
 using System.Text.Json;
 using HouseOs.Api.Domaine.Editorial;
 using HouseOs.Api.Features.Editorial;
+using HouseOs.Api.Features.FondsDeTiroir;
+using HouseOs.Api.Features.Lettre;
+using HouseOs.Api.Features.Meteo;
+using HouseOs.Api.Domaine.Lettre;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +32,16 @@ const string Aide = """
           refuser, avec le texte brut. --brut imprime le texte brut même quand il est accepté.
           La clé : ANTHROPIC_API_KEY, ou « ANTHROPIC_API_KEY » / « Humeur:CleApi » dans
           server/HouseOs.Api/appsettings.local.json.
+
+    La lettre du matin (vault : Lettre Du Matin), mêmes règles, ses propres commandes :
+
+      dotnet run --project server/HouseOs.Essais -- prompt-lettre
+      dotnet run --project server/HouseOs.Essais -- matiere-lettre <YYYY-MM-DD> [--base <connexion>] [--composer]
+          Imprime la matière conservée sur la lettre de cette date. --composer la COMPOSE depuis
+          la base (tâches, journal, fonds de tiroir, avec la météo et le lieu de appsettings),
+          sans rien écrire : pour rejouer une journée qui n'a pas encore de lettre.
+      dotnet run --project server/HouseOs.Essais -- rediger-lettre <matiere.json> [--prompt <fichier>]
+                                                    [--modele <id>] [--fois <n>] [--brut]
     """;
 
 const string BaseDeDev = "Host=localhost;Port=5433;Database=houseos;Username=houseos;Password=houseos-dev";
@@ -43,6 +59,9 @@ try
         "prompt" => Prompt(),
         "matiere" => await Matiere(args),
         "rediger" => await Rediger(args),
+        "prompt-lettre" => PromptLettre(),
+        "matiere-lettre" => await MatiereLettre(args),
+        "rediger-lettre" => await RedigerLettre(args),
         _ => Erreur($"commande inconnue : {args[0]}"),
     };
 }
@@ -136,6 +155,145 @@ static async Task<int> Rediger(string[] args)
         }
     }
     return 0;
+}
+
+static int PromptLettre()
+{
+    Console.Write(RedactionLettre.PromptParDefaut);
+    return 0;
+}
+
+static async Task<int> MatiereLettre(string[] args)
+{
+    if (args.Length < 2 || DateOnly.TryParseExact(args[1], "yyyy-MM-dd", out var date) == false)
+    {
+        return Erreur("matiere-lettre : il faut une date YYYY-MM-DD.");
+    }
+    var connexion = Option(args, "--base")
+        ?? Environment.GetEnvironmentVariable("ConnectionStrings__HouseOs")
+        ?? BaseDeDev;
+
+    if (args.Contains("--composer"))
+    {
+        // La même journée que le service composerait : un vrai contexte (jsonb
+        // dynamique), la météo et le lieu de appsettings, la banque du hasard de l'app.
+        var dossierApi = DossierApi();
+        var config = new ConfigurationBuilder()
+            .AddJsonFile(Path.Combine(dossierApi, "appsettings.json"), optional: true)
+            .AddJsonFile(Path.Combine(dossierApi, "appsettings.local.json"), optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+        var meteo = config.GetSection("Meteo").Get<MeteoOptions>() ?? new MeteoOptions();
+        var lieu = config["Affichage:Lieu"];
+        var banque = LectureDeLaBanque.Lire(config["Hasard:Fichier"] ?? "", dossierApi, NullLogger.Instance);
+        var source = new Npgsql.NpgsqlDataSourceBuilder(connexion).EnableDynamicJson().Build();
+        var optionsComplet = new DbContextOptionsBuilder<HouseOsDbContext>().UseNpgsql(source).Options;
+        await using var dbComplet = new HouseOsDbContext(optionsComplet);
+        var composee = await GenerationLettre.MatiereAsync(
+            dbComplet, meteo, banque, lieu, date, DateTime.Now, CancellationToken.None);
+        Console.WriteLine(RedactionLettre.SerialiserMatiere(composee));
+        return 0;
+    }
+
+    var options = new DbContextOptionsBuilder<HouseOsDbContext>().UseNpgsql(connexion).Options;
+    await using var db = new HouseOsDbContext(options);
+    var lettre = await db.Lettres.AsNoTracking()
+        .Where(l => l.Date == date)
+        .Select(l => new { l.Matiere })
+        .SingleOrDefaultAsync();
+    if (lettre is null)
+    {
+        return Erreur($"aucune lettre le {date:yyyy-MM-dd} (--composer pour la composer depuis la base).");
+    }
+    if (lettre.Matiere is null)
+    {
+        return Erreur($"la lettre du {date:yyyy-MM-dd} n'a pas de matière.");
+    }
+    Console.WriteLine(lettre.Matiere);
+    return 0;
+}
+
+static async Task<int> RedigerLettre(string[] args)
+{
+    if (args.Length < 2 || File.Exists(args[1]) == false)
+    {
+        return Erreur("rediger-lettre : il faut le chemin d'un fichier de matière.");
+    }
+    var matiere = RedactionLettre.DeserialiserMatiere(await File.ReadAllTextAsync(args[1]));
+    if (matiere is null)
+    {
+        return Erreur($"{args[1]} n'est pas une matière de lettre.");
+    }
+    var prompt = Option(args, "--prompt") is { } fichier ? await File.ReadAllTextAsync(fichier) : null;
+    var modele = Option(args, "--modele") ?? new EditionOptions().Modele;
+    var fois = int.TryParse(Option(args, "--fois"), out var n) && n > 0 ? n : 1;
+    var brut = args.Contains("--brut");
+    var cle = CleApi();
+    if (cle is null)
+    {
+        return Erreur("aucune clé Anthropic (ANTHROPIC_API_KEY, ou appsettings.local.json).");
+    }
+
+    var e = matiere.Edition;
+    Console.WriteLine($"matière du {e.Date:yyyy-MM-dd} — rang {e.Rang}, {e.TachesDues.Count} tâche(s), " +
+        $"{e.Faits.Count} fait(s), {matiere.SemaineDevant.Count} devant, {matiere.FaitesDepuisLaDerniere.Count} faite(s), " +
+        $"{matiere.Precedentes.Count} précédente(s) — prompt {(prompt is null ? "par défaut" : Option(args, "--prompt"))}, " +
+        $"modèle {modele}, {fois} fois");
+
+    for (var i = 1; i <= fois; i++)
+    {
+        var chrono = Stopwatch.StartNew();
+        var reponse = await RedactionLettre.RedigerAvecEcart(matiere, cle, modele, CancellationToken.None, prompt);
+        chrono.Stop();
+        Console.WriteLine();
+        Console.WriteLine($"— essai {i}/{fois} ({chrono.Elapsed.TotalSeconds:0} s) —");
+        if (reponse.Texte is { } texte)
+        {
+            ImprimerLettre(texte);
+            if (brut)
+            {
+                Console.WriteLine();
+                Console.WriteLine(reponse.Brut);
+            }
+        }
+        else
+        {
+            Console.WriteLine($"REFUSÉ : {reponse.Ecart}");
+            Console.WriteLine(reponse.Brut ?? "(aucun texte)");
+        }
+    }
+    return 0;
+}
+
+static void ImprimerLettre(TexteDeLettre texte)
+{
+    Ligne("sujet", texte.Sujet, 55);
+    for (var i = 0; i < texte.Paragraphes.Count; i++)
+    {
+        Ligne($"§ {i + 1}", texte.Paragraphes[i], 250);
+    }
+    var total = texte.Paragraphes.Sum(p => p.Length);
+    Console.WriteLine($"total      ({total,4}{(total > 1200 ? " > 1200" : "")})");
+}
+
+/// <summary>Le dossier de HouseOs.Api, cherché en remontant depuis le dossier courant.</summary>
+static string DossierApi()
+{
+    for (var dossier = new DirectoryInfo(Directory.GetCurrentDirectory()); dossier is not null; dossier = dossier.Parent)
+    {
+        foreach (var candidat in new[]
+        {
+            Path.Combine(dossier.FullName, "HouseOs.Api"),
+            Path.Combine(dossier.FullName, "server", "HouseOs.Api"),
+        })
+        {
+            if (File.Exists(Path.Combine(candidat, "appsettings.json")))
+            {
+                return candidat;
+            }
+        }
+    }
+    throw new InvalidOperationException("HouseOs.Api introuvable depuis le dossier courant.");
 }
 
 static void Imprimer(TexteDEdition texte)

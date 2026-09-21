@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Domaine.Editorial;
+using HouseOs.Api.Domaine.Lettre;
 using HouseOs.Api.Domaine.Meteo;
 using HouseOs.Api.Infrastructure;
 using Microsoft.Data.Sqlite;
@@ -49,6 +50,19 @@ public class HouseOsDbContextSqlite(DbContextOptions<HouseOsDbContext> options)
             .HasConversion(
                 liste => JsonSerializer.Serialize(liste, (JsonSerializerOptions?)null),
                 texte => JsonSerializer.Deserialize<List<RubriqueEdition>>(texte, (JsonSerializerOptions?)null) ?? new List<RubriqueEdition>());
+        // Les deux listes jsonb de la lettre du matin, et ses horodatages comparés.
+        modelBuilder.Entity<LettreDuMatin>().Property(l => l.Paragraphes)
+            .HasColumnType("TEXT")
+            .HasConversion(
+                liste => JsonSerializer.Serialize(liste, (JsonSerializerOptions?)null),
+                texte => JsonSerializer.Deserialize<List<string>>(texte, (JsonSerializerOptions?)null) ?? new List<string>());
+        modelBuilder.Entity<LettreDuMatin>().Property(l => l.Destinataires)
+            .HasColumnType("TEXT")
+            .HasConversion(
+                liste => JsonSerializer.Serialize(liste, (JsonSerializerOptions?)null),
+                texte => JsonSerializer.Deserialize<List<string>>(texte, (JsonSerializerOptions?)null) ?? new List<string>());
+        modelBuilder.Entity<LettreDuMatin>().Property(l => l.EnvoyeeLe)
+            .HasConversion(new DateTimeOffsetToBinaryConverter());
         modelBuilder.Entity<EntreeJournal>().Property(j => j.CompleteeLe)
             .HasConversion(new DateTimeOffsetToBinaryConverter());
         // Le tri des complétées (ListerOccurrencesAsync) ordonne par CompleteeLe :

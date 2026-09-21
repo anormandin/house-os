@@ -1,5 +1,6 @@
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Domaine.Editorial;
+using HouseOs.Api.Domaine.Lettre;
 using HouseOs.Api.Domaine.Humeur;
 using HouseOs.Api.Domaine.Meteo;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<NormalesClimatiques> NormalesClimatiques => Set<NormalesClimatiques>();
     public DbSet<PhraseDuJour> PhrasesDuJour => Set<PhraseDuJour>();
     public DbSet<Edition> Editions => Set<Edition>();
+    public DbSet<LettreDuMatin> Lettres => Set<LettreDuMatin>();
     public DbSet<FluxExterne> FluxExternes => Set<FluxExterne>();
     public DbSet<EvenementExterne> EvenementsExternes => Set<EvenementExterne>();
     public DbSet<CompteBudget> ComptesBudget => Set<CompteBudget>();
@@ -53,6 +55,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             u.Property(x => x.NomAffichage).HasMaxLength(100);
             u.Property(x => x.JetonIcal).HasMaxLength(64);
             u.HasIndex(x => x.NomUtilisateur).IsUnique();
+            u.Property(x => x.Courriel).HasMaxLength(200);
         });
 
         modelBuilder.Entity<Tache>(t =>
@@ -218,6 +221,19 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             e.Property(x => x.ClesPubliees).HasColumnType("jsonb");
             e.Property(x => x.Matiere).HasColumnType("jsonb");
             e.HasIndex(x => x.Date).IsUnique();
+        });
+
+        // La lettre du matin : une ligne par date, jamais deux envois le même jour
+        // (D-2026-09-21 Lettre Matérialisée Et Rattrapée Le Jour Même).
+        modelBuilder.Entity<LettreDuMatin>(l =>
+        {
+            l.Property(x => x.Source).HasConversion<string>().HasMaxLength(10);
+            l.Property(x => x.Sujet).HasMaxLength(200);
+            l.Property(x => x.Modele).HasMaxLength(60);
+            l.Property(x => x.Paragraphes).HasColumnType("jsonb");
+            l.Property(x => x.Matiere).HasColumnType("jsonb");
+            l.Property(x => x.Destinataires).HasColumnType("jsonb");
+            l.HasIndex(x => x.Date).IsUnique();
         });
 
         modelBuilder.Entity<CompteBudget>(c =>

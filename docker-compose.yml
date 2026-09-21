@@ -60,9 +60,11 @@ services:
       Seed__Utilisateurs__0__NomUtilisateur: ${COMPTE_1_NOM:?COMPTE_1_NOM requis (dans le .env)}
       Seed__Utilisateurs__0__NomAffichage: ${COMPTE_1_AFFICHAGE:-}
       Seed__Utilisateurs__0__MotDePasse: ${COMPTE_1_MDP:?COMPTE_1_MDP requis (dans le .env)}
+      Seed__Utilisateurs__0__Courriel: ${COMPTE_1_COURRIEL:-}
       Seed__Utilisateurs__1__NomUtilisateur: ${COMPTE_2_NOM:-}
       Seed__Utilisateurs__1__NomAffichage: ${COMPTE_2_AFFICHAGE:-}
       Seed__Utilisateurs__1__MotDePasse: ${COMPTE_2_MDP:-}
+      Seed__Utilisateurs__1__Courriel: ${COMPTE_2_COURRIEL:-}
       # Clé du endpoint /mcp (Claude Code) — générer avec : openssl rand -hex 32
       Mcp__Cle: ${HOUSEOS_MCP_KEY:?HOUSEOS_MCP_KEY requis (openssl rand -hex 32, dans le .env)}
       FluxExternes__ClePoussee: ${HOUSEOS_POUSSEE_CLE:-}
@@ -85,6 +87,17 @@ services:
       Courriel__R2__Bucket: ${COURRIEL_R2_BUCKET:-}
       Courriel__R2__CleAcces: ${COURRIEL_R2_CLE_ACCES:-}
       Courriel__R2__CleSecrete: ${COURRIEL_R2_CLE_SECRETE:-}
+      # La lettre du matin : un courriel par jour à ceux qui ont une adresse
+      # (COMPTE_n_COURRIEL), par SMTP. Facultatif : sans hôte ni expéditeur, la
+      # lettre se compose et se lit dans l'app mais ne part pas. Les défauts avec
+      # une valeur sont répétés ici pour le binder (heure, port).
+      Lettre__HeureEnvoi: ${LETTRE_HEURE:-06:30}
+      Lettre__Smtp__Hote: ${LETTRE_SMTP_HOTE:-}
+      Lettre__Smtp__Port: ${LETTRE_SMTP_PORT:-587}
+      Lettre__Smtp__Usager: ${LETTRE_SMTP_USAGER:-}
+      Lettre__Smtp__MotDePasse: ${LETTRE_SMTP_MDP:-}
+      Lettre__Smtp__Expediteur: ${LETTRE_SMTP_EXPEDITEUR:-}
+      Lettre__UrlDeLApp: ${LETTRE_URL_APP:-}
       # Écran e-ink mural : cadence de réveil le jour, et plus long sommeil qu'on
       # ose demander au firmware. Plus la cadence est courte, plus la pile descend
       # vite — c'est le réveil Wi-Fi qui coûte, pas le rafraîchissement du panneau.

@@ -32,12 +32,13 @@ public record BilanSemaineDto(
 public static class OutilsTaches
 {
     [McpServerTool(Name = "lister_utilisateurs")]
-    [Description("Liste les deux membres du foyer (id, nomUtilisateur, nomAffichage). " +
+    [Description("Liste les deux membres du foyer (id, nomUtilisateur, nomAffichage, courriel — nul si " +
+        "le compte n'a pas d'adresse et ne reçoit donc pas la lettre du matin). " +
         "Les paramètres agirComme et assigneA des autres outils prennent le nomUtilisateur.")]
     public static async Task<List<UtilisateurDto>> ListerUtilisateurs(HouseOsDbContext db) =>
         await db.Utilisateurs
             .OrderBy(u => u.NomAffichage)
-            .Select(u => new UtilisateurDto(u.Id, u.NomUtilisateur, u.NomAffichage))
+            .Select(u => new UtilisateurDto(u.Id, u.NomUtilisateur, u.NomAffichage, u.Courriel))
             .ToListAsync();
 
     [McpServerTool(Name = "creer_taches")]

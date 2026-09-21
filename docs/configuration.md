@@ -30,6 +30,12 @@ les clés dans `appsettings.local.json`.
 | `HASARD_FICHIER` | non | vide | `Hasard:Fichier` | la banque du hasard livrée avec l'app sert (dictons et fêtes du Québec) |
 | `ICAL_URL_PUBLIQUE_BASE` | non | vide | `Ical:UrlPubliqueBase` | l'UI n'affiche que l'URL interne |
 | `COURRIEL_R2_ENDPOINT`, `COURRIEL_R2_BUCKET`, `COURRIEL_R2_CLE_ACCES`, `COURRIEL_R2_CLE_SECRETE` | non | — | `Courriel:R2:*` | relevé des courriels désactivé (il faut les quatre) |
+| `COMPTE_1_COURRIEL`, `COMPTE_2_COURRIEL` | non | — | `Seed:Utilisateurs:n:Courriel` | le compte ne reçoit pas la lettre du matin |
+| `LETTRE_SMTP_HOTE`, `LETTRE_SMTP_EXPEDITEUR` | non | — | `Lettre:Smtp:Hote`, `Lettre:Smtp:Expediteur` | lettre du matin composée et lisible dans l'app, jamais envoyée (il faut les deux) |
+| `LETTRE_SMTP_PORT` | non | 587 | `Lettre:Smtp:Port` | 587 = STARTTLS, 465 = TLS dès la connexion, autre = négocié |
+| `LETTRE_SMTP_USAGER`, `LETTRE_SMTP_MDP` | non | — | `Lettre:Smtp:Usager`, `Lettre:Smtp:MotDePasse` | connexion sans authentification (relais maison) |
+| `LETTRE_HEURE` | non | 06:30 | `Lettre:HeureEnvoi` | |
+| `LETTRE_URL_APP` | non | vide | `Lettre:UrlDeLApp` | la lettre n'a pas de lien « Ouvrir la journée » |
 
 ## Clés de configuration sans variable `.env`
 
@@ -44,6 +50,7 @@ les clés dans `appsettings.local.json`.
 | `Humeur:Modele` | `claude-haiku-4-5` | modèle du titre d'humeur (deux appels par jour) |
 | `Edition:Modele` | `claude-opus-5` | modèle de l'éditorialiste du journal mural (un appel par jour, au créneau `Humeur:HeureMatin`, avec la clé `ANTHROPIC_API_KEY` ; un second essai une heure plus tard si le modèle n'a pas répondu) ; sans clé, le gabarit écrit |
 | `Courriel:CadenceMinutes` | 2 | fréquence du relevé R2 |
+| `Lettre:LimiteRattrapage` | 12:00 | passé cette heure, la lettre du jour n'est plus envoyée ; jamais rattrapée le lendemain |
 | `Courriel:R2:Prefixe` | `entrants/` | préfixe des objets relevés |
 | `Affichage:CadenceJourSecondes` | 900 | délai entre deux réveils de l'écran e-ink le jour (`ECRAN_CADENCE_SECONDES`) |
 | `Affichage:NuitDebut`, `Affichage:NuitFin` | 22:00, 05:30 | la nuit, l'écran dort jusqu'à `NuitFin` — par tranches de `PlafondSecondes` |

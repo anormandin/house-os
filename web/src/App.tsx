@@ -11,6 +11,7 @@ import ToastConfirmation from '@/components/ToastConfirmation'
 import Connexion from '@/pages/Connexion'
 import Aujourdhui from '@/pages/Aujourdhui'
 import Budget from '@/pages/Budget'
+import Lettre from '@/pages/Lettre'
 import Documents from '@/pages/Documents'
 import Ecran from '@/pages/Ecran'
 import Equipements from '@/pages/Equipements'
@@ -80,6 +81,7 @@ function AppConnectee({ moi }: { moi: Utilisateur }) {
           <Route path="/equipements" element={phone ? <EquipementsTelephone /> : <Equipements />} />
           <Route path="/documents" element={phone ? <DocumentsTelephone /> : <Documents />} />
           <Route path="/budget" element={phone ? <BudgetTelephone /> : <Budget />} />
+          <Route path="/lettre" element={phone ? <Navigate to="/" replace /> : <Lettre />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

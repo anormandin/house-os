@@ -110,7 +110,7 @@ public static class TachesEndpoints
         app.MapGet("/api/utilisateurs", async (HouseOsDbContext db) =>
             await db.Utilisateurs
                 .OrderBy(u => u.NomAffichage)
-                .Select(u => new UtilisateurDto(u.Id, u.NomUtilisateur, u.NomAffichage))
+                .Select(u => new UtilisateurDto(u.Id, u.NomUtilisateur, u.NomAffichage, u.Courriel))
                 .ToListAsync());
 
         app.MapPost("/api/taches", async (

@@ -330,8 +330,8 @@ Recap.
 - La grammaire 1-bit : inchangée ([[Affichage Mural Et E-ink]]).
 - Plusieurs mises en page ou « plugins » — la ligne du hors périmètre de
   [[Affichage E-ink]] **reste vraie**.
-- La lettre du matin (courriel sortant) : feature à part, plus tard. House OS reçoit du
-  courriel ([[Courriel Entrant]]) mais n'en envoie aucun.
+- La lettre du matin (courriel sortant) : [[Lettre Du Matin]], feature à part
+  (spec 2026-09-21).
 - Toute interaction physique : l'écran reste en lecture seule.
 
 ## Décisions

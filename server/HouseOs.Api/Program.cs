@@ -2,6 +2,7 @@ using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.Budget;
 using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Courriel;
+using HouseOs.Api.Features.Lettre;
 using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxExternes;
@@ -245,6 +246,20 @@ builder.Services.AddSingleton<IEnrichisseurCourriel, EnrichisseurAnthropic>();
 builder.Services.AddSingleton<CourrielEntrantService>();
 builder.Services.AddHostedService<CourrielEntrantHote>();
 
+// La lettre du matin : le courriel sortant par SMTP (D-2026-09-21 Courriel Sortant Par
+// SMTP). Config absente = envoyeur inactif — la lettre se compose et se lit dans l'app,
+// elle ne part pas.
+builder.Services.Configure<LettreOptions>(builder.Configuration.GetSection("Lettre"));
+builder.Services.AddSingleton<IEnvoyeurDeCourriel>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<LettreOptions>>().Value.Smtp;
+    return options.Actif
+        ? new EnvoyeurSmtp(options, sp.GetRequiredService<ILogger<EnvoyeurSmtp>>())
+        : new EnvoyeurInactif();
+});
+builder.Services.AddSingleton<IRedacteurLettre, RedacteurLettreAnthropic>();
+builder.Services.AddHostedService<LettreService>();
+
 // La banque du hasard (dictons, fêtes) : de la donnée d'édition, lue une fois au
 // démarrage — un fichier immobile n'a pas à être relu à chaque rendu d'écran
 // (D-2026-09-20 Banque Du Hasard En Fichier De Données).
@@ -302,6 +317,7 @@ app.MapComptesARebours();
 app.MapEquipements();
 app.MapDocuments();
 app.MapCourriel();
+app.MapLettre();
 app.MapBudget();
 app.MapImportTransactions();
 app.MapIcal();

@@ -14,6 +14,7 @@ const onglets = [
   { vers: '/equipements', libelle: 'Équipements' },
   { vers: '/documents', libelle: 'Documents' },
   { vers: '/budget', libelle: 'Budget' },
+  { vers: '/lettre', libelle: 'Lettre' },
 ]
 
 export default function Layout({ moi }: { moi: Utilisateur }) {

@@ -64,6 +64,8 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
         builder.UseSetting("Seed:Utilisateurs:0:NomUtilisateur", "alain");
         builder.UseSetting("Seed:Utilisateurs:0:NomAffichage", "Alain");
         builder.UseSetting("Seed:Utilisateurs:0:MotDePasse", "test-alain");
+        builder.UseSetting("Seed:Utilisateurs:0:Courriel", "Alain@Exemple.tld");
+        builder.UseSetting("Lettre:UrlDeLApp", "https://maison.exemple.tld");
         builder.UseSetting("Seed:Utilisateurs:1:NomUtilisateur", "ariane");
         builder.UseSetting("Seed:Utilisateurs:1:NomAffichage", "Ariane");
         builder.UseSetting("Seed:Utilisateurs:1:MotDePasse", "test-ariane");
@@ -83,6 +85,7 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
                      d.ImplementationType == typeof(EditorialisteService) ||
                      d.ImplementationType == typeof(FluxExternesRafraichissement) ||
                      d.ImplementationType == typeof(CourrielEntrantHote) ||
+                     d.ImplementationType == typeof(HouseOs.Api.Features.Lettre.LettreService) ||
                      d.ImplementationType == typeof(HoteRenduEcran)))
                 .ToList();
             foreach (var descripteur in arrierePlan)
@@ -108,6 +111,15 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
             services.RemoveAll<IRedacteurEdition>();
             services.AddSingleton<RedacteurFictif>();
             services.AddSingleton<IRedacteurEdition>(sp => sp.GetRequiredService<RedacteurFictif>());
+
+            // La lettre du matin : même règle — un rédacteur fictif, et un envoyeur en
+            // mémoire à la place du SMTP.
+            services.RemoveAll<HouseOs.Api.Features.Lettre.IRedacteurLettre>();
+            services.AddSingleton<Features.Lettre.RedacteurLettreFictif>();
+            services.AddSingleton<HouseOs.Api.Features.Lettre.IRedacteurLettre>(sp => sp.GetRequiredService<Features.Lettre.RedacteurLettreFictif>());
+            services.RemoveAll<HouseOs.Api.Features.Lettre.IEnvoyeurDeCourriel>();
+            services.AddSingleton<Features.Lettre.EnvoyeurFictif>();
+            services.AddSingleton<HouseOs.Api.Features.Lettre.IEnvoyeurDeCourriel>(sp => sp.GetRequiredService<Features.Lettre.EnvoyeurFictif>());
 
             // Pas de Chromium sous test : le rendu de l'écran e-ink est une image grise.
             services.RemoveAll<IRenduEcran>();

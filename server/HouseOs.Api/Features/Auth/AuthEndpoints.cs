@@ -10,7 +10,9 @@ using Microsoft.EntityFrameworkCore;
 namespace HouseOs.Api.Features.Auth;
 
 public record ConnexionRequete(string NomUtilisateur, string MotDePasse);
-public record UtilisateurDto(Guid Id, string NomUtilisateur, string NomAffichage);
+/// <summary>Le courriel n'est servi que par les listes du foyer (GET /api/utilisateurs,
+/// lister_utilisateurs) ; sur une tâche ou une occurrence, il reste nul.</summary>
+public record UtilisateurDto(Guid Id, string NomUtilisateur, string NomAffichage, string? Courriel = null);
 
 public static class AuthEndpoints
 {

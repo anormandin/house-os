@@ -4,6 +4,8 @@ export type Utilisateur = {
   id: string
   nomUtilisateur: string
   nomAffichage: string
+  /** Servi par /api/utilisateurs seulement ; nul = ne reçoit pas la lettre du matin. */
+  courriel?: string | null
 }
 
 export type Occurrence = {
@@ -568,7 +570,37 @@ export function dateLocaleIso(date = new Date()): string {
   return `${annee}-${mois}-${jour}`
 }
 
+/** La lettre du matin telle que l'app la voit (/api/lettre). */
+export type LettreDuMatin = {
+  date: string
+  sujet: string
+  paragraphes: string[]
+  source: 'Llm' | 'Gabarit'
+  modele: string | null
+  composeeLe: string
+  envoyeeLe: string | null
+  destinataires: string[]
+  /** Faux pour un aperçu composé à la volée, jamais écrit. */
+  ecrite: boolean
+  envoiActif: boolean
+  destinatairesPrevus: string[]
+  texte: string
+  html: string
+}
+
 export const api = {
+  lettre: (date?: string) =>
+    requete<LettreDuMatin>(`/api/lettre${date ? `?date=${encodeURIComponent(date)}` : ''}`),
+  regenererLettre: (envoyer: boolean, date?: string) =>
+    requete<LettreDuMatin>('/api/lettre/regenerer', {
+      method: 'POST',
+      body: JSON.stringify({ date: date ?? null, envoyer }),
+    }),
+  envoyerEssaiLettre: (date?: string) =>
+    requete<{ envoyeA: string }>('/api/lettre/essai', {
+      method: 'POST',
+      body: JSON.stringify({ date: date ?? null }),
+    }),
   moi: () => requete<Utilisateur>('/api/auth/moi'),
   connexion: (nomUtilisateur: string, motDePasse: string) =>
     requete<Utilisateur>('/api/auth/connexion', {

@@ -10,6 +10,7 @@ using HouseOs.Api.Features.Courriel;
 using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.Humeur;
+using HouseOs.Api.Features.Lettre;
 using HouseOs.Api.Features.Zones;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -816,6 +817,53 @@ public static class OutilsMaison
             throw new McpException(
                 $"Édition et phrase régénérées, mais le rendu de l'image a échoué : {ex.Message}");
         }
+    }
+
+    [McpServerTool(Name = "lire_lettre_du_matin")]
+    [Description("La lettre du matin d'une journée — le courriel que la maison écrit à ses habitants " +
+        "vers 6 h 30 (vault : Lettre Du Matin). Rend la lettre écrite pour la date (sujet, paragraphes, " +
+        "source Llm ou Gabarit, envoyée à qui et quand, le texte tel qu'il part) ; si aucune n'est " +
+        "écrite, un APERÇU en note de quatre lignes, composé sans modèle et jamais écrit " +
+        "(« ecrite » = false). « date » YYYY-MM-DD, vide = aujourd'hui. Parité avec GET /api/lettre.")]
+    public static async Task<LettreDto> LireLettreDuMatin(
+        HouseOsDbContext db, IRedacteurLettre redacteur, IEnvoyeurDeCourriel envoyeur,
+        IOptions<LettreOptions> options, IOptions<MeteoOptions> meteo, BanqueDuHasard banque,
+        IOptions<AffichageOptions> affichage, ILoggerFactory fabrique, CancellationToken ct,
+        [Description("Une journée, YYYY-MM-DD ; vide = aujourd'hui.")] string? date = null)
+    {
+        if (OperationsLettre.LireDate(date, out var jour) == false)
+        {
+            throw new McpException(OperationsLettre.ErreurDate);
+        }
+        var maintenant = DateTime.Now;
+        var c = LettreEndpoints.Contexte(db, redacteur, envoyeur, options, meteo, banque, affichage, fabrique);
+        return await OperationsLettre.LireAsync(c, jour ?? DateOnly.FromDateTime(maintenant), maintenant, ct);
+    }
+
+    [McpServerTool(Name = "regenerer_lettre_du_matin")]
+    [Description("Réécrit la lettre du matin À LA DEMANDE : la maison (Opus) récrit le sujet et les " +
+        "paragraphes depuis la matière du moment — appel LLM compris, même si la lettre existe déjà — " +
+        "et la note de repli prend la place si le modèle se tait (« source » = Gabarit). " +
+        "« envoyer » = true l'envoie aussi, à tous les comptes qui ont une adresse, MÊME si la lettre " +
+        "du jour est déjà partie : c'est un geste explicite, à ne pas faire sans que l'humain l'ait " +
+        "demandé. « date » écrit et garde la lettre d'une autre journée (essais) ; vide = aujourd'hui. " +
+        "Parité avec POST /api/lettre/regenerer. L'essai « à moi seulement » reste web " +
+        "(POST /api/lettre/essai) : il n'y a pas de « moi » en MCP.")]
+    public static async Task<LettreDto> RegenererLettreDuMatin(
+        HouseOsDbContext db, IRedacteurLettre redacteur, IEnvoyeurDeCourriel envoyeur,
+        IOptions<LettreOptions> options, IOptions<MeteoOptions> meteo, BanqueDuHasard banque,
+        IOptions<AffichageOptions> affichage, ILoggerFactory fabrique, CancellationToken ct,
+        [Description("Une autre journée, YYYY-MM-DD (essais) ; vide = aujourd'hui.")] string? date = null,
+        [Description("true = envoyer la lettre réécrite à tous les comptes qui ont une adresse.")] bool? envoyer = null)
+    {
+        if (OperationsLettre.LireDate(date, out var jour) == false)
+        {
+            throw new McpException(OperationsLettre.ErreurDate);
+        }
+        var maintenant = DateTime.Now;
+        var c = LettreEndpoints.Contexte(db, redacteur, envoyeur, options, meteo, banque, affichage, fabrique);
+        return await OperationsLettre.RegenererAsync(
+            c, jour ?? DateOnly.FromDateTime(maintenant), envoyer == true, maintenant, ct);
     }
 
     private static void AppliquerCompte(
