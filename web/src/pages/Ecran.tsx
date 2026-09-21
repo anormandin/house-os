@@ -41,6 +41,7 @@ import { dateJournal, dodosAvant, heureQuebec } from '@/lib/format'
 import { phraseDuJour } from '@/lib/humeur'
 import { meteoEnMots, pastillesMeteo } from '@/lib/meteo-vues'
 import { cn } from '@/lib/utils'
+import './ecran-polices.css'
 
 /*
  * Le journal de la maison — la vue e-ink (vault : Features/Journal De La Maison,
@@ -113,7 +114,7 @@ export default function Ecran() {
   return (
     <div
       ref={cadre}
-      className="overflow-hidden bg-white font-sans text-black"
+      className="overflow-hidden bg-white font-journal-texte text-black [font-synthesis:none]"
       style={{ zoom, width: LARGEUR_CONCUE, height: hauteur / zoom }}
     >
       {accueil !== null ? (
@@ -352,7 +353,7 @@ function BlocTitre({
         <span className="truncate text-right">{droite}</span>
       </div>
       <div className="border-y-[3px] border-black pb-3 pt-1.5 text-center">
-        <span className="block font-titre text-[126px] font-black uppercase leading-[0.95] tracking-[-0.02em]">
+        <span className="block font-journal-nom text-[126px] font-normal leading-[0.95]">
           La maison
         </span>
       </div>
@@ -409,12 +410,12 @@ function Manchette({
       {surtitre !== null && (
         <div className="text-[30px] font-extrabold uppercase tracking-[0.14em]">{surtitre}</div>
       )}
-      <h1 className="mt-2 font-titre font-bold leading-[1.02]" style={{ fontSize: taille }}>
+      <h1 className="mt-2 font-journal-titre font-bold leading-[1.02]" style={{ fontSize: taille }}>
         {lettrine ? (
           <>
             {/* La lettrine : deux lignes de haut, comme au plomb. */}
             <span
-              className="float-left mr-5 mt-2 font-titre font-bold leading-[0.74]"
+              className="float-left mr-5 mt-2 font-journal-titre font-bold leading-[0.74]"
               style={{ fontSize: taille * 1.5 }}
             >
               {titre.slice(0, 1)}
@@ -452,7 +453,7 @@ function BandeDuSommaire({ donnees, edition }: { donnees: DonneesEcran; edition:
   // dire serait pire qu'une manchette coupée qu'on sait coupée.
   return (
     <div className="flex items-baseline justify-between gap-10 overflow-hidden bg-black px-16 py-5 text-white">
-      <span className="whitespace-nowrap font-titre font-bold leading-none" style={{ fontSize: tailleDeLaBande(titre, compte) }}>
+      <span className="whitespace-nowrap font-journal-titre font-bold leading-none" style={{ fontSize: tailleDeLaBande(titre, compte) }}>
         {titre}
       </span>
       <span
@@ -728,7 +729,7 @@ function Encadre({ titre, children }: { titre: string; children: ReactNode }) {
   return (
     <div className="my-6 border-[6px] border-black px-6 py-5 text-center">
       <div className="line-clamp-1 text-[30px] font-extrabold uppercase tracking-[0.12em]">{titre}</div>
-      <div className="mt-2 font-titre text-[92px] font-bold leading-none">{children}</div>
+      <div className="mt-2 font-journal-titre text-[92px] font-bold leading-none">{children}</div>
     </div>
   )
 }
@@ -836,9 +837,9 @@ function limiteVisible(element: Element, cache: Map<Element, Limite>): Limite {
 function Accueil({ identifiant }: { identifiant: string }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-10 text-center">
-      <span className="font-titre text-[200px] font-bold leading-none text-black">House OS</span>
+      <span className="font-journal-titre text-[200px] font-bold leading-none text-black">House OS</span>
       <span className="text-[56px] font-bold">Écran enrôlé</span>
-      <span className="border-[6px] border-black px-12 py-4 font-titre text-[120px] font-bold leading-none tracking-[0.12em] text-black">
+      <span className="border-[6px] border-black px-12 py-4 font-journal-titre text-[120px] font-bold leading-none tracking-[0.12em] text-black">
         {identifiant}
       </span>
       <span className="text-[40px]">La maison s&rsquo;affichera au prochain réveil.</span>
@@ -850,7 +851,7 @@ function Accueil({ identifiant }: { identifiant: string }) {
 function Panne() {
   return (
     <div className="flex h-full items-center justify-center">
-      <span className="font-titre text-[96px] font-bold text-black">House OS ne répond pas</span>
+      <span className="font-journal-titre text-[96px] font-bold text-black">House OS ne répond pas</span>
     </div>
   )
 }

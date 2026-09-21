@@ -71,6 +71,10 @@
 @theme inline {
   --font-sans: "Nunito Sans Variable", "Nunito Sans", system-ui, sans-serif;
   --font-titre: "Fraunces Variable", Fraunces, Georgia, serif;
+  /* Le journal mural (pages/Ecran.tsx) : ses fontes sont chargées par pages/ecran-polices.css. */
+  --font-journal-nom: Chomsky, "Fraunces Variable", Fraunces, serif;
+  --font-journal-titre: "Newsreader Variable", Newsreader, Georgia, serif;
+  --font-journal-texte: "Gelasio Variable", Gelasio, Georgia, serif;
 
   --color-fond: var(--fond);
   --color-carte: var(--carte);

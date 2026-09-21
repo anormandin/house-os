@@ -36,3 +36,6 @@ web/playwright-report/
 docker-compose.override.yml
 infra/courriel-worker/.env
 infra/courriel-worker/.dev.vars
+
+# Polices d'essai des maquettes (licences perso ou tierces) : jamais dans le dépôt
+design/maquettes/polices/

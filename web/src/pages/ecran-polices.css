@@ -1,0 +1,20 @@
+/*
+ * Les polices du journal mural, chargées avec la page /ecran seulement — le bureau ne
+ * les paie pas. Essai du 2026-09-21 (maquette design/maquettes/eink-polices.html,
+ * couple « The New York Times ») : une gothique pour le nom, Newsreader pour le
+ * titrage, Gelasio pour le texte.
+ *
+ * Chomsky (Fredrick R. Brennan, 2018, SIL OFL 1.1 — assets/polices/Chomsky-OFL.txt)
+ * est la reprise libre de la manchette du Times. Une seule graisse : le nom la
+ * demande en 400, jamais en gras synthétique.
+ */
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/gelasio";
+
+@font-face {
+  font-family: Chomsky;
+  src: url("../assets/polices/Chomsky.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}

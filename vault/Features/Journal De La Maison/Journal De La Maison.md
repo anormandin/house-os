@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-21
-verified-against: b8e523a
+verified-against: c126675
 tags: [iot]
 ---
 
@@ -65,6 +65,28 @@ publication, le numéro), le **nom** en capitales entre deux filets, la **dateli
   l'éditorialiste (« Le dernier lundi avant l'équinoxe »). Le gabarit n'y met que la
   raison du plancher, et le laisse vide le reste du temps plutôt que de répéter la
   dateline.
+
+#### La typographie
+
+Trois fontes, chacune à sa place, choisies le 2026-09-21 sur la maquette
+`design/maquettes/eink-polices.html` (les dix polices de journal d'Issuu, puis celles du
+New Yorker et du New York Times, avec un seuillage 1 bit simulé) — le couple retenu est
+celui du **Times** :
+
+| Rôle | Fonte | D'où | Graisse |
+|---|---|---|---|
+| le nom du journal | **Chomsky** (Fredrick Brennan, OFL) — la gothique de la manchette du Times | `web/src/assets/polices/` avec sa licence | 400, la seule qu'elle a ; bas de casse, jamais en capitales |
+| le titrage (manchette, lettrine, encadré, bande) | **Newsreader** (Production Type) — le sosie libre de Cheltenham, avec sa taille optique | fontsource, `opsz.css` | 700 |
+| le texte (dateline, liste, chronique, widgets, pied) | **Gelasio** — le sosie métrique de Georgia | fontsource | 700 ; les étiquettes demandent 800 et retombent à 700 |
+
+- **Pas de gras synthétique** (`font-synthesis: none` sur le cadre) : une fonte qui n'a
+  pas la graisse demandée rend la plus proche qu'elle a, plutôt qu'un contour épaissi
+  par le navigateur, qui bave au seuillage.
+- Les fontes sont chargées par `pages/ecran-polices.css`, avec la page `/ecran`
+  seulement : le bureau garde Fraunces et Nunito Sans et ne paie pas les trois autres.
+- Ce qui a été écarté à la maquette, et pourquoi : Playfair et Caslon perdent leurs
+  déliés au 1 bit ; Irvin (le New Yorker) est une fonte de titrage à une seule graisse,
+  pas une fonte de texte ; Spectral plafonne à 800 et paraît maigre à côté du reste.
 
 ### La règle de bascule
 
