@@ -58,6 +58,15 @@ import { cn } from '@/lib/utils'
 
 const LARGEUR_CONCUE = 1872
 
+/*
+ * Les trois places d'une rangée du bloc-titre et du pied : deux colonnes égales autour d'une
+ * colonne au contenu. Avec `justify-between`, le milieu n'est centré que si les deux
+ * bords ont la même largeur — « Édition du matin » contre « N° 29 » poussait l'adresse
+ * à droite du nom (vu au mur le 2026-09-21). Ici le milieu est sur l'axe de la page,
+ * quels que soient les bords ; les bords ne rétrécissent jamais sous leur contenu.
+ */
+const TROIS_PLACES = 'grid grid-cols-[1fr_auto_1fr] gap-10'
+
 export default function Ecran() {
   const [recherche] = useSearchParams()
   const { largeur, hauteur } = dimensionsEcran(recherche)
@@ -289,10 +298,12 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
         </div>
       )}
 
-      <footer className="flex shrink-0 items-center justify-between border-t-[6px] border-black px-16 py-4 text-[28px] font-bold">
+      <footer
+        className={cn(TROIS_PLACES, 'shrink-0 items-center border-t-[6px] border-black px-16 py-4 text-[28px] font-bold')}
+      >
         <span>Imprimé à {heureQuebec(donnees.renduLe)}</span>
         <span className="uppercase tracking-[0.2em]">House OS</span>
-        <span>{pile === null ? '' : `Pile ${pile} %`}</span>
+        <span className="text-right">{pile === null ? '' : `Pile ${pile} %`}</span>
       </footer>
     </div>
   )
@@ -328,26 +339,28 @@ function BlocTitre({
       </>,
     )
   }
+  // Trois places : gauche, centre, droite. Deux oreilles vont aux bords, une seule
+  // reste à gauche — jamais de trou au milieu.
+  const [gauche, centre, droite] =
+    oreilles.length === 3 ? oreilles : [oreilles[0], null, oreilles[1] ?? null]
 
   return (
     <header className="shrink-0 border-b-[6px] border-black px-16 pt-8">
-      <div className="flex items-end justify-between gap-10 pb-2 text-[24px] font-extrabold uppercase tracking-[0.18em]">
-        {oreilles.map((oreille, i) => (
-          <span key={i} className="truncate">
-            {oreille}
-          </span>
-        ))}
+      <div className={cn(TROIS_PLACES, 'items-end pb-2 text-[24px] font-extrabold uppercase tracking-[0.18em]')}>
+        <span className="truncate">{gauche}</span>
+        <span className="truncate text-center">{centre}</span>
+        <span className="truncate text-right">{droite}</span>
       </div>
       <div className="border-y-[3px] border-black pb-3 pt-1.5 text-center">
         <span className="block font-titre text-[126px] font-black uppercase leading-[0.95] tracking-[-0.02em]">
           La maison
         </span>
       </div>
-      <div className="flex items-center justify-between gap-10 pb-[11px] pt-[9px] text-[28px] font-bold">
-        <span className="shrink-0">{dateJournal(date)}</span>
+      <div className={cn(TROIS_PLACES, 'items-center pb-[11px] pt-[9px] text-[28px] font-bold')}>
+        <span className="whitespace-nowrap">{dateJournal(date)}</span>
         <span
           className={cn(
-            'truncate',
+            'truncate justify-self-center',
             etat.urgent
               ? 'bg-black px-5 py-1 font-extrabold uppercase tracking-[0.12em] text-white'
               : 'tracking-[0.05em]',
@@ -355,7 +368,9 @@ function BlocTitre({
         >
           {etat.texte}
         </span>
-        <span className="shrink-0">{donnees.meteo === null ? '' : meteoEnMots(donnees.meteo)}</span>
+        <span className="whitespace-nowrap text-right">
+          {donnees.meteo === null ? '' : meteoEnMots(donnees.meteo)}
+        </span>
       </div>
     </header>
   )

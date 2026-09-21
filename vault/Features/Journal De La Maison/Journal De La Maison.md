@@ -45,6 +45,11 @@ Trois rangs, dans l'ordre d'un quotidien : les **oreilles** (l'édition, le lieu
 publication, le numéro), le **nom** en capitales entre deux filets, la **dateline**
 (date avec l'année, état du jour au centre, temps qu'il fait en mots).
 
+- Chaque rangée (oreilles, dateline) est **trois places** : deux colonnes égales
+  autour du milieu, qui est ainsi sur l'axe de la page et sous le nom quels que
+  soient les bords. Les maquettes les répartissaient en `space-between`, ce qui ne
+  centre le milieu que par hasard : « Édition du matin » contre « N° 29 » poussait
+  l'adresse à droite du nom (corrigé au mur le 2026-09-21).
 - Le **lieu** est propre au foyer, donc dans le `.env` (`MAISON_LIEU` →
   `Affichage:Lieu`), vide par défaut ([[Distribution]]) ; les oreilles se composent
   avec ce qui reste, sans trou.
