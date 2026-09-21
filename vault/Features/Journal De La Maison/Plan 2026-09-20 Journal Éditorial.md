@@ -808,15 +808,28 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
 ## Vérification (globale)
 
 - `npm test` dans `web/` — aucun test affaibli ni contourné. Base : 189 avant l'étape 1,
-  **217 après l'étape 4** (as of 2026-09-20).
+  217 après l'étape 4, **222 après l'étape 6** (as of 2026-09-21 ; un test est parti
+  avec `quandCeJour`, dont le dernier appelant a disparu).
 - `dotnet test` — les trois couches ([[D-2026-08-25 Stratégie De Tests Trois Couches]]).
-  Base : **753 verts** après l'étape 4 (as of 2026-09-20).
+  Base : 753 verts après l'étape 4, **852 après l'étape 6** (as of 2026-09-21).
 - Aperçu : `GET /api/affichage/apercu.png?largeur=1872&hauteur=1404` (cookie de session).
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
   recréer ou à ignorer selon le besoin.
-- **Où en est la prod** (as of 2026-09-20, fin de soirée) : le LXC 105 tourne
-  **`88deda1`**, donc les **étapes 1 à 5**, plus la régénération à la demande du mur
+- **Où en est la prod** (as of 2026-09-21) : le LXC 105 tourne **`e8e34ac`**, donc les
+  **étapes 1 à 6**. Posé à la main pour l'étape 6 : `HOUSEOS_POUSSEE_CLE` dans
+  `/opt/house-os/.env` (la clé de la poussée, distincte de celle du MCP), les deux flux
+  (« Collectes 2026 », ICS sur R2, 10 événements ; « Ville », poussé, 6 événements), la
+  tâche annuelle « Régénérer le calendrier de collectes » (échéance 2027-01-12) et le
+  cron du gratteur (`/etc/cron.d/houseos-scjc`, 5 h 17, avec
+  `/opt/houseos-outils/{evenements.py,scjc.env}`). Vérifié au release : `/api/sante` 200,
+  bundle `index-o6mXNDtJ.js`, migration `AjouterFluxExternePousse` appliquée (`Url`
+  nullable, `Source` en `'Ics'` par défaut), premier tirage du gratteur en prod — 6
+  événements reçus, retenus, aucun écarté — et régénération du mur par le MCP :
+  1872×1404, 26 172 o en 657 ms, **aucun avertissement de débordement**. Cache de build
+  prané : 9,0 Go rendus, le disque repasse de 54 % à 27 %.
+  Historique : au 2026-09-20 la prod tournait `88deda1`, soit les étapes 1 à 5, plus la
+  régénération à la demande du mur
   (`6e895ac`, qui avait manqué le train de l'étape 4). `MAISON_LIEU=17 rue de la Colline`
   a été posé dans `/opt/house-os/.env` à l'étape 4 (sauvegarde : `.env.avant-etape4`) ;
   `HASARD_FICHIER` reste absent, et c'est voulu — la banque québécoise livrée avec
