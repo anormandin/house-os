@@ -53,9 +53,16 @@ public static partial class RedactionLlm
           au-delà, le paragraphe est coupé au mur). Le premier
           fait le rapprochement entre deux faits qu'aucune liste ne ferait ; le second
           regarde devant (ce qui vient, ce que la maison propose). Phrases courtes.
-        - rubriques : vide sauf quand rang = Sommaire (dix tâches et plus). Alors, au plus
-          cinq rubriques nommées (« Gouvernements », « Argent », « Le garage »…), chacune
-          avec la liste des titres de tâches EXACTS qu'elle regroupe, copiés de tachesDues.
+        - rubriques : vide sauf quand tachesDues compte dix tâches et plus (le rang
+          « Sommaire », ou « Evenement » sur une journée chargée). Alors le
+          journal range lui-même les tâches qui portent une « zone » ou un « equipement »,
+          sous ce nom ; tu ne nommes que les autres (zone et equipement à null). Au plus
+          cinq rubriques nommées (« Gouvernements », « Argent », « La paperasse »…),
+          chacune avec la liste des titres de tâches EXACTS qu'elle regroupe, copiés de
+          tachesDues. Vise trois ou quatre rubriques de deux à cinq tâches, avec un nom
+          court qui se lit de loin (30 caractères max) : pas une rubrique par tâche, pas une
+          seule rubrique pour tout. Ce que tu ne places pas paraît sous « Le reste » ; ne
+          nomme donc pas de rubrique « Le reste ».
 
         Règles strictes :
         - AUCUN FAIT INVENTÉ. Chaque chiffre, chaque date, chaque titre de tâche, chaque
@@ -135,6 +142,8 @@ public static partial class RedactionLlm
                 joursDeRetard = t.JoursDeRetard,
                 echeanceFerme = t.EcheanceFerme,
                 assigne = t.Assigne,
+                zone = t.Zone,
+                equipement = t.Equipement,
             }),
             prochainCompteARebours = matiere.ProchainCompte is { } c
                 ? new { titre = c.Titre, dodos = c.Dodos }
@@ -164,9 +173,10 @@ public static partial class RedactionLlm
     /// Parse défensif et validation stricte, sur le patron de
     /// <see cref="Humeur.PolissageLlm.Extraire"/> : clôtures de code et prose tolérées
     /// autour du JSON, champs requis et textuels, longueurs bornées, deux paragraphes
-    /// exactement. Les rubriques ne gardent que des titres de tâches <b>réels</b> — un
-    /// titre inventé par le modèle est écarté, jamais affiché. Tout autre écart → null →
-    /// gabarit.
+    /// exactement. Les rubriques (journée chargée seulement) ne gardent que des titres de tâches <b>réels</b>, et
+    /// seulement ceux que le journal ne range pas déjà par zone ou par équipement — un
+    /// titre inventé par le modèle est écarté, jamais affiché ; une tâche déjà rangée
+    /// reste où le journal la met. Tout autre écart → null → gabarit.
     /// </summary>
     public static TexteDEdition? Extraire(string texte, MatiereDEdition matiere) =>
         Extraire(texte, matiere, out _);
@@ -251,11 +261,18 @@ public static partial class RedactionLlm
         }
 
         var rubriques = new List<RubriqueEdition>();
-        if (matiere.Rang == RangEdition.Sommaire
+        // La journée chargée, pas le rang : un plancher sur douze tâches fait un rang
+        // « événement », et la liste se range quand même par rubrique.
+        if (RangDuJour.JourneeChargee(matiere.TachesDues.Count)
             && racine.TryGetProperty("rubriques", out var rubriquesJson)
             && rubriquesJson.ValueKind == JsonValueKind.Array)
         {
-            var titresReels = matiere.TachesDues.Select(t => t.Titre).ToHashSet(StringComparer.Ordinal);
+            // Seules les tâches sans zone ni équipement sont à nommer : les autres ont
+            // déjà leur rubrique, et le modèle n'a pas à les déplacer.
+            var titresReels = matiere.TachesDues
+                .Where(t => t.ANommer)
+                .Select(t => t.Titre)
+                .ToHashSet(StringComparer.Ordinal);
             var dejaPlacees = new HashSet<string>(StringComparer.Ordinal);
             foreach (var r in rubriquesJson.EnumerateArray())
             {
@@ -269,6 +286,12 @@ public static partial class RedactionLlm
                     || tachesJson.ValueKind != JsonValueKind.Array)
                 {
                     return null;
+                }
+                // « Le reste » n'est pas une rubrique qu'on nomme : c'est ce qui n'a pas
+                // été placé, et le journal l'écrit lui-même.
+                if (string.Equals(nom, Regroupement.LeReste, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
                 }
                 // Un titre inventé n'est pas une erreur du contrat, c'est un mensonge du
                 // modèle : on l'écarte et on garde le reste, qui est vrai.

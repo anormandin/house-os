@@ -7,6 +7,13 @@ namespace HouseOs.Api.Domaine.Editorial;
 /// </summary>
 public static class RangDuJour
 {
+    /// <summary>À partir de ce compte de tâches dues, la journée est « chargée » : le
+    /// journal devient un sommaire, et la liste se range par rubrique quel que soit le
+    /// plancher (un plancher change la manchette, pas la longueur de la liste).</summary>
+    public const int SeuilDuSommaire = 10;
+
+    public static bool JourneeChargee(int tachesDues) => tachesDues >= SeuilDuSommaire;
+
     public static RangEdition Calculer(int tachesDues, bool plancherDeclenche)
     {
         if (plancherDeclenche)
@@ -18,7 +25,7 @@ public static class RangDuJour
             0 => RangEdition.Chronique,
             <= 2 => RangEdition.Manchette,
             <= 5 => RangEdition.Resserre,
-            <= 9 => RangEdition.Court,
+            < SeuilDuSommaire => RangEdition.Court,
             _ => RangEdition.Sommaire,
         };
     }

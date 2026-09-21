@@ -42,7 +42,7 @@ les clés dans `appsettings.local.json`.
 | `Meteo:NormalesAgeMaxJours` | 360 | âge au-delà duquel les normales se recalculent |
 | `Humeur:HeureMatin`, `Humeur:HeureSoir` | 05:30, 17:00 | créneaux du titre d'humeur |
 | `Humeur:Modele` | `claude-haiku-4-5` | modèle du titre d'humeur (deux appels par jour) |
-| `Edition:Modele` | `claude-opus-5` | modèle de l'éditorialiste du journal mural (un appel par jour, au créneau `Humeur:HeureMatin`, avec la clé `ANTHROPIC_API_KEY`) ; sans clé, le gabarit écrit |
+| `Edition:Modele` | `claude-opus-5` | modèle de l'éditorialiste du journal mural (un appel par jour, au créneau `Humeur:HeureMatin`, avec la clé `ANTHROPIC_API_KEY` ; un second essai une heure plus tard si le modèle n'a pas répondu) ; sans clé, le gabarit écrit |
 | `Courriel:CadenceMinutes` | 2 | fréquence du relevé R2 |
 | `Courriel:R2:Prefixe` | `entrants/` | préfixe des objets relevés |
 | `Affichage:CadenceJourSecondes` | 900 | délai entre deux réveils de l'écran e-ink le jour (`ECRAN_CADENCE_SECONDES`) |

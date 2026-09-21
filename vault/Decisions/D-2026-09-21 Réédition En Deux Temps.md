@@ -1,6 +1,6 @@
 ---
 type: decision
-status: proposed
+status: accepted
 date: 2026-09-21
 feature: "[[Journal De La Maison]]"
 tags: [iot]
@@ -39,13 +39,19 @@ plancher, sa raison en surtitre, la phrase du matin en repli), lève le drapeau
 `ReeditionEnAttente` sur l'édition, et réveille l'éditorialiste par un signal
 (`SignalDeReedition`). Le service de fond, réveillé, réécrit l'édition avec Opus et
 baisse le drapeau — **qu'il réussisse ou non** : un modèle qui a échoué ne se rappelle
-pas à chaque réveil de l'appareil, il se rappelle le lendemain matin.
+pas à chaque réveil de l'appareil. Il se rappelle **une fois**, une heure plus tard
+(le second essai, `EditorialisteService.DelaiDeReessai`), puis le lendemain matin.
+Le second essai ne vaut que pour un gabarit écrit **avec une clé** : sans clé, le
+gabarit est le fonctionnement normal, et rien n'est réessayé.
 
 Le rendu ne persiste que pour la **journée vraie** ; une horloge d'essai sur un autre
 jour compose l'édition de ce jour-là sans l'écrire.
 
 Décision prise en implémentant l'étape 7 du [[Plan 2026-09-20 Journal Éditorial]]
-(2026-09-21), **à confirmer par Alain**.
+(2026-09-21) ; le second essai a été ajouté à l'étape 8, en réponse à la question
+laissée ouverte à l'étape 7 (une API surchargée à 5 h 31 laissait un gabarit toute la
+journée : deux appels sur neuf refusés le jour même). Acceptée le 2026-09-21, dans la
+même session, sur mandat donné au démarrage de l'étape 8.
 
 ## Conséquences
 
@@ -53,6 +59,12 @@ Décision prise en implémentant l'étape 7 du [[Plan 2026-09-20 Journal Éditor
   prose d'Opus au suivant (quinze minutes plus tard au plus).
 - Un appel LLM de plus par changement de plancher, borné par nature : un compte à
   rebours ne tombe à zéro qu'une fois, un retard ne passe trois jours qu'une fois.
+- Au plus **un** appel de plus par jour pour le second essai — en mémoire, une fois par
+  date, et seulement dans la fenêtre d'une heure qui suit son moment (le gabarit garde
+  l'heure de son premier échec : un second échec n'écrit rien) ; un redémarrage dans
+  cette fenêtre redonne un essai, et c'est accepté.
+- Le service vise toujours **le jour civil** : un rendu de nuit qui pose un gabarit pour
+  la journée qui commence est réécrit dans la foulée, pas à 5 h 31.
 - Le chemin de requête écrit en base (une ligne d'édition), ce que le titre d'humeur ne
   faisait pas. C'est une écriture idempotente et rare.
 
@@ -62,3 +74,5 @@ Décision prise en implémentant l'étape 7 du [[Plan 2026-09-20 Journal Éditor
 retourne au moins une ligne, et le test
 `GenerationEditionTests.Le_plancher_qui_se_declenche_apres_coup_redeclenche_une_edition`
 vérifie qu'un rendu n'appelle pas le modèle et que le service de fond le fait ensuite.
+Le second essai : `Un_gabarit_laisse_par_un_modele_muet_est_reessaye_une_fois_puis_laisse_tranquille`
+et `EditorialisteServiceTests.Un_gabarit_ecrit_avec_une_cle_merite_un_second_essai_une_heure_plus_tard`.

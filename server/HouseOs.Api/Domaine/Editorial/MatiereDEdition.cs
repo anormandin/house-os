@@ -1,7 +1,19 @@
 namespace HouseOs.Api.Domaine.Editorial;
 
-/// <summary>Une tâche due, telle que l'éditorialiste la voit.</summary>
-public sealed record TachePourEdition(string Titre, int JoursDeRetard, bool EcheanceFerme, string? Assigne);
+/// <summary>Une tâche due, telle que l'éditorialiste la voit. La zone et l'équipement
+/// sont des noms, jamais des ids : au rang « sommaire », le journal range lui-même ce
+/// qui en porte, et l'éditorialiste ne nomme que le reste
+/// (D-2026-09-20 Regroupement Sans Catégorie De Tâche).</summary>
+public sealed record TachePourEdition(
+    string Titre, int JoursDeRetard, bool EcheanceFerme, string? Assigne,
+    string? Zone = null, string? Equipement = null)
+{
+    /// <summary>La même tâche, vue du regroupement : c'est là que vit la règle.</summary>
+    public TacheAGrouper Groupe => new(Titre, Zone, Equipement);
+
+    /// <summary>Vrai quand aucune zone ni aucun équipement ne la range d'office.</summary>
+    public bool ANommer => Groupe.ANommer;
+}
 
 /// <summary>Un fait du fonds de tiroir, avec la marque de ceux que l'édition publie.</summary>
 public sealed record FaitPourEdition(

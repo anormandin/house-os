@@ -104,10 +104,30 @@ cas et le même ordre ; l'édition suit celle du serveur.
 
 ### Le regroupement des journées chargées
 
-Au rang 10+, les tâches sont groupées par `Tache.ZoneId` puis `EquipementId` ; le paquet
-sans zone — les démarches administratives, justement — est **nommé par l'éditorialiste**
-([[D-2026-09-20 Regroupement Sans Catégorie De Tâche]]). Repli obligatoire en liste
-plate quand l'API ne répond pas.
+Dès **dix tâches dues** (`RangDuJour.SeuilDuSommaire`, plancher ou pas), la liste se
+range par rubrique : par `Tache.ZoneId` puis `EquipementId` — en noms, dans l'ordre
+d'arrivée des tâches —, et le paquet sans zone ni équipement — les démarches
+administratives, justement — est **nommé par l'éditorialiste**
+([[D-2026-09-20 Regroupement Sans Catégorie De Tâche]]). Ce qu'il ne place pas tombe
+dans « Le reste ». Bâti à l'étape 8 (`Domaine/Editorial/Regroupement.cs`, as of
+2026-09-21).
+
+- **Les noms sont figés, le rangement est vivant.** L'édition ne porte que les rubriques
+  nommées par le modèle (titres réels, tâches à nommer seulement — une tâche déjà rangée
+  par sa zone ne se laisse pas déplacer, un titre inventé est écarté, une rubrique
+  « Le reste » nommée par le modèle est ignorée). Le rendu refait le rangement sur les
+  lignes du moment, et une ligne **faite** suit son titre sous la rubrique du matin.
+- **Le modèle nomme dès dix tâches dues, plancher ou pas** : au rang « événement »
+  sur une journée chargée, la manchette est celle du plancher et la liste se range
+  quand même par rubrique (revue de code, étape 8).
+- **Repli obligatoire** : sans LLM, zone, équipement, « Le reste » ; une seule rubrique
+  se lit en liste plate, sans titre pour rien.
+- **Sur le mur** : la bande inversée porte la manchette de l'éditorialiste et le compte
+  par personne (« 3 Alain · 3 Ariane · 8 pour la maison ») ; les colonnes se
+  remplissent à la main (`colonnesDuSommaire`) — un en-tête jamais orphelin, une
+  rubrique entière par colonne quand la place le permet, un en-tête compte une rangée
+  serrée, « + N autres » est une rangée. Mesuré au rendu 1872×1404 sur la vraie journée
+  du 2026-10-20 : 14 tâches en quatre rubriques + « Le reste », 0 px de débordement.
 
 ### Les widgets et le fonds de tiroir
 
@@ -150,7 +170,12 @@ Bâti à l'étape 7 (`server/HouseOs.Api/Features/Editorial/`, as of 2026-09-21)
   cadence de l'appareil (15 min, [[Affichage E-ink]]). Le service de fond écrit au
   créneau du matin du titre d'humeur (`Humeur:HeureMatin`), rattrape au démarrage
   (toujours l'édition du **jour civil**, jamais la veille), et se réveille sur signal
-  quand le rendu lui a laissé un gabarit à réécrire.
+  quand le rendu lui a laissé un gabarit à réécrire. Un gabarit laissé par un modèle
+  qui n'a pas répondu (API surchargée) est **réessayé une fois**, une heure plus tard,
+  dans la fenêtre d'une heure qui suit, et plus jamais dans la journée
+  ([[D-2026-09-21 Réédition En Deux Temps]]). Une édition écrite avant le créneau du
+  matin (un rattrapage de nuit) garde son drapeau : le créneau la réécrit avec les
+  faits du matin.
 - **Opus 5** pour l'édition ([[D-2026-09-20 Édition Écrite Par Opus]]), réglage
   `Edition:Modele` ; [[Titre D'humeur]] garde Haiku pour ses deux créneaux. La **clé**
   est la même (`ANTHROPIC_API_KEY`) : deux modèles, deux prompts, un seul compte.
@@ -160,7 +185,8 @@ Bâti à l'étape 7 (`server/HouseOs.Api/Features/Editorial/`, as of 2026-09-21)
   en manchette et en chapeau, la raison du plancher en surtitre, **pas de corps**.
 - **Ce que la matière contient** (`MatiereDEdition`) : la date et le jour de semaine,
   le lieu, le rang, le plancher, les tâches dues (titre, retard, ferme, assigné), le
-  prochain compte à rebours en dodos, la météo du jour en mots, tous les faits du fonds
+  prochain compte à rebours en dodos, la météo du jour en mots, la **zone et
+  l'équipement** des tâches dues (en noms, pour ne nommer que le reste), tous les faits du fonds
   avec la marque de ceux qui paraissent, et les sept éditions précédentes (surtitre,
   manchette, chapeau). Rien d'autre : ce que le modèle ne reçoit pas, il ne peut pas le
   citer.
@@ -198,9 +224,9 @@ L'entité (`Domaine/Editorial/Edition.cs`) porte la date, le rang, les textes, l
 ### Figé et vivant
 
 **Figé pour la journée** : rang, sélection et ordre des widgets, surtitre, manchette,
-chapeau, corps, rubriques.
-**Vivant à chaque rendu** : la liste des occurrences, les cochées, la météo du moment,
-l'heure d'impression, la pile.
+chapeau, corps, les **noms** des rubriques et les titres que l'éditorialiste y a mis.
+**Vivant à chaque rendu** : la liste des occurrences, les cochées, le rangement par
+zone et par équipement, « Le reste », la météo du moment, l'heure d'impression, la pile.
 
 ## Hors périmètre
 
@@ -228,7 +254,7 @@ l'heure d'impression, la pile.
 - [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] — un booléen sur `Tache`, bâti
   à l'étape 7 ; le troisième cas du plancher.
 - [[D-2026-09-21 Réédition En Deux Temps]] — gabarit au rendu, Opus par le service de
-  fond ; proposée à l'étape 7, à confirmer.
+  fond, un second essai une heure plus tard ; acceptée à l'étape 8.
 - [[D-2026-09-03 Rendu E-ink Par Chromium Headless]] — la page React capturée, inchangé.
 
 ## Ancres de code
@@ -236,13 +262,15 @@ l'heure d'impression, la pile.
 - `web/src/pages/Ecran.tsx` — la page, réécrite en place
   ([[Plan 2026-09-20 Journal Éditorial]]).
 - `web/src/lib/ecran-vues.ts` — les helpers purs de la vue : rang, plancher, capacité de
-  liste **et de widgets**, état du jour, densité du ciel.
+  liste **et de widgets**, état du jour, densité du ciel, le sommaire (rubriques,
+  colonnes, bande).
 - `server/HouseOs.Api/Features/Affichage/ComposerDonneesEcran.cs` — la composition
   serveur : les sources du jour, l'édition, l'ordre des faits.
 - `server/HouseOs.Api/Features/Editorial/` — l'éditorialiste : le prompt et le parse
   (`RedactionLlm.cs`), la couture des trois appelants (`GenerationEdition.cs`), le
   service de fond, la mémoire des sept jours, le signal.
-- `server/HouseOs.Api/Domaine/Editorial/` — l'entité, le plancher, le rang, le gabarit.
+- `server/HouseOs.Api/Domaine/Editorial/` — l'entité, le plancher, le rang, le gabarit,
+  le regroupement.
 - `server/HouseOs.Api/Features/Humeur/` — le patron LLM dont l'éditorialiste est
   l'extension (`PolissageLlm.cs`, `HumeurService.cs`).
 

@@ -912,15 +912,140 @@ tard dans la journée serait un choix à faire (coût : un appel), pas un défau
 
 [[D-2026-09-20 Regroupement Sans Catégorie De Tâche]].
 
-- [ ] Regroupement par `Tache.ZoneId` puis `EquipementId` ; le paquet sans zone est
+- [x] Regroupement par `Tache.ZoneId` puis `EquipementId` ; le paquet sans zone est
       nommé par l'éditorialiste (champ de rubriques de l'édition).
-- [ ] Validation : toute tâche non affectée retombe dans « Le reste » ; toute tâche
+      (`Domaine/Editorial/Regroupement.cs` ; la matière porte la zone et l'équipement
+      **en noms**, `TachePourEdition.Zone/Equipement` ; les noms sont lus une fois dans
+      `LireLesSourcesAsync` — les zones et les équipements ne se lisent plus deux fois.)
+- [x] Validation : toute tâche non affectée retombe dans « Le reste » ; toute tâche
       **inventée** par le modèle est rejetée — on ne montre que des occurrences réelles.
-- [ ] Repli en liste plate groupée par zone quand l'API ne répond pas.
-- [ ] Sommaire en bande inversée, trois colonnes, widgets en bande de pied.
+      (`RedactionLlm.Extraire` : seuls les titres **à nommer** — sans zone ni
+      équipement — sont acceptés ; une rubrique nommée « Le reste » par le modèle est
+      ignorée ; `Regroupement.Regrouper` refait le filtre côté rendu.)
+- [x] Repli en liste plate groupée par zone quand l'API ne répond pas.
+      (Le gabarit n'a pas de rubriques nommées : zone, équipement, « Le reste » ; une
+      seule rubrique se lit en liste plate, sans titre pour rien.)
+- [x] Sommaire en bande inversée, trois colonnes, widgets en bande de pied.
+      (`EditionEcranDto.Rubriques`, `web/src/lib/ecran-vues.ts` : `groupesDeLaListe`,
+      `colonnesDuSommaire`, `compteDeLaBande`, `tailleDeLaBande` ;
+      `Ecran.tsx` : `BandeDuSommaire`, `ColonneDuSommaire`, `Annonce`.)
+
+#### Ce que l'étape 8 a tranché en chemin
+
+- [x] **[[D-2026-09-21 Réédition En Deux Temps]] est acceptée, amendée d'un second
+      essai.** Les deux questions ouvertes de l'étape 7 ont la même réponse : un
+      gabarit écrit alors qu'une clé est là, c'est un modèle qui n'a pas répondu
+      (`overloaded_error` à 5 h 31, vu deux fois sur neuf appels le 2026-09-21) ; le
+      service repasse **une fois**, une heure plus tard (`EditorialisteService.
+      DelaiDeReessai`, `GenerationEdition.ReessayerAsync`), et plus jamais dans la
+      journée. En mémoire, une fois par date ; un redémarrage redonne un essai. Sans
+      clé (`IRedacteurEdition.PeutEcrire` faux), le gabarit est le fonctionnement
+      normal et rien n'est réessayé.
+- [x] **Le service vise le jour civil — pour de vrai.** La revue de l'étape 7 l'avait
+      consigné, mais `DateDEdition` portait encore « la veille avant l'heure du
+      matin » : le signal d'un rendu de nuit (le mur se réveille ~8 fois la nuit)
+      tombait dans le vide jusqu'à 5 h 31. Posé, avec un test.
+- [x] **Les rubriques servies sont vivantes, les noms sont figés.** L'édition ne porte
+      que les rubriques nommées par l'éditorialiste (titres réels, tâches à nommer) ;
+      `EditionEcranDto.Rubriques` est recalculé à chaque rendu sur les lignes servies :
+      la zone ou l'équipement de la tâche range d'office (dans l'ordre d'arrivée, les
+      retards d'abord), les rubriques nommées prennent ce qui reste, « Le reste » ferme
+      la marche, et une ligne **faite** suit son titre — cochée à neuf heures, elle
+      reste barrée sous « Gouvernements ». Servi dès **dix tâches dues**
+      (`RangDuJour.SeuilDuSommaire`), plancher ou pas : un plancher change la
+      manchette, pas la longueur de la liste. Le modèle, lui, n'écrit de rubriques
+      qu'au rang « sommaire » (réglé à l'étape 7) ; au rang « événement » sur dix
+      tâches, c'est le repli par zone.
+- [x] **Les colonnes du sommaire se remplissent à la main, pas en `column-count`.**
+      Un en-tête de rubrique n'est jamais orphelin en bas de colonne, un groupe coupé
+      reprend sous un rappel de son nom, et une rubrique **entière par colonne** quand
+      la place le permet (sinon au fil des rangées — jamais une ligne écartée pour un
+      blanc). Un en-tête compte **une rangée serrée** (mesuré : ~65 px pour ~88 px) ;
+      les faites cèdent leur place les premières ; ce qui ne tient pas est annoncé.
+- [x] **« + N autres » est une rangée de la liste, pas une ligne sous le bloc.** Trouvé
+      au rendu d'un jeudi d'essai à 36 tâches : posée sous le bloc, l'annonce lui
+      volait ~50 px, et en colonnes CSS la septième rangée ne disparaissait pas vers
+      le bas mais dans une **quatrième colonne, cachée à droite** — trois lignes
+      perdues, et la garde ne voyait rien. C'était le 3 px du premier rendu de
+      l'étape (28 lignes, plancher). Défaut de l'étape 1, corrigé sur les deux chemins
+      (`listePlate`, la réserve de `colonnesDuSommaire`), comme le serveur le fait
+      déjà (« la mention occupe la dernière place »).
+- [x] **La garde de débordement voit ce que les colonnes cachent.** `debordementPx`
+      mesure chaque élément contre le cadre **et** contre chaque ancêtre en
+      `overflow-hidden`, vers le bas et vers la droite. Un clamp de texte n'est pas un
+      débordement (il ne cache que du texte). C'est la garde que l'étape 7 réclamait.
+- [x] **La bande inversée porte la manchette de l'éditorialiste**, pas « Journée
+      chargée » : Opus en écrit une au rang « sommaire » (« Une adresse, et tout le
+      monde à prévenir ») et personne ne la lisait. À droite, le compte **par personne**
+      (« 3 Alain · 3 Ariane · 8 pour la maison »), comme dans la maquette — la dateline
+      a déjà le total. La taille de la manchette suit la place qui reste à côté du
+      compte (76 → 60 → 46 px, mesuré : ~0,39 em par signe de titraille, ~0,64 em de
+      capitales espacées) : une manchette pliée sur deux lignes doublait la bande aux
+      dépens de la liste, vu au rendu.
+- [x] **Le prompt ne demande que le reste.** Les tâches avec `zone` ou `equipement`
+      sont annoncées comme déjà rangées ; trois ou quatre rubriques de deux à cinq
+      tâches, un nom court (30 signes), pas de « Le reste ». Sur la vraie journée du
+      20 octobre, Opus a rendu **Gouvernements / Argent / Santé et assurances / Au
+      travail** + « Le reste » (Amazon), 14 titres exacts, aucun inventé.
+- [x] **Parité MCP** : `regenerer_journal_mural` rend `rubriques` (le compte de
+      l'édition). Les rubriques servies sont un contrat de la page, web seulement.
+- [x] Laissé tel quel, et noté : au sommaire les titres longs sont **tronqués avec des
+      points de suspension** sur une rangée serrée (« Élections Canada — registre… »).
+      C'est la règle « élaguer, pas rapetisser » de l'étape 1, visible et assumée ; la
+      capacité (7 rangées par colonne) ne laisse pas deux lignes par titre.
+
+#### Ce que la revue de code a corrigé, à l'étape 8
+
+- [x] **Le modèle nomme dès dix tâches, plancher ou pas.** Le parse et le prompt
+      gardaient les rubriques au seul rang « sommaire » ; or un plancher sur douze
+      tâches fait un rang « événement », et la vraie journée du 20 octobre en aura
+      sûrement un (les démarches d'octobre en retard). Le mur aurait montré son
+      sommaire sans une seule rubrique nommée, le jour même pour lequel l'étape existe.
+      Gate et prompt testent `JourneeChargee(TachesDues.Count)`.
+- [x] **L'annonce a sa rangée même quand c'est le serveur qui a élagué.**
+      `colonnesDuSommaire` ne réservait la place de « + N autres » que pour ce qu'il
+      écartait lui-même ; 30 tâches dont 12 faites → 26 lignes servies, 21 unités
+      justes, et l'annonce devenait une huitième rangée coupée en silence. Il reçoit
+      les élaguées du serveur et compte tout.
+- [x] **Le compte par personne se fait au serveur**, sur toutes les ouvertes
+      (`DonneesEcran.Porteurs`) : les lignes servies sont plafonnées à 26, et la bande
+      aurait dit « 12 Alain · 12 Ariane · 2 pour la maison » pour 36 tâches.
+- [x] **Une édition écrite avant son créneau garde le drapeau** (`avantLeCreneau`) :
+      avec le jour civil, un rattrapage à minuit dix aurait figé l'édition sur les
+      faits de la nuit, et le créneau de 5 h 31 n'aurait rien réécrit — ni la ville
+      poussée à 5 h 17, ni la météo du matin.
+- [x] **Le second essai est borné et posé après coup.** La marque « fait » se pose
+      après l'essai (une base indisponible pendant l'essai ne le consomme plus), un
+      second échec **n'écrit rien** (le gabarit garde son heure), et l'essai ne vaut
+      que dans la fenêtre d'une heure qui suit son moment — un redémarrage à midi ne
+      rappelle pas le modèle pour le gabarit de 5 h 31.
+- [x] **La bande cache ce qui dépasse, et la garde le voit** : `overflow-hidden` sur la
+      bande, et `debordementPx` mesure aussi contre le bord droit du cadre. Une
+      manchette en capitales plus large que l'estimation se verrait au journal, plus
+      au mur. Les marges de l'estimation ont été élargies (0,46 em / 0,66 em).
+- [x] **« le garage » et « Le garage » sont la même rubrique** : la fusion d'un nom de
+      zone avec une rubrique nommée ignore la casse, comme « Le reste ».
+- [x] La règle « à nommer » vit à un seul endroit (`TacheAGrouper.ANommer`) ;
+      `TachePourEdition` s'y réfère.
 
 **Vérification** — rendu de la journée du **2026-10-20** (14 tâches, la plus chargée de
 toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
+
+**Vérifié** (dev, 2026-09-21) : tests
+`RegroupementTests`, `Sans_llm_le_sommaire_retombe_sur_la_liste_groupee_par_zone`,
+`La_journee_chargee_est_servie_en_rubriques_et_une_tache_inventee_est_rejetee`,
+`Extraire_NeLaissePasLeModeleDeplacerUneTacheDejaRangee`, le second essai (deux
+tests), le jour civil, la zone dans la matière ; côté web, le regroupement, le
+remplissage des colonnes (entier, au fil, orphelins, annonce), le compte de la bande,
+la taille de la bande, la liste plate. Rendus 1872×1404 par le chemin de l'appareil
+(les tâches de dev sont une copie de la prod ; les 34 en retard ont été supprimées
+pour que le 20 octobre soit la vraie journée à 14) : **2026-10-20** — 14 tâches, édition
+Opus en 397 ms, 4 rubriques nommées + « Le reste », trois colonnes, bande de pied à
+trois widgets, **0 px de débordement** ; **2026-10-22** — 36 tâches sans rubrique
+(liste plate, 7 + 7 + 6 rangées + « + 16 autres »), 0 px ; **2026-10-24** — plancher
+« en retard » sur 36 tâches, 0 px. Avant le correctif de l'annonce, le même jeudi
+montrait 18 rangées pour 21 promises, et le premier rendu (plancher, 28 lignes)
+rapportait 3 px.
 
 ### 9 — Calibration au mur
 
@@ -939,10 +1064,11 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
 
 - `npm test` dans `web/` — aucun test affaibli ni contourné. Base : 189 avant l'étape 1,
   217 après l'étape 4, 222 après l'étape 6 (un test est parti avec `quandCeJour`, dont
-  le dernier appelant a disparu), **224 après l'étape 7** (as of 2026-09-21).
-- `dotnet test` — les trois couches ([[D-2026-08-25 Stratégie De Tests Trois Couches]]).
-  Base : 753 verts après l'étape 4, 852 après l'étape 6, **901 après l'étape 7**
+  le dernier appelant a disparu), 224 après l'étape 7, **233 après l'étape 8**
   (as of 2026-09-21).
+- `dotnet test` — les trois couches ([[D-2026-08-25 Stratégie De Tests Trois Couches]]).
+  Base : 753 verts après l'étape 4, 852 après l'étape 6, 901 après l'étape 7,
+  **928 après l'étape 8** (as of 2026-09-21).
 - Aperçu : `GET /api/affichage/apercu.png?largeur=1872&hauteur=1404` (cookie de session).
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à

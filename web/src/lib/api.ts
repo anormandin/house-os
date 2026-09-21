@@ -421,7 +421,15 @@ export type EditionEcran = {
   paragraphes: string[]
   plancher: { raison: 'Compte' | 'Retard' | 'Ferme'; titre: string } | null
   source: 'Gabarit' | 'Llm'
+  /**
+   * Le sommaire d'une journée chargée (dix tâches dues et plus), vide sinon : chaque
+   * ligne servie y a exactement une place, par titre. La zone et l'équipement rangent
+   * d'office, l'éditorialiste nomme le reste, et « Le reste » ferme la marche.
+   */
+  rubriques: RubriqueEcran[]
 }
+
+export type RubriqueEcran = { nom: string; taches: string[] }
 
 /**
  * Un fait du fonds de tiroir. `valeur` est la forme courte et `texte` la forme longue :
@@ -445,6 +453,9 @@ export type DonneesEcran = {
   ouvertes: number
   enRetard: number
   faites: number
+  /** Qui porte les ouvertes du jour, sur toutes les ouvertes (les lignes sont plafonnées) ;
+   *  `nom` null = le paquet que personne ne porte ; vide quand personne n'est assigné. */
+  porteurs: { nom: string | null; ouvertes: number }[]
   meteo: {
     codeMeteo: number
     temperatureC: number

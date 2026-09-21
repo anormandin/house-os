@@ -14,6 +14,8 @@ public sealed class RedacteurFictif : IRedacteurEdition
     public int Appels { get; private set; }
     public MatiereDEdition? DerniereMatiere { get; private set; }
     public string Modele => "modele-fictif";
+    /// <summary>Vrai par défaut : le fictif a « une clé ». Faux pour jouer l'installation sans clé.</summary>
+    public bool PeutEcrire { get; set; } = true;
 
     public Task<TexteDEdition?> RedigerAsync(MatiereDEdition matiere, CancellationToken ct)
     {

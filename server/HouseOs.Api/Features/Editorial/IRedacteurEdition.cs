@@ -13,6 +13,10 @@ public interface IRedacteurEdition
 
     /// <summary>Le modèle qui écrit, pour le consigner sur l'édition.</summary>
     string Modele { get; }
+
+    /// <summary>Faux sans clé API : le gabarit est alors le fonctionnement normal, pas un
+    /// échec à réessayer.</summary>
+    bool PeutEcrire { get; }
 }
 
 /// <summary>Opus via le SDK Anthropic ; la clé est celle du titre d'humeur.</summary>
@@ -22,6 +26,8 @@ public sealed class RedacteurAnthropic(
     ILogger<RedacteurAnthropic> journal) : IRedacteurEdition
 {
     public string Modele => edition.Value.Modele;
+
+    public bool PeutEcrire => humeur.Value.CleEffective() is not null;
 
     public async Task<TexteDEdition?> RedigerAsync(MatiereDEdition matiere, CancellationToken ct)
     {

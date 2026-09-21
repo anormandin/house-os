@@ -19,8 +19,29 @@ public class RedactionLlmTests
             new TachePourEdition("SAAQ — changement d'adresse", 0, false, "Alain"),
             new TachePourEdition("Hydro — transfert", 0, false, null),
             new TachePourEdition("Pneus d'hiver", 2, false, "Ariane"),
+            new TachePourEdition("Ranger le garage", 0, false, null, Zone: "Le garage"),
+            .. Enumerable.Range(1, 6).Select(i => new TachePourEdition($"Démarche {i}", 0, false, null)),
         ],
     };
+
+    [Fact]
+    public void Extraire_GardeLesRubriquesAuRangEvenementSurUneJourneeChargee()
+    {
+        // Douze tâches et un plancher : rang « événement », mais la liste se range
+        // quand même — le modèle nomme, et le parse garde.
+        var texte = RedactionLlm.Extraire("""
+            {"surtitre": "", "manchette": "Signer chez le notaire", "chapeau": "x", "paragraphes": ["a", "b"],
+             "rubriques": [{"nom": "Gouvernements", "taches": ["SAAQ — changement d'adresse"]}]}
+            """, Sommaire with { Rang = RangEdition.Evenement });
+        Assert.NotNull(texte);
+        Assert.Single(texte.Rubriques);
+        // Neuf tâches : pas une journée chargée, quel que soit le rang écrit.
+        var legere = RedactionLlm.Extraire("""
+            {"surtitre": "", "manchette": "x", "chapeau": "x", "paragraphes": ["a", "b"],
+             "rubriques": [{"nom": "Gouvernements", "taches": ["SAAQ — changement d'adresse"]}]}
+            """, Sommaire with { TachesDues = [.. Sommaire.TachesDues.Take(9)] });
+        Assert.Empty(legere!.Rubriques);
+    }
 
     private const string Propre = """
         {"surtitre": "Première fin de semaine libre depuis le 26 août",
@@ -135,6 +156,25 @@ public class RedactionLlmTests
     }
 
     [Fact]
+    public void Extraire_NeLaissePasLeModeleDeplacerUneTacheDejaRangee()
+    {
+        // « Ranger le garage » a une zone : le journal la range lui-même, et le modèle
+        // n'a pas à la reprendre. Une rubrique « Le reste » nommée par le modèle n'est
+        // pas une rubrique : c'est le journal qui écrit le reste.
+        var texte = RedactionLlm.Extraire("""
+            {"surtitre": "", "manchette": "Journée chargée", "chapeau": "x", "paragraphes": ["a", "b"],
+             "rubriques": [
+               {"nom": "Bricolage", "taches": ["Ranger le garage", "Pneus d'hiver"]},
+               {"nom": "Le reste", "taches": ["Hydro — transfert"]}
+             ]}
+            """, Sommaire);
+        Assert.NotNull(texte);
+        var rubrique = Assert.Single(texte.Rubriques);
+        Assert.Equal("Bricolage", rubrique.Nom);
+        Assert.Equal(["Pneus d'hiver"], rubrique.Taches);
+    }
+
+    [Fact]
     public void Extraire_IgnoreLesRubriquesHorsDuSommaire()
     {
         var texte = RedactionLlm.Extraire("""
@@ -179,5 +219,9 @@ public class RedactionLlmTests
         Assert.Contains("La veille", json);
         Assert.Contains("Pneus d", json);
         Assert.Contains("\"joursDeRetard\":2", json);
+        // La zone et l'équipement, en noms : c'est ce qui dit au modèle ce qu'il n'a
+        // pas à nommer.
+        Assert.Contains("\"zone\":\"Le garage\"", json);
+        Assert.Contains("\"equipement\":null", json);
     }
 }

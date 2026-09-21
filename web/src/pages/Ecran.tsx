@@ -7,6 +7,13 @@ import {
   capaciteListe,
   capaciteWidgets,
   chroniqueVisible,
+  colonnesDuSommaire,
+  compteDeLaBande,
+  groupesDeLaListe,
+  listePlate,
+  tailleDeLaBande,
+  TAILLE_COMPTE_BANDE,
+  ITEMS_PAR_COLONNE_SERREE,
   dimensionsEcran,
   etatDuJour,
   faitAvecTexteLong,
@@ -24,10 +31,10 @@ import {
   plancher,
   rangeeSerree,
   repartitionColonnes,
-  resteAAnnoncer,
   surtitreEdition,
   type EtatDuJour,
   type Grille,
+  type ItemDeColonne,
   type Plancher,
 } from '@/lib/ecran-vues'
 import { dateJournal, dodosAvant, heureQuebec } from '@/lib/format'
@@ -142,10 +149,21 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
   // rebours. C'est l'installation neuve (ou un serveur qui n'a pas encore de
   // coordonnées) ; la manchette prend alors la page au lieu d'une grille blanche.
   const corpsVide = colonnes.chronique === 0 && colonnes.liste === 0 && colonnes.aparte === 0
-  const serree = rangeeSerree(donnees.lignes.length, colonnes.liste)
-  // Ce que le papier ne peut pas montrer est annoncé, jamais coupé en silence.
-  const visibles = donnees.lignes.slice(0, capaciteListe(colonnes.liste, serree, grille.chapeau))
-  const enPlus = resteAAnnoncer(donnees.lignes, visibles, donnees.lignesEnPlus)
+  // La journée chargée se range par rubrique quand la liste a les trois colonnes —
+  // le rang « sommaire », ou un plancher sur une journée à dix tâches. Le serveur ne
+  // sert des rubriques que ces jours-là ; une seule rubrique se lit en liste plate.
+  const groupes =
+    edition !== null && colonnes.liste >= 3 ? groupesDeLaListe(donnees.lignes, edition.rubriques) : null
+  const sommaire =
+    groupes === null
+      ? null
+      : colonnesDuSommaire(groupes, colonnes.liste, ITEMS_PAR_COLONNE_SERREE, donnees.lignesEnPlus)
+  const serree = sommaire !== null || rangeeSerree(donnees.lignes.length, colonnes.liste)
+  // Ce que le papier ne peut pas montrer est annoncé, jamais coupé en silence — et
+  // l'annonce est une rangée de la liste, qui a sa place comptée.
+  const plate = listePlate(donnees.lignes, capaciteListe(colonnes.liste, serree, grille.chapeau), donnees.lignesEnPlus)
+  const visibles = plate.visibles
+  const enPlus = sommaire === null ? plate.enPlus : sommaire.enPlus
   // Au sommaire, l'aparté n'existe plus : le compte à rebours descend avec les
   // widgets dans la bande de pied. Il ne disparaît jamais.
   const bandeDePied = colonnes.bandeDePied
@@ -177,14 +195,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
       />
 
       {grille.rang === 'sommaire' ? (
-        // La seule bande inversée du journal, et elle ne sort qu'au sommaire :
-        // passé six tâches, la manchette n'a plus de sens (maquettes, 2026-09-20).
-        <div className="flex items-baseline justify-between bg-black px-16 py-5 text-white">
-          <span className="font-titre text-[76px] font-bold leading-none">Journée chargée</span>
-          <span className="text-[40px] font-extrabold uppercase tracking-[0.1em]">
-            {donnees.ouvertes} choses au programme
-          </span>
-        </div>
+        <BandeDuSommaire donnees={donnees} edition={edition} />
       ) : (
         <Manchette
           grille={grille}
@@ -212,24 +223,39 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
               )}
               style={{ gridColumn: `span ${colonnes.liste}` }}
             >
-              <div className="flex items-baseline justify-between">
-                <Etiquette>Aujourd&rsquo;hui</Etiquette>
-                <span className="text-[30px] font-extrabold">
-                  {donnees.faites > 0 && `${donnees.faites} faite${donnees.faites > 1 ? 's' : ''} · `}
-                  {donnees.ouvertes} à faire
-                </span>
-              </div>
-              <ul
-                className="mt-3 min-h-0 flex-1 overflow-hidden"
-                style={colonnes.liste > 1 ? { columnCount: colonnes.liste, columnGap: '56px' } : undefined}
-              >
-                {visibles.map((ligne, i) => (
-                  <Rangee key={i} ligne={ligne} serree={serree} />
-                ))}
-              </ul>
-              {enPlus > 0 && (
-                <div className="shrink-0 pt-3 text-[30px] font-bold">
-                  + {enPlus} autre{enPlus > 1 ? 's' : ''}
+              {sommaire === null ? (
+                <>
+                  <div className="flex items-baseline justify-between">
+                    <Etiquette>Aujourd&rsquo;hui</Etiquette>
+                    <span className="text-[30px] font-extrabold">
+                      {donnees.faites > 0 && `${donnees.faites} faite${donnees.faites > 1 ? 's' : ''} · `}
+                      {donnees.ouvertes} à faire
+                    </span>
+                  </div>
+                  <ul
+                    className="mt-3 min-h-0 flex-1 overflow-hidden"
+                    style={colonnes.liste > 1 ? { columnCount: colonnes.liste, columnGap: '56px' } : undefined}
+                  >
+                    {visibles.map((ligne, i) => (
+                      <Rangee key={i} ligne={ligne} serree={serree} />
+                    ))}
+                    {enPlus > 0 && <Annonce enPlus={enPlus} serree={serree} />}
+                  </ul>
+                </>
+              ) : (
+                // Le sommaire : des colonnes remplies à la main, un en-tête de rubrique
+                // jamais orphelin en bas de colonne (lib/ecran-vues, colonnesDuSommaire).
+                <div
+                  className="grid min-h-0 flex-1 gap-x-14"
+                  style={{ gridTemplateColumns: `repeat(${sommaire.colonnes.length}, minmax(0, 1fr))` }}
+                >
+                  {sommaire.colonnes.map((items, i) => (
+                    <ColonneDuSommaire
+                      key={i}
+                      items={items}
+                      enPlus={i === sommaire.colonnes.length - 1 ? enPlus : 0}
+                    />
+                  ))}
                 </div>
               )}
             </section>
@@ -388,6 +414,69 @@ function Manchette({
         <p className="clear-both mt-4 line-clamp-2 text-[42px] font-bold leading-tight">{chapeau}</p>
       )}
     </section>
+  )
+}
+
+/*
+ * La bande du sommaire : la seule bande inversée du journal, et elle ne sort qu'au
+ * rang « sommaire » — passé six tâches, la manchette n'a plus de sens (maquettes,
+ * 2026-09-20), mais l'éditorialiste en écrit une quand même, et c'est elle qu'on lit
+ * ici (« Quatorze fois la même adresse »). Le compte par personne prend la droite —
+ * la dateline a déjà le total — et les rubriques, en dessous, remplacent l'en-tête
+ * « Aujourd'hui » de la liste.
+ *
+ * La taille suit la place qui reste à côté du compte (`tailleDeLaBande`) : une
+ * manchette de soixante signes à 76 px ne tiendrait pas, et une manchette pliée sur
+ * deux lignes doublerait la bande aux dépens de la liste. Rien ne se coupe ici.
+ */
+function BandeDuSommaire({ donnees, edition }: { donnees: DonneesEcran; edition: EditionEcran | null }) {
+  const titre = edition?.manchette ?? 'Journée chargée'
+  const compte = compteDeLaBande(donnees.porteurs, donnees.ouvertes, donnees.faites)
+  // overflow-hidden : ce qui dépasserait à droite est caché — et donc vu par la garde,
+  // qui mesure contre chaque ancêtre qui cache. Une bande qui déborde du mur sans le
+  // dire serait pire qu'une manchette coupée qu'on sait coupée.
+  return (
+    <div className="flex items-baseline justify-between gap-10 overflow-hidden bg-black px-16 py-5 text-white">
+      <span className="whitespace-nowrap font-titre font-bold leading-none" style={{ fontSize: tailleDeLaBande(titre, compte) }}>
+        {titre}
+      </span>
+      <span
+        className="shrink-0 whitespace-nowrap font-extrabold uppercase tracking-[0.1em]"
+        style={{ fontSize: TAILLE_COMPTE_BANDE }}
+      >
+        {compte}
+      </span>
+    </div>
+  )
+}
+
+/* Une colonne du sommaire : les en-têtes de rubrique et les rangées serrées, dans
+   l'ordre où `colonnesDuSommaire` les a posés. Un en-tête coûte une rangée serrée au
+   plus (mesuré : ~65 px pour ~88 px), et c'est ce que la capacité lui compte. */
+function ColonneDuSommaire({ items, enPlus }: { items: ItemDeColonne[]; enPlus: number }) {
+  return (
+    <ul className="min-h-0 overflow-hidden">
+      {items.map((item, i) =>
+        item.type === 'entete' ? (
+          <li key={i} className={cn('border-b-[3px] border-black pb-2', i === 0 ? 'pt-0' : 'pt-5')}>
+            <Etiquette>{item.nom}</Etiquette>
+          </li>
+        ) : (
+          <Rangee key={i} ligne={item.ligne} serree />
+        ),
+      )}
+      {enPlus > 0 && <Annonce enPlus={enPlus} serree />}
+    </ul>
+  )
+}
+
+/* « + N autres » : la dernière rangée de la liste, à la hauteur d'une rangée, pour
+   que la capacité qui la compte soit la même que celle qui la dessine. */
+function Annonce({ enPlus, serree }: { enPlus: number; serree: boolean }) {
+  return (
+    <li className={cn('break-inside-avoid font-bold', serree ? 'py-[10px] text-[34px] leading-[1.2]' : 'py-[13px] text-[44px] leading-[1.2]')}>
+      + {enPlus} autre{enPlus > 1 ? 's' : ''}
+    </li>
   )
 }
 
@@ -679,21 +768,52 @@ function Etiquette({ children }: { children: ReactNode }) {
 }
 
 /**
- * De combien le contenu dépasse le cadre, en pixels de l'appareil. Un `scrollHeight`
- * ne suffit pas : dans une grille en `overflow-hidden`, un bloc trop haut déborde
- * sans jamais agrandir la boîte — c'est exactement comme ça que le bas de l'écran
- * s'est fait couper deux fois en un mois. On mesure donc le plus bas des éléments.
+ * De combien le contenu dépasse ce qui se voit, en pixels de l'appareil. Un
+ * `scrollHeight` ne suffit pas : dans une grille en `overflow-hidden`, un bloc trop
+ * haut déborde sans jamais agrandir la boîte — c'est exactement comme ça que le bas de
+ * l'écran s'est fait couper deux fois en un mois. On mesure donc chaque élément par
+ * rapport au cadre (en bas et à droite), **et** par rapport à chaque ancêtre qui cache : la
+ * chronique coupée au milieu d'une ligne à l'étape 7 ne dépassait pas le cadre, elle
+ * dépassait sa colonne, et la garde ne le voyait pas. Un clamp de texte n'est pas un
+ * débordement : il ne cache que du texte, jamais un élément.
  */
 function debordementPx(cadre: HTMLElement, zoom: number): number {
-  const bas = cadre.getBoundingClientRect().top + cadre.clientHeight
-  let plusBas = bas
+  const cadreRect = cadre.getBoundingClientRect()
+  const bas = cadreRect.top + cadre.clientHeight
+  const droite = cadreRect.left + cadre.clientWidth
+  let coupe = 0
+  const limites = new Map<Element, Limite>()
   for (const element of cadre.querySelectorAll('*')) {
     const rect = element.getBoundingClientRect()
-    if (rect.height > 0 && rect.bottom > plusBas) {
-      plusBas = rect.bottom
+    if (rect.height === 0) continue
+    // Contre le cadre lui-même, en bas et à droite : une manchette sans retour à la
+    // ligne peut sortir du mur par la droite.
+    coupe = Math.max(coupe, rect.bottom - bas, rect.right - droite)
+    for (let parent = element.parentElement; parent !== null && parent !== cadre; parent = parent.parentElement) {
+      const limite = limites.get(parent) ?? limiteVisible(parent, limites)
+      // Vers le bas, et vers la droite : des colonnes CSS qui n'ont plus de hauteur
+      // ne coupent pas en bas, elles versent dans une colonne de plus, cachée à droite.
+      if (rect.bottom > limite.bas + 1) {
+        coupe = Math.max(coupe, rect.bottom - limite.bas)
+      }
+      if (rect.right > limite.droite + 1) {
+        coupe = Math.max(coupe, rect.right - limite.droite)
+      }
     }
   }
-  return Math.round((plusBas - bas) * zoom)
+  return Math.round(coupe * zoom)
+}
+
+type Limite = { bas: number; droite: number }
+
+/** Ce qu'un élément laisse voir : sa propre boîte s'il cache ce qui dépasse, l'infini sinon. */
+function limiteVisible(element: Element, cache: Map<Element, Limite>): Limite {
+  const { overflowY, overflowX } = getComputedStyle(element)
+  const rect = element.getBoundingClientRect()
+  const cache_ = (o: string) => o === 'hidden' || o === 'clip'
+  const limite = { bas: cache_(overflowY) ? rect.bottom : Infinity, droite: cache_(overflowX) ? rect.right : Infinity }
+  cache.set(element, limite)
+  return limite
 }
 
 /* Après l'enrôlement : l'appareil montre qu'il est reconnu, et son identifiant —

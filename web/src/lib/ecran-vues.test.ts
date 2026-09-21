@@ -4,7 +4,14 @@ import {
   capaciteListe,
   capaciteWidgets,
   chroniqueVisible,
+  colonnesDuSommaire,
+  compteDeLaBande,
   dimensionsEcran,
+  tailleDeLaBande,
+  groupesDeLaListe,
+  LE_RESTE,
+  listePlate,
+  RANGEES_PAR_ENTETE,
   grilleDuJour,
   initiales,
   ITEMS_PAR_COLONNE_LARGE,
@@ -422,4 +429,191 @@ test('sans ciel, le fonds garde exactement son ordre', () => {
     'maison.record',
     'calendrier.expiration',
   ])
+})
+
+/* ── Le sommaire des journées chargées ─────────────────────────────────────── */
+
+const demarches = (n: number, faites = 0): LigneEcran[] => [
+  ...Array.from({ length: n }, (_, i) => ligne(`Démarche ${i + 1}`)),
+  ...Array.from({ length: faites }, (_, i) => ligne(`Faite ${i + 1}`, 0, true)),
+]
+
+test('les lignes se rangent sous leurs rubriques, par titre, et rien ne se perd', () => {
+  const lignes = [ligne('SAAQ'), ligne('Hydro'), ligne('Banques'), ligne('Pneus'), ligne('Hydro', 0, true)]
+  const groupes = groupesDeLaListe(lignes, [
+    { nom: 'Gouvernements', taches: ['SAAQ', 'Hydro', 'Hydro'] },
+    { nom: 'Argent', taches: ['Banques', 'Passeport (inventé)'] },
+    { nom: LE_RESTE, taches: ['Pneus'] },
+  ])
+  expect(groupes).toEqual([
+    { nom: 'Gouvernements', lignes: [lignes[0], lignes[1], lignes[4]] },
+    { nom: 'Argent', lignes: [lignes[2]] },
+    { nom: LE_RESTE, lignes: [lignes[3]] },
+  ])
+  // Une ligne que le serveur n'aurait placée nulle part tombe dans « Le reste »
+  // plutôt que de disparaître ; un titre inventé ne fait pas de ligne.
+  const orpheline = groupesDeLaListe([ligne('A'), ligne('B'), ligne('C')], [
+    { nom: 'X', taches: ['A'] },
+    { nom: 'Y', taches: ['B'] },
+  ])
+  expect(orpheline?.map((g) => g.nom)).toEqual(['X', 'Y', LE_RESTE])
+  expect(orpheline?.[2].lignes.map((l) => l.titre)).toEqual(['C'])
+})
+
+test("une seule rubrique n'est pas un sommaire : liste plate", () => {
+  expect(groupesDeLaListe(demarches(14), [{ nom: LE_RESTE, taches: [] }])).toBeNull()
+  expect(groupesDeLaListe(demarches(14), [])).toBeNull()
+  // Une rubrique vidée par le filtrage disparaît.
+  const groupes = groupesDeLaListe([ligne('A')], [
+    { nom: 'X', taches: ['A'] },
+    { nom: 'Y', taches: ['Inventée'] },
+  ])
+  expect(groupes?.map((g) => g.nom)).toEqual(['X'])
+})
+
+test('la journée la plus chargée de la prod tient sur trois colonnes, rubriques comprises', () => {
+  // 14 démarches en quatre rubriques : 14 rangées + 4 en-têtes = 18 unités pour 21.
+  const groupes = groupesDeLaListe(demarches(14), [
+    { nom: 'Gouvernements', taches: ['Démarche 1', 'Démarche 2', 'Démarche 3', 'Démarche 4'] },
+    { nom: 'Argent', taches: ['Démarche 5', 'Démarche 6', 'Démarche 7', 'Démarche 8', 'Démarche 9'] },
+    { nom: 'Santé', taches: ['Démarche 10', 'Démarche 11'] },
+    { nom: LE_RESTE, taches: ['Démarche 12', 'Démarche 13', 'Démarche 14'] },
+  ])!
+  const { colonnes, enPlus } = colonnesDuSommaire(groupes, 3, ITEMS_PAR_COLONNE_SERREE)
+
+  expect(enPlus).toBe(0)
+  expect(colonnes).toHaveLength(3)
+  expect(colonnes.flat().filter((i) => i.type === 'ligne')).toHaveLength(14)
+  for (const colonne of colonnes) {
+    const unites = colonne.reduce((n, i) => n + (i.type === 'entete' ? RANGEES_PAR_ENTETE : 1), 0)
+    expect(unites).toBeLessThanOrEqual(ITEMS_PAR_COLONNE_SERREE)
+    // Jamais un en-tête seul en bas de colonne.
+    expect(colonne.at(-1)?.type).toBe('ligne')
+  }
+})
+
+test("un en-tête ne reste jamais orphelin en bas de colonne, et un groupe coupé reprend sous son nom", () => {
+  // Deux colonnes de trois : « A » prend en-tête + 2 lignes ; « B » n'a plus la place
+  // d'un en-tête et d'une ligne dans la première colonne, il ouvre la seconde.
+  const groupes = groupesDeLaListe([ligne('a1'), ligne('a2'), ligne('b1'), ligne('b2')], [
+    { nom: 'A', taches: ['a1', 'a2'] },
+    { nom: 'B', taches: ['b1', 'b2'] },
+  ])!
+  const { colonnes } = colonnesDuSommaire(groupes, 2, 3)
+  expect(colonnes[0].map((i) => (i.type === 'entete' ? `#${i.nom}` : i.ligne.titre))).toEqual(['#A', 'a1', 'a2'])
+  expect(colonnes[1].map((i) => (i.type === 'entete' ? `#${i.nom}` : i.ligne.titre))).toEqual(['#B', 'b1', 'b2'])
+
+  // Quand la place le permet, une rubrique entière par colonne : « B » attend la
+  // seconde colonne plutôt que de se fendre (2 colonnes de 5, A = 3 unités, B = 4).
+  const entiers = groupesDeLaListe([ligne('a1'), ligne('a2'), ligne('b1'), ligne('b2'), ligne('b3')], [
+    { nom: 'A', taches: ['a1', 'a2'] },
+    { nom: 'B', taches: ['b1', 'b2', 'b3'] },
+  ])!
+  const parColonne = colonnesDuSommaire(entiers, 2, 5)
+  expect(parColonne.colonnes[0].map((i) => (i.type === 'entete' ? `#${i.nom}` : i.ligne.titre))).toEqual(['#A', 'a1', 'a2'])
+  expect(parColonne.colonnes[1].map((i) => (i.type === 'entete' ? `#${i.nom}` : i.ligne.titre))).toEqual(['#B', 'b1', 'b2', 'b3'])
+  expect(parColonne.enPlus).toBe(0)
+
+  // Un groupe plus long qu'une colonne continue dans la suivante, coiffé d'un rappel.
+  const long = groupesDeLaListe([ligne('a1'), ligne('a2'), ligne('a3'), ligne('a4'), ligne('b1')], [
+    { nom: 'A', taches: ['a1', 'a2', 'a3', 'a4'] },
+    { nom: 'B', taches: ['b1'] },
+  ])!
+  const suite = colonnesDuSommaire(long, 3, 3)
+  expect(suite.colonnes[0].map((i) => (i.type === 'entete' ? `#${i.nom}` : i.ligne.titre))).toEqual(['#A', 'a1', 'a2'])
+  expect(suite.colonnes[1].map((i) => (i.type === 'entete' ? `#${i.nom}` : i.ligne.titre))).toEqual(['#A', 'a3', 'a4'])
+  expect(suite.colonnes[2].map((i) => (i.type === 'entete' ? `#${i.nom}` : i.ligne.titre))).toEqual(['#B', 'b1'])
+  expect(suite.enPlus).toBe(0)
+})
+
+test('ce qui ne tient pas est annoncé, et les faites cèdent leur place les premières', () => {
+  // 20 lignes à faire + 3 faites en trois rubriques, sur 21 unités : les faites
+  // partent d'abord, puis les dernières à faire sont annoncées, jamais coupées.
+  const lignes = demarches(20, 3)
+  const groupes = groupesDeLaListe(lignes, [
+    { nom: 'A', taches: lignes.slice(0, 7).map((l) => l.titre) },
+    { nom: 'B', taches: [...lignes.slice(7, 14).map((l) => l.titre), 'Faite 1', 'Faite 2'] },
+    { nom: LE_RESTE, taches: [...lignes.slice(14, 20).map((l) => l.titre), 'Faite 3'] },
+  ])!
+  const { colonnes, enPlus } = colonnesDuSommaire(groupes, 3, ITEMS_PAR_COLONNE_SERREE)
+  const montrees = colonnes.flat().filter((i) => i.type === 'ligne')
+  expect(montrees.some((i) => i.type === 'ligne' && i.ligne.faite)).toBe(false)
+  // 20 à faire + 3 en-têtes = 23 unités pour 21 : il en manque, et on le dit.
+  expect(montrees.length + enPlus).toBe(20)
+  expect(enPlus).toBeGreaterThan(0)
+  for (const colonne of colonnes) {
+    expect(colonne.at(-1)?.type).toBe('ligne')
+  }
+})
+
+test('la bande du sommaire compte par personne, et tout court quand personne ne porte rien', () => {
+  // Les porteurs viennent du serveur, sur toutes les ouvertes : 36 tâches un jeudi
+  // chargé, dont 26 servies — la bande dit 36, pas 26.
+  const porteurs = [
+    { nom: 'Alain', ouvertes: 12 },
+    { nom: 'Ariane', ouvertes: 12 },
+    { nom: null, ouvertes: 12 },
+  ]
+  expect(compteDeLaBande(porteurs, 36, 0)).toBe('12 Alain · 12 Ariane · 12 pour la maison')
+  expect(compteDeLaBande([], 36, 0)).toBe('36 à faire')
+  // Les faites passent devant.
+  expect(compteDeLaBande([{ nom: 'Alain', ouvertes: 1 }], 1, 3)).toBe('3 faites · 1 Alain')
+  expect(compteDeLaBande([], 1, 1)).toBe('1 faite · 1 à faire')
+})
+
+test('la manchette de la bande rétrécit pour tenir sur une ligne à côté du compte', () => {
+  const compteCourt = '14 à faire'
+  const compteLong = '3 Alain · 3 Ariane · 8 pour la maison'
+  expect(tailleDeLaBande('Journée chargée', compteCourt)).toBe(76)
+  // Quarante signes mesurent 1190 px à 76 px ; comptés avec de la marge, ils tiennent
+  // encore à côté d'un compte court, plus à côté d'un compte par personne (~800 px)
+  // — la manchette cède, jamais la ligne.
+  expect(tailleDeLaBande('Une adresse, et tout le monde à prévenir', compteCourt)).toBe(76)
+  expect(tailleDeLaBande('Une adresse, et tout le monde à prévenir', compteLong)).toBe(46)
+  expect(tailleDeLaBande('Quatorze fois la même adresse', compteLong)).toBe(60)
+  // Soixante signes, la borne du contrat : 46 px, et jamais moins.
+  expect(tailleDeLaBande('m'.repeat(60), compteLong)).toBe(46)
+})
+
+test("« + N autres » est une rangée de la liste : elle prend la dernière place quand il y en a à annoncer", () => {
+  const lignes = demarches(21)
+  // Tout tient : rien d'annoncé, rien de cédé.
+  expect(listePlate(lignes, 21, 0)).toEqual({ visibles: lignes, enPlus: 0 })
+  // Une de trop chez le serveur : la dernière rangée devient l'annonce.
+  expect(listePlate(lignes, 21, 1)).toEqual({ visibles: lignes.slice(0, 20), enPlus: 2 })
+  expect(listePlate(demarches(26), 21, 10)).toEqual({ visibles: demarches(26).slice(0, 20), enPlus: 16 })
+  expect(listePlate([], 0, 0)).toEqual({ visibles: [], enPlus: 0 })
+})
+
+test("au sommaire aussi, l'annonce a sa rangée dans la dernière colonne", () => {
+  // 21 unités pleines (3 rubriques de 6) et deux lignes de plus : la dernière colonne
+  // cède une ligne à l'annonce, et l'annonce compte cette ligne.
+  const lignes = demarches(20)
+  const groupes = groupesDeLaListe(lignes, [
+    { nom: 'A', taches: lignes.slice(0, 6).map((l) => l.titre) },
+    { nom: 'B', taches: lignes.slice(6, 12).map((l) => l.titre) },
+    { nom: LE_RESTE, taches: lignes.slice(12, 20).map((l) => l.titre) },
+  ])!
+  const { colonnes, enPlus } = colonnesDuSommaire(groupes, 3, ITEMS_PAR_COLONNE_SERREE)
+  const montrees = colonnes.flat().filter((i) => i.type === 'ligne').length
+  expect(montrees + enPlus).toBe(20)
+  expect(enPlus).toBe(3)
+  expect(colonnes[2].reduce((n, i) => n + (i.type === 'entete' ? RANGEES_PAR_ENTETE : 1), 0)).toBe(
+    ITEMS_PAR_COLONNE_SERREE - 1,
+  )
+
+  // Le serveur a déjà élagué : même quand tout ce qui est servi tient, l'annonce a
+  // besoin de sa rangée, et elle compte ce que le serveur a retenu.
+  const justes = demarches(18)
+  const pleines = groupesDeLaListe(justes, [
+    { nom: 'A', taches: justes.slice(0, 6).map((l) => l.titre) },
+    { nom: 'B', taches: justes.slice(6, 12).map((l) => l.titre) },
+    { nom: LE_RESTE, taches: justes.slice(12, 18).map((l) => l.titre) },
+  ])!
+  expect(colonnesDuSommaire(pleines, 3, ITEMS_PAR_COLONNE_SERREE, 0).enPlus).toBe(0)
+  const avecElagage = colonnesDuSommaire(pleines, 3, ITEMS_PAR_COLONNE_SERREE, 4)
+  expect(avecElagage.enPlus).toBe(5)
+  expect(avecElagage.colonnes[2].reduce((n, i) => n + (i.type === 'entete' ? RANGEES_PAR_ENTETE : 1), 0)).toBe(
+    ITEMS_PAR_COLONNE_SERREE - 1,
+  )
 })

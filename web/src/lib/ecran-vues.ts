@@ -269,6 +269,199 @@ export function capaciteListe(colonnesListe: number, serree: boolean, chapeau: b
   return colonnesListe * (chapeau ? parColonne - 1 : parColonne)
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * Le sommaire des journées chargées : la liste par rubrique, sur trois colonnes
+ * (vault : D-2026-09-20 Regroupement Sans Catégorie De Tâche).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export type GroupeDeLignes = { nom: string; lignes: LigneEcran[] }
+
+/**
+ * Les lignes rangées sous leurs rubriques, dans l'ordre du serveur. Le serveur ne sert
+ * que des titres de lignes réelles, une place par ligne ; s'il en restait une sans
+ * place, elle irait sous « Le reste » plutôt que de disparaître. Null quand il n'y a
+ * rien à grouper — une seule rubrique (« Le reste » sur quatorze démarches sans zone,
+ * le repli sans LLM) se lit mieux en liste plate, sans titre pour rien.
+ */
+export function groupesDeLaListe(
+  lignes: LigneEcran[],
+  rubriques: { nom: string; taches: string[] }[],
+): GroupeDeLignes[] | null {
+  if (rubriques.length <= 1) {
+    return null
+  }
+  const restantes = [...lignes]
+  const prendre = (titre: string): LigneEcran | undefined => {
+    const i = restantes.findIndex((l) => l.titre === titre)
+    return i === -1 ? undefined : restantes.splice(i, 1)[0]
+  }
+  const groupes: GroupeDeLignes[] = rubriques.map((r) => ({
+    nom: r.nom,
+    lignes: r.taches.map(prendre).filter((l): l is LigneEcran => l !== undefined),
+  }))
+  if (restantes.length > 0) {
+    const reste = groupes.find((g) => g.nom === LE_RESTE)
+    if (reste === undefined) {
+      groupes.push({ nom: LE_RESTE, lignes: restantes })
+    } else {
+      reste.lignes.push(...restantes)
+    }
+  }
+  return groupes.filter((g) => g.lignes.length > 0)
+}
+
+export const LE_RESTE = 'Le reste'
+
+export type ItemDeColonne = { type: 'entete'; nom: string } | { type: 'ligne'; ligne: LigneEcran }
+
+/**
+ * Ce qu'un en-tête de rubrique coûte, en rangées serrées : mesuré au rendu 1872×1404,
+ * l'étiquette et son filet font ~65 px pour ~88 px la rangée. On compte une rangée
+ * entière — la capacité dit ce que le papier tient, pas ce qu'on espère y faire entrer.
+ */
+export const RANGEES_PAR_ENTETE = 1
+
+/**
+ * Les colonnes du sommaire, remplies à la main plutôt que par `column-count` : une
+ * rubrique n'est jamais coiffée en bas d'une colonne avec ses lignes dans la suivante,
+ * et ce qui ne tient pas est **annoncé**, jamais coupé en silence — la colonne cache
+ * (`overflow-hidden`), et un clamp ne dit rien de ce qui passe sous le pied (leçon de
+ * l'étape 7). Les faites cèdent leur place les premières : le compte des faites est
+ * déjà dans la bande, et une ligne barrée dit moins qu'une ligne à faire.
+ */
+export function colonnesDuSommaire(
+  groupes: GroupeDeLignes[],
+  nombreDeColonnes: number,
+  rangeesParColonne: number,
+  elagueesParLeServeur = 0,
+): { colonnes: ItemDeColonne[][]; enPlus: number } {
+  let candidats = groupes.map((g) => ({ nom: g.nom, lignes: [...g.lignes] }))
+  let resultat = auMieux(candidats, nombreDeColonnes, rangeesParColonne)
+  // Tant que ça déborde et qu'il reste une faite, on retire la dernière faite.
+  while (resultat.ecartees.length > 0) {
+    const derniereFaite = derniereLigneFaite(candidats)
+    if (derniereFaite === null) break
+    candidats = candidats
+      .map((g) => (g === derniereFaite.groupe ? { ...g, lignes: g.lignes.filter((l) => l !== derniereFaite.ligne) } : g))
+      .filter((g) => g.lignes.length > 0)
+    resultat = auMieux(candidats, nombreDeColonnes, rangeesParColonne)
+  }
+  // « + N autres » est une rangée de la dernière colonne : quand il y a de quoi
+  // annoncer — ici, ou déjà chez le serveur, qui plafonne les lignes —, elle a besoin
+  // de sa place, et c'est la dernière ligne posée qui la cède.
+  const colonnes = resultat.colonnes
+  const ecartees = [...resultat.ecartees]
+  if (ecartees.length + elagueesParLeServeur > 0) {
+    const derniere = colonnes[colonnes.length - 1]
+    while (unites(derniere) > rangeesParColonne - 1) {
+      const item = derniere.pop()
+      if (item?.type === 'ligne') ecartees.unshift(item.ligne)
+    }
+    if (derniere.at(-1)?.type === 'entete') derniere.pop()
+  }
+  return { colonnes, enPlus: elagueesParLeServeur + ecartees.filter((l) => l.faite === false).length }
+}
+
+function unites(colonne: ItemDeColonne[]): number {
+  return colonne.reduce((n, i) => n + (i.type === 'entete' ? RANGEES_PAR_ENTETE : 1), 0)
+}
+
+/**
+ * Une rubrique entière par colonne quand la place le permet (une colonne par
+ * rubrique, comme dans la maquette du 20 octobre) ; sinon, au fil des rangées, une
+ * rubrique coupée reprenant sous son nom. Le journal préfère un blanc en bas de
+ * colonne à une rubrique fendue — mais jamais une ligne écartée à un blanc.
+ */
+function auMieux(groupes: GroupeDeLignes[], nombreDeColonnes: number, rangeesParColonne: number) {
+  const entier = remplir(groupes, nombreDeColonnes, rangeesParColonne, true)
+  if (entier.ecartees.length === 0) return entier
+  const auFil = remplir(groupes, nombreDeColonnes, rangeesParColonne, false)
+  return auFil.ecartees.length < entier.ecartees.length ? auFil : entier
+}
+
+function derniereLigneFaite(groupes: GroupeDeLignes[]): { groupe: GroupeDeLignes; ligne: LigneEcran } | null {
+  for (let g = groupes.length - 1; g >= 0; g--) {
+    const lignes = groupes[g].lignes
+    for (let i = lignes.length - 1; i >= 0; i--) {
+      if (lignes[i].faite) return { groupe: groupes[g], ligne: lignes[i] }
+    }
+  }
+  return null
+}
+
+function remplir(
+  groupes: GroupeDeLignes[],
+  nombreDeColonnes: number,
+  rangeesParColonne: number,
+  rubriquesEntieres: boolean,
+): { colonnes: ItemDeColonne[][]; ecartees: LigneEcran[] } {
+  const colonnes: ItemDeColonne[][] = Array.from({ length: nombreDeColonnes }, () => [])
+  const ecartees: LigneEcran[] = []
+  let c = 0
+  let occupees = 0
+  const place = (item: ItemDeColonne, cout: number): boolean => {
+    while (c < nombreDeColonnes) {
+      const reste = rangeesParColonne - occupees
+      // Un en-tête a besoin de sa place et d'au moins une ligne sous lui.
+      const besoin = item.type === 'entete' ? cout + 1 : cout
+      if (reste >= besoin) {
+        colonnes[c].push(item)
+        occupees += cout
+        return true
+      }
+      c++
+      occupees = 0
+    }
+    return false
+  }
+  for (const groupe of groupes) {
+    const hauteur = RANGEES_PAR_ENTETE + groupe.lignes.length
+    if (rubriquesEntieres && occupees > 0 && hauteur > rangeesParColonne - occupees && hauteur <= rangeesParColonne) {
+      c++
+      occupees = 0
+    }
+    if (place({ type: 'entete', nom: groupe.nom }, RANGEES_PAR_ENTETE) === false) {
+      ecartees.push(...groupe.lignes)
+      continue
+    }
+    for (const [i, ligne] of groupe.lignes.entries()) {
+      if (place({ type: 'ligne', ligne }, 1) === false) {
+        ecartees.push(...groupe.lignes.slice(i))
+        break
+      }
+      // Une colonne qui s'est remplie en plein groupe : la suite reprend sous un
+      // rappel du nom, sinon la colonne suivante ouvre sur des lignes orphelines.
+      if (occupees === rangeesParColonne && i < groupe.lignes.length - 1) {
+        if (place({ type: 'entete', nom: groupe.nom }, RANGEES_PAR_ENTETE) === false) {
+          ecartees.push(...groupe.lignes.slice(i + 1))
+          break
+        }
+      }
+    }
+  }
+  return { colonnes, ecartees }
+}
+
+/**
+ * Ce que la liste plate montre, et ce qu'elle annonce. La mention « + N autres » est
+ * une rangée de la liste — la dernière —, pas une ligne en dessous : posée sous le
+ * bloc, elle lui volait ~50 px, et en colonnes CSS la septième rangée ne disparaissait
+ * pas vers le bas mais dans une **quatrième colonne**, cachée à droite — trois lignes
+ * perdues sans que la garde ne voie rien (trouvé à l'étape 8, 36 tâches un jeudi
+ * d'essai). Le serveur fait pareil : « la mention occupe la dernière place ».
+ */
+export function listePlate(
+  lignes: LigneEcran[],
+  capacite: number,
+  elagueesParLeServeur: number,
+): { visibles: LigneEcran[]; enPlus: number } {
+  if (lignes.length + elagueesParLeServeur <= capacite) {
+    return { visibles: lignes, enPlus: 0 }
+  }
+  const visibles = lignes.slice(0, Math.max(0, capacite - 1))
+  return { visibles, enPlus: resteAAnnoncer(lignes, visibles, elagueesParLeServeur) }
+}
+
 /**
  * Ce que la mention « + N autres » annonce : les tâches **à faire** qui n'ont pas
  * trouvé de place, jamais des tâches faites. Une journée à quatre choses ne dit pas
@@ -282,6 +475,52 @@ export function resteAAnnoncer(
 ): number {
   const ouvertes = (l: LigneEcran[]) => l.filter((x) => x.faite === false).length
   return elagueesParLeServeur + ouvertes(lignes) - ouvertes(visibles)
+}
+
+/**
+ * Le compte de la bande du sommaire, par personne (« 4 Alain · 4 Ariane · 6 pour la
+ * maison »), comme dans la maquette du 20 octobre : la dateline dit déjà « 14 choses
+ * au programme », la bande dit qui les porte. Les porteurs viennent du serveur, comptés
+ * sur **toutes** les ouvertes — les lignes servies sont plafonnées, et c'est justement
+ * les jours chargés que le plafond mord. Sans personne d'assigné, le compte tout court,
+ * et les faites devant, s'il y en a, comme l'en-tête de la liste les disait.
+ */
+export function compteDeLaBande(
+  porteurs: { nom: string | null; ouvertes: number }[],
+  ouvertes: number,
+  faites: number,
+): string {
+  const parts: string[] = []
+  if (faites > 0) parts.push(`${faites} faite${faites > 1 ? 's' : ''}`)
+  if (porteurs.length === 0) {
+    parts.push(`${ouvertes} à faire`)
+  } else {
+    for (const p of porteurs) parts.push(p.nom === null ? `${p.ouvertes} pour la maison` : `${p.ouvertes} ${p.nom}`)
+  }
+  return parts.join(' · ')
+}
+
+/**
+ * La taille de la manchette dans la bande du sommaire : la plus grande des trois
+ * (76, 60, 46 px) qui tient sur une ligne à côté du compte, sur les 1872 px du mur
+ * moins les marges. Estimée en largeur de signe, mesurée au rendu 1872×1404 : la
+ * titraille grasse fait ~0,39 em par signe en moyenne (« Une adresse, et tout le monde
+ * à prévenir » : 1190 px à 76 px), comptée 0,46 ; le compte en capitales espacées
+ * ~0,64 em à 34 px, compté 0,66.
+ * Une manchette qui se plie sur deux lignes doublerait la bande, et c'est la liste en
+ * dessous qui paierait.
+ */
+export const LARGEUR_BANDE = 1872 - 2 * 64 - 40
+export const TAILLE_COMPTE_BANDE = 34
+
+export function tailleDeLaBande(titre: string, compte: string): number {
+  // De la marge sur les deux mesures : une manchette en capitales ou en lettres
+  // larges déborde l'estimation, et la bande cache ce qui dépasse — la garde le voit.
+  const largeurCompte = compte.length * TAILLE_COMPTE_BANDE * 0.66
+  for (const taille of [76, 60, 46]) {
+    if (titre.length * taille * 0.46 + largeurCompte <= LARGEUR_BANDE) return taille
+  }
+  return 46
 }
 
 /** « Édition du matin » avant midi, « Édition du soir » ensuite. */

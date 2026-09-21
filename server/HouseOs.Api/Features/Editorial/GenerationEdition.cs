@@ -141,6 +141,10 @@ public static class GenerationEdition
     /// <paramref name="maintenant"/> est l'heure <b>vraie</b> : les sources se lisent à
     /// cette heure quand <paramref name="date"/> est aujourd'hui, et au matin de la date
     /// demandée sinon — jamais les tâches d'aujourd'hui sous la date d'hier.
+    /// <paramref name="avantLeCreneau"/> : vrai quand on écrit la journée avant son
+    /// créneau du matin (un rattrapage à minuit dix, un rendu de nuit) — l'édition
+    /// garde alors son drapeau, et le créneau la réécrit avec les faits du matin (la
+    /// météo fraîche, la ville poussée à 5 h 17) au lieu de la trouver déjà faite.
     /// </summary>
     /// <returns>L'édition et si elle vient d'être écrite.</returns>
     public static async Task<(Edition Edition, bool Generee)> GenererAsync(
@@ -153,7 +157,8 @@ public static class GenerationEdition
         DateOnly date,
         DateTime maintenant,
         bool remplacer,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool avantLeCreneau = false)
     {
         var existante = await db.Editions.SingleOrDefaultAsync(e => e.Date == date, ct);
         if (existante is not null && remplacer == false && existante.ReeditionEnAttente == false)
@@ -177,10 +182,11 @@ public static class GenerationEdition
         var modele = source == SourceEdition.Llm ? redacteur.Modele : null;
         Appliquer(edition, texte, cadre, source, modele);
         // Le drapeau tombe même en gabarit : un modèle qui a échoué ne se rappelle pas
-        // à chaque réveil, il se rappelle demain matin. Il reste levé sur une édition
-        // écrite pour un autre jour (un essai) : le matin venu, l'éditorialiste la
-        // réécrit avec les faits de ce matin-là, pas ceux du jour de l'essai.
-        edition.ReeditionEnAttente = autreJour;
+        // à chaque réveil, il se rappelle au second essai. Il reste levé sur une édition
+        // écrite pour un autre jour (un essai) ou avant son créneau du matin : le matin
+        // venu, l'éditorialiste la réécrit avec les faits de ce matin-là.
+        var aReecrire = autreJour || avantLeCreneau;
+        edition.ReeditionEnAttente = aReecrire;
         if (existante is null)
         {
             db.Editions.Add(edition);
@@ -202,13 +208,56 @@ public static class GenerationEdition
                 return (gagnante, false);
             }
             Appliquer(gagnante, texte, cadre, source, modele);
-            gagnante.ReeditionEnAttente = autreJour;
+            gagnante.ReeditionEnAttente = aReecrire;
             await db.SaveChangesAsync(ct);
             edition = gagnante;
         }
         journal.LogInformation("Édition du {Date} écrite via {Source} — rang {Rang}, {Cles} clés publiées.",
             date, source, cadre.Rang, cadre.ClesPubliees.Count);
         return (edition, true);
+    }
+
+    /// <summary>
+    /// Le second essai de la journée : quand le modèle n'a pas répondu au premier (une
+    /// API surchargée à 5 h 31), l'édition est restée un gabarit et le service de fond
+    /// repasse <b>une fois</b>, plus tard. Rien à faire si entre-temps quelqu'un a écrit
+    /// avec le modèle — une régénération à la main, par exemple. Un second échec
+    /// n'écrit <b>rien</b> : le gabarit garde son heure, et c'est elle qui borne la
+    /// fenêtre du second essai (<see cref="EditorialisteService.MomentDuReessai"/>) —
+    /// réécrire le gabarit rouvrirait la fenêtre à chaque heure.
+    /// </summary>
+    /// <returns>Vrai si un essai a eu lieu.</returns>
+    public static async Task<bool> ReessayerAsync(
+        HouseOsDbContext db,
+        IRedacteurEdition redacteur,
+        MeteoOptions? meteo,
+        BanqueDuHasard? banque,
+        string? lieu,
+        ILogger journal,
+        DateOnly date,
+        DateTime maintenant,
+        CancellationToken ct)
+    {
+        var existante = await db.Editions.SingleOrDefaultAsync(e => e.Date == date, ct);
+        if (existante is null || existante.Source != SourceEdition.Gabarit)
+        {
+            return false;
+        }
+        journal.LogInformation("Édition du {Date} restée en gabarit — second essai.", date);
+        var memoire = await MemoireDesEditions.LireAsync(db, date, ct);
+        var sources = await ComposerDonneesEcran.LireLesSourcesAsync(db, maintenant, lieu, meteo, banque, memoire.Fraicheur);
+        var cadre = Cadrer(sources);
+        var texte = await redacteur.RedigerAsync(Matiere(sources, cadre, memoire), ct);
+        if (texte is null)
+        {
+            journal.LogWarning("Édition du {Date} : le second essai n'a rien donné — gabarit jusqu'à demain.", date);
+            return true;
+        }
+        Appliquer(existante, texte, cadre, SourceEdition.Llm, redacteur.Modele);
+        existante.ReeditionEnAttente = false;
+        await db.SaveChangesAsync(ct);
+        journal.LogInformation("Édition du {Date} écrite via Llm au second essai — rang {Rang}.", date, cadre.Rang);
+        return true;
     }
 
     private static void Appliquer(Edition edition, TexteDEdition texte, Cadre cadre, SourceEdition source, string? modele)
@@ -254,11 +303,17 @@ public static class GenerationEdition
             aujourdhui,
             cadre.Rang,
             cadre.Plancher,
-            [.. sources.Ouvertes.Select(o => new TachePourEdition(
-                o.Titre,
-                o.Echeance is { } e && e < aujourdhui ? aujourdhui.DayNumber - e.DayNumber : 0,
-                o.EcheanceFerme,
-                o.AssigneA?.NomAffichage))],
+            [.. sources.Ouvertes.Select(o =>
+            {
+                var groupe = (sources.Noms ?? NomsDeLaMaison.Vide).Grouper(o);
+                return new TachePourEdition(
+                    o.Titre,
+                    o.Echeance is { } e && e < aujourdhui ? aujourdhui.DayNumber - e.DayNumber : 0,
+                    o.EcheanceFerme,
+                    o.AssigneA?.NomAffichage,
+                    groupe.Zone,
+                    groupe.Equipement);
+            })],
             sources.ProchainCompte is { } c
                 ? new CompteProcheDEdition(c.Titre, c.DateCible.DayNumber - aujourdhui.DayNumber)
                 : null,

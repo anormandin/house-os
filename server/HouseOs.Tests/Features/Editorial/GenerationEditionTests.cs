@@ -48,12 +48,13 @@ public class GenerationEditionTests : TestAvecSqlite
             Db, _redacteur, null, null, null, NullLogger.Instance, date ?? Aujourdhui, Matin,
             remplacer: false, CancellationToken.None);
 
-    private void AjouterTache(string titre, DateOnly echeance, bool ferme = false)
+    private void AjouterTache(
+        string titre, DateOnly echeance, bool ferme = false, Guid? zoneId = null, Guid? equipementId = null)
     {
         var tache = new Tache
         {
             Id = Guid.NewGuid(), Titre = titre, CreeParId = _alain, CreeLe = DateTimeOffset.UtcNow,
-            EcheanceFerme = ferme,
+            EcheanceFerme = ferme, ZoneId = zoneId, EquipementId = equipementId,
         };
         Db.Taches.Add(tache);
         Db.Occurrences.Add(new Occurrence { Id = Guid.NewGuid(), TacheId = tache.Id, Echeance = echeance });
@@ -134,6 +135,101 @@ public class GenerationEditionTests : TestAvecSqlite
         var (_, generee) = await ServiceDeFond();
         Assert.False(generee);
         Assert.Equal(1, _redacteur.Appels);
+    }
+
+    [Fact]
+    public async Task Un_gabarit_laisse_par_un_modele_muet_est_reessaye_une_fois_puis_laisse_tranquille()
+    {
+        // L'API surchargée à 5 h 31 : gabarit. Le second essai, plus tard, écrit avec le
+        // modèle ; un troisième passage ne trouve plus rien à réessayer.
+        _redacteur.Texte = null;
+        var (gabarit, _) = await ServiceDeFond();
+        Assert.Equal(SourceEdition.Gabarit, gabarit.Source);
+
+        _redacteur.Texte = TexteOpus;
+        Assert.True(await Reessayer());
+        Assert.Equal(2, _redacteur.Appels);
+        Assert.Equal(SourceEdition.Llm, (await Db.Editions.SingleAsync()).Source);
+
+        Assert.False(await Reessayer());
+        Assert.Equal(2, _redacteur.Appels);
+    }
+
+    [Fact]
+    public async Task Un_second_essai_rate_n_ecrit_rien_et_le_gabarit_garde_son_heure()
+    {
+        _redacteur.Texte = null;
+        var (gabarit, _) = await ServiceDeFond();
+        var ecritLe = gabarit.GenereLe;
+
+        Assert.True(await Reessayer());
+        Assert.Equal(2, _redacteur.Appels);
+        Db.ChangeTracker.Clear();
+        var relue = await Db.Editions.SingleAsync();
+        Assert.Equal(SourceEdition.Gabarit, relue.Source);
+        Assert.Equal(ecritLe, relue.GenereLe);
+    }
+
+    [Fact]
+    public async Task Une_edition_ecrite_avant_son_creneau_garde_le_drapeau_pour_le_matin()
+    {
+        // Un rattrapage à minuit dix écrit la journée qui commence, mais le créneau du
+        // matin doit pouvoir la réécrire avec les faits du matin.
+        _redacteur.Texte = TexteOpus;
+        var (nuit, _) = await GenerationEdition.GenererAsync(
+            Db, _redacteur, null, null, null, NullLogger.Instance, Aujourdhui,
+            Aujourdhui.ToDateTime(new TimeOnly(0, 10)), remplacer: false, CancellationToken.None,
+            avantLeCreneau: true);
+        Assert.True(nuit.ReeditionEnAttente);
+
+        var (matin, generee) = await ServiceDeFond();
+        Assert.True(generee);
+        Assert.False(matin.ReeditionEnAttente);
+        Assert.Equal(2, _redacteur.Appels);
+    }
+
+    [Fact]
+    public async Task Le_second_essai_ne_reecrit_pas_une_edition_qu_un_autre_a_deja_ecrite()
+    {
+        // Entre le gabarit et le second essai, une régénération à la main a écrit avec
+        // le modèle : rien à réessayer, pas d'appel.
+        _redacteur.Texte = null;
+        await ServiceDeFond();
+        _redacteur.Texte = TexteOpus;
+        await GenerationEdition.GenererAsync(
+            Db, _redacteur, null, null, null, NullLogger.Instance, Aujourdhui, Matin,
+            remplacer: true, CancellationToken.None);
+        Assert.Equal(2, _redacteur.Appels);
+
+        Assert.False(await Reessayer());
+        Assert.Equal(2, _redacteur.Appels);
+        Assert.False(await Reessayer(Aujourdhui.AddDays(1)));
+    }
+
+    private Task<bool> Reessayer(DateOnly? date = null) =>
+        GenerationEdition.ReessayerAsync(
+            Db, _redacteur, null, null, null, NullLogger.Instance, date ?? Aujourdhui,
+            Aujourdhui.ToDateTime(new TimeOnly(6, 31)), CancellationToken.None);
+
+    [Fact]
+    public async Task L_editorialiste_recoit_la_zone_et_l_equipement_des_taches_dues()
+    {
+        var garage = new Zone { Id = Guid.NewGuid(), Nom = "Le garage", Type = TypeZone.Interieur };
+        var fournaise = new Equipement { Id = Guid.NewGuid(), Nom = "Fournaise" };
+        Db.Zones.Add(garage);
+        Db.Equipements.Add(fournaise);
+        Db.SaveChanges();
+        AjouterTache("Ranger le garage", Aujourdhui, zoneId: garage.Id);
+        AjouterTache("Changer le filtre", Aujourdhui, equipementId: fournaise.Id);
+        AjouterTache("SAAQ — changement d'adresse", Aujourdhui);
+        _redacteur.Texte = TexteOpus;
+
+        await ServiceDeFond();
+
+        var taches = _redacteur.DerniereMatiere!.TachesDues;
+        Assert.Equal("Le garage", taches.Single(t => t.Titre == "Ranger le garage").Zone);
+        Assert.Equal("Fournaise", taches.Single(t => t.Titre == "Changer le filtre").Equipement);
+        Assert.True(taches.Single(t => t.Titre.StartsWith("SAAQ")).ANommer);
     }
 
     [Fact]

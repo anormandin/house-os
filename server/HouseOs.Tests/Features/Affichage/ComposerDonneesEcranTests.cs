@@ -1,4 +1,5 @@
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Editorial;
 using HouseOs.Api.Domaine.Ephemerides;
 using HouseOs.Api.Domaine.Humeur;
 using HouseOs.Api.Features.Affichage;
@@ -19,9 +20,10 @@ public class ComposerDonneesEcranTests
 
     private static OccurrenceDto Occurrence(
         string titre, DateOnly? echeance, UtilisateurDto? assigne = null,
-        string statut = "EnAttente", UtilisateurDto? completeePar = null) =>
+        string statut = "EnAttente", UtilisateurDto? completeePar = null,
+        Guid? zoneId = null, Guid? equipementId = null) =>
         new(Guid.NewGuid(), Guid.NewGuid(), titre, null, echeance, statut, assigne, completeePar,
-            completeePar is null ? null : new DateTimeOffset(Maintenant), null, null, null, "Ponctuelle", false);
+            completeePar is null ? null : new DateTimeOffset(Maintenant), null, zoneId, equipementId, "Ponctuelle", false);
 
     private static DonneesEcran Composer(
         IReadOnlyList<OccurrenceDto>? ouvertes = null,
@@ -34,10 +36,12 @@ public class ComposerDonneesEcranTests
         DateOnly? premiereParution = null,
         ReglagesDuCiel? ciel = null,
         EtatDeLaMaison? maison = null,
-        EtatDuCalendrier? calendrier = null) =>
+        EtatDuCalendrier? calendrier = null,
+        Edition? edition = null,
+        NomsDeLaMaison? noms = null) =>
         ComposerDonneesEcran.Composer(
             Maintenant, ouvertes ?? [], faites ?? [], phrase, meteo, evenements ?? [], comptes ?? [],
-            lieu, premiereParution, ciel, maison, calendrier);
+            lieu, premiereParution, ciel, maison, calendrier, edition: edition, noms: noms);
 
     [Fact]
     public void Les_ouvertes_precedent_les_faites_et_le_retard_est_marque()
@@ -102,6 +106,121 @@ public class ComposerDonneesEcranTests
 
         Assert.Equal(14, donnees.Lignes.Count);
         Assert.Equal(0, donnees.LignesEnPlus);
+    }
+
+    private static readonly Guid Garage = Guid.NewGuid();
+    private static readonly Guid Fournaise = Guid.NewGuid();
+    private static readonly NomsDeLaMaison Noms = new(
+        new Dictionary<Guid, string> { [Garage] = "Le garage" },
+        new Dictionary<Guid, string> { [Fournaise] = "Fournaise" });
+
+    private static Edition Edition(SourceEdition source, params RubriqueEdition[] rubriques) => new()
+    {
+        Date = Aujourdhui, Rang = RangEdition.Sommaire, Manchette = "Quatorze fois la même adresse",
+        Source = source, Rubriques = [.. rubriques], GenereLe = DateTimeOffset.UtcNow,
+    };
+
+    /// <summary>Douze démarches sans zone, une au garage, une sur la fournaise.</summary>
+    private static List<OccurrenceDto> JourneeChargee() =>
+    [
+        .. Enumerable.Range(1, 12).Select(i => Occurrence($"Démarche {i}", Aujourdhui)),
+        Occurrence("Ranger le garage", Aujourdhui, zoneId: Garage),
+        Occurrence("Changer le filtre", Aujourdhui, equipementId: Fournaise),
+    ];
+
+    [Fact]
+    public void La_journee_chargee_est_servie_en_rubriques_et_une_tache_inventee_est_rejetee()
+    {
+        var edition = Edition(SourceEdition.Llm,
+            new RubriqueEdition("Gouvernements", ["Démarche 1", "Démarche 3"]),
+            new RubriqueEdition("Fantômes", ["Passeport (inventé)"]),
+            new RubriqueEdition("Argent", ["Démarche 2", "Ranger le garage"]));
+
+        var donnees = Composer(
+            JourneeChargee(),
+            faites: [Occurrence("Démarche 3", Aujourdhui, statut: "Completee", completeePar: Alain)],
+            edition: edition, noms: Noms);
+
+        Assert.Collection(donnees.Edition!.Rubriques,
+            r =>
+            {
+                // La zone range d'office, et le modèle ne peut pas la lui reprendre.
+                Assert.Equal("Le garage", r.Nom);
+                Assert.Equal(["Ranger le garage"], r.Taches);
+            },
+            r => Assert.Equal("Fournaise", r.Nom),
+            r =>
+            {
+                Assert.Equal("Gouvernements", r.Nom);
+                // Une seule « Démarche 3 » due, mais aussi une faite : la ligne barrée
+                // suit son titre sous la rubrique du matin.
+                Assert.Equal(["Démarche 1", "Démarche 3", "Démarche 3"], r.Taches);
+            },
+            r =>
+            {
+                Assert.Equal("Argent", r.Nom);
+                Assert.Equal(["Démarche 2"], r.Taches);
+            },
+            r =>
+            {
+                Assert.Equal("Le reste", r.Nom);
+                Assert.Equal(9, r.Taches.Count);
+            });
+        // Aucune rubrique fantôme, et chaque ligne servie a exactement une place.
+        Assert.DoesNotContain(donnees.Edition.Rubriques, r => r.Nom == "Fantômes");
+        Assert.Equal(donnees.Lignes.Count, donnees.Edition.Rubriques.Sum(r => r.Taches.Count));
+    }
+
+    [Fact]
+    public void Sans_llm_le_sommaire_retombe_sur_la_liste_groupee_par_zone()
+    {
+        // Le repli obligatoire (D-2026-09-20 Regroupement Sans Catégorie De Tâche) : un
+        // gabarit n'a pas de rubriques nommées, la zone et l'équipement rangent ce
+        // qu'ils peuvent, tout le reste est « Le reste ».
+        var donnees = Composer(JourneeChargee(), edition: Edition(SourceEdition.Gabarit), noms: Noms);
+
+        Assert.Equal(["Le garage", "Fournaise", "Le reste"], donnees.Edition!.Rubriques.Select(r => r.Nom));
+        Assert.Equal(12, donnees.Edition.Rubriques[^1].Taches.Count);
+    }
+
+    [Fact]
+    public void Les_porteurs_se_comptent_sur_toutes_les_ouvertes_pas_sur_les_lignes_servies()
+    {
+        // 36 tâches, 26 lignes servies : la bande dit qui porte les 36.
+        var ouvertes = Enumerable.Range(1, 36)
+            .Select(i => Occurrence($"T {i}", Aujourdhui, i % 3 == 0 ? Alain : i % 3 == 1 ? Ariane : null))
+            .ToList();
+
+        var donnees = Composer(ouvertes);
+
+        Assert.Equal(26, donnees.Lignes.Count);
+        Assert.Collection(donnees.Porteurs,
+            p => { Assert.Equal("Ariane", p.Nom); Assert.Equal(12, p.Ouvertes); },
+            p => { Assert.Equal("Alain", p.Nom); Assert.Equal(12, p.Ouvertes); },
+            p => { Assert.Null(p.Nom); Assert.Equal(12, p.Ouvertes); });
+        // Personne d'assigné : rien à dire par personne.
+        Assert.Empty(Composer([Occurrence("Seule", Aujourdhui)]).Porteurs);
+    }
+
+    [Fact]
+    public void Sous_dix_taches_dues_il_n_y_a_pas_de_rubriques()
+    {
+        var edition = Edition(SourceEdition.Llm, new RubriqueEdition("Gouvernements", ["Démarche 1"]));
+        var donnees = Composer(
+            Enumerable.Range(1, 9).Select(i => Occurrence($"Démarche {i}", Aujourdhui)).ToList(),
+            edition: edition, noms: Noms);
+
+        Assert.Empty(donnees.Edition!.Rubriques);
+    }
+
+    [Fact]
+    public void Sans_noms_le_regroupement_tombe_tout_dans_le_reste()
+    {
+        var donnees = Composer(JourneeChargee(), edition: Edition(SourceEdition.Gabarit));
+
+        var reste = Assert.Single(donnees.Edition!.Rubriques);
+        Assert.Equal("Le reste", reste.Nom);
+        Assert.Equal(14, reste.Taches.Count);
     }
 
     [Fact]

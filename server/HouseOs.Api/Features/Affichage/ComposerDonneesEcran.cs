@@ -25,6 +25,11 @@ public record LigneEcranDto(string Titre, string? Assigne, bool Faite, int Jours
 
 public record PhraseEcranDto(string Titre, string SousTitre);
 
+/// <summary>Combien d'occurrences ouvertes une personne porte aujourd'hui — sur toutes
+/// les ouvertes, pas seulement les lignes servies, que le plafond élague. Un nom null
+/// est le paquet que personne ne porte.</summary>
+public record PorteurEcranDto(string? Nom, int Ouvertes);
+
 public record MeteoEcranDto(
     int CodeMeteo,
     double TemperatureC,
@@ -45,10 +50,19 @@ public record FaitEcranDto(string Cle, string Famille, string Etiquette, string 
 
 public record PlancherEcranDto(string Raison, string Titre);
 
+/// <summary>Une rubrique du sommaire : son nom et les titres des lignes qu'elle
+/// regroupe — des titres de <see cref="DonneesEcran.Lignes"/>, jamais d'autres.</summary>
+public record RubriqueEcranDto(string Nom, List<string> Taches);
+
 /// <summary>
 /// L'édition du jour telle que l'écran la reçoit : ce qui est <b>figé pour la journée</b>
 /// (vault : D-2026-09-20 Une Édition Par Jour Matérialisée). La sélection et l'ordre
 /// des widgets, figés eux aussi, se lisent dans l'ordre de <see cref="DonneesEcran.Faits"/>.
+/// <paramref name="Rubriques"/> est le sommaire des journées chargées, <b>vivant</b>
+/// comme la liste : le regroupement par zone et par équipement se refait sur les lignes
+/// du moment, et seuls les noms que l'éditorialiste a donnés au reste sont figés
+/// (D-2026-09-20 Regroupement Sans Catégorie De Tâche). Vide tant que la journée n'est
+/// pas chargée.
 /// </summary>
 public record EditionEcranDto(
     string Rang,
@@ -57,7 +71,22 @@ public record EditionEcranDto(
     string Chapeau,
     List<string> Paragraphes,
     PlancherEcranDto? Plancher,
-    string Source);
+    string Source,
+    List<RubriqueEcranDto> Rubriques);
+
+/// <summary>Les noms des zones et des équipements par id : ce qu'il faut pour ranger la
+/// liste du jour sans rien inventer.</summary>
+public sealed record NomsDeLaMaison(
+    IReadOnlyDictionary<Guid, string> Zones, IReadOnlyDictionary<Guid, string> Equipements)
+{
+    public static readonly NomsDeLaMaison Vide = new(
+        new Dictionary<Guid, string>(), new Dictionary<Guid, string>());
+
+    public TacheAGrouper Grouper(OccurrenceDto o) => new(
+        o.Titre,
+        o.ZoneId is { } z && Zones.TryGetValue(z, out var zone) ? zone : null,
+        o.EquipementId is { } e && Equipements.TryGetValue(e, out var equipement) ? equipement : null);
+}
 
 /// <summary>
 /// Ce que la journée donne à lire avant toute mise en page : les occurrences dues, le
@@ -71,7 +100,8 @@ public sealed record SourcesDuJour(
     MeteoDto? Previsions,
     (string Titre, DateOnly DateCible)? ProchainCompte,
     IReadOnlyList<FaitDeTiroir> Faits,
-    string? Lieu);
+    string? Lieu,
+    NomsDeLaMaison? Noms = null);
 
 /// <summary>
 /// Ce qu'il faut à la composition pour ouvrir le fonds de tiroir : d'où l'on regarde
@@ -94,6 +124,7 @@ public record DonneesEcran(
     int Ouvertes,
     int EnRetard,
     int Faites,
+    List<PorteurEcranDto> Porteurs,
     MeteoEcranDto? Meteo,
     List<EvenementExterneDto> EvenementsDuJour,
     CompteEcranDto? ProchainCompte,
@@ -163,7 +194,7 @@ public static class ComposerDonneesEcran
             maintenant, sources.Ouvertes, faites, phrase, sources.Previsions, evenements,
             sources.ProchainCompte, lieu,
             premiereEntree is { } d ? DateOnly.FromDateTime(d.LocalDateTime) : null,
-            sources.Faits, edition);
+            sources.Faits, edition, sources.Noms);
     }
 
     /// <summary>
@@ -183,13 +214,19 @@ public static class ComposerDonneesEcran
             .OrderBy(c => c.DateCible)
             .Select(c => new { c.Titre, c.DateCible })
             .FirstOrDefaultAsync();
-        // Les zones extérieures : le seul signal « la journée est physique » que le
-        // modèle porte vraiment. Il n'y a pas de catégorie sur la tâche, et il n'y en
-        // aura pas (vault : D-2026-09-20 Regroupement Sans Catégorie De Tâche).
-        var zonesDehors = await db.Zones
-            .Where(z => z.Type == TypeZone.Exterieur)
-            .Select(z => z.Id)
+        // Les zones et les équipements, lus une fois pour tous leurs usages : les zones
+        // extérieures — le seul signal « la journée est physique » que le modèle porte
+        // vraiment, il n'y a pas de catégorie sur la tâche et il n'y en aura pas
+        // (vault : D-2026-09-20 Regroupement Sans Catégorie De Tâche) —, la famille
+        // « la maison », et les noms qui rangent la liste des journées chargées.
+        var zones = await db.Zones.Select(z => new ZoneLue(z.Id, z.Nom, z.Type)).ToListAsync();
+        var equipements = await db.Equipements
+            .Select(e => new EquipementLu(e.Id, e.Nom, e.DateAchat))
             .ToListAsync();
+        var zonesDehors = zones.Where(z => z.Type == TypeZone.Exterieur).Select(z => z.Id).ToList();
+        var noms = new NomsDeLaMaison(
+            zones.ToDictionary(z => z.Id, z => z.Nom),
+            equipements.ToDictionary(e => e.Id, e => e.Nom));
 
         var jour = previsions?.Jours.FirstOrDefault(j => j.Date == aujourdhui);
         var climat = options is null ? null : await LireLeClimatAsync(db, aujourdhui, options);
@@ -200,7 +237,7 @@ public static class ComposerDonneesEcran
             aujourdhui, ouvertes,
             options is null ? null : new ReglagesDuCiel(
                 new Lieu(options.Latitude, options.Longitude), options.Fuseau(), zonesDehors.ToHashSet()),
-            await LireLaMaisonAsync(db, aujourdhui),
+            await LireLaMaisonAsync(db, aujourdhui, zones, equipements),
             await LireLeCalendrierAsync(db, aujourdhui),
             await LireLaVilleAsync(db, aujourdhui, new DateTimeOffset(maintenant)),
             banqueDuHasard,
@@ -211,8 +248,13 @@ public static class ComposerDonneesEcran
             aujourdhui, ouvertes, previsions,
             compte is null ? null : (compte.Titre, compte.DateCible),
             faits,
-            string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim());
+            string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim(),
+            noms);
     }
+
+    private sealed record ZoneLue(Guid Id, string Nom, TypeZone Type);
+
+    private sealed record EquipementLu(Guid Id, string Nom, DateOnly? DateAchat);
 
     /// <summary>
     /// Les collectes et les événements municipaux, par flux — la matière de la famille
@@ -290,7 +332,9 @@ public static class ComposerDonneesEcran
     /// grandit de quelques centaines de lignes par an dans un foyer de deux adultes ;
     /// le jour où ce n'est plus vrai, c'est un problème mesurable, pas supposé.</para>
     /// </summary>
-    private static async Task<EtatDeLaMaison> LireLaMaisonAsync(HouseOsDbContext db, DateOnly aujourdhui)
+    private static async Task<EtatDeLaMaison> LireLaMaisonAsync(
+        HouseOsDbContext db, DateOnly aujourdhui,
+        IReadOnlyList<ZoneLue> zones, IReadOnlyList<EquipementLu> equipements)
     {
         // Jointure À GAUCHE, et c'est tout le sujet : le journal de complétion survit à
         // la suppression d'une tâche (HouseOsDbContext : « les ids restent comme
@@ -356,10 +400,6 @@ public static class ComposerDonneesEcran
             .ToListAsync();
         var parEquipement = entretiens.ToDictionary(e => e.EquipementId, e => e.Prochaine);
 
-        var equipements = await db.Equipements
-            .Select(e => new { e.Id, e.Nom, e.DateAchat })
-            .ToListAsync();
-
         var tachesParZone = await db.Taches
             .Where(t => t.ZoneId != null)
             .GroupBy(t => t.ZoneId!.Value)
@@ -370,8 +410,6 @@ public static class ComposerDonneesEcran
             .Where(e => e.ZoneId is not null)
             .GroupBy(e => e.ZoneId!.Value)
             .ToDictionary(g => g.Key, g => g.Max(e => DateOnly.FromDateTime(e.CompleteeLe.LocalDateTime)));
-
-        var zones = await db.Zones.Select(z => new { z.Id, z.Nom }).ToListAsync();
 
         // Les anniversaires : l'arrivée d'un équipement, et les dates qui ont déjà eu
         // lieu au compte à rebours (l'emménagement d'il y a deux ans est toujours un
@@ -516,7 +554,8 @@ public static class ComposerDonneesEcran
         BanqueDuHasard? hasard = null,
         EtatDuClimat? climat = null,
         HistoriqueDeParution? historique = null,
-        Edition? edition = null)
+        Edition? edition = null,
+        NomsDeLaMaison? noms = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
         var jour = meteo?.Jours.FirstOrDefault(j => j.Date == aujourdhui);
@@ -528,7 +567,7 @@ public static class ComposerDonneesEcran
         return Composer(
             maintenant, ouvertes, faites, phrase, meteo, evenements,
             compte is null ? null : (compte.Titre, compte.DateCible),
-            lieu, premiereParution, faits, edition);
+            lieu, premiereParution, faits, edition, noms);
     }
 
     /// <summary>
@@ -536,6 +575,8 @@ public static class ComposerDonneesEcran
     /// fige la sélection et l'ordre des widgets : les faits qu'elle a publiés passent
     /// d'abord, dans son ordre, et les autres suivent au score du moment — un fait
     /// apparu dans la journée ne bouscule pas ce que le matin a choisi.
+    /// <paramref name="noms"/> range la liste des journées chargées par zone et par
+    /// équipement ; sans lui, tout ce qui n'a pas de rubrique nommée tombe dans « Le reste ».
     /// </summary>
     public static DonneesEcran Composer(
         DateTime maintenant,
@@ -548,7 +589,8 @@ public static class ComposerDonneesEcran
         string? lieu,
         DateOnly? premiereParution,
         IReadOnlyList<FaitDeTiroir> faits,
-        Edition? edition)
+        Edition? edition,
+        NomsDeLaMaison? noms = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
 
@@ -580,16 +622,18 @@ public static class ComposerDonneesEcran
         // Quand ça déborde, la mention « + N autres » occupe la dernière place :
         // l'écran a exactement MaxLignes rangées, jamais une de plus.
         var visibles = toutes.Count > MaxLignes ? MaxLignes - 1 : toutes.Count;
+        var lignes = toutes.Take(visibles).ToList();
 
         return new DonneesEcran(
             aujourdhui,
             new DateTimeOffset(maintenant),
             phrase is null ? null : new PhraseEcranDto(phrase.Titre, phrase.SousTitre),
-            toutes.Take(visibles).ToList(),
+            lignes,
             toutes.Count - visibles,
             ouvertes.Count,
             ouvertes.Count(o => o.Echeance is { } e && e < aujourdhui),
             faites.Count,
+            Porteurs(ouvertes),
             meteoEcran,
             // Les collectes et la ville ont leur famille au fonds de tiroir depuis
             // l'étape 6, et elle sait se taire quand son flux n'est plus alimenté. Les
@@ -608,7 +652,49 @@ public static class ComposerDonneesEcran
                 edition.Chapeau,
                 edition.Paragraphes,
                 edition.Plancher is { } p ? new PlancherEcranDto(p.Raison.ToString(), p.Titre) : null,
-                edition.Source.ToString()));
+                edition.Source.ToString(),
+                Rubriques(ouvertes, faites, visibles, edition, noms ?? NomsDeLaMaison.Vide)));
+    }
+
+    /// <summary>
+    /// Le sommaire d'une journée chargée, sur les lignes servies (les ouvertes, puis les
+    /// faites, dans le même ordre et sous le même plafond) : la zone ou l'équipement de la
+    /// tâche range d'office, les rubriques nommées par l'éditorialiste prennent ce qui
+    /// reste, et « Le reste » ferme la marche. Une ligne faite suit son titre : cochée à
+    /// neuf heures, elle reste barrée sous « Gouvernements », là où le matin l'a mise.
+    /// Vide tant que le compte des dues ne fait pas une journée chargée.
+    /// </summary>
+    public static List<RubriqueEcranDto> Rubriques(
+        IReadOnlyList<OccurrenceDto> ouvertes,
+        IReadOnlyList<OccurrenceDto> faites,
+        int visibles,
+        Edition edition,
+        NomsDeLaMaison noms)
+    {
+        if (RangDuJour.JourneeChargee(ouvertes.Count) == false)
+        {
+            return [];
+        }
+        var aGrouper = ouvertes.Concat(faites).Take(visibles).Select(noms.Grouper).ToList();
+        return [.. Regroupement.Regrouper(aGrouper, edition.Rubriques)
+            .Select(r => new RubriqueEcranDto(r.Nom, r.Taches))];
+    }
+
+    /// <summary>Qui porte quoi, dans l'ordre d'apparition (les retards d'abord) ; le
+    /// paquet sans personne en dernier. Vide quand personne n'est assigné.</summary>
+    public static List<PorteurEcranDto> Porteurs(IReadOnlyList<OccurrenceDto> ouvertes)
+    {
+        var porteurs = ouvertes
+            .Where(o => o.AssigneA is not null)
+            .GroupBy(o => o.AssigneA!.NomAffichage)
+            .Select(g => new PorteurEcranDto(g.Key, g.Count()))
+            .ToList();
+        var sansPersonne = ouvertes.Count(o => o.AssigneA is null);
+        if (porteurs.Count > 0 && sansPersonne > 0)
+        {
+            porteurs.Add(new PorteurEcranDto(null, sansPersonne));
+        }
+        return porteurs;
     }
 
     /// <summary>Les faits publiés par l'édition d'abord, dans son ordre ; le reste au score.</summary>
