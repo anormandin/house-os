@@ -76,56 +76,15 @@ public class HumeurService(
         return new DateTimeOffset(prochaine, TimeZoneInfo.Local.GetUtcOffset(prochaine)).AddMinutes(1);
     }
 
+    /// <summary>
+    /// Le créneau courant, s'il manque. La génération elle-même vit dans
+    /// <see cref="GenerationHumeur"/>, partagée avec la régénération demandée à la
+    /// main (outil MCP) — un seul prompt, un seul repli.
+    /// </summary>
     private async Task GenererSiManquante(DateOnly date, MomentJournee moment, CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<HouseOsDbContext>();
-
-        var existe = await db.PhrasesDuJour.AnyAsync(p => p.Date == date && p.Moment == moment, ct);
-        if (existe)
-        {
-            return;
-        }
-
-        var etat = await ConstruireEtat.Construire(db, date, moment, ct);
-        var (titre, sousTitre, source) = await Generer(etat, ct);
-
-        db.PhrasesDuJour.Add(new PhraseDuJour
-        {
-            Date = date,
-            Moment = moment,
-            Titre = titre,
-            SousTitre = sousTitre,
-            Source = source,
-            GenereLe = DateTimeOffset.UtcNow,
-        });
-        await db.SaveChangesAsync(ct);
-        logger.LogInformation("Humeur : phrase du {Date} ({Moment}) générée via {Source}.",
-            date, moment, source);
-    }
-
-    private async Task<(string Titre, string SousTitre, SourcePhrase Source)> Generer(
-        EtatMaison etat, CancellationToken ct)
-    {
-        var cle = options.Value.CleEffective();
-        if (cle is not null)
-        {
-            try
-            {
-                var polie = await PolissageLlm.Polir(etat, cle, options.Value.Modele, ct);
-                if (polie is not null)
-                {
-                    return (polie.Value.Titre, polie.Value.SousTitre, SourcePhrase.Llm);
-                }
-                logger.LogWarning("Humeur : réponse LLM inutilisable — repli sur la banque.");
-            }
-            catch (Exception ex) when (ct.IsCancellationRequested == false)
-            {
-                logger.LogWarning(ex, "Humeur : appel LLM raté — repli sur la banque.");
-            }
-        }
-
-        var (titre, sousTitre) = BanquePhrases.Generer(etat);
-        return (titre, sousTitre, SourcePhrase.Gabarit);
+        await GenerationHumeur.GenererAsync(db, options.Value, logger, date, moment, remplacer: false, ct);
     }
 }

@@ -720,7 +720,12 @@ export const api = {
 
   // null quand aucune phrase n'est encore matérialisée : le client retombe sur
   // sa banque locale (humeur.ts).
-  donneesEcran: () => requete<DonneesEcran>('/api/affichage/donnees'),
+  // `maintenant` est l'horloge d'un tirage d'essai (« montre-moi le mur du matin ») ;
+  // absente, le serveur compose à l'heure vraie.
+  donneesEcran: (maintenant?: string | null) =>
+    requete<DonneesEcran>(
+      `/api/affichage/donnees${maintenant ? `?maintenant=${encodeURIComponent(maintenant)}` : ''}`,
+    ),
 
   phraseDuJour: async (): Promise<PhraseDuJour | null> => {
     try {

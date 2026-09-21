@@ -5,12 +5,19 @@ namespace HouseOs.Api.Features.Affichage;
 
 /// <summary>Ce qu'on demande à la page /ecran : sa taille, la pile à afficher, ou
 /// l'écran d'accueil d'un appareil fraîchement enrôlé (son identifiant).</summary>
-public record DemandeCapture(int Largeur, int Hauteur, int? Pile = null, string? Accueil = null)
+/// <param name="Moment">L'horloge d'un tirage d'essai, quand ce n'est pas l'heure
+/// vraie (<see cref="MomentDEssai"/>). La page la repasse au serveur, qui compose le
+/// journal de ce moment-là — c'est la seule façon de voir le mur du matin sans
+/// attendre demain. Jamais posée sur le chemin de l'appareil.</param>
+public record DemandeCapture(
+    int Largeur, int Hauteur, int? Pile = null, string? Accueil = null, DateTime? Moment = null)
 {
     public string Requete =>
         $"largeur={Largeur}&hauteur={Hauteur}"
         + (Pile is { } p ? $"&pile={p}" : "")
-        + (Accueil is { } a ? $"&accueil={Uri.EscapeDataString(a)}" : "");
+        + (Accueil is { } a ? $"&accueil={Uri.EscapeDataString(a)}" : "")
+        // Format « s » : trié, sans fuseau, relu tel quel par DateTime.TryParse.
+        + (Moment is { } m ? $"&maintenant={Uri.EscapeDataString(m.ToString("s"))}" : "");
 }
 
 /// <summary>Capture la page /ecran en PNG brut (encore anti-aliasé) à la taille demandée.</summary>

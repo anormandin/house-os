@@ -56,9 +56,13 @@ export default function Ecran() {
   // ?accueil=1A2B3C : l'écran qu'un appareil reçoit juste après son enrôlement —
   // aucune donnée à charger, seulement dire qu'il est reconnu.
   const accueil = recherche.get('accueil')
+  // L'horloge d'un tirage d'essai, posée sur l'URL par le navigateur de rendu. Elle
+  // fait partie de la clé de cache : sans ça, le mur « du matin » et le mur « du soir »
+  // se partageraient une seule réponse.
+  const maintenant = recherche.get('maintenant')
   const { data, isSuccess, isError } = useQuery({
-    queryKey: ['ecran'],
-    queryFn: api.donneesEcran,
+    queryKey: ['ecran', maintenant],
+    queryFn: () => api.donneesEcran(maintenant),
     retry: 1,
     enabled: accueil === null,
   })

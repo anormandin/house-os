@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-20
-verified-against: 3ef6404
+verified-against: b65eb2b
 tags: [iot]
 ---
 
@@ -144,6 +144,44 @@ Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
   nouvelle clé). Parité MCP ([[Serveur MCP]]) : `lister_appareils_affichage`,
   `gerer_appareil_affichage` (renommer, supprimer).
 
+### Régénérer le mur à la demande (as of 2026-09-20)
+
+`POST /api/affichage/regenerer?moment=matin|soir` — parité MCP
+`regenerer_journal_mural` — **réécrit la phrase du créneau**, appel LLM compris et
+même si elle existe déjà, puis tire l'image **par le chemin de l'appareil** : même
+capture, même seuillage 1-bit, même taille annoncée. Ce qu'on vérifie est donc
+exactement ce que le mur recevra. La réponse dit si la phrase vient du modèle
+(`source: Llm`) ou de la banque de gabarits, et si le bitmap diffère de celui que
+l'appareil a déjà.
+
+Sans ça, voir l'édition du matin demandait d'attendre le matin : le service de fond
+matérialise une phrase par créneau et **passe son tour dès qu'elle existe**. La
+génération vit maintenant dans `GenerationHumeur`, partagée entre le service (qui la
+veut *si elle manque*) et la demande à la main (qui la veut *même si elle existe*) —
+un seul prompt, un seul repli.
+
+> [!warning] Régénérer ne réveille pas l'appareil, et ne le peut pas.
+> Le protocole est en **tirage** : le reTerminal dort et redemande son écran à sa
+> cadence (15 min le jour). La phrase neuve paraît donc au **prochain réveil**, pas à
+> la seconde. C'est la même limite que « Push vers l'appareil » plus bas, pas un oubli.
+> `DernierFichier` n'est d'ailleurs pas touché : il veut dire « le dernier bitmap
+> **servi** à l'appareil », et un tirage à la main n'est jamais allé jusqu'au mur.
+
+**L'horloge d'essai** (`MomentDEssai`) traverse la capture pour que le tirage porte le
+bon visage : `apercu.png?moment=matin` et `donnees?maintenant=…` composent le journal
+de ce moment-là — surtitre d'édition, heure d'impression, météo, et **la phrase de ce
+créneau-là**. Elle n'existe que sur l'aperçu et le tirage demandé ; `/api/display` dit
+toujours l'heure vraie, parce qu'un mur qui se daterait du matin à sept heures du soir
+mentirait à la seule personne qui le lit de loin.
+
+> [!note] Trouvé au rendu, 2026-09-20 : « la plus récente » n'est pas « celle du créneau ».
+> `PhraseCouranteAsync` prenait la phrase la plus récente du jour sans regarder
+> l'heure. Régénérer « le matin » en soirée écrivait donc bien la phrase du matin — et
+> le journal continuait d'afficher celle du soir. Invisible en marche normale (le soir
+> n'est écrit qu'à 17 h), immédiat dès qu'on compose un tirage d'essai. La lecture
+> prend maintenant le créneau en paramètre, et retombe sur le soir de la **veille**
+> quand le matin n'est pas encore écrit.
+
 ## Hors périmètre
 
 - Tactile (réservé au firmware SenseCraft de Seeed) ; couleur (Spectra 6 n'a pas
@@ -181,8 +219,12 @@ Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
   `Telemetrie.cs`, `AffichageOptions.cs`, `ComposerDonneesEcran.cs`.
 - `server/HouseOs.Api/Domaine/AppareilAffichage.cs` — l'entité ; migration
   `AjouterAffichage`.
+- `server/HouseOs.Api/Features/Affichage/TirageDuMur.cs` — régénération à la demande
+  (phrase puis image) ; `MomentDEssai.cs` — l'horloge d'un tirage d'essai.
+- `server/HouseOs.Api/Features/Humeur/GenerationHumeur.cs` — la couture partagée entre
+  le service de fond et la demande à la main.
 - `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — `lister_appareils_affichage`,
-  `gerer_appareil_affichage`.
+  `gerer_appareil_affichage`, `regenerer_journal_mural`.
 - `web/src/pages/Ecran.tsx` — la page (écran du jour et écran d'accueil),
   `web/src/lib/ecran-vues.ts`, `web/src/lib/meteo-vues.ts`.
 - Tests : `server/HouseOs.Tests/Features/Affichage/` (composition, seuillage, délai,

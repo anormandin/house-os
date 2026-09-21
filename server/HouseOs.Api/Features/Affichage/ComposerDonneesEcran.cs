@@ -83,7 +83,7 @@ public static class ComposerDonneesEcran
     /// <summary>Lit tout ce qu'il faut puis compose. Une seule lecture d'horloge.</summary>
     public static async Task<DonneesEcran> LireAsync(
         HouseOsDbContext db, DateTime maintenant, string? lieu = null, MeteoOptions? options = null,
-        BanqueDuHasard? banqueDuHasard = null)
+        BanqueDuHasard? banqueDuHasard = null, MomentJournee creneau = MomentJournee.Soir)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
         // Bornes de la journée locale : le serveur vit en heure locale (TZ du
@@ -95,7 +95,9 @@ public static class ComposerDonneesEcran
 
         var ouvertes = await OperationsTaches.ListerOccurrencesAsync(db, "aujourdhui", aujourdhui, null, null);
         var faites = await OperationsTaches.ListerOccurrencesAsync(db, "faites", aujourdhui, debutJour, finJour);
-        var phrase = await HumeurEndpoints.PhraseCouranteAsync(db, aujourdhui);
+        // La phrase du créneau composé, pas « la plus récente » : à sept heures du
+        // matin, celle du soir n'a pas encore eu lieu.
+        var phrase = await HumeurEndpoints.PhraseCouranteAsync(db, aujourdhui, creneau);
         var previsions = await MeteoEndpoints.LireAsync(db, maintenant);
         var fin = aujourdhui.AddDays(FenetreJours);
         var evenements = await db.EvenementsExternes

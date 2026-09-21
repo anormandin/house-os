@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-03
-verified-against: bfc2719
+last-verified: 2026-09-20
+verified-against: b65eb2b
 tags: []
 ---
 
@@ -49,6 +49,9 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   - `lister_appareils_affichage`, `gerer_appareil_affichage` (renommer / supprimer
     un écran e-ink enrôlé ; l'enrôlement est automatique par le protocole TRMNL —
     voir [[Affichage E-ink]])
+  - `regenerer_journal_mural` (réécrit la phrase du créneau — appel LLM compris —
+    puis tire l'image par le chemin de l'appareil ; parité avec
+    `POST /api/affichage/regenerer`. L'image elle-même reste web : `apercu.png`)
 - Quand un outil enregistre une identité (`creer_taches`, `completer_occurrence`,
   `gerer_occurrence` action passer, `mon_flux_ical`), le paramètre **`agirComme`**
   (nom d'utilisateur d'un compte, via `lister_utilisateurs` ; l'erreur liste les

@@ -1,4 +1,6 @@
 using HouseOs.Api.Features.FondsDeTiroir;
+using HouseOs.Api.Domaine.Humeur;
+using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Infrastructure;
 using Microsoft.Extensions.Options;
@@ -21,33 +23,76 @@ public static class AffichageEndpoints
         app.MapGet("/api/affichage/donnees", async (
             HttpContext contexte, JetonRendu jeton, HouseOsDbContext db,
             IOptions<AffichageOptions> options, IOptions<MeteoOptions> meteo,
-            BanqueDuHasard banqueDuHasard) =>
+            IOptions<HumeurOptions> humeur, BanqueDuHasard banqueDuHasard, string? maintenant) =>
         {
             if (jeton.Autorise(contexte) == false)
             {
                 return Results.Unauthorized();
             }
+            // L'horloge d'essai arrive par l'URL que la page a reçue du navigateur de
+            // rendu : c'est ainsi qu'un tirage « du matin » traverse la capture.
+            if (MomentDEssai.Lire(maintenant, DateTime.Now, out var horloge) == false)
+            {
+                return Results.BadRequest(new { erreur = MomentDEssai.Erreur });
+            }
+            // Le créneau que cette horloge commande : c'est lui qui choisit la phrase.
+            TirageDuMur.LireMoment(null, horloge, humeur.Value, out _, out var creneau);
             return Results.Ok(await ComposerDonneesEcran.LireAsync(
-                db, DateTime.Now, options.Value.Lieu, meteo.Value, banqueDuHasard));
+                db, horloge, options.Value.Lieu, meteo.Value, banqueDuHasard, creneau));
         }).AllowAnonymous();
 
         // L'outil de conception avant la livraison, de diagnostic ensuite : le PNG
         // exact (seuillé) — ou la capture brute avec ?brut=1 pour comparer.
         app.MapGet("/api/affichage/apercu.png", async (
-            int? largeur, int? hauteur, int? pile, string? brut, string? accueil,
+            int? largeur, int? hauteur, int? pile, string? brut, string? accueil, string? moment,
             IRenduEcran rendu, ILoggerFactory fabrique, CancellationToken ct) =>
         {
             var (l, h) = Dimensions(largeur, hauteur);
             // « brut=1 » comme « brut=true » : un humain tape ça dans une barre d'adresse.
             var sansSeuillage = brut is "1" or "true";
+            // « ?moment=matin » : le mur du matin, tout de suite. Ici et sur le tirage
+            // demandé à la main, jamais sur /api/display.
+            if (MomentDEssai.Lire(moment, DateTime.Now, out var horloge) == false)
+            {
+                return Results.BadRequest(new { erreur = MomentDEssai.Erreur });
+            }
             try
             {
-                var capture = await rendu.CapturerAsync(new DemandeCapture(l, h, pile, accueil), ct);
+                var capture = await rendu.CapturerAsync(
+                    new DemandeCapture(l, h, pile, accueil, moment is null ? null : horloge), ct);
                 return Results.File(sansSeuillage ? capture : Seuillage.EnUnBit(capture), "image/png");
             }
             catch (RenduEcranException ex)
             {
                 fabrique.CreateLogger("HouseOs.Affichage").LogError(ex, "Aperçu e-ink impossible.");
+                return Results.Problem(title: "Rendu de l'écran impossible", detail: ex.Message,
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
+
+        // Régénérer le journal du mur à la demande : réécrire la phrase du créneau
+        // (appel LLM compris) puis tirer l'image par le chemin de l'appareil.
+        // Parité MCP : regenerer_journal_mural.
+        app.MapPost("/api/affichage/regenerer", async (
+            string? moment, HouseOsDbContext db, IOptions<HumeurOptions> humeur,
+            IRenduEcran rendu, CacheImages cache, ILoggerFactory fabrique, CancellationToken ct) =>
+        {
+            var maintenant = DateTime.Now;
+            if (TirageDuMur.LireMoment(moment, maintenant, humeur.Value, out var date, out var creneau) == false)
+            {
+                return Results.BadRequest(new { erreur = TirageDuMur.Erreur });
+            }
+            var journal = fabrique.CreateLogger("HouseOs.Affichage");
+            try
+            {
+                return Results.Ok(await TirageDuMur.RegenererAsync(
+                    db, humeur.Value, rendu, cache, journal, date, creneau,
+                    HorlogeDuCreneau(date, creneau, humeur.Value, maintenant), ct));
+            }
+            catch (RenduEcranException ex)
+            {
+                // La phrase est écrite quand même : c'est l'image qui a manqué.
+                journal.LogError(ex, "Tirage du mur impossible.");
                 return Results.Problem(title: "Rendu de l'écran impossible", detail: ex.Message,
                     statusCode: StatusCodes.Status503ServiceUnavailable);
             }
@@ -79,6 +124,23 @@ public static class AffichageEndpoints
 
         app.MapProtocoleTrmnl();
         return app;
+    }
+
+    /// <summary>
+    /// L'heure à laquelle dater le tirage : celle du créneau demandé, pour que le
+    /// surtitre (« Édition du matin ») et l'heure d'impression concordent avec la
+    /// phrase qu'on vient d'écrire. Le créneau qu'on vit garde l'heure vraie — le pied
+    /// du journal dit quand il a été imprimé, et une heure ronde y mentirait.
+    /// </summary>
+    internal static DateTime HorlogeDuCreneau(
+        DateOnly date, MomentJournee moment, HumeurOptions humeur, DateTime maintenant)
+    {
+        TirageDuMur.LireMoment(null, maintenant, humeur, out var dateCourante, out var courant);
+        if (dateCourante == date && courant == moment)
+        {
+            return maintenant;
+        }
+        return date.ToDateTime(moment == MomentJournee.Soir ? MomentDEssai.Soir : MomentDEssai.Matin);
     }
 
     /// <summary>Taille demandée bornée au raisonnable ; sans indication, l'E1003 en paysage.</summary>

@@ -6,9 +6,11 @@ using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Courriel;
 using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
+using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Zones;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
@@ -754,6 +756,47 @@ public static class OutilsMaison
                 return new { supprime = true, id };
             default:
                 throw new McpException($"Action inconnue : '{action}' (renommer ou supprimer).");
+        }
+    }
+
+    [McpServerTool(Name = "regenerer_journal_mural")]
+    [Description("Régénère le journal de l'écran mural À LA DEMANDE : réécrit la phrase du créneau " +
+        "— appel LLM compris, même quand une phrase existe déjà — puis tire l'image par le chemin de " +
+        "l'appareil (même capture, même seuillage 1-bit, même taille) pour que ce qui est vérifié soit " +
+        "exactement ce que le mur recevra. Utile pour voir tout de suite l'édition du matin ou du soir " +
+        "au lieu d'attendre le créneau. Ne réveille PAS l'appareil : le protocole est en tirage, le mur " +
+        "reprend son écran à sa cadence (15 min le jour), donc la phrase neuve y paraît au prochain " +
+        "réveil. La réponse dit « source » = Llm quand le modèle a écrit, Gabarit quand la banque a pris " +
+        "le relais. Parité avec POST /api/affichage/regenerer ; l'image elle-même reste web " +
+        "(GET /api/affichage/apercu.png).")]
+    public static async Task<TirageDuMurDto> RegenererJournalMural(
+        HouseOsDbContext db,
+        IOptions<HumeurOptions> humeur,
+        IRenduEcran rendu,
+        CacheImages cache,
+        ILoggerFactory fabrique,
+        CancellationToken ct,
+        [Description("matin, soir, ou vide pour le créneau que l'heure courante commande.")]
+        string? moment = null)
+    {
+        var maintenant = DateTime.Now;
+        if (TirageDuMur.LireMoment(moment, maintenant, humeur.Value, out var date, out var creneau) == false)
+        {
+            throw new McpException(TirageDuMur.Erreur);
+        }
+        try
+        {
+            return await TirageDuMur.RegenererAsync(
+                db, humeur.Value, rendu, cache, fabrique.CreateLogger("HouseOs.Affichage"),
+                date, creneau,
+                AffichageEndpoints.HorlogeDuCreneau(date, creneau, humeur.Value, maintenant), ct);
+        }
+        catch (RenduEcranException ex)
+        {
+            // La phrase, elle, est écrite : le dire plutôt que de laisser croire que
+            // rien n'a bougé.
+            throw new McpException(
+                $"Phrase régénérée, mais le rendu de l'image a échoué : {ex.Message}");
         }
     }
 
