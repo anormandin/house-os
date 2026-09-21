@@ -28,7 +28,7 @@ public static class OpenMeteoNormalisation
 
     private static List<PrevisionHoraire> NormaliserHoraire(JsonElement horaire)
     {
-        var temps = horaire.GetProperty("time");
+        var temps = Serie(horaire, "time");
         var heures = new List<PrevisionHoraire>(temps.GetArrayLength());
         // La nuit du retour à l'heure normale, l'heure murale 01:00 existe deux fois :
         // l'index unique sur Heure ferait échouer (et geler) toute l'ingestion.
@@ -60,7 +60,7 @@ public static class OpenMeteoNormalisation
 
     private static List<PrevisionQuotidienne> NormaliserQuotidien(JsonElement quotidien)
     {
-        var temps = quotidien.GetProperty("time");
+        var temps = Serie(quotidien, "time");
         var jours = new List<PrevisionQuotidienne>(temps.GetArrayLength());
         for (var i = 0; i < temps.GetArrayLength(); i++)
         {
@@ -82,13 +82,26 @@ public static class OpenMeteoNormalisation
         return jours;
     }
 
+    /// <summary>
+    /// La série des dates d'un bloc. Un bloc présent mais sans `time` donne la même
+    /// erreur claire qu'un corps sans bloc du tout, et non une KeyNotFoundException
+    /// qui remonterait telle quelle dans le journal du worker.
+    /// </summary>
+    private static JsonElement Serie(JsonElement bloc, string nom) =>
+        bloc.TryGetProperty(nom, out var valeurs) && valeurs.ValueKind == JsonValueKind.Array
+            ? valeurs
+            : throw new FormatException($"Réponse Open-Meteo sans série « {nom} ».");
+
     // Les séries d'Open-Meteo contiennent des null (ex. probabilité sur les heures
     // passées) : on lit défensivement.
     private static double? Nombre(JsonElement element, string serie, int index)
     {
-        // Série absente, plus courte que time (réponse tronquée) ou trouée de null :
-        // on lit défensivement, jamais d'IndexOutOfRange sur une réponse partielle.
+        // Série absente, présente mais nulle (Open-Meteo rend `null` pour une série
+        // entièrement manquante — et `GetArrayLength` lève dessus), plus courte que
+        // time (réponse tronquée) ou trouée de null : on lit défensivement, jamais
+        // d'exception sur une réponse partielle.
         if (element.TryGetProperty(serie, out var valeurs) == false
+            || valeurs.ValueKind != JsonValueKind.Array
             || index >= valeurs.GetArrayLength())
         {
             return null;
@@ -100,6 +113,7 @@ public static class OpenMeteoNormalisation
     private static TimeOnly HeureLocale(JsonElement element, string serie, int index)
     {
         if (element.TryGetProperty(serie, out var valeurs) == false
+            || valeurs.ValueKind != JsonValueKind.Array
             || index >= valeurs.GetArrayLength())
         {
             return TimeOnly.MinValue;

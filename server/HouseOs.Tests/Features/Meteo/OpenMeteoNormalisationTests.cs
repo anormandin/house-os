@@ -181,4 +181,36 @@ public class OpenMeteoNormalisationTests
         // La première des deux 01:00 est conservée.
         Assert.Equal(3.5, resultat.Heures.Single(h => h.Heure.Hour == 1).TemperatureC);
     }
+
+    [Fact]
+    public void Normaliser_SerieNulle_NeLevePas()
+    {
+        // Open-Meteo rend `null` — et non un tableau vide — quand une série entière
+        // manque. `GetArrayLength` lève dessus : c'était une ingestion horaire tuée
+        // par une réponse que le reste du code sait très bien lire comme incomplète.
+        // Trouvé en revue de code, étape 5 (défaut pré-existant).
+        const string serieNulle = """
+            {
+              "hourly": { "time": ["2026-11-01T00:00"], "temperature_2m": [4.0], "precipitation": null },
+              "daily": { "time": ["2026-11-01"], "temperature_2m_max": [6.0], "sunrise": null }
+            }
+            """;
+
+        var resultat = OpenMeteoNormalisation.Normaliser(serieNulle);
+
+        Assert.Equal(0, resultat.Heures.Single().PrecipitationMm);
+        Assert.Equal(TimeOnly.MinValue, resultat.Jours.Single().Lever);
+    }
+
+    [Fact]
+    public void Normaliser_BlocSansTime_ErreurClaire()
+    {
+        // Un bloc présent mais sans série de dates : la même erreur lisible qu'un
+        // corps sans bloc du tout, et non une KeyNotFoundException dans le journal
+        // du worker. Trouvé en revue de code, étape 5 (défaut pré-existant).
+        var erreur = Assert.Throws<FormatException>(() => OpenMeteoNormalisation.Normaliser(
+            """{"hourly": {"temperature_2m": [4.0]}, "daily": {"time": ["2026-11-01"]}}"""));
+
+        Assert.Contains("time", erreur.Message);
+    }
 }
