@@ -19,6 +19,8 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
     public DbSet<PrevisionHoraire> PrevisionsHoraires => Set<PrevisionHoraire>();
     public DbSet<PrevisionQuotidienne> PrevisionsQuotidiennes => Set<PrevisionQuotidienne>();
     public DbSet<ReleveMeteo> RelevesMeteo => Set<ReleveMeteo>();
+    public DbSet<JourDeClimat> JoursDeClimat => Set<JourDeClimat>();
+    public DbSet<NormalesClimatiques> NormalesClimatiques => Set<NormalesClimatiques>();
     public DbSet<PhraseDuJour> PhrasesDuJour => Set<PhraseDuJour>();
     public DbSet<FluxExterne> FluxExternes => Set<FluxExterne>();
     public DbSet<EvenementExterne> EvenementsExternes => Set<EvenementExterne>();
@@ -153,6 +155,21 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
         modelBuilder.Entity<ReleveMeteo>(r =>
         {
             r.Property(x => x.Payload).HasColumnType("jsonb");
+        });
+
+        // L'archive climatique et les normales qu'on en déduit portent toutes deux les
+        // coordonnées du tirage : c'est la clé qui dit si elles décrivent encore la
+        // maison (D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo).
+        modelBuilder.Entity<JourDeClimat>(j =>
+        {
+            j.Property(x => x.Coordonnees).HasMaxLength(50);
+            j.HasIndex(x => new { x.Coordonnees, x.Date }).IsUnique();
+        });
+
+        modelBuilder.Entity<NormalesClimatiques>(n =>
+        {
+            n.Property(x => x.Coordonnees).HasMaxLength(50);
+            n.HasIndex(x => x.Coordonnees).IsUnique();
         });
 
         modelBuilder.Entity<FluxExterne>(f =>

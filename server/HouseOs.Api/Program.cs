@@ -183,6 +183,10 @@ builder.Services.AddHostedService<RolloverService>();
 builder.Services.Configure<MeteoOptions>(builder.Configuration.GetSection("Meteo"));
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<MeteoIngestionService>();
+// Les normales climatiques : un tirage de l'archive par an, ou dès que les
+// coordonnées du `.env` changent — le déménagement doit les recalculer
+// (D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo).
+builder.Services.AddHostedService<NormalesIngestionService>();
 
 // Téléchargement des ICS externes : plafond mémoire (un flux qui streame ferait un
 // OOM du conteneur), timeout, redirections suivies à la main par la garde SSRF —

@@ -130,10 +130,34 @@ public static class ComposerDonneesEcran
             maintenant, ouvertes, faites, phrase, previsions, evenements, comptes, lieu,
             premiereEntree is { } d ? DateOnly.FromDateTime(d.LocalDateTime) : null,
             options is null ? null : new ReglagesDuCiel(
-                new Lieu(options.Latitude, options.Longitude), Fuseau(options), zonesDehors.ToHashSet()),
+                new Lieu(options.Latitude, options.Longitude), options.Fuseau(), zonesDehors.ToHashSet()),
             await LireLaMaisonAsync(db, aujourdhui),
             await LireLeCalendrierAsync(db, aujourdhui),
-            banqueDuHasard);
+            banqueDuHasard,
+            options is null ? null : await LireLeClimatAsync(db, aujourdhui, options));
+    }
+
+    /// <summary>
+    /// Les normales matérialisées du lieu, et la journée d'il y a un an — la matière de
+    /// la famille « le climat » (vault : Fonds De Tiroir). Aucun appel réseau ici : les
+    /// normales sont calculées une fois l'an par le worker, et relues telles quelles
+    /// (vault : D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo).
+    ///
+    /// <para>La clé des coordonnées fait le tri : des normales calculées pour l'ancienne
+    /// adresse ne sont pas lues, elles sont absentes — jusqu'à ce que le worker les
+    /// recalcule, la famille se tait plutôt que d'annoncer le gel d'ailleurs.</para>
+    /// </summary>
+    private static async Task<EtatDuClimat?> LireLeClimatAsync(
+        HouseOsDbContext db, DateOnly aujourdhui, MeteoOptions options)
+    {
+        var cle = options.CleCoordonnees;
+        var normales = await OperationsNormales.LireAsync(db, cle);
+        if (normales is null)
+        {
+            return null;
+        }
+        var anDernier = await OperationsNormales.LireLeJourAsync(db, cle, aujourdhui.AddYears(-1));
+        return EtatDuClimat.Depuis(normales, anDernier);
     }
 
     /// <summary>
@@ -329,7 +353,8 @@ public static class ComposerDonneesEcran
         ReglagesDuCiel? ciel,
         EtatDeLaMaison? maison,
         EtatDuCalendrier? calendrier,
-        BanqueDuHasard? hasard)
+        BanqueDuHasard? hasard,
+        EtatDuClimat? climat)
     {
         // Chaque famille a sa source, et chacune est facultative : la composition sort
         // avec ce qu'elle a, jamais en mode dégradé.
@@ -337,29 +362,13 @@ public static class ComposerDonneesEcran
             aujourdhui,
             ciel is null ? null : new PointDObservation(ciel.Coordonnees, ciel.Fuseau),
             ciel is not null && ouvertes.Any(o => o.ZoneId is { } zone && ciel.ZonesExterieures.Contains(zone)),
+            climat,
             maison,
             calendrier,
             hasard);
 
         return [.. Tiroir.Ouvrir(contexte, HistoriqueDeParution.Vide)
             .Select(f => new FaitEcranDto(f.Cle, f.Famille.ToString(), f.Etiquette, f.Valeur, f.Texte))];
-    }
-
-    /// <summary>
-    /// Le fuseau du foyer. Un identifiant inconnu (faute de frappe dans le `.env`, base
-    /// tzdata absente de l'image) ne doit pas faire tomber l'écran : on retombe sur
-    /// celui du conteneur, qui est déjà réglé par FUSEAU_HORAIRE.
-    /// </summary>
-    private static TimeZoneInfo Fuseau(MeteoOptions options)
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById(options.FuseauHoraire);
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return TimeZoneInfo.Local;
-        }
     }
 
     /// <summary>La composition pure — testée sans base.</summary>
@@ -376,7 +385,8 @@ public static class ComposerDonneesEcran
         ReglagesDuCiel? ciel = null,
         EtatDeLaMaison? maison = null,
         EtatDuCalendrier? calendrier = null,
-        BanqueDuHasard? hasard = null)
+        BanqueDuHasard? hasard = null,
+        EtatDuClimat? climat = null)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
 
@@ -423,6 +433,11 @@ public static class ComposerDonneesEcran
                 .Select(c => new CompteEcranDto(c.Titre, c.DateCible)).FirstOrDefault(),
             string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim(),
             NumeroEdition(aujourdhui, premiereParution),
-            FondsDuJour(aujourdhui, ouvertes, ciel, maison, calendrier, hasard));
+            // Le maximum du jour vient des prévisions, que la composition a déjà en
+            // main : c'est lui qui transforme « il a fait 14 °C l'an dernier » en
+            // comparaison. Absent, le fait dira autre chose plutôt que de se taire.
+            FondsDuJour(
+                aujourdhui, ouvertes, ciel, maison, calendrier, hasard,
+                climat is null ? null : climat with { MaxDAujourdhuiC = jour?.TempMax }));
     }
 }

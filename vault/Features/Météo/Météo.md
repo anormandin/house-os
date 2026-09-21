@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-25
-verified-against: eb830ec
+last-verified: 2026-09-20
+verified-against: f4747af
 tags: []
 ---
 
@@ -29,6 +29,21 @@ Première brique d'ingestion de données externes de la phase 2.
   nuit du retour à l'heure normale est dédoublonnée** — sans quoi l'index unique
   sur `Heure` ferait échouer (et geler) l'ingestion entière ; la cadence est
   bornée au plancher (une config nulle ne tue pas le service).
+- Un **second** `BackgroundService` tire l'**archive** Open-Meteo (réanalyse ERA5,
+  `archive-api`) sur une dizaine d'années pour les mêmes coordonnées, et en déduit les
+  **normales climatiques** matérialisées — premier gel, première neige, dernière
+  journée à vingt degrés, mois le plus sec et le plus arrosé
+  ([[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]], ajouté
+  2026-09-20). Deux tables de plus (`JoursDeClimat`, `NormalesClimatiques`), migration
+  `AjouterNormalesClimatiques`, et le même patron qu'au-dessus : l'API n'est connue que
+  d'un fichier de normalisation, les statistiques sont du C# pur et testé. **Les deux
+  tables portent les coordonnées du calcul** : changer `Meteo:Latitude`/`Longitude`
+  (un déménagement) les invalide et fait tout repartir, plutôt que de servir les
+  normales d'ailleurs. Le tirage se déclenche **à l'âge** (au démarrage, puis toutes
+  les six heures, une lecture d'une ligne ; tirage réel si les normales manquent,
+  portent une autre clé, ou ont plus de 360 jours) : un seul appel réseau par an en
+  sort, et une panne d'Open-Meteo ce jour-là n'a aucun effet. Consommateur :
+  [[Fonds De Tiroir]], famille « le climat ».
 - Les règles « bonne journée pour… » sont des classes C# testables sur le modèle
   normalisé — elles ne voient jamais la forme de l'API. Règles v1 (choix
   utilisateur 2026-08-24) : **tonte**, **aération / fenêtres ouvertes**,
@@ -70,14 +85,22 @@ Première brique d'ingestion de données externes de la phase 2.
   + brut archivé ; règles évaluées à la lecture.
 - [[D-2026-08-25 Code Météo Horaire Et Conditions Du Moment]] — code WMO horaire,
   règles sensibles à la bruine, conditions du moment dérivées de l'heure courante.
+- [[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]] — normales
+  calculées sur dix ans d'archive ERA5, matérialisées, clé portant les coordonnées.
 - [[D-2026-08-23 Pas De N8n Dans Le Cœur]] — ingestion et règles en C# typé.
 
 ## Ancres de code
 
 - `server/HouseOs.Api/Domaine/Meteo/` — modèle normalisé + règles (`RegleTonte`,
-  `RegleAeration`, `RegleJourneeDehors`, `MeteoRemarquable`, seuils en constantes).
+  `RegleAeration`, `RegleJourneeDehors`, `MeteoRemarquable`, seuils en constantes) et,
+  depuis 2026-09-20, l'archive climatique (`JourDeClimat`, `NormalesClimatiques`,
+  `CalculDesNormales`).
 - `server/HouseOs.Api/Features/Meteo/` — options, normalisation Open-Meteo,
-  worker d'ingestion, endpoint `GET /api/meteo`.
+  worker d'ingestion, endpoint `GET /api/meteo` ; plus `OpenMeteoArchive`,
+  `OperationsNormales` et `NormalesIngestionService` pour les normales.
+- `server/HouseOs.Tests/Domaine/CalculDesNormalesTests.cs`,
+  `server/HouseOs.Tests/Features/Meteo/OpenMeteoArchiveTests.cs` et
+  `server/HouseOs.Tests/Integration/NormalesApiTests.cs` — les normales.
 - `server/HouseOs.Tests/Domaine/ReglesJourneeTests.cs`,
   `server/HouseOs.Tests/Domaine/MeteoRemarquableTests.cs` et
   `server/HouseOs.Tests/Features/Meteo/OpenMeteoNormalisationTests.cs` — tests.

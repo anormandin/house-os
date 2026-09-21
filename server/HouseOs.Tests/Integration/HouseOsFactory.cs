@@ -71,6 +71,7 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
                 .Where(d => d.ServiceType == typeof(IHostedService) &&
                     (d.ImplementationType == typeof(RolloverService) ||
                      d.ImplementationType == typeof(MeteoIngestionService) ||
+                     d.ImplementationType == typeof(NormalesIngestionService) ||
                      d.ImplementationType == typeof(HumeurService) ||
                      d.ImplementationType == typeof(FluxExternesRafraichissement) ||
                      d.ImplementationType == typeof(CourrielEntrantHote) ||

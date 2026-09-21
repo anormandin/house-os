@@ -479,23 +479,129 @@ débordement** après la borne de capacité. `dotnet test` 753 verts (729 au dé
 [[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]]. Première migration du
 chantier.
 
-- [ ] Ingestion annuelle de l'archive Open-Meteo (ERA5) pour
+- [x] Ingestion annuelle de l'archive Open-Meteo (ERA5) pour
       `METEO_LATITUDE`/`METEO_LONGITUDE`, sur ~10 ans, sur le patron de [[Météo]] — un
       `BackgroundService`, une table normalisée, migration EF générée
       ([[D-2026-08-23 Pas De N8n Dans Le Cœur]]).
-- [ ] La clé de la table **porte les coordonnées utilisées** : changer le `.env`
+- [x] La clé de la table **porte les coordonnées utilisées** : changer le `.env`
       invalide et recalcule. Critique — le déménagement du 2026-10-06 change les
       coordonnées.
-- [ ] Statistiques en C# testable : premier gel, première neige, dernière journée à 20°,
+- [x] Statistiques en C# testable : premier gel, première neige, dernière journée à 20°,
       mois le plus sec ou le plus pluvieux.
-- [ ] Faits « le climat », y compris « il a fait X° ce jour-là l'an dernier » depuis les
-      tables météo existantes.
-- [ ] `docs/configuration.md` : rien de neuf à saisir, mais documenter que les normales
+- [x] Faits « le climat », y compris « il a fait X° ce jour-là l'an dernier » — depuis
+      l'archive, pas depuis les tables de prévisions (voir ci-dessous).
+- [x] `docs/configuration.md` : rien de neuf à saisir, mais documenter que les normales
       suivent les coordonnées.
 
 **Vérification** — `dotnet test` ; un appel réel à l'archive en dev, les normales
 matérialisées relues et comparées à la connaissance du coin (premier gel début octobre à
 Québec) ; couper le réseau et vérifier que l'édition sort quand même, sans le widget.
+
+#### Ce que l'étape 5 a tranché en chemin
+
+- [x] **« L'an dernier » ne pouvait pas venir des tables météo existantes** — l'étape le
+      disait, et c'était faux. `previsions_quotidiennes` est **remplacée à chaque heure**
+      (`past_days=1`, `ExecuteDelete`) et `releves_meteo` ne garde sept jours de brut :
+      la maison n'a aucune mémoire du temps qu'il a fait. La journée d'il y a un an vient
+      donc de l'archive ERA5, qu'on tire de toute façon ; les tables existantes servent
+      l'autre moitié du fait, le **maximum d'aujourd'hui**, qui en fait une comparaison.
+      Conséquence : l'archive est **gardée en table** (3 652 lignes) au lieu d'être jetée
+      après le calcul — ce qui permet aussi de rejouer une statistique sans rappeler le
+      réseau, comme le payload brut de l'ingestion horaire.
+- [x] **Le tirage se déclenche à l'âge, pas à une date fixe.** Une date au calendrier
+      serait ratée chaque année où la machine est éteinte ce jour-là, et surtout elle
+      ferait attendre le déménagement jusqu'au prochain anniversaire. Le worker vérifie
+      au démarrage puis toutes les six heures (une lecture d'une ligne) et ne tire que si
+      les normales manquent, portent une autre clé, ou ont plus de 360 jours. **360 et
+      non 365** : l'archive s'arrête trois jours avant aujourd'hui, et une fenêtre pile
+      d'un an ouvrirait chaque année un trou d'une semaine dans « l'an dernier », juste
+      avant le tirage suivant.
+- [x] **Le gel qu'on annonce est celui du sol, pas celui de l'abri.** C'est le rendu réel
+      qui l'a dit : à zéro degré, la médiane des neuf saisons tombait au **27 octobre**,
+      trois semaines après le gel que tout le monde connaît ici. Une maille de neuf
+      kilomètres à deux mètres du sol ne voit ni le rayonnement nocturne d'un jardin ni
+      l'air froid qui s'y accumule — et c'est la raison pour laquelle les avertissements
+      de gel s'émettent partout à deux ou quatre degrés annoncés. Seuil à **3 °C** :
+      médiane au **3 octobre**, ce que disent les normales publiées de la station. Le
+      seuil n'est pas un ajustement québécois, c'est un écart vrai partout.
+- [x] **La saison, et non l'année civile.** Un premier gel du 3 janvier et un du
+      5 octobre appartiennent au même hiver ; une moyenne par année civile les
+      mélangerait en une date de juin qui n'existe nulle part. Les saisons se comptent
+      depuis le **mois qui suit le plus chaud**, déduit de l'archive — le dépôt est
+      public et l'hémisphère sud a son été en janvier. Un test le vérifie en Tasmanie.
+- [x] **La date se prend à la médiane, l'écart à la moyenne.** Une année à gel très
+      tardif ne doit pas déplacer la date — c'est l'intérêt de la médiane — mais elle
+      doit se voir dans l'imprécision annoncée. Un écart médian l'aurait effacée, et le
+      journal aurait promis « à un jour près » un climat qui varie de six semaines.
+- [x] **Une normale qui n'en est pas ne sort pas** : moins de trois saisons, un événement
+      qui n'arrive pas dans 60 % des saisons, ou une douceur qui ne s'arrête jamais (la
+      normale tomberait au bord de la fenêtre de recherche — les tropiques). Même règle
+      que le lever du soleil au-delà du cercle polaire.
+
+#### Ce que le rendu a corrigé, à l'étape 5
+
+- [x] **Le chiffre du texte tombait hors du widget.** Le widget coupe à deux lignes
+      (`line-clamp-2`) : « Sur 9 saisons, la première gelée au sol s'est présentée à… »
+      perdait précisément le « à 9 jours près », c'est-à-dire l'imprécision que la
+      décision **exige** de porter. Les cinq textes du climat sont réécrits court, et un
+      test les borne à soixante signes — une règle d'écriture comme les trente signes de
+      la valeur, ni pixel ni colonne.
+- [x] **Le test d'intégration portait le nom de la rue du foyer.** `RueDeLaColline` et
+      les coordonnées exactes de la nouvelle maison dans un dépôt public
+      ([[Distribution]]) : renommés en « avant / après le déménagement », sur deux lieux
+      quelconques.
+
+#### Ce que la revue de code a corrigé, à l'étape 5
+
+- [x] **Le 200 maigre effaçait dix ans et se figeait un an.** Le seul garde-fou était
+      « zéro journée ». Une réponse tronquée, une fenêtre rabotée par l'API ou un
+      `Meteo:NormalesAnnees` baissé par erreur aurait remplacé l'archive par trois mois
+      **et** posé un horodatage tout neuf, qui interdit de réessayer avant 360 jours :
+      une année de silence pour « le climat » et « l'an dernier », sur une ligne
+      d'*information*, alors que `docs/configuration.md` promet le contraire. Un tirage
+      doit maintenant couvrir 90 % de la fenêtre demandée **et** ne pas rendre moins de
+      saisons complètes que ce qui est déjà en base, sinon il est écarté avec un
+      avertissement et on repasse dans six heures (`OperationsNormales.PourquoiRefuser`,
+      pur et testé).
+- [x] **Le rattrapage d'une semaine ne franchissait pas le Nouvel An.** `ProchaineDate`
+      ne regardait que l'année courante et la suivante : une normale au 28 décembre, lue
+      le 2 janvier, venait de passer depuis cinq jours — en plein dans la fenêtre — mais
+      son occurrence de l'année courante était à presque douze mois, et le fait
+      disparaissait. Les trois années sont maintenant regardées, l'an dernier en premier.
+- [x] **Une série JSON nulle tuait le tirage.** Open-Meteo rend `null`, et non un tableau
+      vide, quand une série entière manque : `GetArrayLength` lève dessus. Le même trou
+      existait **depuis un an dans l'ingestion horaire** (`OpenMeteoNormalisation`), plus
+      un `GetProperty("time")` qui remontait une `KeyNotFoundException` là où un test
+      promettait « une erreur claire ». Corrigé des deux côtés.
+- [x] **Le mois le plus sec pouvait n'être que le mois le plus court.** Sans écart
+      minimal, douze mois identiques désignaient quand même un gagnant : février bat
+      janvier de trois jours de pluie, soit 11 % — un artefact du calendrier publié
+      comme une statistique du climat. Il faut maintenant **un quart d'écart**. Et un
+      mois n'est « entier » que si **toutes ses journées** sont là (un compte de jours,
+      pas un encadrement de dates) : la lecture de l'archive écarte les journées sans
+      température, et un trou de dix jours au milieu d'un juillet le faisait passer pour
+      un mois ordinaire. Le test qui prétendait couvrir le premier cas affirmait
+      exactement le contraire de son nom.
+- [x] **Le worker lisait la date de la machine, pas celle du foyer.** Un conteneur en
+      UTC est déjà au lendemain chaque soir après vingt heures locales, et mangeait en
+      silence la marge que `NormalesAgeMaxJours = 360` suppose. Le fuseau du foyer
+      devient une méthode de `MeteoOptions`, que [[Affichage E-ink]] partage désormais
+      au lieu d'en garder une copie privée.
+- [x] Copie contre code : le texte de la neige promettait « un centimètre » pour un seuil
+      d'un demi (le seuil passe à un — la date ne bouge pas), et le commentaire des
+      normales parlait encore de « la première nuit sous zéro ».
+
+**Rendu vérifié** (aperçu 1872×1404, données de dev, 2026-09-20) : appel réel à
+l'archive, **3 652 journées, 9 saisons complètes** en 1,8 s — premier gel **3 octobre
+± 9 j**, première neige **7 novembre ± 8 j**, dernière douceur 13 octobre, mois le plus
+sec **février** (75 mm), le plus arrosé **juillet** (155 mm) : tout se recoupe avec les
+normales publiées de la région. Au mur, `climat.gel` sort **en tête du classement**,
+devant l'équinoxe — « LE PREMIER GEL / Vers le 3 octobre / La gelée au sol, à 9 jours
+près sur 9 saisons », sans troncature et **sans avertissement de débordement**. Tables
+vidées à chaud (l'état d'un premier démarrage sans réseau) : l'édition sort avec sept
+faits, sans widget climat, sans erreur. Tirage refait après la revue : mêmes chiffres,
+le garde-fou laisse passer un tirage complet. `dotnet test` **809** verts (764 au
+départ), `npm test` **217** verts.
 
 ### 6 — La ville
 

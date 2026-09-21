@@ -11,7 +11,7 @@ public class FaitsDeLaMaisonTests
     private static readonly DateOnly Aujourdhui = new(2026, 9, 20);
 
     private static IReadOnlyList<FaitDeTiroir> Ouvrir(EtatDeLaMaison maison, DateOnly? date = null) =>
-        [.. FaitsDeLaMaison.Produire(new ContexteDuJour(date ?? Aujourdhui, null, false, maison))];
+        [.. FaitsDeLaMaison.Produire(new ContexteDuJour(date ?? Aujourdhui, null, false, Maison: maison))];
 
     private static FaitDeTiroir? Fait(EtatDeLaMaison maison, string cle, DateOnly? date = null) =>
         Ouvrir(maison, date).FirstOrDefault(f => f.Cle == cle);

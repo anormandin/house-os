@@ -2,7 +2,7 @@
 type: feature
 status: building
 last-verified: 2026-09-20
-verified-against: 0d1eda7
+verified-against: f4747af
 tags: [iot]
 ---
 
@@ -19,11 +19,12 @@ Matériau d'origine : [[Éditorialiste De L'Écran]] (trois tours de maquettes,
 2026-09-20). Premier consommateur : [[Journal De La Maison]]. Second consommateur prévu :
 la lettre du matin (courriel sortant), qui aura sa propre feature.
 
-> [!note] Bâti : le contrat, « le ciel », « la maison », « le calendrier » et « le hasard » (as of 2026-09-20).
+> [!note] Bâti : tout sauf « la ville » (as of 2026-09-20).
 > L'étape 2 du [[Plan 2026-09-20 Journal Éditorial]] a livré le fait, le moteur de score
 > et les sept items du ciel ; l'étape 3 les huit items de la maison et les quatre du
-> calendrier ; l'étape 4 les deux du hasard. Restent deux familles : climat (étape 5) et
-> ville (étape 6). La **fraîcheur** lit un historique vide jusqu'à l'étape 7.
+> calendrier ; l'étape 4 les deux du hasard ; l'étape 5 les cinq du climat, avec la
+> **première migration** du chantier. Reste une famille : ville (étape 6). La
+> **fraîcheur** lit un historique vide jusqu'à l'étape 7.
 
 ## Comportement
 
@@ -121,7 +122,7 @@ foyer qui n'a pas rempli `METEO_LATITUDE` garde tout le reste de son journal.
 | Famille | Ce qu'elle donne | Dépendance |
 |---|---|---|
 | **Le ciel** ✅ | lever, coucher, durée du jour, dérive quotidienne, phase lunaire, équinoxes et solstices, changement d'heure, bascule jour/nuit, « il fera noir à » | calcul local depuis `METEO_LATITUDE`/`METEO_LONGITUDE` — aucune |
-| **Le climat** | premier gel, première neige, dernière journée à 20°, « il a fait X° ce jour-là l'an dernier » | normales matérialisées + tables de [[Météo]] |
+| **Le climat** ✅ | premier gel, première neige, dernière journée à 20°, mois le plus sec ou le plus arrosé, « il a fait X° ce jour-là l'an dernier » | archive ERA5 matérialisée + le maximum du jour des tables de [[Météo]] |
 | **La maison** ✅ | ce jour-là l'an dernier, série en cours et record, N séances depuis, plus vieil équipement, zone la plus négligée, coût de l'année | journal de complétion — **ne donne rien la première année** |
 | **Le calendrier** ✅ | compte à rebours, ça s'en vient (7–30 j), travaux de la saison, garantie qui expire | [[Comptes À Rebours]], occurrences, fenêtres saisonnières, [[Documents]] |
 | **La ville** | prochaine collecte, collecte spéciale, événement municipal | [[Flux Externes]] — ICS pour les collectes, flux poussé pour les événements |
@@ -148,6 +149,78 @@ Détail par item, avec source et rareté : la table du fonds de tiroir dans
 > prochaine bascule « à partir d'aujourd'hui » la rend donc **invisible le seul jour où
 > elle compte** — le fait doit comparer à partir de la veille, et parler au passé ce
 > jour-là. Trouvé en revue de code, 2026-09-20.
+
+### Le climat, en détail (as of 2026-09-20)
+
+Cinq items, sur une dizaine d'années de l'archive Open-Meteo (réanalyse ERA5) tirées
+une fois l'an pour les coordonnées du `.env`
+([[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]]).
+
+| Clé | Rareté | Pertinence | Ne sort que si |
+|---|---|---|---|
+| `climat.gel` | 38×/an | 2 · **3** dans la semaine | la date normale du premier gel est à moins d'un mois devant, ou à moins d'une semaine derrière |
+| `climat.neige` | 38×/an | 2 · **3** dans la semaine | idem, pour la première neige |
+| `climat.douceur` | 29×/an | 1,5 · **2** dans la semaine | idem, pour la dernière journée à vingt degrés — fenêtre plus courte : trois semaines avant, ce n'est encore qu'une statistique |
+| `climat.mois` | 61×/an | 1,5 les sept premiers jours, sinon 1 | on est **dans** le mois le plus sec ou le plus arrosé de l'année — et l'écart entre les deux vaut au moins un quart, sans quoi on classerait la longueur des mois |
+| `climat.an-dernier` | tous les jours | 1 · **1,5** au-delà de huit degrés d'écart | l'archive couvre la même date, un an plus tôt |
+
+La fenêtre **est** la rareté : « un mois avant, une semaine après » fait trente-huit
+jours de parution possible, et c'est ce compte-là qu'on écrit — pas une envie.
+
+> [!warning] Le gel qu'on annonce est celui du **sol**, pas celui de l'abri.
+> Relevé au premier tirage réel : à zéro degré, la médiane des neuf saisons tombait au
+> **27 octobre**, trois semaines après le gel que tout le monde connaît ici. Une maille
+> de neuf kilomètres à deux mètres du sol ne voit ni le rayonnement nocturne d'un jardin
+> ni l'air froid qui s'y accumule — c'est la raison pour laquelle les avertissements de
+> gel s'émettent partout à deux ou quatre degrés annoncés. Seuil à **3 °C** : médiane au
+> **3 octobre**, ce que disent les normales publiées de la station. Ce n'est pas un
+> ajustement québécois, c'est un écart vrai partout.
+
+> [!note] La saison, et non l'année civile.
+> Un premier gel du 3 janvier et un du 5 octobre appartiennent au même hiver ; une
+> moyenne par année civile les mélangerait en une date de juin qui n'existe nulle part.
+> Les saisons se comptent depuis le **mois qui suit le plus chaud**, déduit de l'archive
+> et non supposé — le dépôt est public et l'hémisphère sud a son été en janvier.
+> La **date** se prend à la médiane (une année aberrante ne doit pas la déplacer),
+> l'**écart** à la moyenne (cette même année doit se voir dans l'imprécision annoncée).
+
+> [!note] Une normale qui n'en est pas ne sort pas.
+> Moins de trois saisons complètes, un événement qui n'arrive pas dans 60 % des saisons
+> (une neige décennale), ou une douceur qui ne s'arrête jamais — la normale tomberait
+> alors au bord de la fenêtre de recherche, ce qui est le signe des tropiques. Dans les
+> trois cas la valeur est absente et le fait se tait, exactement comme le lever du
+> soleil au-delà du cercle polaire.
+
+> [!warning] « L'an dernier » ne peut pas venir des tables de prévisions.
+> `previsions_quotidiennes` est **remplacée à chaque heure** (`past_days=1`) et
+> `releves_meteo` ne garde sept jours de brut : la maison n'a aucune mémoire du temps
+> qu'il a fait. La journée d'il y a un an vient donc de l'archive, qui est **gardée en
+> table** plutôt que jetée après le calcul. Les tables de [[Météo]] servent l'autre
+> moitié du fait : le **maximum d'aujourd'hui**, qui transforme une température en
+> comparaison. Sans lui, le fait change de phrase au lieu de se taire.
+
+> [!warning] Le rattrapage d'une semaine doit franchir le Nouvel An.
+> Une normale au 28 décembre, lue le 2 janvier, vient de passer depuis cinq jours — en
+> plein dans la fenêtre de rattrapage — mais son occurrence de l'**année courante** est
+> à presque douze mois. Chercher la date « cette année, sinon l'an prochain » faisait
+> donc disparaître le fait précisément dans la fenêtre pour laquelle le rattrapage
+> existe. C'est le même défaut que la bascule d'heure du ciel, à l'autre bout de
+> l'année. Trouvé en revue de code, étape 5.
+
+> [!warning] Un tirage maigre ne remplace pas un bon.
+> Le danger n'est pas la panne, qui se voit et se réessaie : c'est le 200 maigre. Une
+> réponse tronquée remplacerait dix ans d'archive par trois mois **et** poserait un
+> horodatage tout neuf, qui interdit de réessayer avant 360 jours — une année de
+> silence sur une ligne d'*information*. Un tirage doit couvrir 90 % de la fenêtre
+> demandée et ne pas rendre moins de saisons complètes que ce qui est en base, sinon il
+> est écarté et on repasse dans quelques heures. Trouvé en revue de code, étape 5.
+
+> [!note] Les textes du climat portent leur chiffre à la fin, et le mur coupe.
+> Le widget s'arrête à deux lignes : « Sur 9 saisons, la première gelée au sol s'est
+> présentée à… » perdait précisément l'imprécision que la décision exige de porter. Les
+> cinq textes sont écrits court et un test les borne à **soixante signes** — une règle
+> d'écriture comme les trente signes de la valeur, ni pixel ni colonne. Trouvé au rendu
+> de l'étape 5.
 
 ### La maison, en détail (as of 2026-09-20)
 
@@ -245,9 +318,17 @@ tout seul.
   tous les levers et couchers. Le reste est vérifié sur des invariants de physique et
   sur trois points du globe. Le changement d'heure vient de **tzdata**
   (`TimeZoneInfo`), jamais d'une règle écrite à la main.
-- **Normales climatiques** : un tirage annuel de l'archive Open-Meteo (ERA5) pour les
+- **Normales climatiques** ✅ : un tirage de l'archive Open-Meteo (ERA5) pour les
   coordonnées du `.env`, matérialisé
-  ([[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]]).
+  ([[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]]). Le tirage se
+  déclenche **à l'âge et non à date fixe** — au démarrage puis toutes les six heures,
+  le worker ne tire que si les normales manquent, portent une autre clé, ou ont plus de
+  360 jours. Une date au calendrier serait ratée chaque année où la machine est éteinte
+  ce jour-là, et ferait attendre le déménagement jusqu'au prochain anniversaire ; 360 et
+  non 365 parce que l'archive s'arrête quelques jours avant aujourd'hui et qu'une
+  fenêtre pile d'un an ouvrirait un trou d'une semaine dans « l'an dernier ».
+  Les deux tables **portent les coordonnées du calcul** : changer le `.env` les invalide
+  et fait tout repartir. Référence : `docs/configuration.md`.
 - **La maison** et **le calendrier** ✅ : lectures du journal de complétion, des
   [[Équipements]], des zones ([[D-2026-08-23 Zones Plates]]), des
   [[Comptes À Rebours]], des occurrences et des [[Documents]] — **rien de neuf en
@@ -296,19 +377,26 @@ Bâties :
 
 - `server/HouseOs.Api/Domaine/Ephemerides/` — `Soleil.cs`, `Lune.cs`, `Saisons.cs`,
   `ChangementHeure.cs`, assemblés par `Ciel.cs`. Pur calcul, aucune base.
+- `server/HouseOs.Api/Domaine/Meteo/` — `JourDeClimat.cs` et `NormalesClimatiques.cs`
+  (les deux tables, migration `AjouterNormalesClimatiques`) et `CalculDesNormales.cs`
+  (les statistiques, pur et sans base). Ingestion :
+  `Features/Meteo/OpenMeteoArchive.cs` (seul endroit qui connaît la forme de l'API
+  archive), `OperationsNormales.cs` (la clé et le remplacement) et
+  `NormalesIngestionService.cs` (le worker).
 - `server/HouseOs.Api/Features/FondsDeTiroir/` — `FaitDeTiroir.cs` (le contrat),
   `Tiroir.cs` (le score), `HistoriqueDeParution.cs` (la fraîcheur),
   `ContexteDuJour.cs` (le matériau de chaque famille), `Mots.cs` (les tournures
   partagées), `FaitsDuCiel.cs`, `EtatDeLaMaison.cs` + `FaitsDeLaMaison.cs`,
   `EtatDuCalendrier.cs` + `FaitsDuCalendrier.cs`, `BanqueDuHasard.cs` +
   `LectureDeLaBanque.cs` + `HasardOptions.cs` + `FaitsDuHasard.cs` et la banque livrée
-  `banque-du-hasard.qc.json`. Aucune référence à l'affichage.
+  `banque-du-hasard.qc.json`, `EtatDuClimat.cs` + `FaitsDuClimat.cs`. Aucune référence
+  à l'affichage.
 - `FaitDeTiroir.cs` — `Rarete` et `Pertinence` : les deux barèmes du score, écrits dans
   le code et non seulement en commentaire, depuis l'étape 4.
 - `server/HouseOs.Api/Domaine/SpecRecurrence.cs` — `FenetreAutour` : la fenêtre
   saisonnière lue comme deux dates plutôt que comme quatre nombres.
 - Côté consommateur : `ComposerDonneesEcran.cs` (`ReglagesDuCiel`, `FaitEcranDto`,
-  `LireLaMaisonAsync`, `LireLeCalendrierAsync`) et `web/src/lib/ecran-vues.ts`
+  `LireLaMaisonAsync`, `LireLeCalendrierAsync`, `LireLeClimatAsync`) et `web/src/lib/ecran-vues.ts`
   (`formeDuCiel`, `rangeesDuCiel`, `faitsEnWidgets`, `faitAvecTexteLong`,
   `placesDuFonds`) — c'est là, et nulle part ailleurs, que la densité et l'ordre des
   widgets se décident. **Le journal ne retrie jamais le fonds** : il replie le ciel en
@@ -316,7 +404,6 @@ Bâties :
 
 À créer :
 
-- `server/HouseOs.Api/Features/Meteo/` — l'ingestion des normales rejoint l'existant.
 - `server/HouseOs.Api/Features/FluxExternes/` — la source poussée.
 
 ## Sources

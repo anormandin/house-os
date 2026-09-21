@@ -7,10 +7,11 @@ namespace HouseOs.Api.Features.FondsDeTiroir;
 /// (vault : D-2026-09-20 Fonds De Tiroir Séparé Du Journal).
 ///
 /// <para>Familles branchées à ce jour : <see cref="FamilleDeFait.Ciel"/>,
-/// <see cref="FamilleDeFait.Maison"/>, <see cref="FamilleDeFait.Calendrier"/> et
-/// <see cref="FamilleDeFait.Hasard"/>. Les deux autres arrivent aux étapes 5 et 6 du
-/// plan, et chacune n'ajoute qu'une ligne à <see cref="Candidats"/>. Une famille dont
-/// la source manque rend une liste vide — elle ne casse jamais la composition.</para>
+/// <see cref="FamilleDeFait.Climat"/>, <see cref="FamilleDeFait.Maison"/>,
+/// <see cref="FamilleDeFait.Calendrier"/> et <see cref="FamilleDeFait.Hasard"/>.
+/// <see cref="FamilleDeFait.Ville"/> arrive à l'étape 6 du plan et n'ajoutera qu'une
+/// ligne à <see cref="Candidats"/>. Une famille dont la source manque rend une liste
+/// vide — elle ne casse jamais la composition.</para>
 /// </summary>
 public static class Tiroir
 {
@@ -25,6 +26,7 @@ public static class Tiroir
     private static IEnumerable<FaitDeTiroir> Candidats(ContexteDuJour contexte) =>
     [
         .. FaitsDuCiel.Produire(contexte),
+        .. FaitsDuClimat.Produire(contexte),
         .. FaitsDeLaMaison.Produire(contexte),
         .. FaitsDuCalendrier.Produire(contexte),
         .. FaitsDuHasard.Produire(contexte),

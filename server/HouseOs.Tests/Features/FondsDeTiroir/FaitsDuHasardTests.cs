@@ -17,7 +17,7 @@ public class FaitsDuHasardTests
         LectureDeLaBanque.Lire(null, AppContext.BaseDirectory, NullLogger.Instance);
 
     private static IReadOnlyList<FaitDeTiroir> Ouvrir(BanqueDuHasard banque, DateOnly date) =>
-        [.. FaitsDuHasard.Produire(new ContexteDuJour(date, null, false, null, null, banque))];
+        [.. FaitsDuHasard.Produire(new ContexteDuJour(date, null, false, Hasard: banque))];
 
     private static FaitDeTiroir? Fait(BanqueDuHasard banque, DateOnly date, string cle) =>
         Ouvrir(banque, date).FirstOrDefault(f => f.Cle == cle);

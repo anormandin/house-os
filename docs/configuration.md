@@ -36,6 +36,9 @@ les clés dans `appsettings.local.json`.
 |---|---|---|
 | `Meteo:CadenceMinutes` | 60 | fréquence de l'ingestion Open-Meteo |
 | `Meteo:RetentionRelevesJours` | 7 | rétention des payloads bruts |
+| `Meteo:NormalesAnnees` | 10 | années d'archive tirées pour les normales climatiques |
+| `Meteo:NormalesCadenceHeures` | 6 | fréquence de la **vérification** des normales (pas du tirage) |
+| `Meteo:NormalesAgeMaxJours` | 360 | âge au-delà duquel les normales se recalculent |
 | `Humeur:HeureMatin`, `Humeur:HeureSoir` | 05:30, 17:00 | créneaux du titre d'humeur |
 | `Humeur:Modele` | `claude-haiku-4-5` | modèle utilisé |
 | `Courriel:CadenceMinutes` | 2 | fréquence du relevé R2 |
@@ -50,6 +53,27 @@ les clés dans `appsettings.local.json`.
 | `Fichiers:Chemin` | `<racine>/donnees/fichiers` | stockage des fichiers (volume `fichiers` en compose) |
 | `Securite:CheminCles` | profil utilisateur | clés du cookie (volume `protection` en compose) |
 | `Serilog:*` | console, `HouseOs` en Debug | niveaux et sinks |
+
+## Les normales climatiques suivent les coordonnées
+
+La famille « le climat » du fonds de tiroir (premier gel, première neige, dernière
+journée à vingt degrés, mois le plus sec et le plus arrosé, « il a fait X° ce jour-là
+l'an dernier ») se calcule sur une dizaine d'années de l'archive Open-Meteo, pour
+`METEO_LATITUDE`/`METEO_LONGITUDE`. **Rien de neuf à saisir** : ce sont les mêmes
+coordonnées que les prévisions.
+
+Ce qu'il faut savoir : les normales matérialisées **portent les coordonnées du calcul**.
+Changer `METEO_LATITUDE`/`METEO_LONGITUDE` (un déménagement) les invalide — au
+redémarrage suivant, l'archive de l'ancienne adresse est effacée et les normales sont
+retirées pour la nouvelle. Le journal se tait sur le climat entre les deux, le temps
+d'un appel réseau, plutôt que d'annoncer le gel d'ailleurs.
+
+Le tirage se fait **à l'âge, pas à date fixe** : au démarrage et toutes les quelques
+heures, l'app vérifie (une lecture d'une ligne) si les normales manquent, décrivent un
+autre lieu, ou ont plus de `Meteo:NormalesAgeMaxJours`. Une seule requête réseau par
+an en sort. Open-Meteo injoignable ce jour-là n'a **aucun** effet : les normales
+connues restent servies, et une installation neuve sans réseau garde tout le reste de
+son journal.
 
 ## La banque du hasard
 

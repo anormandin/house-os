@@ -167,12 +167,12 @@ un seul prompt, un seul repli.
 > `DernierFichier` n'est d'ailleurs pas touché : il veut dire « le dernier bitmap
 > **servi** à l'appareil », et un tirage à la main n'est jamais allé jusqu'au mur.
 
-> [!note] À confirmer par Alain : régénérer **remplace** la phrase du créneau.
-> Hypothèse prise à la livraison (2026-09-20) : une phrase par créneau, réécrite sur
-> place, pas d'empilement et pas d'historique. L'autre lecture possible — générer un
+> [!note] Tranché par Alain (2026-09-20) : régénérer **remplace** la phrase du créneau.
+> Une phrase par créneau, réécrite sur place, pas d'empilement et pas d'historique —
+> l'hypothèse prise à la livraison est confirmée. L'autre lecture possible — générer un
 > aperçu sans rien stocker — laisserait le mur sur l'ancienne phrase, ce qui vide
-> l'outil de son intérêt. À rouvrir si le besoin est d'essayer des prompts sans toucher
-> à la journée en cours.
+> l'outil de son intérêt. À rouvrir seulement si le besoin apparaît d'essayer des
+> prompts sans toucher à la journée en cours.
 
 **L'horloge d'essai** (`MomentDEssai`) traverse la capture pour que le tirage porte le
 bon visage : `apercu.png?moment=matin` et `donnees?maintenant=…` composent le journal

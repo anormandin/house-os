@@ -12,7 +12,7 @@ public class FaitsDuCalendrierTests
     private static readonly DateOnly Aujourdhui = new(2026, 9, 20);
 
     private static IReadOnlyList<FaitDeTiroir> Ouvrir(EtatDuCalendrier calendrier, DateOnly? date = null) =>
-        [.. FaitsDuCalendrier.Produire(new ContexteDuJour(date ?? Aujourdhui, null, false, null, calendrier))];
+        [.. FaitsDuCalendrier.Produire(new ContexteDuJour(date ?? Aujourdhui, null, false, Calendrier: calendrier))];
 
     private static FaitDeTiroir? Fait(EtatDuCalendrier calendrier, string cle, DateOnly? date = null) =>
         Ouvrir(calendrier, date).FirstOrDefault(f => f.Cle == cle);
