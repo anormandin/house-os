@@ -5,6 +5,7 @@ import { Check } from 'lucide-react'
 import { api, type DonneesEcran, type FaitEcran, type LigneEcran } from '@/lib/api'
 import {
   capaciteListe,
+  capaciteWidgets,
   dimensionsEcran,
   etatDuJour,
   faitAvecTexteLong,
@@ -117,11 +118,16 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
 
   const aPlancher = plancher(donnees.lignes, donnees.prochainCompte, donnees.date)
   const grille = grilleDuJour(donnees.ouvertes, aPlancher !== null)
-  const widgets = widgetsDuJour(donnees, grille).slice(0, grille.widgets)
+  const aUnCompte = donnees.prochainCompte !== null
+  const candidats = widgetsDuJour(donnees, grille).slice(0, grille.widgets)
   const colonnes = repartitionColonnes(
     donnees.lignes.length === 0 ? 0 : grille.colonnesListe,
-    widgets.length + (donnees.prochainCompte === null ? 0 : 1),
+    candidats.length + (aUnCompte ? 1 : 0),
   )
+  // Le budget du rang dit ce que le journal veut ; la capacité dit ce que le papier
+  // tient. Ce qui déborde disparaît de lui-même — le fonds est déjà classé, donc ce
+  // qui tombe est ce qui compte le moins (vault : Fonds De Tiroir).
+  const widgets = candidats.slice(0, capaciteWidgets(colonnes, aUnCompte))
   // Rien du tout à mettre dans le corps : aucune tâche, aucun widget, aucun compte à
   // rebours. C'est l'installation neuve (ou un serveur qui n'a pas encore de
   // coordonnées) ; la manchette prend alors la page au lieu d'une grille blanche.
@@ -148,7 +154,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
               />,
             ]),
         ...widgets.map((w) => <Widget key={w.cle} widget={w} compact />),
-      ].slice(0, 3)
+      ]
     : []
 
   return (

@@ -2,7 +2,7 @@
 type: feature
 status: building
 last-verified: 2026-09-20
-verified-against: c8c11b9
+verified-against: 0d1eda7
 tags: [iot]
 ---
 
@@ -64,7 +64,7 @@ phrase, puis une demi-phrase). Ce qui part vraiment, c'est la **manchette**.
 
 | Tâches dues | Manchette | Widgets |
 |---|---|---|
-| 0 | une chronique (le ciel, la saison, la maison) | 7 |
+| 0 | une chronique (le ciel, la saison, la maison) | 7 (bornés à 5 par la capacité, voir plus bas) |
 | 1–2 | la tâche — ou un widget assez rare pour la voler | 4–5 |
 | 3–5 | la tâche qui porte du sens, corps raccourci | 4 |
 | 6–9 | titre court, sans lettrine ni chronique | 2–3 |
@@ -114,6 +114,20 @@ trois formes (`formeDuCiel`, `web/src/lib/ecran-vues.ts`) :
 Un fait dont l'étiquette et la valeur ne tiennent pas ensemble sur une ligne (34 signes,
 mesurés au rendu) **sort du tableau** et garde sa forme de widget empilé, où il a deux
 lignes : élaguer, pas rapetisser, appliqué jusque dans le tableau.
+
+> [!warning] Le budget du rang n'est pas la capacité du papier.
+> Le budget de la table de bascule dit ce que le journal **veut** montrer ; il ne dit pas
+> ce que la colonne **tient**. Un widget empilé fait ~300 px pour ~690 px de corps :
+> une colonne d'aparté en tient **deux**, et l'encadré du compte à rebours en coûte
+> exactement un. Le budget de sept du rang 0 n'est donc jamais atteignable — au mieux
+> cinq widgets, quand il y a un compte à rebours et trois colonnes.
+>
+> Sans cette borne, le septième widget passait **sous le pied** : 90 px de débordement,
+> mesurés à l'étape 4 le jour où la famille « le hasard » a ajouté un fait de plus à une
+> journée vide. `capaciteWidgets` (`web/src/lib/ecran-vues.ts`) est le pendant exact de
+> `capaciteListe` pour l'autre moitié du corps. Ce qui déborde du budget **disparaît de
+> lui-même**, et c'est ce qui compte le moins : le fonds est déjà classé, le journal ne
+> retrie rien, il coupe à la fin.
 
 ### Ce que l'éditorialiste écrit
 
@@ -167,7 +181,7 @@ l'heure d'impression, la pile.
 - `web/src/pages/Ecran.tsx` — la page, réécrite en place
   ([[Plan 2026-09-20 Journal Éditorial]]).
 - `web/src/lib/ecran-vues.ts` — les helpers purs de la vue : rang, plancher, capacité de
-  liste, état du jour, densité du ciel.
+  liste **et de widgets**, état du jour, densité du ciel.
 - `server/HouseOs.Api/Features/Affichage/ComposerDonneesEcran.cs` — la composition
   serveur, à étendre au document d'édition.
 - `server/HouseOs.Api/Features/Humeur/` — le patron LLM à étendre (`ConstruireEtat.cs`,

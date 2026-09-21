@@ -198,6 +198,27 @@ export function repartitionColonnes(colonnesListe: number, widgetsDisponibles: n
 }
 
 /**
+ * Ce qu'une colonne d'aparté tient de widgets, et ce que la bande de pied tient de
+ * places. Le pendant de `capaciteListe` pour l'autre moitié du corps : le budget du
+ * rang dit ce que le journal **veut** montrer, la capacité dit ce que le papier
+ * **tient**. Sans elle, le budget de sept du rang « chronique » n'est jamais
+ * atteignable et le septième widget passe sous le pied.
+ *
+ * Mesuré au rendu 1872×1404 : un widget empilé fait ~300 px (l'étiquette, la valeur
+ * sur deux lignes à 52 px, le texte sur deux lignes à 36 px) pour ~690 px de corps,
+ * et l'encadré du compte à rebours coûte exactement une de ces places.
+ */
+export const WIDGETS_PAR_COLONNE = 2
+export const PLACES_BANDE_DE_PIED = 3
+
+export function capaciteWidgets(repartition: Repartition, avecEncadre: boolean): number {
+  const places = repartition.bandeDePied
+    ? PLACES_BANDE_DE_PIED
+    : repartition.aparte * WIDGETS_PAR_COLONNE
+  return Math.max(0, places - (avecEncadre ? 1 : 0))
+}
+
+/**
  * La rangée serrée (une ligne, corps réduit) ne sert que lorsque la colonne en a
  * vraiment besoin : compresser une liste qui tient déjà, c'est tronquer des titres
  * pour de la place qu'on n'utilise pas.

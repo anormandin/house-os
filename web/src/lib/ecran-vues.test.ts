@@ -2,11 +2,14 @@ import { afterEach, expect, test, vi } from 'vitest'
 import type { FaitEcran, LigneEcran } from '@/lib/api'
 import {
   capaciteListe,
+  capaciteWidgets,
   dimensionsEcran,
   grilleDuJour,
   initiales,
   ITEMS_PAR_COLONNE_LARGE,
   ITEMS_PAR_COLONNE_SERREE,
+  PLACES_BANDE_DE_PIED,
+  WIDGETS_PAR_COLONNE,
   JOURS_RETARD_PLANCHER,
   libelleDodos,
   pileAnnoncee,
@@ -181,6 +184,33 @@ test('la capacité de la liste suit la rangée et le chapeau, et le reste est an
   // Le sommaire n'a pas de chapeau : 23 lignes sur trois colonnes, 21 montrées.
   const sommaire = grilleDuJour(14, false)
   expect(capaciteListe(3, rangeeSerree(23, 3), sommaire.chapeau)).toBe(21)
+})
+
+test("la capacité de l'aparté borne le budget du rang, et l'encadré coûte une place", () => {
+  // Le budget du rang dit ce que le journal veut ; la capacité dit ce que le papier
+  // tient. Sans elle, le septième widget du rang « chronique » passe sous le pied —
+  // 90 px de débordement, mesurés à l'étape 4.
+  const chronique = grilleDuJour(0, false)
+  expect(chronique.widgets).toBe(7)
+  expect(capaciteWidgets({ liste: 0, aparte: 3, bandeDePied: false }, false)).toBe(
+    3 * WIDGETS_PAR_COLONNE,
+  )
+  expect(capaciteWidgets({ liste: 0, aparte: 3, bandeDePied: false }, true)).toBe(
+    3 * WIDGETS_PAR_COLONNE - 1,
+  )
+
+  // Une seule colonne d'aparté et un encadré : il ne reste qu'un widget.
+  expect(capaciteWidgets({ liste: 2, aparte: 1, bandeDePied: false }, true)).toBe(1)
+  // Et jamais un nombre négatif, même quand l'encadré coûte plus que la place.
+  expect(capaciteWidgets({ liste: 3, aparte: 0, bandeDePied: false }, true)).toBe(0)
+
+  // La bande de pied compte ses places à l'horizontale, pas par colonne.
+  expect(capaciteWidgets({ liste: 3, aparte: 0, bandeDePied: true }, false)).toBe(
+    PLACES_BANDE_DE_PIED,
+  )
+  expect(capaciteWidgets({ liste: 3, aparte: 0, bandeDePied: true }, true)).toBe(
+    PLACES_BANDE_DE_PIED - 1,
+  )
 })
 
 test('« + N autres » ne compte que ce qui reste à faire', () => {
