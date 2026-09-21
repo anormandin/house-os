@@ -367,13 +367,112 @@ de prod ne porte de fenêtre saisonnière et le seul document daté expire le
 
 ### 4 — Le hasard
 
-- [ ] Banque locale de dictons météo québécois et table de fêtes et journées nationales,
+- [x] Banque locale de dictons météo québécois et table de fêtes et journées nationales,
       **en données de configuration, pas en dur** — un foyer ailleurs remplace le
       fichier ([[Distribution]]).
-- [ ] Rareté « bouche-trou » : ces faits ne sortent que lorsqu'il ne reste rien d'autre.
+- [x] Rareté « bouche-trou » : ces faits ne sortent que lorsqu'il ne reste rien d'autre.
 
 **Vérification** — un jour de prod sans aucune tâche et sans événement remplit quand
 même les sept widgets du rang 0.
+
+#### Ce que l'étape 4 a tranché en chemin
+
+- [x] **Où vit la banque** : [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] —
+      un fichier JSON livré avec l'app (`banque-du-hasard.qc.json`, 24 dictons et
+      20 fêtes), remplaçable par `HASARD_FICHIER` / `Hasard:Fichier`, lu **une fois au
+      démarrage**. Ni table (l'étape est sans migration), ni section d'`appsettings.json`
+      (c'est du contenu, pas de la configuration technique). Un chemin réglé mais
+      illisible fait **taire** la famille plutôt que de retomber sur la banque du
+      Québec. `docs/configuration.md`, `.env.example` et le compose sont à jour.
+- [x] **La moitié des jours fériés du Québec sont mobiles.** Pâques et ses deux congés,
+      les Patriotes, le Travail, l'Action de grâce : une liste de dates fixes aurait été
+      fausse quatre jours par an. Une fête déclare quand elle tombe sous quatre formes
+      déclaratives (date fixe, n-ième jour de semaine du mois, dernier jour de semaine
+      avant une date, décalage depuis Pâques) — la donnée reste de la donnée, la règle
+      reste du C# testé ([[D-2026-08-23 Pas De N8n Dans Le Cœur]]). Comput grégorien
+      écrit à la main, vérifié contre quatre dimanches de Pâques publiés.
+- [x] **« Bouche-trou » est une pertinence, pas une rareté.** Un dicton peut paraître
+      tous les jours : sa rareté est celle d'un fait quotidien, et la rareté ne se
+      négocie pas (c'est la correction de l'étape 3). Ce qui le met en queue, c'est un
+      cran **sous** la décoration — `Pertinence.BoucheTrou` = 0,5 — sans quoi il aurait
+      été à égalité avec `ciel.jour`, dont un test dit qu'il est dernier. L'échelle
+      entière (0,5 · 1 · 1,5 · 2 · 3) passe du commentaire au code (`Pertinence`,
+      `FaitDeTiroir.cs`) et remplace les nombres nus des trois familles.
+- [x] **La rareté de la fête se compte dans la banque.** « Combien de jours par année le
+      fait peut paraître » est exactement le nombre d'entrées : un foyer qui n'inscrit
+      que ses huit jours chômés obtient un fait deux fois plus rare que celui qui en
+      inscrit vingt. Aucun nombre deviné.
+- [x] **Le dicton est le seul fait dont la matière vit dans le texte long.** Un proverbe
+      n'a pas de chiffre et ne tient pas dans trente signes. Relevé au rendu : la
+      hiérarchie du widget s'en trouve inversée (le mois en gros, le proverbe en petit).
+      Vivable, et c'est le seul découpage qui ne coupe pas le proverbe — à revoir avec
+      l'éditorialiste à l'étape 7, pas avant.
+- [x] **Tranché : la troncature laissée en suspens à l'étape 3.** C'est le **titre** qu'on
+      élague, pas la phrase (`Mots.TitreCourt`, 32 signes, coupé à un mot entier) :
+      la phrase garde ainsi sa fin et sa ponctuation. Appliqué aux huit faits qui citent
+      un nom saisi par le foyer, et au nom d'une fête, qui vient d'un fichier donc d'un
+      inconnu. Corollaire : « … . » ne s'écrit pas, et le corriger dans chaque famille
+      serait une règle qu'une famille future oublierait — `FaitDeTiroir` normalise son
+      texte long une fois pour toutes.
+
+#### Ce que le rendu a corrigé, à l'étape 4
+
+- [x] **Bug : le budget de widgets n'avait pas de capacité en face** — et c'est la
+      famille neuve qui l'a révélé. Un widget de plus sur une journée vide et le mur
+      débordait de **90 px**, le dicton coupé en deux sous le pied. Le budget du rang
+      (7 au rang « chronique ») dit ce que le journal veut ; rien ne disait ce que la
+      colonne tient. `capaciteWidgets` (`web/src/lib/ecran-vues.ts`) est le pendant exact
+      de `capaciteListe` : deux widgets par colonne d'aparté, et l'encadré du compte à
+      rebours en coûte un — donc **cinq**, jamais sept, au rang 0 avec un compte à
+      rebours. La garde de l'étape 1 a fait son travail : elle a signalé le débordement
+      au premier tirage.
+
+#### Ce que la revue de code a corrigé, à l'étape 4
+
+- [x] **Bug pré-existant de l'étape 3 : deux seuils qui se croisent faisaient un trou.**
+      `maison.serie` se tait quand la série **est** le record ; `maison.record` ne parle
+      qu'à partir de cinq jours. Une série de trois ou quatre jours qui est aussi le
+      record — **la première série d'une maison neuve**, le moment exact que ce fait
+      existe pour raconter — ne sortait donc **ni** en série **ni** en record. Le mur
+      restait muet jusqu'à ce qu'une série plus longue existe déjà. La série ne se tait
+      maintenant que lorsque le record parle vraiment, et son texte change quand elle est
+      le meilleur résultat à ce jour, au lieu de citer un record égal au chiffre affiché.
+      Le seuil `RecordMinimal` portait par ailleurs un commentaire qui parlait d'une
+      semaine pour une valeur de cinq jours.
+- [x] **La banque était lue à la première requête, pas au démarrage** — alors que le
+      commentaire et `docs/configuration.md` promettaient le contraire. Un `HASARD_FICHIER`
+      fautif ne se voyait donc pas dans le log de redémarrage, là où l'opérateur le
+      cherche : l'avertissement attendait le prochain tirage du mur. Le singleton est
+      résolu explicitement après `builder.Build()` ; vérifié avec un chemin inexistant,
+      l'avertissement sort avant le « Now listening ».
+
+> [!note] Signalé par la revue, laissé tel quel : `corpsVide` sur une journée tout
+> entière cochée. `repartitionColonnes` rend un corps vide quand la liste n'a aucune
+> colonne **et** qu'il n'y a aucun widget ; au rang « chronique » la liste n'a jamais de
+> colonne, si bien qu'une journée à zéro due, N faites et aucun fait montre la manchette
+> pleine page plutôt que la liste des cochées. C'est le comportement livré depuis
+> l'étape 2, pas une régression, et l'étape 4 le rend **moins** atteignable, pas plus :
+> la famille « le hasard » donne un dicton tous les jours, donc il y a toujours au moins
+> un widget dès que la banque existe. Le cas ne survit qu'à une installation sans
+> coordonnées **et** sans banque. À trancher par Alain, comme choix éditorial (montrer
+> les cochées, ou la manchette), pas comme correctif.
+
+**Rendu vérifié** (aperçus à 1872×1404, `apercu.png`, données de dev — 0 due, 33 faites,
+aucun événement) : rang « chronique » → l'encadré, la pièce oubliée, le verdict du
+dehors, « ça s'en vient », le tableau du ciel et **le dicton** en queue de colonne,
+trois colonnes pleines jusqu'au pied. Un second tirage avec une banque de remplacement
+passée par `Hasard__Fichier` (la clé vérifiée de bout en bout, y compris le
+journal de démarrage) : la **fête du jour** prend sa place et c'est le **dicton** qui
+tombe — le bouche-trou est bien le premier à partir. **Aucun avertissement de
+débordement** après la borne de capacité. `dotnet test` 753 verts (729 au départ),
+`npm test` 217 verts (216 au départ).
+
+> [!note] La « vérification » de cette étape était fausse, et c'est le rendu qui l'a dit.
+> Les **sept** widgets du rang 0 ne sont pas atteignables : trois colonnes d'aparté en
+> tiennent six, moins un pour l'encadré du compte à rebours. La journée vide est bien
+> pleine — sept faits servis, mis en page en cinq widgets plus l'encadré, plus le verdict
+> météo, sans un trou ni un débordement — mais le nombre écrit dans le plan ne
+> correspondait à rien de mesurable. Consigné dans [[Journal De La Maison]].
 
 ### 5 — Les normales climatiques
 
@@ -487,20 +586,22 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
 ## Vérification (globale)
 
 - `npm test` dans `web/` — aucun test affaibli ni contourné. Base : 189 avant l'étape 1,
-  **200 après** (as of 2026-09-20).
+  **217 après l'étape 4** (as of 2026-09-20).
 - `dotnet test` — les trois couches ([[D-2026-08-25 Stratégie De Tests Trois Couches]]).
-  Base : **663 verts** après l'étape 1 (as of 2026-09-20).
+  Base : **753 verts** après l'étape 4 (as of 2026-09-20).
 - Aperçu : `GET /api/affichage/apercu.png?largeur=1872&hauteur=1404` (cookie de session).
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
   recréer ou à ignorer selon le besoin.
 - **Où en est la prod** (as of 2026-09-20) : le LXC 105 tourne **l'étape 1**
-  (commit `8d7b8cf`). Les étapes **2 et 3 sont commitées sur `main` mais pas
+  (commit `8d7b8cf`). Les étapes **2, 3 et 4 sont commitées sur `main` mais pas
   déployées** — elles partiront ensemble au prochain release.
 - **Au release, `MAISON_LIEU` doit être posé dans le `.env` de prod** (étape 2 : nouvelle
   clé, `Affichage:Lieu`). Sans elle l'oreille centrale du bloc-titre reste vide — ce
   n'est pas une panne, mais ce n'est pas le rendu voulu. Le dev le lit depuis
-  `appsettings.local.json`. C'est le seul geste manuel que le release demande.
+  `appsettings.local.json`. C'est le seul geste manuel que le release demande —
+  l'étape 4 n'en ajoute aucun : `HASARD_FICHIER` est facultatif, et la banque québécoise
+  livrée avec l'image est justement celle du foyer.
 - Validateur du vault : `python3 ~/.claude/skills/vault/scripts/validate-vault.py vault`.
 - Dépôt public : `grep -rni "villescjc\|jacques-cartier\|pdftotext\|colline" server/ web/`
   ne retourne rien ; tout ce qui est propre au foyer est dans le `.env` ou hors dépôt.
