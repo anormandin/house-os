@@ -2,7 +2,7 @@
 type: feature
 status: building
 last-verified: 2026-09-21
-verified-against: 4b59c07
+verified-against: 86faebd
 tags: [iot]
 ---
 
