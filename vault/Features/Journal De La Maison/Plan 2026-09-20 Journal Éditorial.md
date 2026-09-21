@@ -687,6 +687,9 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
 - [ ] Vérifier que la densité n'a pas coûté de pile : `dernierContact` et tension dans
       `lister_appareils_affichage` sur deux semaines, comparées aux 3,79 V du
       2026-09-20.
+      Relevés (B73199, reterminal_e1003, firmware 1.8.10) : **2026-09-20 matin 3,79 V** ·
+      **2026-09-20 22 h 08 — 3,77 V, 52 %, RSSI −57 dBm**, après les étapes 1 à 5. Le
+      prochain point utile est autour du 2026-10-04.
 - [ ] Recap et mise à jour des specs à l'as-built (`status: implemented`, freshness).
 
 ## Vérification (globale)
@@ -699,18 +702,28 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
   recréer ou à ignorer selon le besoin.
-- **Où en est la prod** (as of 2026-09-20, en soirée) : le LXC 105 tourne **`b65eb2b`**,
-  donc les **étapes 1 à 4**, livrées ensemble. `MAISON_LIEU=17 rue de la Colline` a été
-  posé dans `/opt/house-os/.env` au même moment (sauvegarde : `.env.avant-etape4`) ;
+- **Où en est la prod** (as of 2026-09-20, fin de soirée) : le LXC 105 tourne
+  **`88deda1`**, donc les **étapes 1 à 5**, plus la régénération à la demande du mur
+  (`6e895ac`, qui avait manqué le train de l'étape 4). `MAISON_LIEU=17 rue de la Colline`
+  a été posé dans `/opt/house-os/.env` à l'étape 4 (sauvegarde : `.env.avant-etape4`) ;
   `HASARD_FICHIER` reste absent, et c'est voulu — la banque québécoise livrée avec
-  l'image est celle du foyer. Vérifié : `/api/sante` 200, bundle `index-tScc3tod.js`,
-  la banque lue au démarrage (24 dictons, 20 fêtes), et surtout le **tirage de
-  l'appareil réel** — `GET /api/display` 200 en 751 ms, **aucun avertissement de
-  débordement** sur les vraies longueurs de titres de la prod.
-- **Pas encore en prod** : `6e895ac` (la régénération à la demande du mur). Rien de
-  manuel à poser pour elle.
+  l'image est celle du foyer. **Rien de manuel à poser pour l'étape 5** : les normales
+  suivent `METEO_LATITUDE`/`METEO_LONGITUDE`, déjà là.
+  Vérifié au release : `/api/sante` 200, bundle `index-U9B5cAoO.js`, migration
+  `AjouterNormalesClimatiques` appliquée au démarrage, banque lue (24 dictons,
+  20 fêtes), et le **premier tirage réel de l'archive aux coordonnées de la prod**
+  (46,8500 / −71,6200) — 3 652 journées, 9 saisons, **premier gel 3 octobre ± 10 j**,
+  première neige 7 novembre ± 7 j, en 1,9 s. Les chiffres tiennent à travers les 35 km
+  qui séparent la prod du dev. Régénération du mur par le MCP : 1872×1404, 25 570 o en
+  662 ms, **aucun avertissement de débordement**.
+  Historique de l'étape 4 : `b65eb2b`, bundle `index-tScc3tod.js`, `GET /api/display`
+  200 en 751 ms.
 
 > [!warning] Le release échoue « no space left on device » si le cache de build a grossi.
+> **Confirmé au release de l'étape 5** : en une journée le cache était remonté à 6,1 G
+> sur 10 G occupés. `docker builder prune -af` **avant** le build (54 % → 26 %, 8,8 G
+> libres → 14 G), et la construction est passée sans incident. À faire systématiquement,
+> pas seulement quand le disque a l'air plein — il avait l'air d'aller.
 > Le 2026-09-20, `docker compose up -d --build` est tombé sur la couche Chromium alors
 > que `df` annonçait 5,4 G libres : le **cache de build Docker** occupait 9,9 G des 14 G
 > utilisés, et le disque ne manque qu'au pic d'extraction. `docker builder prune -af`
