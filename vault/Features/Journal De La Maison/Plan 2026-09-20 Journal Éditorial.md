@@ -1073,8 +1073,15 @@ rapportait 3 px.
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
   recréer ou à ignorer selon le besoin.
-- **Où en est la prod** (as of 2026-09-21, fin de journée) : le LXC 105 tourne
-  l'**étape 7** (`4352573` puis le `fix` de la course du release). Rien de nouveau
+- **Où en est la prod** (as of 2026-09-21, 10 h) : le LXC 105 tourne l'**étape 8**
+  (`86faebd`, puis `030fc2c` pour le vault). Rien de nouveau dans le `.env`, aucune
+  migration. Vérifié au release : `/api/sante` 200, bundle `index-BzLh6msk.js` ;
+  au démarrage l'éditorialiste a trouvé l'édition du 21 déjà écrite (aucun appel) ;
+  régénération du mur par le MCP : 1872×1404, édition via Llm (rang manchette,
+  0 rubrique — la journée n'est pas chargée), 32 125 o en 623 ms, aucun
+  avertissement de débordement. Cache de build pruné avant (6,1 G rendus, 54 % → 27 %).
+  Historique : au 2026-09-21 fin de journée la prod tournait
+  l'étape 7 (`4352573` puis le `fix` de la course du release). Rien de nouveau
   dans le `.env` (`ANTHROPIC_API_KEY` y était, `Edition:Modele` a son défaut).
   Vérifié au release : `/api/sante` 200, bundle `index-CojqZ-s8.js`, migration
   `AjouterEditionEtEcheanceFerme` appliquée au démarrage, et dès le démarrage
