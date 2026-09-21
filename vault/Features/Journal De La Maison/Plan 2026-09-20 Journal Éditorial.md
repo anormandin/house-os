@@ -593,15 +593,25 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
   recréer ou à ignorer selon le besoin.
-- **Où en est la prod** (as of 2026-09-20) : le LXC 105 tourne **l'étape 1**
-  (commit `8d7b8cf`). Les étapes **2, 3 et 4 sont commitées sur `main` mais pas
-  déployées** — elles partiront ensemble au prochain release.
-- **Au release, `MAISON_LIEU` doit être posé dans le `.env` de prod** (étape 2 : nouvelle
-  clé, `Affichage:Lieu`). Sans elle l'oreille centrale du bloc-titre reste vide — ce
-  n'est pas une panne, mais ce n'est pas le rendu voulu. Le dev le lit depuis
-  `appsettings.local.json`. C'est le seul geste manuel que le release demande —
-  l'étape 4 n'en ajoute aucun : `HASARD_FICHIER` est facultatif, et la banque québécoise
-  livrée avec l'image est justement celle du foyer.
+- **Où en est la prod** (as of 2026-09-20, en soirée) : le LXC 105 tourne **`b65eb2b`**,
+  donc les **étapes 1 à 4**, livrées ensemble. `MAISON_LIEU=17 rue de la Colline` a été
+  posé dans `/opt/house-os/.env` au même moment (sauvegarde : `.env.avant-etape4`) ;
+  `HASARD_FICHIER` reste absent, et c'est voulu — la banque québécoise livrée avec
+  l'image est celle du foyer. Vérifié : `/api/sante` 200, bundle `index-tScc3tod.js`,
+  la banque lue au démarrage (24 dictons, 20 fêtes), et surtout le **tirage de
+  l'appareil réel** — `GET /api/display` 200 en 751 ms, **aucun avertissement de
+  débordement** sur les vraies longueurs de titres de la prod.
+- **Pas encore en prod** : `6e895ac` (la régénération à la demande du mur). Rien de
+  manuel à poser pour elle.
+
+> [!warning] Le release échoue « no space left on device » si le cache de build a grossi.
+> Le 2026-09-20, `docker compose up -d --build` est tombé sur la couche Chromium alors
+> que `df` annonçait 5,4 G libres : le **cache de build Docker** occupait 9,9 G des 14 G
+> utilisés, et le disque ne manque qu'au pic d'extraction. `docker builder prune -af`
+> (72 % → 26 %) puis rebuild. L'ancien conteneur continue de servir pendant l'échec —
+> `/api/sante` reste à 200, il n'y a pas de panne à réparer dans l'urgence. Le disque
+> avait déjà été agrandi 12 G → 20 G le matin même pour ce symptôme : c'était traiter
+> la conséquence. Consigné aussi dans le dépôt d'infra (`unifi/CLAUDE.md`).
 - Validateur du vault : `python3 ~/.claude/skills/vault/scripts/validate-vault.py vault`.
 - Dépôt public : `grep -rni "villescjc\|jacques-cartier\|pdftotext\|colline" server/ web/`
   ne retourne rien ; tout ce qui est propre au foyer est dans le `.env` ou hors dépôt.
