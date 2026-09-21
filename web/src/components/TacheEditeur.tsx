@@ -33,6 +33,7 @@ type Formulaire = {
   fenetreFinMois: number
   fenetreFinJour: number
   rollover: boolean
+  echeanceFerme: boolean
 }
 
 const defaut: Formulaire = {
@@ -57,6 +58,7 @@ const defaut: Formulaire = {
   fenetreFinMois: 10,
   fenetreFinJour: 31,
   rollover: true,
+  echeanceFerme: false,
 }
 
 function versRecurrence(f: Formulaire): Recurrence | undefined {
@@ -205,6 +207,8 @@ export default function TacheEditeur({
         fenetreFinMois: r.fenetreFinMois ?? 10,
         fenetreFinJour: r.fenetreFinJour ?? 31,
         rollover: r.rollover ?? true,
+        // Un PUT remplace tout : un champ non chargé ici serait effacé au save.
+        echeanceFerme: tache.echeanceFerme,
       }
       const conservee = Object.fromEntries(
         [...champsSaisis.current].map((cle) => [cle, saisie[cle]]),
@@ -235,6 +239,7 @@ export default function TacheEditeur({
         strategie: f.strategie,
         recurrence: versRecurrence(f),
         documentIds: f.documentIds,
+        echeanceFerme: f.echeanceFerme,
       }
       return tacheId === null
         ? api.creerTache(donnees).then(() => undefined)
@@ -593,6 +598,17 @@ export default function TacheEditeur({
             onChange={(e) => maj({ echeance: e.target.value })}
             className={cn(classeChamp, 'max-w-60')}
           />
+        </label>
+        {/* Une affirmation du foyer sur le monde, jamais une déduction : le journal
+            mural ne relègue jamais cette date sous un widget. */}
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={f.echeanceFerme}
+            onChange={(e) => maj({ echeanceFerme: e.target.checked })}
+            className="size-4 accent-orange"
+          />
+          Cette date ne se négocie pas (notaire, livraison, date légale)
         </label>
 
         <div className="mt-2 flex items-center gap-2">

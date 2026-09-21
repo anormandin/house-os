@@ -47,6 +47,7 @@ function occurrence(champs: Partial<Occurrence>): Occurrence {
     zoneId: null,
     equipementId: null,
     modeRecurrence: 'Ponctuelle',
+    echeanceFerme: false,
     ...champs,
   }
 }

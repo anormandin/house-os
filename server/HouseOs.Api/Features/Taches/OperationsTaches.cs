@@ -149,6 +149,7 @@ public static class OperationsTaches
 
         tache.ZoneId = requete.ZoneId;
         tache.EquipementId = requete.EquipementId;
+        tache.EcheanceFerme = requete.EcheanceFerme ?? false;
         if (await AppliquerDocumentsAsync(db, tache, requete.DocumentIds) is { } erreurDocuments)
         {
             return (null, erreurDocuments);
@@ -200,6 +201,7 @@ public static class OperationsTaches
         tache.EquipementId = requete.EquipementId;
         tache.Strategie = strategie;
         tache.Recurrence = spec;
+        tache.EcheanceFerme = requete.EcheanceFerme ?? false;
 
         // Réaligner l'occurrence en attente sur la nouvelle définition.
         var enAttente = tache.Occurrences.SingleOrDefault(o => o.Statut == StatutOccurrence.EnAttente);
@@ -611,7 +613,8 @@ public static class OperationsTaches
                 db.Journal.Where(j => j.OccurrenceId == o.Id).Select(j => j.Notes).FirstOrDefault(),
                 o.Tache.ZoneId,
                 o.Tache.EquipementId,
-                o.Tache.Recurrence.Mode.ToString()))
+                o.Tache.Recurrence.Mode.ToString(),
+                o.Tache.EcheanceFerme))
             .ToListAsync();
     }
 
@@ -844,7 +847,8 @@ public static class OperationsTaches
             tache.EquipementId,
             tache.Strategie.ToString(),
             VersRecurrenceDto(tache.Recurrence),
-            tache.Documents.Select(d => d.Id).ToArray());
+            tache.Documents.Select(d => d.Id).ToArray(),
+            tache.EcheanceFerme);
 
     private static RecurrenceDto VersRecurrenceDto(SpecRecurrence r)
     {
@@ -899,7 +903,8 @@ public static class OperationsTaches
                     t.Strategie.ToString(),
                     VersRecurrenceDto(t.Recurrence),
                     t.Documents.Count,
-                    Completee: t.Recurrence.Mode == ModeRecurrence.Ponctuelle && enAttente is null);
+                    Completee: t.Recurrence.Mode == ModeRecurrence.Ponctuelle && enAttente is null,
+                    t.EcheanceFerme);
             })
             .OrderBy(r => r.Echeance is null)
             .ThenBy(r => r.Echeance)

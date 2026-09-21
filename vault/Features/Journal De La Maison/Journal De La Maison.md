@@ -1,8 +1,8 @@
 ---
 type: feature
 status: building
-last-verified: 2026-09-20
-verified-against: 0d1eda7
+last-verified: 2026-09-21
+verified-against: 4b59c07
 tags: [iot]
 ---
 
@@ -19,11 +19,13 @@ Direction retenue par Alain et Ariane après trois tours de maquettes
 [[Affichage E-ink]] — la liste + zones — sans toucher au protocole de l'appareil ni à la
 grammaire 1-bit.
 
-> [!note] La broadsheet est en prod depuis le 2026-09-20.
-> Étapes 1 et 2 du [[Plan 2026-09-20 Journal Éditorial]] livrées : la grille à rangs, le
-> bloc-titre, et la famille « le ciel » de [[Fonds De Tiroir]] dans les widgets. La
-> **manchette est encore le [[Titre D'humeur]]** : l'éditorialiste arrive à l'étape 7.
-> [[Affichage E-ink]] reste la spec de l'appareil.
+> [!note] La broadsheet est en prod depuis le 2026-09-20 ; l'éditorialiste écrit en dev depuis le 2026-09-21.
+> Étapes 1 à 7 du [[Plan 2026-09-20 Journal Éditorial]] bâties : la grille à rangs, le
+> bloc-titre, les six familles de [[Fonds De Tiroir]] dans les widgets, et depuis
+> l'étape 7 **l'édition du jour écrite par Opus** — surtitre, manchette, chapeau,
+> chronique — avec le [[Titre D'humeur]] en repli de gabarit. Reste l'étape 8 (le
+> rang 10 et plus) et la calibration au mur. [[Affichage E-ink]] reste la spec de
+> l'appareil.
 
 ## Comportement
 
@@ -47,15 +49,17 @@ publication, le numéro), le **nom** en capitales entre deux filets, la **dateli
   `Affichage:Lieu`), vide par défaut ([[Distribution]]) ; les oreilles se composent
   avec ce qui reste, sans trou.
 - Le **numéro d'édition** compte les jours depuis la première entrée du journal de
-  complétion — nul sur une installation neuve. À l'étape 7, le compte d'éditions
-  matérialisées le remplacera sans rien changer au rendu.
+  complétion — nul sur une installation neuve. Il ne compte **pas** les éditions
+  matérialisées, contrairement à ce qui était prévu : ça aurait fait repartir le mur à
+  « N° 1 » le jour du release (tranché à l'étape 7).
 - L'**état du jour** (« Rien au programme », « 10 choses au programme ») vit dans la
   dateline. Il devient une **mention inversée** quand le plancher se déclenche
   (« C'est aujourd'hui »), et ne peut jamais coexister avec la bande du sommaire :
   le plancher force le rang « événement ».
-- Le **surtitre de la manchette** est autre chose : une ligne éditoriale, écrite à
-  l'étape 7. Jusque-là il ne porte que la raison du plancher, et reste vide le reste
-  du temps plutôt que de répéter la dateline.
+- Le **surtitre de la manchette** est autre chose : une ligne éditoriale, écrite par
+  l'éditorialiste (« Le dernier lundi avant l'équinoxe »). Le gabarit n'y met que la
+  raison du plancher, et le laisse vide le reste du temps plutôt que de répéter la
+  dateline.
 
 ### La règle de bascule
 
@@ -83,14 +87,20 @@ livraison payée, date légale) et un **compte à rebours à zéro** ne peuvent 
 relégués sous un widget. Sans ce plancher, le jour où la lune passe devant « remettre
 les clés », l'écran perd sa crédibilité pour de bon.
 
-L'**échéance ferme** est un booléen explicite sur la tâche, coché à la main
+L'**échéance ferme** est un booléen explicite sur la tâche, coché à la main dans
+l'éditeur (« Cette date ne se négocie pas ») et exposé au MCP
 ([[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]]) — rien ne se déduit d'une
-récurrence ou d'une date. Il arrive à l'étape 7 du [[Plan 2026-09-20 Journal Éditorial]] ;
-jusque-là le plancher tourne sur ses deux cas calculables.
+récurrence ou d'une date. Une ligne du jour qui le porte est due, donc entrante : elle
+prend la manchette. L'ordre des trois cas, au client comme au serveur : le compte à
+rebours, puis l'échéance ferme, puis le retard.
 
 Le plancher est **réévalué à chaque rendu**, pas seulement à l'écriture de l'édition :
 s'il se déclenche après coup, il redéclenche une édition
-([[D-2026-09-20 Une Édition Par Jour Matérialisée]]).
+([[D-2026-09-20 Une Édition Par Jour Matérialisée]]) — **en deux temps** : un gabarit
+tout de suite au rendu, Opus ensuite par le service de fond
+([[D-2026-09-21 Réédition En Deux Temps]]). Le serveur porte sa propre évaluation
+(`Domaine/Editorial/Plancher.cs`), la page la sienne (`plancher()`), avec les mêmes
+cas et le même ordre ; l'édition suit celle du serveur.
 
 ### Le regroupement des journées chargées
 
@@ -134,13 +144,56 @@ lignes : élaguer, pas rapetisser, appliqué jusque dans le tableau.
 Le LLM **n'invente aucun fait**. Il reçoit les faits déjà classés par
 [[Fonds De Tiroir]] et écrit le surtitre, la manchette, le chapeau, les deux
 paragraphes de corps et les rubriques du sommaire. Tout le reste est du gabarit.
+Bâti à l'étape 7 (`server/HouseOs.Api/Features/Editorial/`, as of 2026-09-21).
 
 - **Un appel par édition**, pas par rendu : la cadence d'écriture est découplée de la
-  cadence de l'appareil (15 min, [[Affichage E-ink]]).
-- **Opus 5** pour l'édition ([[D-2026-09-20 Édition Écrite Par Opus]]) ;
-  [[Titre D'humeur]] garde Haiku pour ses deux créneaux.
+  cadence de l'appareil (15 min, [[Affichage E-ink]]). Le service de fond écrit au
+  créneau du matin du titre d'humeur (`Humeur:HeureMatin`), rattrape au démarrage
+  (toujours l'édition du **jour civil**, jamais la veille), et se réveille sur signal
+  quand le rendu lui a laissé un gabarit à réécrire.
+- **Opus 5** pour l'édition ([[D-2026-09-20 Édition Écrite Par Opus]]), réglage
+  `Edition:Modele` ; [[Titre D'humeur]] garde Haiku pour ses deux créneaux. La **clé**
+  est la même (`ANTHROPIC_API_KEY`) : deux modèles, deux prompts, un seul compte.
 - **Mémoire des sept derniers jours** pour ne pas radoter, **repli en gabarit** quand
-  l'API ne répond pas — le journal ne dépend jamais du LLM pour être lisible.
+  l'API ne répond pas — le journal ne dépend jamais du LLM pour être lisible. Le
+  gabarit rend exactement ce que le mur montrait avant l'étape 7 : la phrase du jour
+  en manchette et en chapeau, la raison du plancher en surtitre, **pas de corps**.
+- **Ce que la matière contient** (`MatiereDEdition`) : la date et le jour de semaine,
+  le lieu, le rang, le plancher, les tâches dues (titre, retard, ferme, assigné), le
+  prochain compte à rebours en dodos, la météo du jour en mots, tous les faits du fonds
+  avec la marque de ceux qui paraissent, et les sept éditions précédentes (surtitre,
+  manchette, chapeau). Rien d'autre : ce que le modèle ne reçoit pas, il ne peut pas le
+  citer.
+- **La sortie est validée strictement** (`RedactionLlm.Extraire`) : surtitre ≤ 60,
+  manchette 1–60, chapeau 1–160, exactement deux paragraphes visés à 200 signes et
+  refusés au-delà de 240 (un modèle qui compte déborde d'une phrase ; le clamp du mur
+  fait le filet), rubriques
+  seulement au rang « sommaire » et sur des titres de tâches **réels** — un titre
+  inventé est écarté, jamais affiché. Tout autre écart → gabarit.
+
+### Ce que l'édition fige, et comment le rendu s'en sert
+
+L'entité (`Domaine/Editorial/Edition.cs`) porte la date, le rang, les textes, les
+**clés publiées** (JSONB), les rubriques (JSONB), le plancher, la source et le modèle.
+
+- Le **rang** consigné est celui pour lequel la prose a été écrite ; la page calcule
+  sa grille sur le compte **vivant**, comme avant — une tâche ajoutée à neuf heures
+  doit avoir une colonne, même sur une journée écrite « chronique ».
+- Les **clés publiées** sont le budget de widgets du rang, dans l'ordre du score, plus
+  les clés que le journal dessine à part (`CLES_DEJA_AU_JOURNAL`, hors budget). Le
+  rendu sert d'abord ces faits, dans cet ordre, puis les autres au score du moment ; la
+  page coupe à sa capacité, comme avant.
+- La **chronique** — les deux paragraphes — prend la première colonne du corps aux
+  rangs « chronique » et « manchette », comme dans les maquettes, mais à la même
+  largeur que les autres colonnes ; aux rangs plus chargés le corps n'est pas montré.
+  Le gabarit n'a pas de corps, donc pas de colonne. Mesuré au rendu : à 32 px dans un
+  tiers, une ligne porte ~32 signes, d'où la cible de **200 signes** par paragraphe et
+  le clamp à sept lignes. Un texte refusé est nommé dans le journal (« paragraphe 2 :
+  251 signes, 240 au plus »), pour savoir s'il faut retoucher le prompt ou la borne.
+- Une **horloge d'essai** sur un autre jour compose l'édition de ce jour sans
+  l'écrire ; `regenerer_journal_mural` avec `date` l'écrit, et c'est un geste explicite
+  — mais elle garde son drapeau, et le jour venu l'éditorialiste la réécrit avec les
+  faits du jour.
 
 ### Figé et vivant
 
@@ -174,6 +227,8 @@ l'heure d'impression, la pile.
   déjà classés.
 - [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] — un booléen sur `Tache`, bâti
   à l'étape 7 ; le troisième cas du plancher.
+- [[D-2026-09-21 Réédition En Deux Temps]] — gabarit au rendu, Opus par le service de
+  fond ; proposée à l'étape 7, à confirmer.
 - [[D-2026-09-03 Rendu E-ink Par Chromium Headless]] — la page React capturée, inchangé.
 
 ## Ancres de code
@@ -183,9 +238,13 @@ l'heure d'impression, la pile.
 - `web/src/lib/ecran-vues.ts` — les helpers purs de la vue : rang, plancher, capacité de
   liste **et de widgets**, état du jour, densité du ciel.
 - `server/HouseOs.Api/Features/Affichage/ComposerDonneesEcran.cs` — la composition
-  serveur, à étendre au document d'édition.
-- `server/HouseOs.Api/Features/Humeur/` — le patron LLM à étendre (`ConstruireEtat.cs`,
-  `PolissageLlm.cs`, `HumeurService.cs`).
+  serveur : les sources du jour, l'édition, l'ordre des faits.
+- `server/HouseOs.Api/Features/Editorial/` — l'éditorialiste : le prompt et le parse
+  (`RedactionLlm.cs`), la couture des trois appelants (`GenerationEdition.cs`), le
+  service de fond, la mémoire des sept jours, le signal.
+- `server/HouseOs.Api/Domaine/Editorial/` — l'entité, le plancher, le rang, le gabarit.
+- `server/HouseOs.Api/Features/Humeur/` — le patron LLM dont l'éditorialiste est
+  l'extension (`PolissageLlm.cs`, `HumeurService.cs`).
 
 ## Sources
 

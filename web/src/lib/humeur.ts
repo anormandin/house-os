@@ -3,15 +3,13 @@
 // jamais inventés ; la phrase tourne selon la date. Le polissage LLM (couche 3)
 // vit côté serveur — cette banque est le repli permanent quand il est absent.
 
-// Date propre à la phrase d'humeur (les cartes compte à rebours viennent de l'API).
-// Se retire naturellement après le 6 octobre 2026.
-export const DATE_DEMENAGEMENT = '2026-10-06'
-
 export type FaitsDuJour = {
   ouvertes: number
   enRetard: number
   faites: number
-  dodosDemenagement: number | null
+  /** Les dodos avant le prochain compte à rebours du foyer ; null sans compte à venir.
+   * Rien de propre à un foyer ici : la date vient des comptes à rebours de l'API. */
+  dodosProchainCompte: number | null
 }
 
 type Phrase = { titre: string; sousTitre: string }
@@ -33,7 +31,7 @@ export function phraseDuJour(faits: FaitsDuJour, date = new Date()): Phrase {
     date.getFullYear() * 366 +
     Math.round((minuit.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86_400_000)
   const demenagementProche =
-    faits.dodosDemenagement !== null && faits.dodosDemenagement > 0 && faits.dodosDemenagement <= 60
+    faits.dodosProchainCompte !== null && faits.dodosProchainCompte > 0 && faits.dodosProchainCompte <= 60
 
   const titresDemenagement = ['On y est presque.', 'Bientôt chez nous.', 'Le compte à rebours est parti.']
   const titresCalmes = ['La maison respire.', 'Tout doux aujourd’hui.', 'Belle journée pour flâner.']

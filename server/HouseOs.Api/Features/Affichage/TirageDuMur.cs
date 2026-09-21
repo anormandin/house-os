@@ -1,6 +1,10 @@
 using System.Diagnostics;
+using System.Globalization;
 using HouseOs.Api.Domaine.Humeur;
+using HouseOs.Api.Features.Editorial;
+using HouseOs.Api.Features.FondsDeTiroir;
 using HouseOs.Api.Features.Humeur;
+using HouseOs.Api.Features.Meteo;
 using HouseOs.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +14,8 @@ namespace HouseOs.Api.Features.Affichage;
 /// <param name="Source">Llm quand le modèle a écrit la phrase, Gabarit quand la banque
 /// a pris le relais (pas de clé API, ou réponse inutilisable). C'est le seul moyen de
 /// savoir si l'appel a vraiment eu lieu.</param>
+/// <param name="EditionSource">Même chose pour l'édition du journal : Llm quand
+/// l'éditorialiste (Opus) l'a écrite, Gabarit sinon.</param>
 /// <param name="DifferentDuDernier">Faux quand le bitmap est identique à celui que
 /// l'appareil a déjà : le firmware compare les noms de fichier et ne repeint pas pour
 /// rien. Régénérer la phrase ne garantit donc pas un mur différent — une journée
@@ -21,6 +27,10 @@ public record TirageDuMurDto(
     string SousTitre,
     string Source,
     bool PhraseReecrite,
+    string Surtitre,
+    string Manchette,
+    string Chapeau,
+    string EditionSource,
     string? Appareil,
     int Largeur,
     int Hauteur,
@@ -39,6 +49,10 @@ public record TirageDuMurDto(
 /// en tirage, pas en poussée ; le reTerminal dort et redemande son écran à la cadence
 /// configurée. La phrase neuve part donc au prochain réveil, pas à la seconde. C'est
 /// une limite du protocole, pas un oubli (vault : Affichage E-ink).</para>
+///
+/// <para><c>horloge</c> date le tirage (le pied du journal, le surtitre d'édition) ;
+/// <c>maintenant</c> est l'heure vraie, dont l'éditorialiste a besoin pour savoir s'il
+/// écrit la journée courante ou un essai daté d'un autre jour.</para>
 /// </summary>
 public static class TirageDuMur
 {
@@ -85,21 +99,54 @@ public static class TirageDuMur
 
     public const string Erreur = "Moment inconnu : « matin », « soir », ou vide pour le créneau courant.";
 
+    /// <summary>
+    /// Une autre journée que celle de l'horloge (YYYY-MM-DD) : l'édition et la phrase de
+    /// ce jour-là sont écrites et gardées. C'est l'outil des essais — relire sept
+    /// éditions à la suite sans attendre sept jours — pas celui du mur, qui vit à
+    /// l'heure vraie.
+    /// </summary>
+    public static bool LireDate(string? demande, out DateOnly? date)
+    {
+        date = null;
+        if (string.IsNullOrWhiteSpace(demande))
+        {
+            return true;
+        }
+        if (DateOnly.TryParseExact(demande.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var lue))
+        {
+            date = lue;
+            return true;
+        }
+        return false;
+    }
+
+    public const string ErreurDate = "Date illisible : YYYY-MM-DD, ou vide pour aujourd'hui.";
+
     public static async Task<TirageDuMurDto> RegenererAsync(
         HouseOsDbContext db,
         HumeurOptions humeur,
+        IRedacteurEdition redacteur,
+        MeteoOptions? meteo,
+        BanqueDuHasard? banque,
+        string? lieu,
         IRenduEcran rendu,
         CacheImages cache,
         ILogger journal,
         DateOnly date,
         MomentJournee moment,
         DateTime horloge,
+        DateTime maintenant,
         CancellationToken ct)
     {
-        // 1. La matière : la phrase du créneau, réécrite même si elle existe déjà —
-        //    c'est toute la différence avec le service de fond.
+        // 1. La matière : la phrase du créneau puis l'édition du jour, réécrites même
+        //    si elles existent déjà — c'est toute la différence avec le service de fond.
+        //    La phrase d'abord : le gabarit de l'édition la prend en repli, et sans clé
+        //    API c'est elle qui fait la manchette.
         var (phrase, reecrite) = await GenerationHumeur.GenererAsync(
             db, humeur, journal, date, moment, remplacer: true, ct);
+        var (edition, _) = await GenerationEdition.GenererAsync(
+            db, redacteur, meteo, banque, lieu, journal, date, maintenant, remplacer: true, ct);
 
         // 2. L'image, par le chemin de l'appareil. La taille est celle de l'appareil
         //    enrôlé quand il y en a un : tirer à une autre taille ne prouverait rien du
@@ -131,8 +178,8 @@ public static class TirageDuMur
         }
 
         journal.LogInformation(
-            "Tirage du mur — {Date} ({Moment}), phrase via {Source}, image {Fichier} en {Duree} ms.",
-            date, moment, phrase.Source, fichier, chrono.ElapsedMilliseconds);
+            "Tirage du mur — {Date} ({Moment}), édition via {EditionSource}, phrase via {Source}, image {Fichier} en {Duree} ms.",
+            date, moment, edition.Source, phrase.Source, fichier, chrono.ElapsedMilliseconds);
 
         return new TirageDuMurDto(
             date,
@@ -141,6 +188,10 @@ public static class TirageDuMur
             phrase.SousTitre,
             phrase.Source.ToString(),
             reecrite,
+            edition.Surtitre,
+            edition.Manchette,
+            edition.Chapeau,
+            edition.Source.ToString(),
             appareil?.Identifiant,
             demande.Largeur,
             demande.Hauteur,

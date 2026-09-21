@@ -42,6 +42,7 @@ test('enregistrer sans rien modifier renvoie le détail tel quel (rien ne se per
     zoneId: TACHE_COMPLETE.zoneId,
     strategie: 'Fixe',
     documentIds: TACHE_COMPLETE.documentIds,
+    echeanceFerme: false,
   })
 })
 
@@ -71,6 +72,7 @@ test('une hebdo en saison se recharge et se réenregistre à l’identique', asy
     zoneId: TACHE_RECURRENTE.zoneId,
     strategie: 'Alternance',
     documentIds: [],
+    echeanceFerme: false,
     recurrence: {
       mode: 'Fixe',
       fixeType: 'JoursSemaine',

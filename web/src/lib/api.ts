@@ -20,6 +20,8 @@ export type Occurrence = {
   zoneId: string | null
   equipementId: string | null
   modeRecurrence: 'Ponctuelle' | 'Fixe' | 'Intervalle'
+  /** La date vient du dehors et ne se négocie pas (notaire, livraison, date légale). */
+  echeanceFerme: boolean
 }
 
 export type Recurrence = {
@@ -48,6 +50,7 @@ export type TacheDetail = {
   strategie: 'Fixe' | 'Alternance' | 'MoinsLAFait'
   recurrence: Recurrence
   documentIds: string[]
+  echeanceFerme: boolean
 }
 
 export type TacheResume = {
@@ -65,6 +68,7 @@ export type TacheResume = {
   nbDocuments: number
   /** Ponctuelle sans occurrence en attente : déjà faite. */
   completee: boolean
+  echeanceFerme: boolean
 }
 
 export type TacheDonnees = {
@@ -78,6 +82,8 @@ export type TacheDonnees = {
   recurrence?: Recurrence
   /** Liste complète des documents liés — absente = liens conservés, [] = tout délier. */
   documentIds?: string[]
+  /** Absente = faux. */
+  echeanceFerme?: boolean
 }
 
 export type Zone = {
@@ -398,6 +404,23 @@ export type LigneEcran = {
   assigne: string | null
   faite: boolean
   joursDeRetard: number
+  /** Le troisième cas du plancher : une date qui ne se négocie pas. */
+  echeanceFerme: boolean
+}
+
+/**
+ * L'édition du jour, figée pour la journée (vault : D-2026-09-20 Une Édition Par Jour
+ * Matérialisée) : ce que l'éditorialiste a écrit, ou son gabarit. La sélection et
+ * l'ordre des widgets, figés eux aussi, sont déjà dans l'ordre de `faits`.
+ */
+export type EditionEcran = {
+  rang: 'Chronique' | 'Manchette' | 'Resserre' | 'Court' | 'Sommaire' | 'Evenement'
+  surtitre: string
+  manchette: string
+  chapeau: string
+  paragraphes: string[]
+  plancher: { raison: 'Compte' | 'Retard' | 'Ferme'; titre: string } | null
+  source: 'Gabarit' | 'Llm'
 }
 
 /**
@@ -438,6 +461,8 @@ export type DonneesEcran = {
   numeroEdition: number | null
   /** Le fonds de tiroir du jour, déjà classé par score — au journal d'en prendre. */
   faits: FaitEcran[]
+  /** L'édition du jour ; null seulement si le serveur n'a pas pu en composer une. */
+  edition: EditionEcran | null
 }
 
 export type PhraseDuJour = {

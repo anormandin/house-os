@@ -1,3 +1,4 @@
+using HouseOs.Api.Features.Editorial;
 using HouseOs.Api.Features.FondsDeTiroir;
 using HouseOs.Api.Domaine.Humeur;
 using HouseOs.Api.Features.Humeur;
@@ -23,7 +24,8 @@ public static class AffichageEndpoints
         app.MapGet("/api/affichage/donnees", async (
             HttpContext contexte, JetonRendu jeton, HouseOsDbContext db,
             IOptions<AffichageOptions> options, IOptions<MeteoOptions> meteo,
-            IOptions<HumeurOptions> humeur, BanqueDuHasard banqueDuHasard, string? maintenant) =>
+            IOptions<HumeurOptions> humeur, BanqueDuHasard banqueDuHasard, SignalDeReedition signal,
+            ILoggerFactory fabrique, CancellationToken ct, string? maintenant) =>
         {
             if (jeton.Autorise(contexte) == false)
             {
@@ -37,8 +39,12 @@ public static class AffichageEndpoints
             }
             // Le créneau que cette horloge commande : c'est lui qui choisit la phrase.
             TirageDuMur.LireMoment(null, horloge, humeur.Value, out _, out var creneau);
+            // L'édition ne se matérialise que pour la journée vraie : un aperçu daté
+            // d'un autre jour la compose sans l'écrire.
+            var persister = DateOnly.FromDateTime(horloge) == DateOnly.FromDateTime(DateTime.Now);
             return Results.Ok(await ComposerDonneesEcran.LireAsync(
-                db, horloge, options.Value.Lieu, meteo.Value, banqueDuHasard, creneau));
+                db, horloge, options.Value.Lieu, meteo.Value, banqueDuHasard, creneau,
+                persister, signal, fabrique.CreateLogger("HouseOs.Editorial"), ct));
         }).AllowAnonymous();
 
         // L'outil de conception avant la livraison, de diagnostic ensuite : le PNG
@@ -70,28 +76,36 @@ public static class AffichageEndpoints
             }
         });
 
-        // Régénérer le journal du mur à la demande : réécrire la phrase du créneau
-        // (appel LLM compris) puis tirer l'image par le chemin de l'appareil.
+        // Régénérer le journal du mur à la demande : réécrire l'édition et la phrase du
+        // créneau (appels LLM compris) puis tirer l'image par le chemin de l'appareil.
         // Parité MCP : regenerer_journal_mural.
         app.MapPost("/api/affichage/regenerer", async (
-            string? moment, HouseOsDbContext db, IOptions<HumeurOptions> humeur,
+            string? moment, string? date, HouseOsDbContext db, IOptions<HumeurOptions> humeur,
+            IRedacteurEdition redacteur, IOptions<MeteoOptions> meteo, BanqueDuHasard banque,
+            IOptions<AffichageOptions> affichage,
             IRenduEcran rendu, CacheImages cache, ILoggerFactory fabrique, CancellationToken ct) =>
         {
             var maintenant = DateTime.Now;
-            if (TirageDuMur.LireMoment(moment, maintenant, humeur.Value, out var date, out var creneau) == false)
+            if (TirageDuMur.LireMoment(moment, maintenant, humeur.Value, out var jour, out var creneau) == false)
             {
                 return Results.BadRequest(new { erreur = TirageDuMur.Erreur });
             }
+            if (TirageDuMur.LireDate(date, out var autreJour) == false)
+            {
+                return Results.BadRequest(new { erreur = TirageDuMur.ErreurDate });
+            }
+            jour = autreJour ?? jour;
             var journal = fabrique.CreateLogger("HouseOs.Affichage");
             try
             {
                 return Results.Ok(await TirageDuMur.RegenererAsync(
-                    db, humeur.Value, rendu, cache, journal, date, creneau,
-                    HorlogeDuCreneau(date, creneau, humeur.Value, maintenant), ct));
+                    db, humeur.Value, redacteur, meteo.Value, banque, affichage.Value.Lieu,
+                    rendu, cache, journal, jour, creneau,
+                    HorlogeDuCreneau(jour, creneau, humeur.Value, maintenant), maintenant, ct));
             }
             catch (RenduEcranException ex)
             {
-                // La phrase est écrite quand même : c'est l'image qui a manqué.
+                // L'édition et la phrase sont écrites quand même : c'est l'image qui a manqué.
                 journal.LogError(ex, "Tirage du mur impossible.");
                 return Results.Problem(title: "Rendu de l'écran impossible", detail: ex.Message,
                     statusCode: StatusCodes.Status503ServiceUnavailable);

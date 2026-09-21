@@ -50,6 +50,7 @@ export const TACHE_COMPLETE: TacheDetail = {
   strategie: 'Fixe',
   recurrence: { mode: 'Ponctuelle' },
   documentIds: [DOCUMENT_REFERENCE.id],
+  echeanceFerme: false,
 }
 
 /** Détail récurrent — chaque champ de la récurrence non neutre : le test « rien ne
@@ -74,6 +75,7 @@ export const TACHE_RECURRENTE: TacheDetail = {
     rollover: true,
   },
   documentIds: [],
+  echeanceFerme: false,
 }
 
 /** Résumé Budget neutre (aucun compte ancré) — les tests le remplacent au besoin. */

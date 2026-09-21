@@ -8,8 +8,8 @@ import TacheEditeur from '@/components/TacheEditeur'
 import FeuilleActions from '@/components/telephone/FeuilleActions'
 import { api, dateLocaleIso, type Occurrence } from '@/lib/api'
 import { invaliderAutourOccurrences, useCompletionAvecUndo } from '@/lib/completion'
-import { bornesJourneeLocale, dateCourte, dateLongue, dodosAvant } from '@/lib/format'
-import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
+import { bornesJourneeLocale, dateCourte, dateLongue } from '@/lib/format'
+import { phraseDuJour } from '@/lib/humeur'
 import { cn } from '@/lib/utils'
 
 function joursDeRetard(echeance: string, aujourdhui: string): number {
@@ -58,7 +58,6 @@ export default function AujourdhuiTelephone() {
   })
 
   const aujourdhui = dateLocaleIso()
-  const dodosDemenagement = dodosAvant(DATE_DEMENAGEMENT)
   const enRetard = (ouvertes ?? []).filter(
     (o) => o.echeance !== null && o.echeance < aujourdhui,
   )
@@ -68,7 +67,9 @@ export default function AujourdhuiTelephone() {
       ouvertes: ouvertes?.length ?? 0,
       enRetard: enRetard.length,
       faites: faites?.length ?? 0,
-      dodosDemenagement: dodosDemenagement > 0 ? dodosDemenagement : null,
+      // La page téléphone ne charge pas les comptes à rebours : la phrase de repli
+      // se passe des dodos plutôt que d'en inventer depuis une date écrite en dur.
+      dodosProchainCompte: null,
     })
 
   // Le plus en retard d'abord : la pile propose toujours la chose la plus vieille

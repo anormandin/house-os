@@ -751,32 +751,156 @@ péremption, vue de bout en bout. Le 26 septembre, les trois faits sortent, dont
 
 ### 7 — L'éditorialiste
 
-[[D-2026-09-20 Une Édition Par Jour Matérialisée]], [[D-2026-09-20 Édition Écrite Par Opus]].
+[[D-2026-09-20 Une Édition Par Jour Matérialisée]], [[D-2026-09-20 Édition Écrite Par Opus]],
+[[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]].
 
-- [ ] Entité d'édition sous `Domaine/` + migration EF : date, rang, textes rendus,
+- [x] Entité d'édition sous `Domaine/` + migration EF : date, rang, textes rendus,
       **clés de widgets publiées** en JSONB, rubriques, source (LLM ou gabarit),
-      horodatage.
-- [ ] `BackgroundService` au créneau du matin, sur le patron de `HumeurService.cs` :
+      horodatage. (`Domaine/Editorial/Edition.cs`, migration
+      `AjouterEditionEtEcheanceFerme` — la troisième du chantier, mutualisée avec le
+      booléen `Tache.EcheanceFerme` comme la décision le demandait.)
+- [x] `BackgroundService` au créneau du matin, sur le patron de `HumeurService.cs` :
       rattrapage au démarrage, plancher d'une minute, aucun appel dans le chemin de
-      requête.
-- [ ] Prompt de l'édition, distinct de celui de [[Titre D'humeur]] : surtitre,
+      requête. (`Features/Editorial/EditorialisteService.cs`, réveillé aussi par
+      `SignalDeReedition`.)
+- [x] Prompt de l'édition, distinct de celui de [[Titre D'humeur]] : surtitre,
       manchette, chapeau, deux paragraphes, rubriques. **Aucun fait inventé** ; les
       chiffres et les titres viennent tous de l'état fourni.
-- [ ] Parse défensif et validation stricte de la sortie, sur le patron de
-      `PolissageLlm.Extraire` : tout écart → repli en gabarit.
-- [ ] Mémoire des sept derniers jours : les sept dernières éditions alimentent la
+      (`Features/Editorial/RedactionLlm.cs`.)
+- [x] Parse défensif et validation stricte de la sortie, sur le patron de
+      `PolissageLlm.Extraire` : tout écart → repli en gabarit. Un titre de tâche
+      inventé dans une rubrique est écarté, jamais affiché.
+- [x] Mémoire des sept derniers jours : les sept dernières éditions alimentent la
       pénalité de fraîcheur du score **et** le prompt anti-radotage.
-- [ ] Réglage de modèle propre à l'édition (`claude-opus-5` par défaut) ;
-      [[Titre D'humeur]] garde Haiku. `docs/configuration.md` mis à jour.
-- [ ] `ComposerDonneesEcran` sert l'édition matérialisée ; la liste, la météo, les
+      (`Features/Editorial/MemoireDesEditions.cs`, une seule lecture pour les deux.)
+- [x] Réglage de modèle propre à l'édition (`claude-opus-5` par défaut) ;
+      [[Titre D'humeur]] garde Haiku. `docs/configuration.md` mis à jour
+      (`Edition:Modele`).
+- [x] `ComposerDonneesEcran` sert l'édition matérialisée ; la liste, la météo, les
       cochées, l'heure et la pile restent recalculées à chaque rendu.
-- [ ] **Réévaluation du plancher à chaque rendu** : compte à rebours à zéro, retard qui
+- [x] **Réévaluation du plancher à chaque rendu** : compte à rebours à zéro, retard qui
       passe trois jours ou échéance ferme entrante → réédition.
+- [x] `Tache.EcheanceFerme` : entité, `OccurrenceDto`, `TacheDto`, `TacheResumeDto`,
+      `LigneEcranDto`, `plancher()` avec la raison `'ferme'`, `TacheEditeur` (chargé et
+      renvoyé), `gerer_tache` et `creer_taches` en parité MCP.
+- [x] Parité MCP : `regenerer_journal_mural` réécrit l'édition (Opus) avant la phrase
+      et l'image, et gagne `date` (une autre journée, pour les essais).
+
+#### Ce que l'étape 7 a tranché en chemin
+
+- [x] **La réédition par plancher se fait en deux temps** (proposé, à confirmer par
+      Alain : [[D-2026-09-21 Réédition En Deux Temps]]). Le rendu qui voit un plancher
+      changé pose **tout de suite un gabarit** (la manchette du plancher, sa raison en
+      surtitre), lève un drapeau sur l'édition et réveille le service de fond, qui
+      rappelle Opus **hors du chemin de requête**. Le mur ne ment jamais, et l'appel
+      LLM reste un appel de fond. Même mécanique pour une édition manquante — un
+      redémarrage avant le créneau, un premier rendu après la migration.
+- [x] **La clé API est celle du titre d'humeur** (`ANTHROPIC_API_KEY`) ; seul le
+      **modèle** a son réglage propre (`Edition:Modele`). La décision demandait deux
+      modèles et deux prompts, pas deux comptes Anthropic : le courriel entrant partage
+      déjà cette clé, et une seconde variable aurait été une seconde chose à poser au
+      déménagement.
+- [x] **Le rang est figé dans l'édition, la grille reste vivante.** L'édition consigne
+      le rang pour lequel la prose a été écrite ; la page calcule sa grille sur le
+      compte vivant, comme avant. Sinon une tâche ajoutée à neuf heures sur une
+      journée écrite « chronique » n'aurait eu **nulle part où aller** — la liste est
+      vivante par décision, il lui faut sa colonne.
+- [x] **Les widgets figés sont un ordre, pas une liste fermée.** `DonneesEcran.Faits`
+      sert d'abord les clés publiées par l'édition, dans son ordre, puis le reste au
+      score du moment. La place fixe de la collecte et l'encadré du compte à rebours
+      (`CLES_DEJA_AU_JOURNAL`) sont publiés **hors budget** — le pendant serveur est
+      `GenerationEdition.ClesDejaAuJournal`.
+- [x] **Une horloge d'essai sur un autre jour ne matérialise rien.** Un aperçu de Noël
+      en septembre aurait écrit une édition de Noël avec les faits de septembre, et le
+      service de fond l'aurait trouvée « déjà écrite » le jour venu. L'édition ne se
+      persiste que pour la journée vraie ; pour une autre date, c'est `date` sur la
+      régénération à la main, qui est un geste explicite.
+- [x] **Le numéro d'édition ne change pas de source.** Le compter en éditions
+      matérialisées, comme la spec l'annonçait, aurait fait repartir le mur à « N° 1 »
+      le jour du release. Il reste le compte de jours depuis la première entrée du
+      journal de complétion.
+- [x] **La chronique a sa colonne, pas la pleine largeur.** Les deux paragraphes
+      prennent la première colonne du corps aux rangs « chronique » et « manchette »
+      (les maquettes du 8 novembre et du 20 septembre), jamais sous la manchette : le
+      bloc-titre et la manchette gardent leur hauteur, et c'est la colonne qui absorbe
+      le texte. Le gabarit n'a pas de corps, donc pas de colonne : sans clé API, le mur
+      est exactement celui de l'étape 6.
+- [x] **Le premier rendu a coupé la chronique au milieu d'une ligne**, sans que la
+      garde de débordement le voie : la colonne cache (`overflow-hidden`), le cadre ne
+      déborde pas. Deux paragraphes de 260 signes à 34 px ne tenaient pas dans une
+      colonne d'un tiers. Premier essai : la colonne à **1,55 fr** comme les maquettes
+      — mais les colonnes d'aparté rétrécies faisaient clipper leurs étiquettes
+      (« LA PROCHAINE… »), des étiquettes que le fonds écrit pour un tiers de page.
+      Retenu : la chronique garde **un tiers**, le corps passe à 32 px, la borne à
+      **200 signes** (sept lignes de ~32 signes, mesurées) et le clamp à sept lignes
+      fait le filet. Le fonds ne bouge pas.
+- [x] **L'aperçu d'un autre jour comptait les dodos depuis l'horloge du navigateur** :
+      le 27 affichait « 15 dodos » pour le 6 octobre. `libelleDodos` compte depuis la
+      date composée par le serveur. Le chemin de l'appareil n'était pas touché (l'heure
+      vraie et la date composée sont les mêmes), seul l'essai mentait.
+- [x] **Le service de fond vise le jour civil, pas « la veille avant l'heure du
+      matin ».** Calqué sur le titre d'humeur, le rattrapage de trois heures du matin
+      aurait écrit l'édition d'hier avec les tâches, le plancher et la météo
+      d'aujourd'hui — la phrase du soir a un créneau de la veille à couvrir, l'édition
+      n'en a pas. Trouvé en revue de code. Dans le même mouvement, l'éditorialiste lit
+      ses sources **à la date demandée** (le matin de ce jour-là) quand ce n'est pas
+      aujourd'hui.
+- [x] **Une édition écrite pour un autre jour garde son drapeau.** L'essai du 27
+      écrit le 21 aurait été servi tel quel le 27 — « aucune occurrence due » avec cinq
+      tâches dues. Le drapeau reste levé, et le 27 au matin l'éditorialiste réécrit
+      avec les faits du 27. Trouvé en revue de code.
+- [x] **Deux premiers rendus en même temps ne font plus un 500.** L'appareil et un
+      navigateur qui ouvrent la journée à la même seconde tentaient deux insertions
+      sur l'index unique de la date ; le perdant relit et sert l'édition du gagnant.
+      Un aperçu sans persistance lit **sans suivi** : l'édition composée pour l'essai ne
+      reste pas modifiée dans le contexte. Trouvé en revue de code.
+- [x] **`gerer_tache` en modification conserve l'échéance ferme omise**, comme il
+      conserve l'échéance et les documents : un agent qui change l'assigné ne décoche
+      pas le notaire en silence. Le PUT REST, lui, remplace tout — l'éditeur charge le
+      champ. Trouvé en revue de code.
+- [x] **La régénération à la main écrit la phrase avant l'édition** : sans clé API, le
+      gabarit prend la phrase en manchette, et l'écrire après laissait l'ancienne au
+      mur. Trouvé en revue de code.
+- [x] **`DATE_DEMENAGEMENT` a quitté le code.** La phrase de repli du client portait
+      la date du foyer en dur, dans un dépôt public ([[Distribution]]) ; elle compte
+      maintenant les dodos du **prochain compte à rebours** de l'API — et sur l'écran,
+      depuis la date composée par le serveur. Trouvé en revue de code, hors du
+      périmètre de l'étape mais dans la règle du dépôt.
+- [x] **Sept surtitres datés par le jour de semaine** : « Le dernier lundi… », « Le
+      premier mercredi… », « Le samedi où… ». La mémoire des sept jours était bien
+      dans le prompt, mais « ne reprends pas la formule » ne suffisait pas ; le prompt
+      nomme maintenant le patron à éviter et demande un autre angle.
 
 **Vérification** — test « un second rendu dans la même journée n'appelle pas le LLM »
 (compteur sur un client fictif) ; test du repli sans clé API ; test de réédition
 déclenchée par le plancher ; sept jours d'éditions en dev relues à la suite pour juger
 le radotage.
+
+**Vérifié** (dev, 2026-09-21) : `dotnet test` **901** verts (852 au départ : le
+plancher, le rang, le gabarit, le parse strict, la génération sur Sqlite — dont « un
+second rendu dans la même journée n'appelle pas le modèle », le repli sans clé par le
+vrai rédacteur Anthropic, la réédition déclenchée par une échéance ferme et par un
+compte à rebours, la mémoire des sept jours — le créneau du service, le signal, la
+parité MCP de l'échéance ferme), `npm test` **224** (222 au départ : la chronique et
+le troisième cas du plancher). Migration `AjouterEditionEtEcheanceFerme` appliquée au
+démarrage sur le Postgres de dev, les trois colonnes jsonb écrites et relues. Au
+démarrage, l'éditorialiste a rattrapé l'édition du jour avec Opus (rang chronique,
+9 clés publiées) ; puis **sept éditions à la suite** (21 → 27 septembre) par
+`regenerer_journal_mural` avec `date`, toutes écrites par le modèle, chacune avec la
+mémoire des précédentes. Relues d'un trait : les surtitres ne se ressemblent plus
+(« L'été s'en va demain soir, la maison ne demande rien », « Le camion et les
+encombrants, le même 6 octobre », « Six degrés de plus qu'à pareille date l'an
+dernier », « Onze heures cinquante-cinq de clarté pour emballer ») ; ce qui revient
+d'un jour à l'autre, c'est la matière — les deux mêmes tâches en retard, le gel du
+3 octobre, les trois minutes de clarté — et pas la formule. Un fait inventé : aucun
+relevé ; chaque chiffre des sept éditions se retrouve dans la matière. Aperçus
+1872×1404 des 21, 22 et 27 : chronique + deux apartés, chronique + liste + aparté,
+plancher « en retard » en inversé — **aucun avertissement de débordement**, plus
+aucune ligne coupée. Vu aussi en passant : deux appels refusés par l'API Anthropic
+(`overloaded_error`, après les réessais du SDK) → gabarit, marqué tel quel, le mur
+sort quand même — le repli fait son travail. **Laissé ouvert** : une édition tombée
+en gabarit au créneau du matin le reste toute la journée ; réessayer une fois plus
+tard dans la journée serait un choix à faire (coût : un appel), pas un défaut.
 
 ### 8 — Le rang 10 et plus
 
@@ -808,16 +932,21 @@ toute la prod) ; test du repli sans LLM ; test « tâche inventée rejetée ».
 ## Vérification (globale)
 
 - `npm test` dans `web/` — aucun test affaibli ni contourné. Base : 189 avant l'étape 1,
-  217 après l'étape 4, **222 après l'étape 6** (as of 2026-09-21 ; un test est parti
-  avec `quandCeJour`, dont le dernier appelant a disparu).
+  217 après l'étape 4, 222 après l'étape 6 (un test est parti avec `quandCeJour`, dont
+  le dernier appelant a disparu), **224 après l'étape 7** (as of 2026-09-21).
 - `dotnet test` — les trois couches ([[D-2026-08-25 Stratégie De Tests Trois Couches]]).
-  Base : 753 verts après l'étape 4, **852 après l'étape 6** (as of 2026-09-21).
+  Base : 753 verts après l'étape 4, 852 après l'étape 6, **901 après l'étape 7**
+  (as of 2026-09-21).
 - Aperçu : `GET /api/affichage/apercu.png?largeur=1872&hauteur=1404` (cookie de session).
   Les données de dev portent depuis l'étape 1 une trentaine de tâches de test créées pour
   voir les rangs chargés (dix de plus à l'étape 2, toutes cochées à la fin) — jetables, à
   recréer ou à ignorer selon le besoin.
 - **Où en est la prod** (as of 2026-09-21) : le LXC 105 tourne **`e8e34ac`**, donc les
-  **étapes 1 à 6**. Posé à la main pour l'étape 6 : `HOUSEOS_POUSSEE_CLE` dans
+  **étapes 1 à 6** ; l'étape 7 est bâtie en dev et **pas encore livrée**. À poser au
+  release de l'étape 7 : rien de nouveau dans le `.env` (`ANTHROPIC_API_KEY` y est
+  déjà, `Edition:Modele` a son défaut) ; la migration
+  `AjouterEditionEtEcheanceFerme` s'applique au démarrage ; le premier rendu après
+  le release pose un gabarit et l'éditorialiste rattrape dans la minute. Posé à la main pour l'étape 6 : `HOUSEOS_POUSSEE_CLE` dans
   `/opt/house-os/.env` (la clé de la poussée, distincte de celle du MCP), les deux flux
   (« Collectes 2026 », ICS sur R2, 10 événements ; « Ville », poussé, 6 événements), la
   tâche annuelle « Régénérer le calendrier de collectes » (échéance 2027-01-12) et le

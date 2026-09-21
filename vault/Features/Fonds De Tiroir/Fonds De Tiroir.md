@@ -24,7 +24,9 @@ la lettre du matin (courriel sortant), qui aura sa propre feature.
 > et les sept items du ciel ; l'étape 3 les huit items de la maison et les quatre du
 > calendrier ; l'étape 4 les deux du hasard ; l'étape 5 les cinq du climat, avec la
 > **première migration** du chantier ; l'étape 6 les trois de la ville, avec la
-> **seconde**. La **fraîcheur** lit un historique vide jusqu'à l'étape 7.
+> **seconde**. Depuis l'étape 7, la **fraîcheur** lit les clés publiées par les sept
+> dernières éditions (`Features/Editorial/MemoireDesEditions.cs`) — le fonds, lui, ne
+> sait toujours pas qu'une édition existe.
 
 ## Comportement
 

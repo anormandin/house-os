@@ -22,6 +22,7 @@ function tache(partiel: Partial<TacheResume> & { id: string; titre: string }): T
     strategie: 'Fixe',
     recurrence: { mode: 'Ponctuelle' },
     nbDocuments: 0,
+    echeanceFerme: false,
     completee: false,
     ...partiel,
   }

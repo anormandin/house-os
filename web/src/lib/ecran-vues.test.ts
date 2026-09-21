@@ -3,6 +3,7 @@ import type { FaitEcran, LigneEcran } from '@/lib/api'
 import {
   capaciteListe,
   capaciteWidgets,
+  chroniqueVisible,
   dimensionsEcran,
   grilleDuJour,
   initiales,
@@ -43,9 +44,12 @@ test('initiales prend deux lettres en majuscules (Alain et Ariane se distinguent
 test('libelleDodos compte les nuits', () => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date(2026, 8, 3, 14, 30))
-  expect(libelleDodos('2026-10-06')).toBe('33 dodos')
-  expect(libelleDodos('2026-09-04')).toBe('1 dodo')
-  expect(libelleDodos('2026-09-03')).toBe("c'est aujourd'hui")
+  // Toujours depuis la date composée par le serveur, jamais depuis l'horloge du
+  // navigateur : un tirage d'essai daté d'un autre jour compte ses dodos de là.
+  expect(libelleDodos('2026-10-06', '2026-09-03')).toBe('33 dodos')
+  expect(libelleDodos('2026-09-04', '2026-09-03')).toBe('1 dodo')
+  expect(libelleDodos('2026-09-03', '2026-09-03')).toBe("c'est aujourd'hui")
+  expect(libelleDodos('2026-10-06', '2026-09-27')).toBe('9 dodos')
 })
 
 test("dimensionsEcran retombe sur l'E1003 en paysage quand la requête est absente ou farfelue", () => {
@@ -67,11 +71,12 @@ test('pileAnnoncee est bornée à 0–100 et absente sans paramètre', () => {
   expect(pileAnnoncee(new URLSearchParams('pile=oui'))).toBeNull()
 })
 
-const ligne = (titre: string, joursDeRetard = 0, faite = false): LigneEcran => ({
+const ligne = (titre: string, joursDeRetard = 0, faite = false, echeanceFerme = false): LigneEcran => ({
   titre,
   assigne: null,
   faite,
   joursDeRetard,
+  echeanceFerme,
 })
 
 test('le plancher : un compte à rebours à zéro passe devant tout', () => {
@@ -100,6 +105,28 @@ test("le plancher : un retard de plus de trois jours ne peut pas être relégué
 test('le plancher : le compte à rebours passe avant le retard', () => {
   const p = plancher([ligne('Remettre les clés', 9)], { titre: 'Le camion', dateCible: '2026-10-06' }, '2026-10-06')
   expect(p).toEqual({ raison: 'compte', titre: 'Le camion' })
+})
+
+test("le plancher : une échéance ferme du jour prend la manchette, entre le compte et le retard", () => {
+  // Cochée à la main sur la tâche, jamais déduite (D-2026-09-20 Échéance Ferme
+  // Explicite Sur La Tâche) : le notaire ne passe pas sous un widget.
+  const notaire = ligne('Signer chez le notaire', 0, false, true)
+  expect(plancher([ligne('Boîtes'), notaire], null, '2026-10-02')).toEqual({
+    raison: 'ferme',
+    titre: 'Signer chez le notaire',
+  })
+  // Avant un retard, même long ; après un compte à rebours à zéro.
+  expect(plancher([ligne('Boîtes', 9), notaire], null, '2026-10-02')?.raison).toBe('ferme')
+  expect(
+    plancher([notaire], { titre: 'Le camion', dateCible: '2026-10-02' }, '2026-10-02')?.raison,
+  ).toBe('compte')
+  // Une ferme déjà faite ne déclenche rien.
+  expect(plancher([ligne('Signer chez le notaire', 0, true, true)], null, '2026-10-02')).toBeNull()
+  // Et la dateline le dit en inversé, avec ses propres mots.
+  expect(etatDuJour({ raison: 'ferme', titre: 'Signer chez le notaire' }, 3, 0)).toEqual({
+    texte: 'Date ferme',
+    urgent: true,
+  })
 })
 
 test('les six rangs du tableau de bascule', () => {
@@ -134,18 +161,38 @@ test('la liste prend plus de colonnes à mesure que la journée se charge', () =
 })
 
 test('répartition : jamais de colonne vide, et le sommaire renvoie les widgets au pied', () => {
-  expect(repartitionColonnes(1, 4)).toEqual({ liste: 1, aparte: 2, bandeDePied: false })
-  expect(repartitionColonnes(2, 4)).toEqual({ liste: 2, aparte: 1, bandeDePied: false })
+  expect(repartitionColonnes(1, 4)).toEqual({ chronique: 0, liste: 1, aparte: 2, bandeDePied: false })
+  expect(repartitionColonnes(2, 4)).toEqual({ chronique: 0, liste: 2, aparte: 1, bandeDePied: false })
   // Un fonds de tiroir maigre ne laisse pas une colonne vide au milieu du journal.
-  expect(repartitionColonnes(1, 1)).toEqual({ liste: 1, aparte: 1, bandeDePied: false })
-  expect(repartitionColonnes(0, 2)).toEqual({ liste: 0, aparte: 2, bandeDePied: false })
+  expect(repartitionColonnes(1, 1)).toEqual({ chronique: 0, liste: 1, aparte: 1, bandeDePied: false })
+  expect(repartitionColonnes(0, 2)).toEqual({ chronique: 0, liste: 0, aparte: 2, bandeDePied: false })
   // Sans rien à mettre à côté, la liste prend tout.
-  expect(repartitionColonnes(1, 0)).toEqual({ liste: 3, aparte: 0, bandeDePied: false })
-  expect(repartitionColonnes(3, 3)).toEqual({ liste: 3, aparte: 0, bandeDePied: true })
+  expect(repartitionColonnes(1, 0)).toEqual({ chronique: 0, liste: 3, aparte: 0, bandeDePied: false })
+  expect(repartitionColonnes(3, 3)).toEqual({ chronique: 0, liste: 3, aparte: 0, bandeDePied: true })
   // Rien à mettre dans le corps : pas de corps du tout, la manchette prend la page.
   // Sans ça, une installation neuve peignait un « Aujourd'hui · 0 à faire » sur trois
   // colonnes blanches.
-  expect(repartitionColonnes(0, 0)).toEqual({ liste: 0, aparte: 0, bandeDePied: false })
+  expect(repartitionColonnes(0, 0)).toEqual({ chronique: 0, liste: 0, aparte: 0, bandeDePied: false })
+})
+
+test('la chronique prend la première colonne aux rangs qui racontent, et jamais ailleurs', () => {
+  // Rang « chronique » : la prose, puis deux colonnes d'aparté (maquette du 8 novembre).
+  expect(repartitionColonnes(0, 4, true)).toEqual({ chronique: 1, liste: 0, aparte: 2, bandeDePied: false })
+  // Rang « manchette » : la prose, la liste, une colonne d'aparté (maquette du 20 septembre).
+  expect(repartitionColonnes(1, 4, true)).toEqual({ chronique: 1, liste: 1, aparte: 1, bandeDePied: false })
+  // Dès que la liste veut deux colonnes, le corps n'est plus montré.
+  expect(repartitionColonnes(2, 4, true)).toEqual({ chronique: 0, liste: 2, aparte: 1, bandeDePied: false })
+  expect(repartitionColonnes(3, 3, true)).toEqual({ chronique: 0, liste: 3, aparte: 0, bandeDePied: true })
+  // Sans widget : la chronique et la liste se partagent la page ; sans liste, la
+  // chronique la prend toute — jamais de colonne blanche.
+  expect(repartitionColonnes(1, 0, true)).toEqual({ chronique: 1, liste: 2, aparte: 0, bandeDePied: false })
+  expect(repartitionColonnes(0, 0, true)).toEqual({ chronique: 1, liste: 0, aparte: 0, bandeDePied: false })
+  // Et elle ne s'affiche que si l'éditorialiste a écrit : le gabarit n'a pas de corps.
+  expect(chroniqueVisible(grilleDuJour(0, false), ['Un paragraphe', 'Un autre'])).toBe(true)
+  expect(chroniqueVisible(grilleDuJour(0, false), [])).toBe(false)
+  expect(chroniqueVisible(grilleDuJour(4, false), ['Un paragraphe', 'Un autre'])).toBe(false)
+  // Le plancher garde la lettrine et une colonne de liste : la chronique reste.
+  expect(chroniqueVisible(grilleDuJour(1, true), ['Un paragraphe', 'Un autre'])).toBe(true)
 })
 
 test("le surtitre suit l'heure du tirage", () => {
@@ -182,23 +229,23 @@ test("la capacité de l'aparté borne le budget du rang, et l'encadré coûte un
   // 90 px de débordement, mesurés à l'étape 4.
   const chronique = grilleDuJour(0, false)
   expect(chronique.widgets).toBe(7)
-  expect(capaciteWidgets({ liste: 0, aparte: 3, bandeDePied: false }, false)).toBe(
+  expect(capaciteWidgets({ chronique: 0, liste: 0, aparte: 3, bandeDePied: false }, false)).toBe(
     3 * WIDGETS_PAR_COLONNE,
   )
-  expect(capaciteWidgets({ liste: 0, aparte: 3, bandeDePied: false }, true)).toBe(
+  expect(capaciteWidgets({ chronique: 0, liste: 0, aparte: 3, bandeDePied: false }, true)).toBe(
     3 * WIDGETS_PAR_COLONNE - 1,
   )
 
   // Une seule colonne d'aparté et un encadré : il ne reste qu'un widget.
-  expect(capaciteWidgets({ liste: 2, aparte: 1, bandeDePied: false }, true)).toBe(1)
+  expect(capaciteWidgets({ chronique: 0, liste: 2, aparte: 1, bandeDePied: false }, true)).toBe(1)
   // Et jamais un nombre négatif, même quand l'encadré coûte plus que la place.
-  expect(capaciteWidgets({ liste: 3, aparte: 0, bandeDePied: false }, true)).toBe(0)
+  expect(capaciteWidgets({ chronique: 0, liste: 3, aparte: 0, bandeDePied: false }, true)).toBe(0)
 
   // La bande de pied compte ses places à l'horizontale, pas par colonne.
-  expect(capaciteWidgets({ liste: 3, aparte: 0, bandeDePied: true }, false)).toBe(
+  expect(capaciteWidgets({ chronique: 0, liste: 3, aparte: 0, bandeDePied: true }, false)).toBe(
     PLACES_BANDE_DE_PIED,
   )
-  expect(capaciteWidgets({ liste: 3, aparte: 0, bandeDePied: true }, true)).toBe(
+  expect(capaciteWidgets({ chronique: 0, liste: 3, aparte: 0, bandeDePied: true }, true)).toBe(
     PLACES_BANDE_DE_PIED - 1,
   )
 })

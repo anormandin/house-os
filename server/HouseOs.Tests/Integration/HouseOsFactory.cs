@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
 using HouseOs.Api.Features.Affichage;
+using HouseOs.Tests.Features.Editorial;
+using HouseOs.Api.Features.Editorial;
 using HouseOs.Api.Features.Auth;
 using HouseOs.Api.Features.Courriel;
 using HouseOs.Api.Features.FluxExternes;
@@ -78,6 +80,7 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
                      d.ImplementationType == typeof(MeteoIngestionService) ||
                      d.ImplementationType == typeof(NormalesIngestionService) ||
                      d.ImplementationType == typeof(HumeurService) ||
+                     d.ImplementationType == typeof(EditorialisteService) ||
                      d.ImplementationType == typeof(FluxExternesRafraichissement) ||
                      d.ImplementationType == typeof(CourrielEntrantHote) ||
                      d.ImplementationType == typeof(HoteRenduEcran)))
@@ -99,6 +102,12 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
             services.AddSingleton<IDepotCourriels>(sp => sp.GetRequiredService<DepotCourrielsFictif>());
             services.RemoveAll<IEnrichisseurCourriel>();
             services.AddSingleton<IEnrichisseurCourriel>(new EnrichisseurFictif());
+
+            // L'éditorialiste ne parle jamais à Anthropic sous test, même avec une clé
+            // dans l'env : un fictif à compteur écrit, ou se tait.
+            services.RemoveAll<IRedacteurEdition>();
+            services.AddSingleton<RedacteurFictif>();
+            services.AddSingleton<IRedacteurEdition>(sp => sp.GetRequiredService<RedacteurFictif>());
 
             // Pas de Chromium sous test : le rendu de l'écran e-ink est une image grise.
             services.RemoveAll<IRenduEcran>();

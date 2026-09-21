@@ -71,6 +71,7 @@ test('le menu porte la pastille des tâches en retard — ce qu’une barre d’
           zoneId: null,
           equipementId: null,
           modeRecurrence: 'Ponctuelle',
+          echeanceFerme: false,
         },
       ])
     }),

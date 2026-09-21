@@ -28,6 +28,14 @@ public class Tache
     public SpecRecurrence Recurrence { get; set; } = SpecRecurrence.Ponctuelle();
     public StrategieAssignation Strategie { get; set; } = StrategieAssignation.Fixe;
 
+    /// <summary>
+    /// Cette date vient du dehors et ne se négocie pas (notaire, livraison payée, date
+    /// légale). Coché à la main, jamais déduit : c'est une affirmation du foyer sur le
+    /// monde. Le journal mural ne relègue jamais une échéance ferme sous un widget
+    /// (D-2026-09-20 Échéance Ferme Explicite Sur La Tâche).
+    /// </summary>
+    public bool EcheanceFerme { get; set; }
+
     public Guid CreeParId { get; set; }
     public DateTimeOffset CreeLe { get; set; }
     public List<Occurrence> Occurrences { get; } = [];

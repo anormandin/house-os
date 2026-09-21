@@ -1,6 +1,8 @@
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Editorial;
 using HouseOs.Api.Domaine.Ephemerides;
 using HouseOs.Api.Domaine.Humeur;
+using HouseOs.Api.Features.Editorial;
 using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.FondsDeTiroir;
 using HouseOs.Api.Features.Humeur;
@@ -16,8 +18,10 @@ namespace HouseOs.Api.Features.Affichage;
 /// <paramref name="JoursDeRetard"/> est 0 quand la ligne n'est pas en retard : le
 /// journal en a besoin en jours, pas en booléen, parce que son plancher se déclenche
 /// à partir d'un retard de trois jours (vault : Journal De La Maison).
+/// <paramref name="EcheanceFerme"/> est le troisième cas du plancher : une date qui
+/// vient du dehors et ne se négocie pas (D-2026-09-20 Échéance Ferme Explicite Sur La Tâche).
 /// </summary>
-public record LigneEcranDto(string Titre, string? Assigne, bool Faite, int JoursDeRetard);
+public record LigneEcranDto(string Titre, string? Assigne, bool Faite, int JoursDeRetard, bool EcheanceFerme);
 
 public record PhraseEcranDto(string Titre, string SousTitre);
 
@@ -38,6 +42,36 @@ public record CompteEcranDto(string Titre, DateOnly DateCible);
 /// (vault : D-2026-09-20 Fonds De Tiroir Séparé Du Journal).
 /// </summary>
 public record FaitEcranDto(string Cle, string Famille, string Etiquette, string Valeur, string Texte);
+
+public record PlancherEcranDto(string Raison, string Titre);
+
+/// <summary>
+/// L'édition du jour telle que l'écran la reçoit : ce qui est <b>figé pour la journée</b>
+/// (vault : D-2026-09-20 Une Édition Par Jour Matérialisée). La sélection et l'ordre
+/// des widgets, figés eux aussi, se lisent dans l'ordre de <see cref="DonneesEcran.Faits"/>.
+/// </summary>
+public record EditionEcranDto(
+    string Rang,
+    string Surtitre,
+    string Manchette,
+    string Chapeau,
+    List<string> Paragraphes,
+    PlancherEcranDto? Plancher,
+    string Source);
+
+/// <summary>
+/// Ce que la journée donne à lire avant toute mise en page : les occurrences dues, le
+/// prochain compte à rebours, les prévisions, et le fonds de tiroir déjà classé. C'est la
+/// matière commune du rendu et de l'éditorialiste — une seule lecture, pour que les deux
+/// voient la même journée.
+/// </summary>
+public sealed record SourcesDuJour(
+    DateOnly Aujourdhui,
+    List<OccurrenceDto> Ouvertes,
+    MeteoDto? Previsions,
+    (string Titre, DateOnly DateCible)? ProchainCompte,
+    IReadOnlyList<FaitDeTiroir> Faits,
+    string? Lieu);
 
 /// <summary>
 /// Ce qu'il faut à la composition pour ouvrir le fonds de tiroir : d'où l'on regarde
@@ -65,7 +99,8 @@ public record DonneesEcran(
     CompteEcranDto? ProchainCompte,
     string? Lieu,
     int? NumeroEdition,
-    List<FaitEcranDto> Faits);
+    List<FaitEcranDto> Faits,
+    EditionEcranDto? Edition);
 
 public static class ComposerDonneesEcran
 {
@@ -79,10 +114,18 @@ public static class ComposerDonneesEcran
     /// <summary>Fenêtre de recherche de la prochaine collecte et du prochain compte à rebours.</summary>
     private const int FenetreJours = 60;
 
-    /// <summary>Lit tout ce qu'il faut puis compose. Une seule lecture d'horloge.</summary>
+    /// <summary>
+    /// Lit tout ce qu'il faut puis compose. Une seule lecture d'horloge.
+    /// <paramref name="persisterEdition"/> : vrai sur le chemin de l'appareil et de
+    /// l'aperçu du jour même — l'édition manquante ou dépassée par le plancher est alors
+    /// posée en gabarit et l'éditorialiste réveillé ; faux pour une horloge d'essai sur
+    /// un autre jour, qu'on ne veut pas matérialiser.
+    /// </summary>
     public static async Task<DonneesEcran> LireAsync(
         HouseOsDbContext db, DateTime maintenant, string? lieu = null, MeteoOptions? options = null,
-        BanqueDuHasard? banqueDuHasard = null, MomentJournee creneau = MomentJournee.Soir)
+        BanqueDuHasard? banqueDuHasard = null, MomentJournee creneau = MomentJournee.Soir,
+        bool persisterEdition = false, SignalDeReedition? signal = null, ILogger? journal = null,
+        CancellationToken ct = default)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
         // Bornes de la journée locale : le serveur vit en heure locale (TZ du
@@ -92,30 +135,53 @@ public static class ComposerDonneesEcran
         var debutJour = new DateTimeOffset(maintenant.Date).ToUniversalTime();
         var finJour = new DateTimeOffset(maintenant.Date.AddDays(1)).ToUniversalTime();
 
-        var ouvertes = await OperationsTaches.ListerOccurrencesAsync(db, "aujourdhui", aujourdhui, null, null);
+        // La mémoire des sept derniers jours d'abord : c'est elle qui classe le fonds.
+        var memoire = await MemoireDesEditions.LireAsync(db, aujourdhui, ct);
+        var sources = await LireLesSourcesAsync(db, maintenant, lieu, options, banqueDuHasard, memoire.Fraicheur);
+        var edition = await GenerationEdition.AssurerAsync(db, sources, persisterEdition, signal, journal, ct);
+
         var faites = await OperationsTaches.ListerOccurrencesAsync(db, "faites", aujourdhui, debutJour, finJour);
         // La phrase du créneau composé, pas « la plus récente » : à sept heures du
         // matin, celle du soir n'a pas encore eu lieu.
         var phrase = await HumeurEndpoints.PhraseCouranteAsync(db, aujourdhui, creneau);
-        var previsions = await MeteoEndpoints.LireAsync(db, maintenant);
         var fin = aujourdhui.AddDays(FenetreJours);
         var evenements = await db.EvenementsExternes
             .Where(e => e.Date >= aujourdhui && e.Date < fin)
             .Join(db.FluxExternes, e => e.FluxExterneId, f => f.Id, (e, f) => new { e, f })
             .OrderBy(x => x.e.Date).ThenBy(x => x.e.Heure)
             .Select(x => new EvenementExterneDto(x.e.Titre, x.f.Type.ToString(), x.e.Date, x.e.Heure))
-            .ToListAsync();
-        var comptes = await db.ComptesARebours
-            .Where(c => c.DateCible >= aujourdhui)
-            .OrderBy(c => c.DateCible)
-            .Take(1)
-            .ToListAsync();
+            .ToListAsync(ct);
         // Le numéro d'édition compte les jours depuis la première chose que la maison
         // a consignée. Journal vide (une installation neuve) : pas de numéro plutôt
         // qu'un « N° 1 » qui vieillirait mal.
         var premiereEntree = await db.Journal
             .OrderBy(e => e.CompleteeLe)
             .Select(e => (DateTimeOffset?)e.CompleteeLe)
+            .FirstOrDefaultAsync(ct);
+
+        return Composer(
+            maintenant, sources.Ouvertes, faites, phrase, sources.Previsions, evenements,
+            sources.ProchainCompte, lieu,
+            premiereEntree is { } d ? DateOnly.FromDateTime(d.LocalDateTime) : null,
+            sources.Faits, edition);
+    }
+
+    /// <summary>
+    /// La matière commune du rendu et de l'éditorialiste : les occurrences dues, le
+    /// prochain compte à rebours, les prévisions, et le fonds de tiroir classé avec la
+    /// mémoire fournie. Aucune écriture.
+    /// </summary>
+    public static async Task<SourcesDuJour> LireLesSourcesAsync(
+        HouseOsDbContext db, DateTime maintenant, string? lieu, MeteoOptions? options,
+        BanqueDuHasard? banqueDuHasard, HistoriqueDeParution historique)
+    {
+        var aujourdhui = DateOnly.FromDateTime(maintenant);
+        var ouvertes = await OperationsTaches.ListerOccurrencesAsync(db, "aujourdhui", aujourdhui, null, null);
+        var previsions = await MeteoEndpoints.LireAsync(db, maintenant);
+        var compte = await db.ComptesARebours
+            .Where(c => c.DateCible >= aujourdhui)
+            .OrderBy(c => c.DateCible)
+            .Select(c => new { c.Titre, c.DateCible })
             .FirstOrDefaultAsync();
         // Les zones extérieures : le seul signal « la journée est physique » que le
         // modèle porte vraiment. Il n'y a pas de catégorie sur la tâche, et il n'y en
@@ -125,16 +191,27 @@ public static class ComposerDonneesEcran
             .Select(z => z.Id)
             .ToListAsync();
 
-        return Composer(
-            maintenant, ouvertes, faites, phrase, previsions, evenements, comptes, lieu,
-            premiereEntree is { } d ? DateOnly.FromDateTime(d.LocalDateTime) : null,
+        var jour = previsions?.Jours.FirstOrDefault(j => j.Date == aujourdhui);
+        var climat = options is null ? null : await LireLeClimatAsync(db, aujourdhui, options);
+        // Le maximum du jour vient des prévisions : c'est lui qui transforme « il a
+        // fait 14 °C l'an dernier » en comparaison. Absent, le fait dira autre chose
+        // plutôt que de se taire.
+        var faits = FondsDuJour(
+            aujourdhui, ouvertes,
             options is null ? null : new ReglagesDuCiel(
                 new Lieu(options.Latitude, options.Longitude), options.Fuseau(), zonesDehors.ToHashSet()),
             await LireLaMaisonAsync(db, aujourdhui),
             await LireLeCalendrierAsync(db, aujourdhui),
             await LireLaVilleAsync(db, aujourdhui, new DateTimeOffset(maintenant)),
             banqueDuHasard,
-            options is null ? null : await LireLeClimatAsync(db, aujourdhui, options));
+            climat is null ? null : climat with { MaxDAujourdhuiC = jour?.TempMax },
+            historique);
+
+        return new SourcesDuJour(
+            aujourdhui, ouvertes, previsions,
+            compte is null ? null : (compte.Titre, compte.DateCible),
+            faits,
+            string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim());
     }
 
     /// <summary>
@@ -385,12 +462,12 @@ public static class ComposerDonneesEcran
     }
 
     /// <summary>
-    /// Le fonds de tiroir du jour, déjà classé. L'historique de parution est
-    /// <b>vide</b> à cette étape : il se branche aux éditions matérialisées à l'étape 7
-    /// du plan (vault : D-2026-09-20 Une Édition Par Jour Matérialisée), et d'ici là
-    /// aucun fait n'est pénalisé.
+    /// Le fonds de tiroir du jour, déjà classé. L'historique de parution est la mémoire
+    /// des sept dernières éditions (vault : D-2026-09-20 Une Édition Par Jour
+    /// Matérialisée) ; vide, c'est l'état d'une installation neuve, et aucun fait n'est
+    /// pénalisé.
     /// </summary>
-    private static List<FaitEcranDto> FondsDuJour(
+    public static IReadOnlyList<FaitDeTiroir> FondsDuJour(
         DateOnly aujourdhui,
         IReadOnlyList<OccurrenceDto> ouvertes,
         ReglagesDuCiel? ciel,
@@ -398,7 +475,8 @@ public static class ComposerDonneesEcran
         EtatDuCalendrier? calendrier,
         EtatDeLaVille? ville,
         BanqueDuHasard? hasard,
-        EtatDuClimat? climat)
+        EtatDuClimat? climat,
+        HistoriqueDeParution? historique = null)
     {
         // Chaque famille a sa source, et chacune est facultative : la composition sort
         // avec ce qu'elle a, jamais en mode dégradé.
@@ -412,8 +490,7 @@ public static class ComposerDonneesEcran
             ville,
             hasard);
 
-        return [.. Tiroir.Ouvrir(contexte, HistoriqueDeParution.Vide)
-            .Select(f => new FaitEcranDto(f.Cle, f.Famille.ToString(), f.Etiquette, f.Valeur, f.Texte))];
+        return Tiroir.Ouvrir(contexte, historique ?? HistoriqueDeParution.Vide);
     }
 
     /// <summary>Les types de flux dont la famille « la ville » a la charge
@@ -421,7 +498,7 @@ public static class ComposerDonneesEcran
     private static bool EstDeLaVille(string type) =>
         type == nameof(TypeFluxExterne.Collecte) || type == nameof(TypeFluxExterne.Municipal);
 
-    /// <summary>La composition pure — testée sans base.</summary>
+    /// <summary>La composition pure depuis les sources brutes — testée sans base.</summary>
     public static DonneesEcran Composer(
         DateTime maintenant,
         IReadOnlyList<OccurrenceDto> ouvertes,
@@ -437,7 +514,41 @@ public static class ComposerDonneesEcran
         EtatDuCalendrier? calendrier = null,
         EtatDeLaVille? ville = null,
         BanqueDuHasard? hasard = null,
-        EtatDuClimat? climat = null)
+        EtatDuClimat? climat = null,
+        HistoriqueDeParution? historique = null,
+        Edition? edition = null)
+    {
+        var aujourdhui = DateOnly.FromDateTime(maintenant);
+        var jour = meteo?.Jours.FirstOrDefault(j => j.Date == aujourdhui);
+        var faits = FondsDuJour(
+            aujourdhui, ouvertes, ciel, maison, calendrier, ville, hasard,
+            climat is null ? null : climat with { MaxDAujourdhuiC = jour?.TempMax },
+            historique);
+        var compte = comptes.Where(c => c.DateCible >= aujourdhui).OrderBy(c => c.DateCible).FirstOrDefault();
+        return Composer(
+            maintenant, ouvertes, faites, phrase, meteo, evenements,
+            compte is null ? null : (compte.Titre, compte.DateCible),
+            lieu, premiereParution, faits, edition);
+    }
+
+    /// <summary>
+    /// La composition pure depuis le fonds déjà classé et l'édition du jour. L'édition
+    /// fige la sélection et l'ordre des widgets : les faits qu'elle a publiés passent
+    /// d'abord, dans son ordre, et les autres suivent au score du moment — un fait
+    /// apparu dans la journée ne bouscule pas ce que le matin a choisi.
+    /// </summary>
+    public static DonneesEcran Composer(
+        DateTime maintenant,
+        IReadOnlyList<OccurrenceDto> ouvertes,
+        IReadOnlyList<OccurrenceDto> faites,
+        PhraseDuJour? phrase,
+        MeteoDto? meteo,
+        IReadOnlyList<EvenementExterneDto> evenements,
+        (string Titre, DateOnly DateCible)? prochainCompte,
+        string? lieu,
+        DateOnly? premiereParution,
+        IReadOnlyList<FaitDeTiroir> faits,
+        Edition? edition)
     {
         var aujourdhui = DateOnly.FromDateTime(maintenant);
 
@@ -446,9 +557,11 @@ public static class ComposerDonneesEcran
         // qu'une liste qui déborde du cadre.
         var toutes = ouvertes
             .Select(o => new LigneEcranDto(o.Titre, o.AssigneA?.NomAffichage, Faite: false,
-                JoursDeRetard: o.Echeance is { } e && e < aujourdhui ? aujourdhui.DayNumber - e.DayNumber : 0))
+                JoursDeRetard: o.Echeance is { } e && e < aujourdhui ? aujourdhui.DayNumber - e.DayNumber : 0,
+                EcheanceFerme: o.EcheanceFerme))
             .Concat(faites.Select(o => new LigneEcranDto(
-                o.Titre, o.CompleteePar?.NomAffichage ?? o.AssigneA?.NomAffichage, Faite: true, JoursDeRetard: 0)))
+                o.Titre, o.CompleteePar?.NomAffichage ?? o.AssigneA?.NomAffichage, Faite: true, JoursDeRetard: 0,
+                EcheanceFerme: false)))
             .ToList();
 
         MeteoEcranDto? meteoEcran = null;
@@ -483,15 +596,34 @@ public static class ComposerDonneesEcran
             // laisser aussi dans le bandeau du jour, qui ne juge rien, publierait deux
             // fois le même événement — et publierait celui d'un gratteur mort.
             evenements.Where(e => e.Date == aujourdhui && EstDeLaVille(e.Type) == false).ToList(),
-            comptes.Where(c => c.DateCible >= aujourdhui).OrderBy(c => c.DateCible)
-                .Select(c => new CompteEcranDto(c.Titre, c.DateCible)).FirstOrDefault(),
+            prochainCompte is { } c ? new CompteEcranDto(c.Titre, c.DateCible) : null,
             string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim(),
             NumeroEdition(aujourdhui, premiereParution),
-            // Le maximum du jour vient des prévisions, que la composition a déjà en
-            // main : c'est lui qui transforme « il a fait 14 °C l'an dernier » en
-            // comparaison. Absent, le fait dira autre chose plutôt que de se taire.
-            FondsDuJour(
-                aujourdhui, ouvertes, ciel, maison, calendrier, ville, hasard,
-                climat is null ? null : climat with { MaxDAujourdhuiC = jour?.TempMax }));
+            [.. DansLOrdreDeLEdition(faits, edition)
+                .Select(f => new FaitEcranDto(f.Cle, f.Famille.ToString(), f.Etiquette, f.Valeur, f.Texte))],
+            edition is null ? null : new EditionEcranDto(
+                edition.Rang.ToString(),
+                edition.Surtitre,
+                edition.Manchette,
+                edition.Chapeau,
+                edition.Paragraphes,
+                edition.Plancher is { } p ? new PlancherEcranDto(p.Raison.ToString(), p.Titre) : null,
+                edition.Source.ToString()));
+    }
+
+    /// <summary>Les faits publiés par l'édition d'abord, dans son ordre ; le reste au score.</summary>
+    public static IEnumerable<FaitDeTiroir> DansLOrdreDeLEdition(IReadOnlyList<FaitDeTiroir> faits, Edition? edition)
+    {
+        if (edition is null || edition.ClesPubliees.Count == 0)
+        {
+            return faits;
+        }
+        var parCle = faits.ToDictionary(f => f.Cle, StringComparer.Ordinal);
+        var publies = edition.ClesPubliees
+            .Where(parCle.ContainsKey)
+            .Select(cle => parCle[cle])
+            .ToList();
+        var dejaPris = publies.Select(f => f.Cle).ToHashSet(StringComparer.Ordinal);
+        return publies.Concat(faits.Where(f => dejaPris.Contains(f.Cle) == false));
     }
 }

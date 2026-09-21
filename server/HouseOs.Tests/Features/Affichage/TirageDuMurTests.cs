@@ -1,6 +1,7 @@
 using HouseOs.Api.Domaine.Humeur;
 using HouseOs.Api.Features.Affichage;
 using HouseOs.Api.Features.Humeur;
+using HouseOs.Tests.Features.Editorial;
 using HouseOs.Tests.Features.Taches;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -18,12 +19,14 @@ public class TirageDuMurTests : TestAvecSqlite
     private static readonly DateOnly Aujourdhui = new(2026, 9, 20);
     private static readonly HumeurOptions Humeur = new();
     private readonly RenduEcranFictif _rendu = new();
+    private readonly RedacteurFictif _redacteur = new();
     private readonly CacheImages _cache = new();
 
     private Task<TirageDuMurDto> Regenerer(MomentJournee moment, DateTime? horloge = null) =>
         TirageDuMur.RegenererAsync(
-            Db, Humeur, _rendu, _cache, NullLogger.Instance, Aujourdhui, moment,
-            horloge ?? Aujourdhui.ToDateTime(new TimeOnly(7, 0)), CancellationToken.None);
+            Db, Humeur, _redacteur, null, null, null, _rendu, _cache, NullLogger.Instance, Aujourdhui, moment,
+            horloge ?? Aujourdhui.ToDateTime(new TimeOnly(7, 0)), Aujourdhui.ToDateTime(new TimeOnly(7, 0)),
+            CancellationToken.None);
 
     [Fact]
     public void Le_creneau_se_deduit_de_l_heure_comme_pour_le_service_de_fond()

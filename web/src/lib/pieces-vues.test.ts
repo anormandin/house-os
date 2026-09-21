@@ -19,6 +19,7 @@ function occurrence(echeance: string | null): Occurrence {
     zoneId: 'z-cuisine',
     equipementId: null,
     modeRecurrence: 'Ponctuelle',
+    echeanceFerme: false,
   }
 }
 

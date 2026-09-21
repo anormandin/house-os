@@ -7,6 +7,7 @@ using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.FluxIcal;
 using HouseOs.Api.Features.FondsDeTiroir;
+using HouseOs.Api.Features.Editorial;
 using HouseOs.Api.Features.Humeur;
 using HouseOs.Api.Features.Journalisation;
 using HouseOs.Api.Features.Affichage;
@@ -222,6 +223,14 @@ builder.Services.PostConfigure<HumeurOptions>(o =>
     }
 });
 builder.Services.AddHostedService<HumeurService>();
+
+// L'éditorialiste du journal mural : une édition par jour, écrite par Opus au créneau
+// du matin, gabarit en repli ; jamais d'appel LLM dans le chemin de requête
+// (D-2026-09-20 Une Édition Par Jour Matérialisée, D-2026-09-20 Édition Écrite Par Opus).
+builder.Services.Configure<EditionOptions>(builder.Configuration.GetSection("Edition"));
+builder.Services.AddSingleton<IRedacteurEdition, RedacteurAnthropic>();
+builder.Services.AddSingleton<SignalDeReedition>();
+builder.Services.AddHostedService<EditorialisteService>();
 
 // Courriel entrant : le Worker Cloudflare dépose les .eml dans R2, l'app les relève
 // (D-2026-09-02 Courriel Entrant Par Cloudflare Et R2). Config absente = dépôt inactif,

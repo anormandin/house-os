@@ -1,6 +1,9 @@
 using System.ComponentModel;
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Features.Affichage;
+using HouseOs.Api.Features.Meteo;
+using HouseOs.Api.Features.FondsDeTiroir;
+using HouseOs.Api.Features.Editorial;
 using HouseOs.Api.Features.Budget;
 using HouseOs.Api.Features.ComptesARebours;
 using HouseOs.Api.Features.Courriel;
@@ -760,43 +763,58 @@ public static class OutilsMaison
     }
 
     [McpServerTool(Name = "regenerer_journal_mural")]
-    [Description("Régénère le journal de l'écran mural À LA DEMANDE : réécrit la phrase du créneau " +
-        "— appel LLM compris, même quand une phrase existe déjà — puis tire l'image par le chemin de " +
-        "l'appareil (même capture, même seuillage 1-bit, même taille) pour que ce qui est vérifié soit " +
-        "exactement ce que le mur recevra. Utile pour voir tout de suite l'édition du matin ou du soir " +
-        "au lieu d'attendre le créneau. Ne réveille PAS l'appareil : le protocole est en tirage, le mur " +
-        "reprend son écran à sa cadence (15 min le jour), donc la phrase neuve y paraît au prochain " +
-        "réveil. La réponse dit « source » = Llm quand le modèle a écrit, Gabarit quand la banque a pris " +
-        "le relais. Parité avec POST /api/affichage/regenerer ; l'image elle-même reste web " +
+    [Description("Régénère le journal de l'écran mural À LA DEMANDE : réécrit l'édition du jour " +
+        "(l'éditorialiste Opus : surtitre, manchette, chapeau, corps, rubriques) et la phrase du " +
+        "créneau — appels LLM compris, même quand elles existent déjà — puis tire l'image par le " +
+        "chemin de l'appareil (même capture, même seuillage 1-bit, même taille) pour que ce qui est " +
+        "vérifié soit exactement ce que le mur recevra. Utile pour voir tout de suite l'édition du " +
+        "matin ou du soir au lieu d'attendre le créneau. Ne réveille PAS l'appareil : le protocole " +
+        "est en tirage, le mur reprend son écran à sa cadence (15 min le jour), donc le journal neuf " +
+        "y paraît au prochain réveil. La réponse dit « editionSource » et « source » = Llm quand un " +
+        "modèle a écrit, Gabarit quand le repli a pris le relais. « date » écrit et garde l'édition " +
+        "d'une autre journée (essais : relire sept éditions à la suite) ; sans date, c'est aujourd'hui. " +
+        "Parité avec POST /api/affichage/regenerer ; l'image elle-même reste web " +
         "(GET /api/affichage/apercu.png).")]
     public static async Task<TirageDuMurDto> RegenererJournalMural(
         HouseOsDbContext db,
         IOptions<HumeurOptions> humeur,
+        IRedacteurEdition redacteur,
+        IOptions<MeteoOptions> meteo,
+        BanqueDuHasard banque,
+        IOptions<AffichageOptions> affichage,
         IRenduEcran rendu,
         CacheImages cache,
         ILoggerFactory fabrique,
         CancellationToken ct,
         [Description("matin, soir, ou vide pour le créneau que l'heure courante commande.")]
-        string? moment = null)
+        string? moment = null,
+        [Description("Une autre journée, YYYY-MM-DD (essais) ; vide = aujourd'hui.")]
+        string? date = null)
     {
         var maintenant = DateTime.Now;
-        if (TirageDuMur.LireMoment(moment, maintenant, humeur.Value, out var date, out var creneau) == false)
+        if (TirageDuMur.LireMoment(moment, maintenant, humeur.Value, out var jour, out var creneau) == false)
         {
             throw new McpException(TirageDuMur.Erreur);
         }
+        if (TirageDuMur.LireDate(date, out var autreJour) == false)
+        {
+            throw new McpException(TirageDuMur.ErreurDate);
+        }
+        jour = autreJour ?? jour;
         try
         {
             return await TirageDuMur.RegenererAsync(
-                db, humeur.Value, rendu, cache, fabrique.CreateLogger("HouseOs.Affichage"),
-                date, creneau,
-                AffichageEndpoints.HorlogeDuCreneau(date, creneau, humeur.Value, maintenant), ct);
+                db, humeur.Value, redacteur, meteo.Value, banque, affichage.Value.Lieu,
+                rendu, cache, fabrique.CreateLogger("HouseOs.Affichage"),
+                jour, creneau,
+                AffichageEndpoints.HorlogeDuCreneau(jour, creneau, humeur.Value, maintenant), maintenant, ct);
         }
         catch (RenduEcranException ex)
         {
-            // La phrase, elle, est écrite : le dire plutôt que de laisser croire que
-            // rien n'a bougé.
+            // L'édition et la phrase, elles, sont écrites : le dire plutôt que de laisser
+            // croire que rien n'a bougé.
             throw new McpException(
-                $"Phrase régénérée, mais le rendu de l'image a échoué : {ex.Message}");
+                $"Édition et phrase régénérées, mais le rendu de l'image a échoué : {ex.Message}");
         }
     }
 

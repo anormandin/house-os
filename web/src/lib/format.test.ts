@@ -26,6 +26,9 @@ test('dodosAvant est négatif pour une date passée, jamais NaN pour une date va
   vi.setSystemTime(new Date(2026, 9, 10))
 
   expect(dodosAvant('2026-10-06')).toBe(-4)
+  // Depuis une date donnée, l'horloge du navigateur ne compte plus.
+  expect(dodosAvant('2026-10-06', '2026-09-27')).toBe(9)
+  expect(dodosAvant('2026-10-06', '2026-10-06')).toBe(0)
 })
 
 test('jourCourt rend le jour sans point final', () => {

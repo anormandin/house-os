@@ -31,7 +31,8 @@ public record CreerTacheRequete(
     Guid? EquipementId,
     string? Strategie,
     RecurrenceDto? Recurrence,
-    Guid[]? DocumentIds = null);
+    Guid[]? DocumentIds = null,
+    bool? EcheanceFerme = null);
 
 public record ModifierTacheRequete(
     string Titre,
@@ -43,7 +44,9 @@ public record ModifierTacheRequete(
     string? Strategie,
     RecurrenceDto? Recurrence,
     // null = liens conservés, [] = tout délier, liste = remplacement complet.
-    Guid[]? DocumentIds = null);
+    Guid[]? DocumentIds = null,
+    // Absent = faux : un PUT remplace tout, comme pour les autres champs.
+    bool? EcheanceFerme = null);
 
 public record CompleterRequete(string? Notes);
 
@@ -64,7 +67,8 @@ public record OccurrenceDto(
     string? Notes,
     Guid? ZoneId,
     Guid? EquipementId,
-    string ModeRecurrence);
+    string ModeRecurrence,
+    bool EcheanceFerme);
 
 public record TacheResumeDto(
     Guid Id,
@@ -79,7 +83,8 @@ public record TacheResumeDto(
     string Strategie,
     RecurrenceDto Recurrence,
     int NbDocuments,
-    bool Completee);
+    bool Completee,
+    bool EcheanceFerme);
 
 public record TacheDto(
     Guid Id,
@@ -91,7 +96,8 @@ public record TacheDto(
     Guid? EquipementId,
     string Strategie,
     RecurrenceDto Recurrence,
-    Guid[] DocumentIds);
+    Guid[] DocumentIds,
+    bool EcheanceFerme);
 
 public static class TachesEndpoints
 {

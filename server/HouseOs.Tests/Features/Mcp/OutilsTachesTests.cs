@@ -53,6 +53,24 @@ public class OutilsTachesTests : TestAvecSqlite
     // --- creer_taches : atomicité tout-ou-rien ---
 
     [Fact]
+    public async Task L_echeance_ferme_passe_par_le_mcp_a_l_aller_et_au_retour()
+    {
+        // Parité MCP (D-2026-09-20 Échéance Ferme Explicite Sur La Tâche) : sans ce
+        // champ, un agent ne peut pas créer la tâche du notaire correctement.
+        var id = await CreerUne(Item("Signer chez le notaire", echeance: "2026-10-02") with { EcheanceFerme = true });
+        var dto = Assert.IsType<TacheDto>(await OutilsTaches.GererTache(Db, "obtenir", id));
+        Assert.True(dto.EcheanceFerme);
+
+        // Une fiche partielle ne décoche pas la date en silence : omis = conservé,
+        // comme l'échéance et les documents sur ce même chemin. Faux explicite = faux.
+        await OutilsTaches.GererTache(Db, "modifier", id, Item("Signer chez le notaire", echeance: "2026-10-02"));
+        Assert.True((await Db.Taches.FindAsync(id))!.EcheanceFerme);
+        await OutilsTaches.GererTache(Db, "modifier", id,
+            Item("Signer chez le notaire", echeance: "2026-10-02") with { EcheanceFerme = false });
+        Assert.False((await Db.Taches.FindAsync(id))!.EcheanceFerme);
+    }
+
+    [Fact]
     public async Task Un_lot_partiellement_invalide_ne_cree_rien_meme_apres_un_save_ulterieur()
     {
         var lot = new[]

@@ -19,7 +19,7 @@ import {
 } from '@/lib/api'
 import { bornesSemainesBilan, comptesParSemaine } from '@/lib/aujourdhui-vues'
 import { bornesJourneeLocale, dateCourte, dateLongue, dodosAvant } from '@/lib/format'
-import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
+import { phraseDuJour } from '@/lib/humeur'
 
 export default function Aujourdhui() {
   const [editeurTacheId, setEditeurTacheId] = useState<string | null>(null)
@@ -80,7 +80,13 @@ export default function Aujourdhui() {
   const chargement = chargementOuvertes || chargementFaites
   const erreurJour = erreurOuvertes || erreurFaites
   const aujourdhui = dateLocaleIso()
-  const dodosDemenagement = dodosAvant(DATE_DEMENAGEMENT)
+  // Le prochain compte à rebours du foyer, pour la phrase de repli — jamais une date
+  // écrite dans le code (le dépôt est public).
+  const dodosProchainCompte =
+    (comptesARebours ?? [])
+      .map((c) => dodosAvant(c.dateCible))
+      .filter((d) => d >= 0)
+      .sort((a, b) => a - b)[0] ?? null
 
   // Phrase serveur (banque axée tâches, météo sur exception + polissage LLM)
   // quand elle existe ; la banque client reste le repli ultime.
@@ -90,7 +96,7 @@ export default function Aujourdhui() {
       ouvertes: ouvertes?.length ?? 0,
       enRetard: ouvertes?.filter((o) => o.echeance !== null && o.echeance < aujourdhui).length ?? 0,
       faites: faites?.length ?? 0,
-      dodosDemenagement: dodosDemenagement > 0 ? dodosDemenagement : null,
+      dodosProchainCompte,
     })
 
   const listeDuJour: Occurrence[] = [...(ouvertes ?? []), ...(faites ?? [])]

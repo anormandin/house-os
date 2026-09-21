@@ -8,6 +8,12 @@ tags: []
 
 # Titre D'humeur
 
+> [!note] L'éditorialiste du journal mural (as of 2026-09-21) est une autre couche.
+> [[Journal De La Maison]] écrit son édition avec Opus, son propre prompt et son propre
+> réglage de modèle ([[D-2026-09-20 Édition Écrite Par Opus]]) ; le titre d'humeur
+> **garde Haiku** et ses deux créneaux, partage seulement la clé `ANTHROPIC_API_KEY` et
+> l'heure du matin, et sert de repli de gabarit à l'édition.
+
 ## Intention
 
 Le geste signature de la direction chaleureuse : la bannière-héros d'Aujourd'hui

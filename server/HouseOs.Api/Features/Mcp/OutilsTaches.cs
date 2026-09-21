@@ -20,7 +20,8 @@ public record TacheAPlanifier(
     [property: Description("Id d'un équipement existant (via lister_equipements) — ne jamais inventer.")] Guid? EquipementId,
     [property: Description("Stratégie d'assignation pour une tâche récurrente : Fixe (défaut), Alternance ou MoinsLAFait.")] string? Strategie,
     [property: Description("Récurrence ; omise = tâche ponctuelle. mode: Ponctuelle|Fixe|Intervalle ; en mode Fixe, fixeType: JoursSemaine (+ joursSemaine 0=dimanche…6=samedi) | JourDuMois (+ jourDuMois 1-31) | Annuelle (+ moisAnnuel 1-12, jourAnnuel 1-31) ; en mode Intervalle, intervalleJours ≥ 1 (depuis la dernière complétion). Fenêtre saisonnière optionnelle : les 4 bornes fenetreDebutMois/fenetreDebutJour/fenetreFinMois/fenetreFinJour ensemble.")] RecurrenceDto? Recurrence,
-    [property: Description("Ids de documents existants (via lister_documents) à lier à la tâche — ne jamais inventer. En modification : omis = liens conservés, [] = tout délier, liste = remplacement complet.")] Guid[]? DocumentIds = null);
+    [property: Description("Ids de documents existants (via lister_documents) à lier à la tâche — ne jamais inventer. En modification : omis = liens conservés, [] = tout délier, liste = remplacement complet.")] Guid[]? DocumentIds = null,
+    [property: Description("Vrai si la date vient du dehors et ne se négocie pas (notaire, livraison payée, date légale) : le journal mural ne la relègue jamais. À la création, omis = faux ; en modification, omis = conservé.")] bool? EcheanceFerme = null);
 
 /// <summary>Une semaine du bilan : lundi de la semaine (YYYY-MM-DD) et total complété.</summary>
 public record BilanSemaineDto(
@@ -103,7 +104,7 @@ public static class OutilsTaches
             var requete = new CreerTacheRequete(
                 item.Titre, item.Description, echeance, assigneAId,
                 item.ZoneId, item.EquipementId, item.Strategie, item.Recurrence,
-                item.DocumentIds);
+                item.DocumentIds, item.EcheanceFerme);
             var (tache, erreur) = await OperationsTaches.PreparerTacheAsync(db, requete, createur.Id, maintenant, aujourdhui);
             if (erreur is not null)
             {
@@ -221,10 +222,12 @@ public static class OutilsTaches
                     }
                 }
 
+                // Même garde-fou que l'échéance et les documents : une fiche partielle
+                // ne décoche pas en silence une date que le foyer a dite ferme.
                 var requete = new ModifierTacheRequete(
                     tache.Titre, tache.Description, echeance, assigneAId,
                     tache.ZoneId, tache.EquipementId, tache.Strategie, recurrence,
-                    tache.DocumentIds);
+                    tache.DocumentIds, tache.EcheanceFerme ?? existante.EcheanceFerme);
                 var erreur = await OperationsTaches.ModifierTacheAsync(
                     db, existante, requete, DateOnly.FromDateTime(DateTime.Now));
                 if (erreur is not null)

@@ -59,12 +59,22 @@ export function dollars(montant: number, cents = false): string {
 }
 
 /** Nombre de dodos (nuits) entre aujourd'hui et une date locale. */
-export function dodosAvant(dateIso: string): number {
-  const [annee, mois, jour] = dateIso.split('-').map(Number)
-  const cible = new Date(annee, mois - 1, jour)
-  const maintenant = new Date()
-  const aujourdhui = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate())
+export function dodosAvant(dateIso: string, aujourdhuiIso?: string): number {
+  const cible = minuitLocal(dateIso)
+  // Depuis la date que le serveur a composée quand il y en a une (un tirage d'essai
+  // daté d'un autre jour), sinon depuis l'horloge du navigateur.
+  const aujourdhui = aujourdhuiIso === undefined ? minuitDAujourdhui() : minuitLocal(aujourdhuiIso)
   return Math.round((cible.getTime() - aujourdhui.getTime()) / 86_400_000)
+}
+
+function minuitLocal(iso: string): Date {
+  const [annee, mois, jour] = iso.split('-').map(Number)
+  return new Date(annee, mois - 1, jour)
+}
+
+function minuitDAujourdhui(): Date {
+  const maintenant = new Date()
+  return new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate())
 }
 
 /** Bornes d'instants de la journée locale [minuit, minuit+1j) pour le filtre « faites ». */

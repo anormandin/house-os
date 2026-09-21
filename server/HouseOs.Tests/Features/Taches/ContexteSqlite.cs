@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Editorial;
 using HouseOs.Api.Domaine.Meteo;
 using HouseOs.Api.Infrastructure;
 using Microsoft.Data.Sqlite;
@@ -32,6 +33,22 @@ public class HouseOsDbContextSqlite(DbContextOptions<HouseOsDbContext> options)
             .HasConversion(
                 echeancier => JsonSerializer.Serialize(echeancier, (JsonSerializerOptions?)null),
                 texte => JsonSerializer.Deserialize<List<Versement>>(texte, (JsonSerializerOptions?)null));
+        // Les trois listes jsonb de l'édition du jour : même remède.
+        modelBuilder.Entity<Edition>().Property(e => e.Paragraphes)
+            .HasColumnType("TEXT")
+            .HasConversion(
+                liste => JsonSerializer.Serialize(liste, (JsonSerializerOptions?)null),
+                texte => JsonSerializer.Deserialize<List<string>>(texte, (JsonSerializerOptions?)null) ?? new List<string>());
+        modelBuilder.Entity<Edition>().Property(e => e.ClesPubliees)
+            .HasColumnType("TEXT")
+            .HasConversion(
+                liste => JsonSerializer.Serialize(liste, (JsonSerializerOptions?)null),
+                texte => JsonSerializer.Deserialize<List<string>>(texte, (JsonSerializerOptions?)null) ?? new List<string>());
+        modelBuilder.Entity<Edition>().Property(e => e.Rubriques)
+            .HasColumnType("TEXT")
+            .HasConversion(
+                liste => JsonSerializer.Serialize(liste, (JsonSerializerOptions?)null),
+                texte => JsonSerializer.Deserialize<List<RubriqueEdition>>(texte, (JsonSerializerOptions?)null) ?? new List<RubriqueEdition>());
         modelBuilder.Entity<EntreeJournal>().Property(j => j.CompleteeLe)
             .HasConversion(new DateTimeOffsetToBinaryConverter());
         // Le tri des complétées (ListerOccurrencesAsync) ordonne par CompleteeLe :

@@ -60,6 +60,7 @@ function enOccurrence(tache: TacheResume, occurrenceId: string): Occurrence {
     zoneId: tache.zoneId,
     equipementId: tache.equipementId,
     modeRecurrence: tache.recurrence.mode,
+    echeanceFerme: tache.echeanceFerme,
   }
 }
 

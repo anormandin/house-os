@@ -15,9 +15,14 @@ export function initiales(nomAffichage: string | null): string {
   return [...nomAffichage.trim()].slice(0, 2).join('').toLocaleUpperCase('fr-CA')
 }
 
-/** « 33 dodos », « 1 dodo », « aujourd'hui » — le vocabulaire des comptes à rebours. */
-export function libelleDodos(dateIso: string): string {
-  const dodos = dodosAvant(dateIso)
+/**
+ * « 33 dodos », « 1 dodo », « aujourd'hui » — le vocabulaire des comptes à rebours.
+ * `aujourdhuiIso` est la date composée par le serveur : un tirage d'essai daté d'un
+ * autre jour doit compter ses dodos depuis ce jour-là, pas depuis l'horloge du
+ * navigateur — sinon l'aperçu du 27 affichait les dodos du 21.
+ */
+export function libelleDodos(dateIso: string, aujourdhuiIso: string): string {
+  const dodos = dodosAvant(dateIso, aujourdhuiIso)
   if (dodos <= 0) return "c'est aujourd'hui"
   return dodos === 1 ? '1 dodo' : `${dodos} dodos`
 }
@@ -56,12 +61,18 @@ function entierBorne(valeur: string | null, defaut: number): number {
 /** À partir de ce retard, une tâche ne peut plus être reléguée sous un widget. */
 export const JOURS_RETARD_PLANCHER = 3
 
-export type Plancher = { raison: 'compte' | 'retard'; titre: string }
+export type Plancher = { raison: 'compte' | 'retard' | 'ferme'; titre: string }
 
 /**
- * Le plancher non négociable : un compte à rebours à zéro ou une tâche en retard de
- * plus de trois jours prennent la manchette quoi qu'il arrive. Sans lui, le jour où
- * la lune passe devant « remettre les clés », l'écran perd sa crédibilité.
+ * Le plancher non négociable : un compte à rebours à zéro, une échéance ferme, ou une
+ * tâche en retard de plus de trois jours prennent la manchette quoi qu'il arrive. Sans
+ * lui, le jour où la lune passe devant « remettre les clés », l'écran perd sa
+ * crédibilité. Même règle et même ordre que le serveur (`Domaine/Editorial/Plancher.cs`),
+ * qui la réévalue à chaque rendu pour rééditer.
+ *
+ * L'échéance ferme est un booléen coché à la main sur la tâche, jamais déduit
+ * (vault : D-2026-09-20 Échéance Ferme Explicite Sur La Tâche) ; une ligne du jour qui
+ * le porte est due, donc « entrante » : elle prend la manchette.
  *
  * Les lignes arrivent triées par échéance (les retards d'abord), donc la plus en
  * retard survit toujours à l'élagage du serveur.
@@ -73,6 +84,10 @@ export function plancher(
 ): Plancher | null {
   if (prochainCompte !== null && prochainCompte.dateCible <= aujourdhui) {
     return { raison: 'compte', titre: prochainCompte.titre }
+  }
+  const ferme = lignes.find((l) => !l.faite && l.echeanceFerme)
+  if (ferme !== undefined) {
+    return { raison: 'ferme', titre: ferme.titre }
   }
   const tresEnRetard = lignes.find((l) => !l.faite && l.joursDeRetard > JOURS_RETARD_PLANCHER)
   if (tresEnRetard !== undefined) {
@@ -149,7 +164,7 @@ export function manchetteDuJour(titre: string, grille: Grille): { taille: number
   return { taille, lettrine: grille.lettrine && titre.length <= 55 }
 }
 
-export type Repartition = { liste: number; aparte: number; bandeDePied: boolean }
+export type Repartition = { chronique: 0 | 1; liste: number; aparte: number; bandeDePied: boolean }
 
 /**
  * Comment les trois colonnes du corps se partagent. Trois cas tordent la grille
@@ -162,21 +177,38 @@ export type Repartition = { liste: number; aparte: number; bandeDePied: boolean 
  * relevée, aucun fait au fonds de tiroir. Sans lui, l'écran peignait une grille à trois
  * colonnes coiffée d'un « Aujourd'hui · 0 à faire » et de deux colonnes blanches
  * (défaut de l'étape 1, trouvé en revue à l'étape 2).
+ *
+ * La **chronique** — les deux paragraphes de l'éditorialiste — prend la première
+ * colonne aux rangs où la manchette raconte (chronique, manchette : la liste tient sur
+ * une colonne au plus), comme dans les maquettes. Aux rangs plus chargés, le corps
+ * n'est pas montré : « titre court, sans lettrine ni chronique ».
  */
-export function repartitionColonnes(colonnesListe: number, widgetsDisponibles: number): Repartition {
-  if (colonnesListe <= 0 && widgetsDisponibles === 0) {
-    return { liste: 0, aparte: 0, bandeDePied: false }
+export function repartitionColonnes(
+  colonnesListe: number,
+  widgetsDisponibles: number,
+  avecChronique = false,
+): Repartition {
+  const chronique: 0 | 1 = avecChronique && colonnesListe <= 1 ? 1 : 0
+  if (chronique === 0 && colonnesListe <= 0 && widgetsDisponibles === 0) {
+    return { chronique: 0, liste: 0, aparte: 0, bandeDePied: false }
   }
   if (widgetsDisponibles === 0) {
-    return { liste: 3, aparte: 0, bandeDePied: false }
+    // Sans widget, la liste prend ce que la chronique laisse ; sans liste non plus,
+    // la chronique prend toute la page.
+    return { chronique, liste: colonnesListe > 0 ? 3 - chronique : 0, aparte: 0, bandeDePied: false }
   }
   if (colonnesListe >= 3) {
-    return { liste: 3, aparte: 0, bandeDePied: true }
+    return { chronique: 0, liste: 3, aparte: 0, bandeDePied: true }
   }
   // Une colonne par widget au plus : un fonds de tiroir maigre ne doit pas laisser
   // une colonne vide au milieu du journal.
-  const aparte = Math.min(3 - colonnesListe, widgetsDisponibles)
-  return { liste: colonnesListe, aparte, bandeDePied: false }
+  const aparte = Math.min(3 - chronique - colonnesListe, widgetsDisponibles)
+  return { chronique, liste: colonnesListe, aparte, bandeDePied: false }
+}
+
+/** Les rangs où la chronique a sa colonne : ceux dont la manchette porte une lettrine. */
+export function chroniqueVisible(grille: Grille, paragraphes: string[]): boolean {
+  return paragraphes.length > 0 && grille.lettrine && grille.colonnesListe <= 1
 }
 
 /**
@@ -277,7 +309,12 @@ export function etatDuJour(
 ): EtatDuJour {
   if (aPlancher !== null) {
     return {
-      texte: aPlancher.raison === 'compte' ? "C'est aujourd'hui" : 'En retard',
+      texte:
+        aPlancher.raison === 'compte'
+          ? "C'est aujourd'hui"
+          : aPlancher.raison === 'ferme'
+            ? 'Date ferme'
+            : 'En retard',
       urgent: true,
     }
   }

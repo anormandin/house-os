@@ -21,7 +21,7 @@ public class ComposerDonneesEcranTests
         string titre, DateOnly? echeance, UtilisateurDto? assigne = null,
         string statut = "EnAttente", UtilisateurDto? completeePar = null) =>
         new(Guid.NewGuid(), Guid.NewGuid(), titre, null, echeance, statut, assigne, completeePar,
-            completeePar is null ? null : new DateTimeOffset(Maintenant), null, null, null, "Ponctuelle");
+            completeePar is null ? null : new DateTimeOffset(Maintenant), null, null, null, "Ponctuelle", false);
 
     private static DonneesEcran Composer(
         IReadOnlyList<OccurrenceDto>? ouvertes = null,

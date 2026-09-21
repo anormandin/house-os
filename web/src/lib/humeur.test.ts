@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { phraseDuJour, type FaitsDuJour } from '@/lib/humeur'
 
-const faits: FaitsDuJour = { ouvertes: 3, enRetard: 0, faites: 1, dodosDemenagement: null }
+const faits: FaitsDuJour = { ouvertes: 3, enRetard: 0, faites: 1, dodosProchainCompte: null }
 
 test("la phrase change d'un jour à l'autre, même au changement d'heure", () => {
   // Les 7 et 8 mars 2026 (nuit de 23 h au Québec) : avec un floor, la graine se
@@ -27,9 +27,9 @@ test('la phrase est stable pour une même date', () => {
 
 test('60 dodos déclenche encore le ton déménagement, 61 non', () => {
   const date = new Date(2026, 7, 25)
-  const a60 = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosDemenagement: 60 }, date)
-  const a61 = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosDemenagement: 61 }, date)
-  const jourJ = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosDemenagement: 0 }, date)
+  const a60 = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosProchainCompte: 60 }, date)
+  const a61 = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosProchainCompte: 61 }, date)
+  const jourJ = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosProchainCompte: 0 }, date)
 
   const tonsDemenagement = ['On y est presque.', 'Bientôt chez nous.', 'Le compte à rebours est parti.']
   expect(tonsDemenagement).toContain(a60.titre)

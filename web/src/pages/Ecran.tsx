@@ -2,10 +2,11 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
-import { api, type DonneesEcran, type FaitEcran, type LigneEcran } from '@/lib/api'
+import { api, type DonneesEcran, type EditionEcran, type FaitEcran, type LigneEcran } from '@/lib/api'
 import {
   capaciteListe,
   capaciteWidgets,
+  chroniqueVisible,
   dimensionsEcran,
   etatDuJour,
   faitAvecTexteLong,
@@ -30,7 +31,7 @@ import {
   type Plancher,
 } from '@/lib/ecran-vues'
 import { dateJournal, dodosAvant, heureQuebec } from '@/lib/format'
-import { DATE_DEMENAGEMENT, phraseDuJour } from '@/lib/humeur'
+import { phraseDuJour } from '@/lib/humeur'
 import { meteoEnMots, pastillesMeteo } from '@/lib/meteo-vues'
 import { cn } from '@/lib/utils'
 
@@ -42,8 +43,10 @@ import { cn } from '@/lib/utils'
  * second gabarit. Conçue pour 1872×1404 (reTerminal E1003 en paysage) ; une autre
  * taille passe par un zoom uniforme, jamais par un layout desktop agrandi.
  *
- * La manchette est encore le titre d'humeur : l'éditorialiste arrive à l'étape 7
- * du Plan 2026-09-20 Journal Éditorial.
+ * La manchette, le surtitre, le chapeau et la chronique viennent de l'édition du jour,
+ * écrite le matin par l'éditorialiste et figée pour la journée (vault : D-2026-09-20
+ * Une Édition Par Jour Matérialisée) ; le titre d'humeur ne sert plus que de repli
+ * quand le serveur n'a pas d'édition à donner.
  */
 
 const LARGEUR_CONCUE = 1872
@@ -115,17 +118,21 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
       ouvertes: donnees.ouvertes,
       enRetard: donnees.enRetard,
       faites: donnees.faites,
-      dodosDemenagement: dodosAvant(DATE_DEMENAGEMENT) > 0 ? dodosAvant(DATE_DEMENAGEMENT) : null,
+      dodosProchainCompte:
+        donnees.prochainCompte === null ? null : dodosAvant(donnees.prochainCompte.dateCible, donnees.date),
     })
   const date = new Date(`${donnees.date}T12:00:00`)
+  const edition = donnees.edition
 
   const aPlancher = plancher(donnees.lignes, donnees.prochainCompte, donnees.date)
   const grille = grilleDuJour(donnees.ouvertes, aPlancher !== null)
   const aUnCompte = donnees.prochainCompte !== null
   const candidats = widgetsDuJour(donnees, grille).slice(0, grille.widgets)
+  const paragraphes = edition?.paragraphes ?? []
   const colonnes = repartitionColonnes(
     donnees.lignes.length === 0 ? 0 : grille.colonnesListe,
     candidats.length + (aUnCompte ? 1 : 0),
+    chroniqueVisible(grille, paragraphes),
   )
   // Le budget du rang dit ce que le journal veut ; la capacité dit ce que le papier
   // tient. Ce qui déborde disparaît de lui-même — le fonds est déjà classé, donc ce
@@ -134,7 +141,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
   // Rien du tout à mettre dans le corps : aucune tâche, aucun widget, aucun compte à
   // rebours. C'est l'installation neuve (ou un serveur qui n'a pas encore de
   // coordonnées) ; la manchette prend alors la page au lieu d'une grille blanche.
-  const corpsVide = colonnes.liste === 0 && colonnes.aparte === 0
+  const corpsVide = colonnes.chronique === 0 && colonnes.liste === 0 && colonnes.aparte === 0
   const serree = rangeeSerree(donnees.lignes.length, colonnes.liste)
   // Ce que le papier ne peut pas montrer est annoncé, jamais coupé en silence.
   const visibles = donnees.lignes.slice(0, capaciteListe(colonnes.liste, serree, grille.chapeau))
@@ -151,7 +158,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
                 widget={{
                   cle: 'compte',
                   etiquette: donnees.prochainCompte.titre,
-                  valeur: libelleDodos(donnees.prochainCompte.dateCible),
+                  valeur: libelleDodos(donnees.prochainCompte.dateCible, donnees.date),
                 }}
                 compact
               />,
@@ -179,16 +186,32 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
           </span>
         </div>
       ) : (
-        <Manchette grille={grille} aPlancher={aPlancher} phrase={phrase} pleinePage={corpsVide} />
+        <Manchette
+          grille={grille}
+          aPlancher={aPlancher}
+          phrase={phrase}
+          edition={edition}
+          pleinePage={corpsVide}
+        />
       )}
 
       {!corpsVide && (
         <main
           className="grid min-h-0 flex-1 border-t-[3px] border-black"
-          style={{ gridTemplateColumns: `repeat(${colonnes.liste + colonnes.aparte}, minmax(0, 1fr))` }}
+          style={{
+            gridTemplateColumns: `repeat(${colonnes.chronique + colonnes.liste + colonnes.aparte}, minmax(0, 1fr))`,
+          }}
         >
+          {colonnes.chronique > 0 && <Chronique paragraphes={paragraphes} />}
+
           {colonnes.liste > 0 && (
-            <section className="flex min-h-0 flex-col overflow-hidden px-14 pb-6 pt-7" style={{ gridColumn: `span ${colonnes.liste}` }}>
+            <section
+              className={cn(
+                'flex min-h-0 flex-col overflow-hidden px-14 pb-6 pt-7',
+                colonnes.chronique > 0 && 'border-l-[3px] border-black',
+              )}
+              style={{ gridColumn: `span ${colonnes.liste}` }}
+            >
               <div className="flex items-baseline justify-between">
                 <Etiquette>Aujourd&rsquo;hui</Etiquette>
                 <span className="text-[30px] font-extrabold">
@@ -218,7 +241,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
                 key={i}
                 className={cn(
                   'flex min-h-0 flex-col divide-y-[3px] divide-black overflow-hidden px-12',
-                  (colonnes.liste > 0 || i > 0) && 'border-l-[3px] border-black',
+                  (colonnes.chronique > 0 || colonnes.liste > 0 || i > 0) && 'border-l-[3px] border-black',
                 )}
               >
                 {contenu}
@@ -312,21 +335,27 @@ function BlocTitre({
   )
 }
 
-/* La manchette : un surtitre qui dit de quoi il retourne, le titre, le chapeau.
-   Au rang « événement », le plancher prend le titre quoi qu'il arrive. */
+/* La manchette : un surtitre qui dit de quoi il retourne, le titre, le chapeau — ceux
+   de l'édition du jour. Au rang « événement », le plancher prend le titre quoi qu'il
+   arrive : l'édition le porte déjà (le serveur le réévalue à chaque rendu et réédite),
+   et si elle ne le porte pas encore, c'est le titre du plancher qui gagne. */
 function Manchette({
   grille,
   aPlancher,
   phrase,
+  edition,
   pleinePage,
 }: {
   grille: Grille
   aPlancher: Plancher | null
   phrase: { titre: string; sousTitre: string }
+  edition: EditionEcran | null
   pleinePage: boolean
 }) {
-  const titre = aPlancher === null ? phrase.titre : aPlancher.titre
-  const surtitre = surtitreManchette(aPlancher)
+  const editionSuitLePlancher = edition !== null && (aPlancher === null || edition.plancher !== null)
+  const titre = editionSuitLePlancher ? edition.manchette : (aPlancher?.titre ?? phrase.titre)
+  const chapeau = edition?.chapeau ?? phrase.sousTitre
+  const surtitre = edition !== null && edition.surtitre !== '' ? edition.surtitre : surtitreManchette(aPlancher)
   const { taille, lettrine } = manchetteDuJour(titre, grille)
 
   return (
@@ -356,18 +385,38 @@ function Manchette({
         )}
       </h1>
       {grille.chapeau && (
-        <p className="clear-both mt-4 line-clamp-2 text-[42px] font-bold leading-tight">{phrase.sousTitre}</p>
+        <p className="clear-both mt-4 line-clamp-2 text-[42px] font-bold leading-tight">{chapeau}</p>
       )}
     </section>
   )
 }
 
+/* La chronique : les deux paragraphes de l'éditorialiste, dans la première colonne du
+   corps, comme dans les maquettes — mais à la même largeur que les autres colonnes :
+   une chronique plus large (les 1,55 colonne des maquettes) rétrécissait les colonnes
+   d'aparté et faisait clipper leurs étiquettes. Mesuré au rendu 1872×1404 : à 32 px
+   dans une colonne d'un tiers, une ligne porte ~32 signes et le corps tient deux fois
+   sept lignes sous l'étiquette. Le serveur borne chaque paragraphe à 200 signes ; le
+   clamp à sept lignes est le filet — un paragraphe coupé au milieu d'une ligne, sans
+   points de suspension, est ce que le premier rendu de l'étape 7 a montré, et le mode
+   de panne historique de cette vue ne se voit pas d'ici (la colonne cache, le cadre ne
+   déborde pas). */
+function Chronique({ paragraphes }: { paragraphes: string[] }) {
+  return (
+    <section className="flex min-h-0 flex-col gap-6 overflow-hidden px-12 pb-6 pt-7">
+      <Etiquette>La chronique</Etiquette>
+      {paragraphes.map((paragraphe, i) => (
+        <p key={i} className="line-clamp-7 text-[32px] font-bold leading-[1.3]">
+          {paragraphe}
+        </p>
+      ))}
+    </section>
+  )
+}
+
 /**
- * Le surtitre de la manchette. Dans les maquettes c'est une ligne éditoriale
- * (« Le condo est vendu depuis le 1er septembre »), pas le compte du jour — celui-ci
- * vit dans la dateline du bloc-titre (`etatDuJour`). Tant que l'éditorialiste n'écrit
- * pas (étape 7), la seule chose vraie qu'on ait à mettre là est la raison du plancher ;
- * sinon la place reste vide plutôt que de répéter la dateline mot pour mot.
+ * Le surtitre de repli, quand l'édition n'en a pas écrit : la raison du plancher,
+ * sinon rien — la place reste vide plutôt que de répéter la dateline mot pour mot.
  */
 function surtitreManchette(aPlancher: Plancher | null): string | null {
   if (aPlancher === null) {
@@ -375,7 +424,9 @@ function surtitreManchette(aPlancher: Plancher | null): string | null {
   }
   return aPlancher.raison === 'compte'
     ? 'Le compte à rebours est à zéro'
-    : 'En retard depuis plus de trois jours'
+    : aPlancher.raison === 'ferme'
+      ? 'Une date qui ne se négocie pas'
+      : 'En retard depuis plus de trois jours'
 }
 
 type WidgetEcran = { cle: string; etiquette: string; valeur: ReactNode; detail?: ReactNode }
@@ -528,7 +579,7 @@ function colonnesAparte(nombre: number, donnees: DonneesEcran, widgets: WidgetEc
   if (donnees.prochainCompte !== null) {
     colonnes[0].push(
       <Encadre key="compte" titre={donnees.prochainCompte.titre}>
-        {libelleDodos(donnees.prochainCompte.dateCible)}
+        {libelleDodos(donnees.prochainCompte.dateCible, donnees.date)}
       </Encadre>,
     )
   }
