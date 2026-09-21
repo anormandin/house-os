@@ -243,9 +243,19 @@ rendu ([[D-2026-09-21 Matière Conservée Sur L'Édition]]).
   rangs « chronique » et « manchette », comme dans les maquettes, mais à la même
   largeur que les autres colonnes ; aux rangs plus chargés le corps n'est pas montré.
   Le gabarit n'a pas de corps, donc pas de colonne. Mesuré au rendu : à 32 px dans un
-  tiers, une ligne porte ~32 signes, d'où la cible de **200 signes** par paragraphe et
-  le clamp à sept lignes. Un texte refusé est nommé dans le journal (« paragraphe 2 :
-  251 signes, 240 au plus »), pour savoir s'il faut retoucher le prompt ou la borne.
+  tiers, une ligne porte ~32 signes, d'où la cible de **200 signes** par paragraphe.
+  Un texte refusé est nommé dans le journal (« paragraphe 2 : 251 signes, 240 au
+  plus »), pour savoir s'il faut retoucher le prompt ou la borne.
+- **La chronique s'ajuste au papier** plutôt que de se faire couper (as of
+  2026-09-21) : une fois les polices chargées et avant la garde de débordement, son
+  texte part de 32 px et descend d'un pixel à la fois, jusqu'à 24 px, tant que les
+  deux paragraphes ne tiennent pas dans la colonne (`ajusterAuPapier`,
+  `pages/Ecran.tsx`, sur les blocs marqués `data-ajuster`). Les paragraphes ne se
+  laissent plus écraser par la colonne : c'est ce qui coupait les deux au milieu
+  d'une ligne au mur, le jour du passage à Gelasio, plus large que Nunito Sans, sur
+  une manchette de deux lignes. L'ancien clamp à sept lignes est parti avec — il
+  cachait des lignes entières là où la taille suffit. Sous le plancher, la colonne
+  coupe et la garde le dit dans Seq.
 - Une **horloge d'essai** sur un autre jour compose l'édition de ce jour sans
   l'écrire ; `regenerer_journal_mural` avec `date` l'écrit, et c'est un geste explicite
   — mais elle garde son drapeau, et le jour venu l'éditorialiste la réécrit avec les

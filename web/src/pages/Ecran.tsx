@@ -101,6 +101,8 @@ export default function Ecran() {
       if (!actif) return
       const boite = cadre.current
       if (boite !== null) {
+        // D'abord ajuster ce qui s'ajuste, puis mesurer ce qui déborde encore.
+        ajusterAuPapier(boite)
         document.documentElement.dataset.debordement = String(debordementPx(boite, zoom))
       }
       document.documentElement.dataset.pret = '1'
@@ -508,15 +510,50 @@ function Annonce({ enPlus, serree }: { enPlus: number; serree: boolean }) {
    déborde pas). */
 function Chronique({ paragraphes }: { paragraphes: string[] }) {
   return (
-    <section className="flex min-h-0 flex-col gap-6 overflow-hidden px-12 pb-6 pt-7">
+    <section
+      data-ajuster={TAILLE_CHRONIQUE_MIN}
+      className="flex min-h-0 flex-col gap-6 overflow-hidden px-12 pb-6 pt-7"
+      style={{ fontSize: TAILLE_CHRONIQUE }}
+    >
       <Etiquette>La chronique</Etiquette>
       {paragraphes.map((paragraphe, i) => (
-        <p key={i} className="line-clamp-7 text-[32px] font-bold leading-[1.3]">
+        // shrink-0 : un paragraphe qui se laisse écraser par la colonne est coupé au
+        // milieu d'une ligne, dans les deux paragraphes à la fois (vu au mur le
+        // 2026-09-21 en passant à Gelasio, plus large que Nunito Sans). Ici il garde sa
+        // hauteur, et c'est la taille du texte qui cède (`ajusterAuPapier`).
+        <p key={i} className="shrink-0 font-bold leading-[1.3]">
           {paragraphe}
         </p>
       ))}
     </section>
   )
+}
+
+/* La chronique part de 32 px et descend jusqu'à 24 px pour tenir dans sa colonne ;
+   sous le plancher, la colonne coupe et la garde de débordement le dit. */
+const TAILLE_CHRONIQUE = 32
+const TAILLE_CHRONIQUE_MIN = 24
+
+/**
+ * Ce qui s'ajuste au papier plutôt que de se faire couper : chaque bloc marqué
+ * `data-ajuster` (la valeur est son plancher en px) rapetisse son texte d'un pixel
+ * à la fois jusqu'à ce que son contenu tienne dans sa boîte. Appelé une fois les
+ * polices chargées — une mesure faite sur la police de repli ne vaut rien — et avant
+ * la garde de débordement, qui ne doit voir que ce qui déborde encore.
+ *
+ * Le bloc porte sa taille de départ en style, jamais ses enfants : ils héritent, et la
+ * boucle ne touche qu'une propriété. React ne repasse pas sur ce style tant que la
+ * prop ne change pas, donc la valeur ajustée survit aux rendus suivants.
+ */
+function ajusterAuPapier(cadre: HTMLElement): void {
+  for (const bloc of cadre.querySelectorAll<HTMLElement>('[data-ajuster]')) {
+    const plancher = Number(bloc.dataset.ajuster)
+    let taille = parseFloat(getComputedStyle(bloc).fontSize)
+    while (bloc.scrollHeight > bloc.clientHeight && taille > plancher) {
+      taille -= 1
+      bloc.style.fontSize = `${taille}px`
+    }
+  }
 }
 
 /**
