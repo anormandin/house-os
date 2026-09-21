@@ -1,8 +1,8 @@
 ---
 type: feature
-status: building
+status: implemented
 last-verified: 2026-09-21
-verified-against: 86faebd
+verified-against: 5a332af
 tags: [iot]
 ---
 
@@ -19,13 +19,13 @@ Direction retenue par Alain et Ariane après trois tours de maquettes
 [[Affichage E-ink]] — la liste + zones — sans toucher au protocole de l'appareil ni à la
 grammaire 1-bit.
 
-> [!note] La broadsheet est en prod depuis le 2026-09-20 ; l'éditorialiste écrit en dev depuis le 2026-09-21.
-> Étapes 1 à 7 du [[Plan 2026-09-20 Journal Éditorial]] bâties : la grille à rangs, le
-> bloc-titre, les six familles de [[Fonds De Tiroir]] dans les widgets, et depuis
-> l'étape 7 **l'édition du jour écrite par Opus** — surtitre, manchette, chapeau,
-> chronique — avec le [[Titre D'humeur]] en repli de gabarit. Reste l'étape 8 (le
-> rang 10 et plus) et la calibration au mur. [[Affichage E-ink]] reste la spec de
-> l'appareil.
+> [!note] As-built depuis le 2026-09-21 : les neuf étapes du [[Plan 2026-09-20 Journal Éditorial]] sont exécutées.
+> La broadsheet est en prod depuis le 2026-09-20 ; l'éditorialiste y écrit depuis le
+> 2026-09-21 (étape 7) — surtitre, manchette, chapeau, chronique, avec le
+> [[Titre D'humeur]] en repli de gabarit ; le sommaire des journées chargées depuis
+> l'étape 8 ; la calibration au mur est faite (étape 9, « Calibration au mur »
+> ci-dessous). Écarts et observations à venir : [[Recap Journal De La Maison]].
+> [[Affichage E-ink]] reste la spec de l'appareil.
 
 ## Comportement
 
@@ -228,6 +228,36 @@ chapeau, corps, les **noms** des rubriques et les titres que l'éditorialiste y 
 **Vivant à chaque rendu** : la liste des occurrences, les cochées, le rangement par
 zone et par équipement, « Le reste », la météo du moment, l'heure d'impression, la pile.
 
+### Calibration au mur (2026-09-21)
+
+Le reTerminal E1003 fait 209 × 157 mm pour 1872 × 1404 px (227 ppp, 0,112 mm par
+pixel). À hauteur de capitale et au seuil de lecture de 5′ d'arc, chaque taille de la
+page a sa distance :
+
+| Élément | Taille | Capitale | Lisible jusqu'à |
+|---|---|---|---|
+| Le nom | 126 px | 9,6 mm | ~6,5 m |
+| La manchette | 96–116 px | 7–8 mm | ~5 m |
+| La bande du sommaire | 46–76 px | 3,5–5,8 mm | 2,4–3,9 m |
+| Valeur de widget, rangée large | 44 px | 3,5 mm | ~2,4 m |
+| Rangée serrée | 34 px | 2,7 mm | ~1,8 m |
+| Chronique | 32 px | 2,5 mm | ~1,7 m |
+| Dateline | 28 px | 2,2 mm | ~1,5 m |
+| Oreilles, étiquettes, en-têtes de rubrique | 22–24 px | 1,7–1,9 mm | ~1,3 m |
+
+Le mur se lit donc **à deux distances**, comme un quotidien : de la pièce (2–3 m), le
+nom, la manchette, la bande et les chiffres des widgets ; en s'approchant (~1 m), la
+liste, la chronique et la dateline. C'est la conséquence des 34 px mesurés aux
+maquettes, assumée : « élaguer plutôt que rapetisser » vaut aussi dans l'autre sens —
+on ne grossit pas la liste au prix de ses rangées.
+
+Vérifié au rendu 1-bit par le chemin de l'appareil, sur quatre journées (chronique,
+événement, sommaire, date longue) : aucune trame — la page n'utilise aucun gris —,
+lettrine, filets, pastilles et points de suspension en noir plein ; la dateline
+(1744 px) absorbe la date la plus large de l'année (387 px à 28 px) ; garde de
+débordement à 0 sur les quatre. La pile se suit dans l'étape 9 du plan et dans le
+Recap.
+
 ## Hors périmètre
 
 - Le protocole de l'appareil, la cadence, la pile, la capture Chromium : c'est
@@ -284,4 +314,4 @@ zone et par équipement, « Le reste », la météo du moment, l'heure d'impress
 
 ## Historique
 
-- [[Plan 2026-09-20 Journal Éditorial]]
+- [[Plan 2026-09-20 Journal Éditorial]] · [[Recap Journal De La Maison]]

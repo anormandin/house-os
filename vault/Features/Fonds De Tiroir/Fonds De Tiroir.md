@@ -1,8 +1,8 @@
 ---
 type: feature
-status: building
+status: implemented
 last-verified: 2026-09-21
-verified-against: 957263e
+verified-against: 5a332af
 tags: [iot]
 ---
 
@@ -480,4 +480,4 @@ Bâties :
 
 ## Historique
 
-- [[Plan 2026-09-20 Journal Éditorial]]
+- [[Plan 2026-09-20 Journal Éditorial]] · [[Recap Fonds De Tiroir]]

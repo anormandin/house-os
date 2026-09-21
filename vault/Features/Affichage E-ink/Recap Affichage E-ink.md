@@ -10,7 +10,8 @@ plan: "[[Plan 2026-09-03 Affichage E-ink V1]]"
 Livré le 2026-09-03, le jour de la commande du reTerminal E1003, en une session :
 recherche du marché, spec et décisions, page, capture, protocole, image Docker,
 release prod. Appareil reçu, flashé et enrôlé le 2026-09-04 (voir « Mise en
-service » dans [[Affichage E-ink]]) ; reste la calibration sur l'écran réel.
+service » dans [[Affichage E-ink]]) ; la calibration sur l'écran réel a été faite le
+2026-09-21, avec la broadsheet (étape 9 du [[Plan 2026-09-20 Journal Éditorial]]).
 
 ## Ce qui a été construit
 

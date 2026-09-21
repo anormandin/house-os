@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-09-20
-verified-against: eb62d0e
+last-verified: 2026-09-21
+verified-against: 5a332af
 tags: [iot]
 ---
 
@@ -18,9 +18,10 @@ Maquettes : `design/maquettes/eink-directions.html` (11 directions),
 variable, le fonds de tiroir et la règle de bascule, rendus). Index :
 [[Inspiration UI]].
 
-> [!warning] Rien de ceci n'est implémenté (as of 2026-09-20).
-> La vue `/ecran` en prod est encore la liste + zones décrite dans [[Affichage E-ink]].
-> Cette note est le matériau d'une planification, pas un état du code.
+> [!note] Bâti (2026-09-21).
+> Les neuf étapes du [[Plan 2026-09-20 Journal Éditorial]] sont exécutées ; l'état du
+> code vit dans [[Fonds De Tiroir]] et [[Journal De La Maison]], les écarts dans leurs
+> Recaps. Cette note reste le **matériau** des maquettes, pas un état du code.
 
 > [!note] Planifié le 2026-09-20.
 > Ce matériau a été tranché en neuf décisions et découpé en deux features :

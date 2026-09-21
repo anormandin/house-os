@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-21
-verified-against: 957263e
+verified-against: 5a332af
 tags: [iot]
 ---
 
@@ -271,7 +271,8 @@ mentirait à la seule personne qui le lit de loin.
   Page Up + Page Down 2 s, SSID `TRMNL`, `http://4.3.2.1`. Un champ serveur vide
   renvoie vers trmnl.com (« purchase a BYOD license »).
 - Orientation et rendu 1-bit validés à l'œil sur le panneau. Reste ouvert : cadence
-  de nuit, calibration des tailles à 2–3 m.
+  de nuit. La calibration des tailles à 2–3 m est faite le 2026-09-21, avec la
+  broadsheet (« Calibration au mur » dans [[Journal De La Maison]]).
 - **2026-09-20** — 16 jours de service mesurés : 4,04 V → 3,79 V. Cadence de jour
   ramenée de 5 à 15 min (voir « Cadence et pile »). La cadence de nuit reste ouverte.
 - **2026-09-20** — la colonne de droite débordait : mesurée à 1078 px de contenu pour
@@ -281,10 +282,10 @@ mentirait à la seule personne qui le lit de loin.
   d'humeur borné à deux lignes, icône et température de la météo à 150 px (elles
   étaient à 190), zones du côté droit en `py-7` — 1006 px, avec 22 px de marge.
 
-## Suite planifiée (2026-09-20, non exécutée)
+## Suite (planifiée le 2026-09-20, exécutée le 2026-09-21)
 
-La refonte éditoriale retenue aux maquettes est **planifiée** depuis le 2026-09-20 et
-vit dans deux features distinctes : [[Fonds De Tiroir]] (les faits — le ciel, le climat,
+La refonte éditoriale retenue aux maquettes a été **planifiée** le 2026-09-20,
+**exécutée** le 2026-09-21, et vit dans deux features distinctes : [[Fonds De Tiroir]] (les faits — le ciel, le climat,
 la maison, le calendrier, la ville, le hasard — et leur score) et
 [[Journal De La Maison]] (la broadsheet à densité variable et l'éditorialiste LLM).
 Matériau d'origine : [[Éditorialiste De L'Écran]]. Plan d'exécution :
@@ -292,8 +293,8 @@ Matériau d'origine : [[Éditorialiste De L'Écran]]. Plan d'exécution :
 
 Cette note reste la spec de **l'appareil** : protocole TRMNL, cadence, pile, interaction
 physique, capture Chromium, registre des appareils. Rien de tout cela ne change. La
-section « Contenu de l'écran » ci-dessus décrit **toujours le code** ; elle sera
-remplacée par un pointeur vers [[Journal De La Maison]] quand le plan sera exécuté.
+section « Contenu de l'écran » ci-dessus décrit la **V1**, remplacée ; elle est coiffée
+d'un pointeur vers [[Journal De La Maison]].
 
 Les deux points que la suite semblait devoir rouvrir ont été tranchés sans supersession :
 
@@ -307,4 +308,5 @@ Les deux points que la suite semblait devoir rouvrir ont été tranchés sans su
 ## Historique
 
 - [[Plan 2026-09-03 Affichage E-ink V1]] · [[Recap Affichage E-ink]] (étape 5 —
-  calibration sur l'écran réel — encore ouverte)
+  calibration sur l'écran réel — fermée le 2026-09-21 par l'étape 9 du
+  [[Plan 2026-09-20 Journal Éditorial]])

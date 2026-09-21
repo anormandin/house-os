@@ -1,6 +1,6 @@
 ---
 type: plan
-status: approved
+status: executed
 date: 2026-09-20
 feature: "[[Journal De La Maison]]"
 ---
@@ -1049,16 +1049,57 @@ rapportait 3 px.
 
 ### 9 — Calibration au mur
 
-- [ ] `apercu.png` comparé au panneau réel : tailles à 2–3 m, lisibilité de la lettrine
+- [x] `apercu.png` comparé au panneau réel : tailles à 2–3 m, lisibilité de la lettrine
       et des filets en 1-bit, aucun débordement sur une date longue (« dimanche
       20 septembre » fait 1046 px à 104 px).
-- [ ] Vérifier que la densité n'a pas coûté de pile : `dernierContact` et tension dans
+      **Fait le 2026-09-21**, par le chemin de l'appareil (1872×1404, seuillage compris ;
+      données de dev = copie de la prod), sur quatre journées : le 21 septembre (rang
+      chronique, N° 29), le 30 septembre (mercredi — la date la plus longue du mois),
+      le 6 octobre (rang événement : « C'est aujourd'hui » en mention inversée, encadré
+      « c'est aujourd'hui », un widget) et le 20 octobre (sommaire, 14 tâches en quatre
+      rubriques + « Le reste », rangées serrées tronquées par points de suspension).
+      **En 1-bit, rien à trier** : lettrine, filets de 6, 3 et 1 px, bande inversée,
+      pastilles AL/AR et points de suspension sont du noir plein, sans trame — la page
+      n'utilise aucun gris. **Date longue** : la dateline mesure 1744 px et la date la
+      plus large de l'année (« dimanche 27 septembre 2026 », 387 px à 28 px) en prend
+      22 % ; les 1046 px de la V1 valaient pour la date à 104 px sur deux lignes, qui
+      n'existe plus. Garde `data-debordement` : **0** sur les quatre rendus. **Tailles
+      à 2–3 m** (227 ppp, 0,112 mm/px, à hauteur de capitale, seuil de lecture 5′
+      d'arc) : le nom (126 px, 9,6 mm) se lit jusqu'à ~6,5 m, la manchette (96–116 px)
+      jusqu'à ~5 m, la bande du sommaire (46–76 px) 2,4–3,9 m, les valeurs de widget
+      et les rangées larges (44 px, 3,5 mm) ~2,4 m ; les rangées serrées (34 px,
+      2,7 mm) ~1,8 m, la chronique (32 px) ~1,7 m, la dateline (28 px) ~1,5 m, les
+      étiquettes (22–24 px) ~1,3 m. Le mur se lit donc à **deux distances**, comme un
+      quotidien : de la pièce, le nom, la manchette, la bande et les chiffres ; la
+      liste et la chronique en s'approchant. Conséquence des 34 px mesurés aux
+      maquettes ([[Éditorialiste De L'Écran]]), assumée — **aucun code changé** à cette
+      étape. Le PNG inspecté est celui que le mur reçoit (prod : `dernierFichier`
+      `8bcd2c36…`, 1872×1404) ; l'aperçu de prod lui-même exige le cookie de session,
+      que ni curl ni Chrome n'avaient. L'œil d'Alain devant le panneau reste le
+      dernier mot sur les distances — les chiffres ci-dessus sont ce qu'il doit
+      retrouver.
+- [x] Vérifier que la densité n'a pas coûté de pile : `dernierContact` et tension dans
       `lister_appareils_affichage` sur deux semaines, comparées aux 3,79 V du
       2026-09-20.
       Relevés (B73199, reterminal_e1003, firmware 1.8.10) : **2026-09-20 matin 3,79 V** ·
       **2026-09-20 22 h 08 — 3,77 V, 52 %, RSSI −57 dBm**, après les étapes 1 à 5. Le
       prochain point utile est autour du 2026-10-04.
-- [ ] Recap et mise à jour des specs à l'as-built (`status: implemented`, freshness).
+      **2026-09-21 10 h 17 — 3,75 V, 50 %, RSSI −55 dBm** (étape 8 en prod, cadence
+      15 min, dernier contact à l'heure). Soit 0,04 V en ~26 h depuis le matin du 20,
+      là où les seize premiers jours (4,04 → 3,79 V, à 5 min) faisaient 0,016 V par
+      jour : la pente des deux premiers jours est **plus raide**, mais deux relevés
+      pris au réveil Wi-Fi, sous charge, sur une courbe Li-ion qui n'est pas linéaire,
+      ne tranchent rien. Le point du **2026-10-04** tranche ; consigné dans
+      [[Recap Journal De La Maison]] comme observation à venir.
+- [x] Recap et mise à jour des specs à l'as-built (`status: implemented`, freshness).
+      [[Recap Journal De La Maison]] et [[Recap Fonds De Tiroir]] écrits ; les deux specs
+      à `implemented` ; [[Éditorialiste De L'Écran]], [[Affichage E-ink]] et
+      [[Recap Affichage E-ink]] ne disent plus que la calibration ou le plan sont à
+      venir ; Home à jour. **L'étape 9 ne change aucun code** : rien à releaser, la prod
+      reste à l'étape 8 (`86faebd`), tests non relancés (928 et 233 au dernier passage).
+
+**Vérifié** (2026-09-21) : validateur du vault CLEAN ; les quatre rendus ci-dessus ;
+relevé de pile par le MCP de prod, en lecture seule.
 
 ## Vérification (globale)
 
