@@ -26,7 +26,10 @@ public static partial class RedactionLlm
     public const int LongueurMaxRubrique = 30;
     public const int MaxRubriques = 5;
 
-    private const string PromptSysteme = """
+    /// <summary>Le prompt système en vigueur. Public pour que l'atelier
+    /// (`server/HouseOs.Essais`) l'imprime, le retouche dans un fichier et rejoue une
+    /// matière conservée contre la retouche — sans toucher au code avant d'avoir lu.</summary>
+    public const string PromptParDefaut = """
         Tu es l'éditorialiste d'un petit quotidien imprimé chaque matin pour un foyer de
         deux adultes au Québec : « La maison ». Il s'affiche sur un écran mural, en noir
         sur blanc, et se lit de loin. Tu reçois l'état du jour en JSON — les tâches dues,
@@ -96,9 +99,17 @@ public static partial class RedactionLlm
         MatiereDEdition matiere, string cleApi, string modele, CancellationToken ct) =>
         (await RedigerAvecEcart(matiere, cleApi, modele, ct)).Texte;
 
-    /// <summary>L'appel, avec ce qui a été refusé quand le texte est null — pour le journal.</summary>
-    public static async Task<(TexteDEdition? Texte, string? Ecart)> RedigerAvecEcart(
-        MatiereDEdition matiere, string cleApi, string modele, CancellationToken ct)
+    /// <summary>Ce que l'appel a rendu : le texte accepté ou l'écart qui l'a fait
+    /// refuser, et dans les deux cas la réponse brute du modèle — pour l'atelier, qui
+    /// veut lire ce qu'un texte refusé disait.</summary>
+    public sealed record Reponse(TexteDEdition? Texte, string? Ecart, string? Brut);
+
+    /// <summary>L'appel, avec ce qui a été refusé quand le texte est null — pour le
+    /// journal. <paramref name="promptSysteme"/> remplace <see cref="PromptParDefaut"/>
+    /// pour un essai ; l'application n'en passe jamais.</summary>
+    public static async Task<Reponse> RedigerAvecEcart(
+        MatiereDEdition matiere, string cleApi, string modele, CancellationToken ct,
+        string? promptSysteme = null)
     {
         using var delai = CancellationTokenSource.CreateLinkedTokenSource(ct);
         delai.CancelAfter(DelaiMax);
@@ -109,7 +120,7 @@ public static partial class RedactionLlm
             // La réflexion adaptative compte dans ce plafond : de la marge, pour que la
             // réponse ne soit pas coupée en plein JSON.
             MaxTokens = 8000,
-            System = PromptSysteme,
+            System = promptSysteme ?? PromptParDefaut,
             Messages = [new() { Role = Role.User, Content = SerialiserMatiere(matiere) }],
         }, cancellationToken: delai.Token);
 
@@ -119,55 +130,91 @@ public static partial class RedactionLlm
             .FirstOrDefault()?.Text;
         if (texte is null)
         {
-            return (null, $"aucun texte (arrêt : {reponse.StopReason})");
+            return new Reponse(null, $"aucun texte (arrêt : {reponse.StopReason})", null);
         }
         var extrait = Extraire(texte, matiere, out var ecart);
-        return (extrait, ecart);
+        return new Reponse(extrait, ecart, texte);
     }
 
-    /// <summary>L'état vu par le modèle : que des faits calculés, en français.</summary>
+    /// <summary>L'état vu par le modèle : que des faits calculés, en français. C'est
+    /// aussi, mot pour mot, ce que l'édition conserve (<c>Edition.Matiere</c>).</summary>
     public static string SerialiserMatiere(MatiereDEdition matiere) =>
-        JsonSerializer.Serialize(new
+        JsonSerializer.Serialize(MatiereJson.Depuis(matiere), OptionsMatiere);
+
+    /// <summary>La matière relue depuis son JSON conservé, pour rejouer une journée
+    /// contre un autre prompt. Null quand le texte n'est pas une matière.</summary>
+    public static MatiereDEdition? DeserialiserMatiere(string json)
+    {
+        try
         {
-            date = matiere.Date.ToString("yyyy-MM-dd"),
-            jourDeSemaine = matiere.Date.ToString("dddd", System.Globalization.CultureInfo.GetCultureInfo("fr-CA")),
-            lieu = matiere.Lieu,
-            rang = matiere.Rang.ToString(),
-            plancher = matiere.Plancher is { } p
-                ? new { raison = p.Raison.ToString(), titre = p.Titre }
-                : null,
-            tachesDues = matiere.TachesDues.Select(t => new
-            {
-                titre = t.Titre,
-                joursDeRetard = t.JoursDeRetard,
-                echeanceFerme = t.EcheanceFerme,
-                assigne = t.Assigne,
-                zone = t.Zone,
-                equipement = t.Equipement,
-            }),
-            prochainCompteARebours = matiere.ProchainCompte is { } c
-                ? new { titre = c.Titre, dodos = c.Dodos }
-                : null,
-            meteoDuJour = matiere.Meteo is { } m
-                ? new { description = m.Description, minC = m.TempMin, maxC = m.TempMax }
-                : null,
-            fondsDeTiroir = matiere.Faits.Select(f => new
-            {
-                cle = f.Cle,
-                famille = f.Famille,
-                etiquette = f.Etiquette,
-                valeur = f.Valeur,
-                texte = f.Texte,
-                publie = f.Publie,
-            }),
-            precedentes = matiere.Precedentes.Select(e => new
-            {
-                date = e.Date.ToString("yyyy-MM-dd"),
-                surtitre = e.Surtitre,
-                manchette = e.Manchette,
-                chapeau = e.Chapeau,
-            }),
-        });
+            return JsonSerializer.Deserialize<MatiereJson>(json, OptionsMatiere)?.VersMatiere();
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException or FormatException)
+        {
+            return null;
+        }
+    }
+
+    private static readonly JsonSerializerOptions OptionsMatiere = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    /// <summary>
+    /// La forme exacte du JSON envoyé au modèle — les noms que le prompt cite
+    /// (« tachesDues », « publie », « precedentes »). Un enregistrement plutôt qu'un
+    /// objet anonyme pour que la même forme se relise.
+    /// </summary>
+    private sealed record MatiereJson(
+        string Date,
+        string JourDeSemaine,
+        string? Lieu,
+        string Rang,
+        PlancherJson? Plancher,
+        List<TacheJson> TachesDues,
+        CompteJson? ProchainCompteARebours,
+        MeteoJson? MeteoDuJour,
+        List<FaitJson> FondsDeTiroir,
+        List<PrecedenteJson> Precedentes)
+    {
+        public static MatiereJson Depuis(MatiereDEdition m) => new(
+            m.Date.ToString("yyyy-MM-dd"),
+            m.Date.ToString("dddd", System.Globalization.CultureInfo.GetCultureInfo("fr-CA")),
+            m.Lieu,
+            m.Rang.ToString(),
+            m.Plancher is { } p ? new PlancherJson(p.Raison.ToString(), p.Titre) : null,
+            [.. m.TachesDues.Select(t => new TacheJson(
+                t.Titre, t.JoursDeRetard, t.EcheanceFerme, t.Assigne, t.Zone, t.Equipement))],
+            m.ProchainCompte is { } c ? new CompteJson(c.Titre, c.Dodos) : null,
+            m.Meteo is { } me ? new MeteoJson(me.Description, me.TempMin, me.TempMax) : null,
+            [.. m.Faits.Select(f => new FaitJson(f.Cle, f.Famille, f.Etiquette, f.Valeur, f.Texte, f.Publie))],
+            [.. m.Precedentes.Select(e => new PrecedenteJson(
+                e.Date.ToString("yyyy-MM-dd"), e.Surtitre, e.Manchette, e.Chapeau))]);
+
+        /// <summary>Le jour de semaine se recalcule de la date ; le reste se relit tel quel.</summary>
+        public MatiereDEdition VersMatiere() => new(
+            DateOnly.ParseExact(Date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            Enum.Parse<RangEdition>(Rang),
+            Plancher is { } p ? new PlancherDuJour(Enum.Parse<RaisonDePlancher>(p.Raison), p.Titre) : null,
+            [.. (TachesDues ?? []).Select(t => new TachePourEdition(
+                t.Titre, t.JoursDeRetard, t.EcheanceFerme, t.Assigne, t.Zone, t.Equipement))],
+            ProchainCompteARebours is { } c ? new CompteProcheDEdition(c.Titre, c.Dodos) : null,
+            MeteoDuJour is { } me ? new MeteoDEdition(me.Description, me.MinC, me.MaxC) : null,
+            [.. (FondsDeTiroir ?? []).Select(f => new FaitPourEdition(
+                f.Cle, f.Famille, f.Etiquette, f.Valeur, f.Texte, f.Publie))],
+            [.. (Precedentes ?? []).Select(e => new EditionPrecedente(
+                DateOnly.ParseExact(e.Date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                e.Surtitre, e.Manchette, e.Chapeau))],
+            Lieu);
+    }
+
+    private sealed record PlancherJson(string Raison, string Titre);
+    private sealed record TacheJson(
+        string Titre, int JoursDeRetard, bool EcheanceFerme, string? Assigne, string? Zone, string? Equipement);
+    private sealed record CompteJson(string Titre, int Dodos);
+    private sealed record MeteoJson(string Description, double MinC, double MaxC);
+    private sealed record FaitJson(string Cle, string Famille, string Etiquette, string Valeur, string Texte, bool Publie);
+    private sealed record PrecedenteJson(string Date, string Surtitre, string Manchette, string Chapeau);
 
     /// <summary>
     /// Parse défensif et validation stricte, sur le patron de

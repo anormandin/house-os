@@ -39,6 +39,10 @@ Réglages personnels de dev (clé Anthropic, URL d'un Seq…) : dans
 Aussi : `cd web && npm run lint` (oxlint) et `npx tsc -b`. La CI (`.github/workflows/ci.yml`)
 exécute tout sauf l'E2E, plus le build de l'image Docker.
 
+`server/HouseOs.Essais` est l'atelier de l'éditorialiste du journal mural : il rejoue
+la matière conservée d'une édition contre un fichier de prompt, sans rien écrire
+(`dotnet run --project server/HouseOs.Essais -- aide`). Il n'entre pas dans l'image.
+
 ## Conventions
 
 - **Langue** : UI, domaine, noms de fichiers du vault, messages de commit en français.

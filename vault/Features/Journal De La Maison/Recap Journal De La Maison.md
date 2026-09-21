@@ -34,6 +34,14 @@ l'étape 8 (`86faebd`) ; l'étape 9 n'a touché aucun code.
 - **Le mur se lit à deux distances** (étape 9) : le nom, la manchette, la bande et les
   chiffres de 2–3 m ; la liste et la chronique à ~1 m. Assumé, pas corrigé.
 
+## Après le plan
+
+- **La matière est conservée sur l'édition** (2026-09-21, après l'étape 9) et un
+  atelier hors image (`server/HouseOs.Essais`) la rejoue contre un fichier de prompt —
+  [[D-2026-09-21 Matière Conservée Sur L'Édition]]. C'est l'outillage de la première
+  ronde de réglage du prompt, pas encore faite ; « L'atelier du prompt » dans la spec
+  dit le geste.
+
 ## À observer
 
 - **Pile** : 3,79 V (2026-09-20 matin) → 3,77 V / 52 % (20, 22 h 08) → 3,75 V / 50 %
@@ -43,3 +51,10 @@ l'étape 8 (`86faebd`) ; l'étape 9 n'a touché aucun code.
 - **La première vraie journée à dix tâches et plus** : le **2026-10-20** (14 tâches).
   Le rendu d'essai l'a montrée, le mur pas encore.
 - La cadence de nuit reste la case ouverte de [[Affichage E-ink]], hors de ce plan.
+- **Pistes pour la ronde de réglage du prompt**, relevées à la lecture du prompt le
+  2026-09-21, à vérifier sur des matières rejouées avant d'y toucher : la règle
+  anti-radotage demande de varier l'ouverture des paragraphes, mais `precedentes` ne
+  porte que surtitre, manchette et chapeau (le modèle ne voit jamais un paragraphe
+  passé) ; le bloc des rubriques pèse un tiers du prompt pour les seules journées
+  chargées ; aucun exemple d'édition réussie n'est donné ; l'appel ne fixe ni
+  température ni réflexion.

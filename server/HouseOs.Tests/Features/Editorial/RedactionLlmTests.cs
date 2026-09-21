@@ -224,4 +224,42 @@ public class RedactionLlmTests
         Assert.Contains("\"zone\":\"Le garage\"", json);
         Assert.Contains("\"equipement\":null", json);
     }
+
+    [Fact]
+    public void La_matiere_conservee_se_relit_telle_quelle()
+    {
+        // C'est le JSON de l'édition qui nourrit l'atelier : relu, il redonne la même
+        // matière, et re-sérialisé, le même texte au signe près.
+        var matiere = Sommaire with
+        {
+            Plancher = new PlancherDuJour(RaisonDePlancher.Retard, "Pneus d'hiver"),
+            ProchainCompte = new CompteProcheDEdition("Le camion", 4),
+            Meteo = new MeteoDEdition("nuageux", -1.5, 4),
+            Precedentes = [new EditionPrecedente(new DateOnly(2026, 11, 7), "Hier", "La veille", "Chapeau d'hier")],
+        };
+        var json = RedactionLlm.SerialiserMatiere(matiere);
+
+        var relue = RedactionLlm.DeserialiserMatiere(json);
+
+        Assert.NotNull(relue);
+        Assert.Equal(matiere.Date, relue.Date);
+        Assert.Equal(RangEdition.Sommaire, relue.Rang);
+        Assert.Equal(matiere.Plancher, relue.Plancher);
+        Assert.Equal(matiere.ProchainCompte, relue.ProchainCompte);
+        Assert.Equal(matiere.Meteo, relue.Meteo);
+        Assert.Equal(matiere.TachesDues, relue.TachesDues);
+        Assert.Equal(matiere.Faits, relue.Faits);
+        Assert.Equal(matiere.Precedentes, relue.Precedentes);
+        Assert.Equal("17 rue de la Colline", relue.Lieu);
+        Assert.Equal(json, RedactionLlm.SerialiserMatiere(relue));
+    }
+
+    [Theory]
+    [InlineData("pas du json")]
+    [InlineData("{\"date\":\"hier\",\"rang\":\"Chronique\"}")]
+    [InlineData("{\"date\":\"2026-11-08\",\"rang\":\"Inconnu\"}")]
+    public void Un_texte_qui_n_est_pas_une_matiere_ne_se_relit_pas(string texte)
+    {
+        Assert.Null(RedactionLlm.DeserialiserMatiere(texte));
+    }
 }

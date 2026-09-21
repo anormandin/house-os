@@ -105,7 +105,7 @@ public static class GenerationEdition
         var edition = existante ?? new Edition { Date = sources.Aujourdhui, Manchette = "" };
         var raison = existante is null ? "édition manquante" : "plancher changé";
         Appliquer(edition, GabaritEdition.Ecrire(cadre.Plancher, await PhraseDeRepli(db, sources.Aujourdhui, ct)),
-            cadre, SourceEdition.Gabarit, modele: null);
+            cadre, SourceEdition.Gabarit, modele: null, matiere: null);
 
         if (persister == false)
         {
@@ -173,6 +173,9 @@ public static class GenerationEdition
             db, horloge, lieu, meteo, banque, memoire.Fraicheur);
         var cadre = Cadrer(sources);
         var matiere = Matiere(sources, cadre, memoire);
+        // Conservée telle que le modèle la reçoit, qu'il réponde ou non : c'est la
+        // journée qu'on pourra rejouer contre un autre prompt.
+        var matiereJson = RedactionLlm.SerialiserMatiere(matiere);
 
         var texte = await redacteur.RedigerAsync(matiere, ct);
         var source = texte is null ? SourceEdition.Gabarit : SourceEdition.Llm;
@@ -180,7 +183,7 @@ public static class GenerationEdition
 
         var edition = existante ?? new Edition { Date = date, Manchette = "" };
         var modele = source == SourceEdition.Llm ? redacteur.Modele : null;
-        Appliquer(edition, texte, cadre, source, modele);
+        Appliquer(edition, texte, cadre, source, modele, matiereJson);
         // Le drapeau tombe même en gabarit : un modèle qui a échoué ne se rappelle pas
         // à chaque réveil, il se rappelle au second essai. Il reste levé sur une édition
         // écrite pour un autre jour (un essai) ou avant son créneau du matin : le matin
@@ -207,7 +210,7 @@ public static class GenerationEdition
             {
                 return (gagnante, false);
             }
-            Appliquer(gagnante, texte, cadre, source, modele);
+            Appliquer(gagnante, texte, cadre, source, modele, matiereJson);
             gagnante.ReeditionEnAttente = aReecrire;
             await db.SaveChangesAsync(ct);
             edition = gagnante;
@@ -247,20 +250,22 @@ public static class GenerationEdition
         var memoire = await MemoireDesEditions.LireAsync(db, date, ct);
         var sources = await ComposerDonneesEcran.LireLesSourcesAsync(db, maintenant, lieu, meteo, banque, memoire.Fraicheur);
         var cadre = Cadrer(sources);
-        var texte = await redacteur.RedigerAsync(Matiere(sources, cadre, memoire), ct);
+        var matiere = Matiere(sources, cadre, memoire);
+        var texte = await redacteur.RedigerAsync(matiere, ct);
         if (texte is null)
         {
             journal.LogWarning("Édition du {Date} : le second essai n'a rien donné — gabarit jusqu'à demain.", date);
             return true;
         }
-        Appliquer(existante, texte, cadre, SourceEdition.Llm, redacteur.Modele);
+        Appliquer(existante, texte, cadre, SourceEdition.Llm, redacteur.Modele, RedactionLlm.SerialiserMatiere(matiere));
         existante.ReeditionEnAttente = false;
         await db.SaveChangesAsync(ct);
         journal.LogInformation("Édition du {Date} écrite via Llm au second essai — rang {Rang}.", date, cadre.Rang);
         return true;
     }
 
-    private static void Appliquer(Edition edition, TexteDEdition texte, Cadre cadre, SourceEdition source, string? modele)
+    private static void Appliquer(
+        Edition edition, TexteDEdition texte, Cadre cadre, SourceEdition source, string? modele, string? matiere)
     {
         edition.Rang = cadre.Rang;
         edition.PlancherRaison = cadre.Plancher?.Raison;
@@ -273,6 +278,7 @@ public static class GenerationEdition
         edition.Rubriques = [.. texte.Rubriques];
         edition.Source = source;
         edition.Modele = modele;
+        edition.Matiere = matiere;
         edition.GenereLe = DateTimeOffset.UtcNow;
     }
 

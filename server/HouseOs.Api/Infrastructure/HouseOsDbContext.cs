@@ -216,6 +216,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             e.Property(x => x.Paragraphes).HasColumnType("jsonb");
             e.Property(x => x.Rubriques).HasColumnType("jsonb");
             e.Property(x => x.ClesPubliees).HasColumnType("jsonb");
+            e.Property(x => x.Matiere).HasColumnType("jsonb");
             e.HasIndex(x => x.Date).IsUnique();
         });
 

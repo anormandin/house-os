@@ -83,6 +83,17 @@ public class Edition
     /// </summary>
     public bool ReeditionEnAttente { get; set; }
 
+    /// <summary>
+    /// La matière telle que l'éditorialiste l'a reçue (le JSON de
+    /// <c>RedactionLlm.SerialiserMatiere</c> ; jsonb en renormalise l'ordre des clés et
+    /// les espaces, pas le contenu), posée chaque fois qu'on lui a demandé
+    /// d'écrire — y compris quand il n'a rien rendu et que le gabarit a pris la place.
+    /// Nulle sur un gabarit posé par le rendu, qui n'a rien demandé. C'est ce qui permet
+    /// de rejouer une journée contre un autre prompt
+    /// (D-2026-09-21 Matière Conservée Sur L'Édition).
+    /// </summary>
+    public string? Matiere { get; set; }
+
     public PlancherDuJour? Plancher =>
         PlancherRaison is { } raison ? new PlancherDuJour(raison, PlancherTitre ?? "") : null;
 }

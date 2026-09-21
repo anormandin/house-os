@@ -71,7 +71,7 @@ Une décision transversale gouverne plusieurs features.
 - **Vue Téléphone** — [[D-2026-09-19 Interface Téléphone Distincte]] · [[D-2026-09-19 Portée De La Vue Téléphone]]
 - **Affichage E-ink** — [[D-2026-09-03 Protocole TRMNL BYOS Comme API D'affichage]] · [[D-2026-09-03 Registre Des Appareils D'affichage]] · [[D-2026-09-03 Rendu E-ink Par Chromium Headless]]
 - **Fonds De Tiroir** — [[D-2026-09-20 Fonds De Tiroir Séparé Du Journal]] · [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] · [[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]] · [[D-2026-09-20 Sources Municipales Séparées Par Solidité]] · [[D-2026-09-20 Calendrier De Collectes Régénéré À La Main]]
-- **Journal De La Maison** — [[D-2026-09-20 Une Édition Par Jour Matérialisée]] · [[D-2026-09-20 Édition Écrite Par Opus]] · [[D-2026-09-20 Une Seule Mise En Page À Rangs]] · [[D-2026-09-20 Regroupement Sans Catégorie De Tâche]] · [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] · [[D-2026-09-21 Réédition En Deux Temps]]
+- **Journal De La Maison** — [[D-2026-09-20 Une Édition Par Jour Matérialisée]] · [[D-2026-09-20 Édition Écrite Par Opus]] · [[D-2026-09-20 Une Seule Mise En Page À Rangs]] · [[D-2026-09-20 Regroupement Sans Catégorie De Tâche]] · [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] · [[D-2026-09-21 Réédition En Deux Temps]] · [[D-2026-09-21 Matière Conservée Sur L'Édition]]
 
 ### Features
 ![[Features.base]]

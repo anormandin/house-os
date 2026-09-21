@@ -39,12 +39,12 @@ public sealed class RedacteurAnthropic(
         }
         try
         {
-            var (texte, ecart) = await RedactionLlm.RedigerAvecEcart(matiere, cle, Modele, ct);
-            if (texte is null)
+            var reponse = await RedactionLlm.RedigerAvecEcart(matiere, cle, Modele, ct);
+            if (reponse.Texte is null)
             {
-                journal.LogWarning("Édition : réponse du modèle hors contrat ({Ecart}) — gabarit.", ecart);
+                journal.LogWarning("Édition : réponse du modèle hors contrat ({Ecart}) — gabarit.", reponse.Ecart);
             }
-            return texte;
+            return reponse.Texte;
         }
         catch (Exception ex) when (ct.IsCancellationRequested == false)
         {

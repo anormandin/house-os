@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-21
-verified-against: 5a332af
+verified-against: b8e523a
 tags: [iot]
 ---
 
@@ -200,7 +200,10 @@ Bâti à l'étape 7 (`server/HouseOs.Api/Features/Editorial/`, as of 2026-09-21)
 ### Ce que l'édition fige, et comment le rendu s'en sert
 
 L'entité (`Domaine/Editorial/Edition.cs`) porte la date, le rang, les textes, les
-**clés publiées** (JSONB), les rubriques (JSONB), le plancher, la source et le modèle.
+**clés publiées** (JSONB), les rubriques (JSONB), le plancher, la source, le modèle et
+la **matière** (JSONB) — ce que le modèle a reçu, posé chaque fois qu'on
+lui a demandé d'écrire, même quand il s'est tu ; nulle sur un gabarit posé par le
+rendu ([[D-2026-09-21 Matière Conservée Sur L'Édition]]).
 
 - Le **rang** consigné est celui pour lequel la prose a été écrite ; la page calcule
   sa grille sur le compte **vivant**, comme avant — une tâche ajoutée à neuf heures
@@ -220,6 +223,31 @@ L'entité (`Domaine/Editorial/Edition.cs`) porte la date, le rang, les textes, l
   l'écrire ; `regenerer_journal_mural` avec `date` l'écrit, et c'est un geste explicite
   — mais elle garde son drapeau, et le jour venu l'éditorialiste la réécrit avec les
   faits du jour.
+
+### L'atelier du prompt
+
+Le prompt se règle à la lecture, jamais à l'aveugle : on relit des éditions contre
+leur matière, on note ce qui cloche, on retouche dans un fichier, on rejoue **la même
+matière** contre l'ancien et le nouveau prompt, et seulement ensuite on touche la
+constante du code (`RedactionLlm.PromptParDefaut`) et on release. L'outil est
+`server/HouseOs.Essais` (as of 2026-09-21), hors de l'image Docker :
+
+- `prompt` imprime le prompt en vigueur, à rediriger dans un fichier de travail.
+- `matiere <date>` imprime la matière conservée sur l'édition de cette date, lue de la
+  base de dev par défaut (`--base` ou `ConnectionStrings__HouseOs` pour une autre).
+  Pour une journée de **prod**, la même colonne se lit sur la machine de prod avec
+  `docker compose exec -T postgres psql -U houseos -Atc` sur `"Editions"."Matiere"`,
+  et le fichier se rapporte chez soi : l'atelier ne se connecte jamais à la prod.
+- `rediger <matiere.json> [--prompt fichier] [--fois n] [--modele id] [--brut]` envoie
+  la matière au modèle avec le prompt du fichier (le défaut sans `--prompt`) et
+  imprime chaque réponse avec la longueur de chaque champ et un repère au-delà de la
+  cible — ou l'écart qui l'a fait refuser, avec le texte brut. La clé est celle du
+  titre d'humeur (`ANTHROPIC_API_KEY`, ou `appsettings.local.json`).
+
+Ce que l'atelier ne fait pas : il n'écrit rien en base, ne touche pas au mur, et ne
+juge pas la prose — la lecture reste celle du foyer. Les vérifications mécaniques
+(chaque chiffre dans la matière, les longueurs, les patrons de surtitre qui se
+répètent) sont la suite naturelle, pas encore bâtie.
 
 ### Figé et vivant
 

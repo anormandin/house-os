@@ -124,6 +124,38 @@ public class GenerationEditionTests : TestAvecSqlite
     }
 
     [Fact]
+    public async Task L_edition_garde_la_matiere_donnee_au_modele_meme_quand_il_s_est_tu()
+    {
+        AjouterTache("Pneus d'hiver", Aujourdhui);
+
+        // Le rendu pose un gabarit sans rien demander : pas de matière.
+        await Rendre();
+        var gabarit = await Db.Editions.AsNoTracking().SingleAsync();
+        Assert.Null(gabarit.Matiere);
+
+        // Le modèle se tait : le gabarit reste, mais la matière qu'on lui a donnée est
+        // là — c'est cette journée-là qu'on voudra rejouer.
+        _redacteur.Texte = null;
+        var (muette, _) = await ServiceDeFond();
+        Assert.Equal(SourceEdition.Gabarit, muette.Source);
+        var relue = RedactionLlm.DeserialiserMatiere(muette.Matiere!);
+        Assert.NotNull(relue);
+        Assert.Equal(Aujourdhui, relue.Date);
+        Assert.Equal("Pneus d'hiver", Assert.Single(relue.TachesDues).Titre);
+        Assert.Equal(RedactionLlm.SerialiserMatiere(_redacteur.DerniereMatiere!), muette.Matiere);
+
+        // Réécrite avec le modèle : la matière suit, relue de la base.
+        _redacteur.Texte = TexteOpus;
+        await GenerationEdition.GenererAsync(
+            Db, _redacteur, null, null, null, NullLogger.Instance, Aujourdhui, Matin,
+            remplacer: true, CancellationToken.None);
+        Db.ChangeTracker.Clear();
+        var ecrite = await Db.Editions.SingleAsync();
+        Assert.Equal(SourceEdition.Llm, ecrite.Source);
+        Assert.Equal(RedactionLlm.SerialiserMatiere(_redacteur.DerniereMatiere!), ecrite.Matiere);
+    }
+
+    [Fact]
     public async Task Un_modele_qui_se_tait_laisse_le_gabarit_sans_rappel_a_chaque_reveil()
     {
         _redacteur.Texte = null;
