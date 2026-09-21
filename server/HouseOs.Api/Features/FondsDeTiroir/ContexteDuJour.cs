@@ -23,6 +23,10 @@ public sealed record PointDObservation(Lieu Lieu, TimeZoneInfo Fuseau);
 /// <param name="Climat">Les normales du lieu et la journée d'il y a un an. Sans elles —
 /// une installation neuve, une archive jamais tirée — la famille « le climat » se tait
 /// (vault : D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo).</param>
+/// <param name="Ville">Les collectes et les événements municipaux, tels que les flux
+/// externes les portent — avec l'âge de chaque flux, parce qu'un flux qu'on n'alimente
+/// plus doit cesser de parler (vault : D-2026-09-20 Flux Externe Poussé). Aucun flux
+/// branché : la ville se tait.</param>
 /// <param name="Hasard">Les dictons et les fêtes, lus une fois au démarrage dans un
 /// fichier remplaçable. C'est le seul matériau du fonds qui ne vient ni d'un calcul ni
 /// d'une table (vault : D-2026-09-20 Banque Du Hasard En Fichier De Données).</param>
@@ -33,4 +37,5 @@ public sealed record ContexteDuJour(
     EtatDuClimat? Climat = null,
     EtatDeLaMaison? Maison = null,
     EtatDuCalendrier? Calendrier = null,
+    EtatDeLaVille? Ville = null,
     BanqueDuHasard? Hasard = null);

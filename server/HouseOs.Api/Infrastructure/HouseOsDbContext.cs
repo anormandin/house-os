@@ -177,6 +177,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
             f.Property(x => x.Nom).HasMaxLength(100);
             f.Property(x => x.Url).HasMaxLength(500);
             f.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+            f.Property(x => x.Source).HasConversion<string>().HasMaxLength(20);
             f.Property(x => x.DerniereErreur).HasMaxLength(300);
             f.HasMany(x => x.Evenements).WithOne().HasForeignKey(e => e.FluxExterneId)
                 .OnDelete(DeleteBehavior.Cascade);

@@ -5,6 +5,7 @@ using HouseOs.Api.Infrastructure;
 using HouseOs.Tests.Features.Taches;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HouseOs.Tests.Features.FluxExternes;
@@ -107,6 +108,21 @@ public class RafraichissementTests : TestAvecSqlite
         public HttpClient CreateClient(string name) => client;
     }
 
+    /// <summary>Retient les messages formatés : c'est le seul endroit où le passage dit
+    /// combien de flux il a <b>listés</b>, donc la seule preuve du filtre de la requête.</summary>
+    private sealed class JournalEspion : ILogger<FluxExternesRafraichissement>
+    {
+        public List<string> Messages { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) => Messages.Add(formatter(state, exception));
+    }
+
     [Fact]
     public async Task Un_flux_en_erreur_ne_gele_pas_le_statut_des_flux_suivants()
     {
@@ -145,6 +161,94 @@ public class RafraichissementTests : TestAvecSqlite
         var mort = Db.FluxExternes.Single(f => f.Id == fluxMort.Id);
         Assert.NotNull(mort.DerniereErreur);
         Assert.Null(mort.DernierRafraichissementLe);
+    }
+
+    /// <summary>
+    /// Le piège de l'étape : la passe de six heures ne doit pas voir les flux poussés.
+    /// Sans le filtre de la source, elle tenterait de télécharger une URL nulle, noterait
+    /// une erreur, et surtout — au moindre changement du code d'échec — viderait les
+    /// événements qu'un programme extérieur ne repousse, lui, qu'une fois par jour
+    /// (vault : D-2026-09-20 Flux Externe Poussé).
+    /// </summary>
+    [Fact]
+    public async Task Une_passe_de_rafraichissement_ne_touche_pas_a_un_flux_pousse()
+    {
+        var pousse = new FluxExterne
+        {
+            Id = Guid.NewGuid(),
+            Nom = "A ville (poussé)",
+            Url = null,
+            Source = SourceFluxExterne.Poussee,
+            Type = TypeFluxExterne.Municipal,
+            DernierRafraichissementLe = new DateTimeOffset(2026, 9, 20, 6, 0, 0, TimeSpan.Zero),
+        };
+        var abonnement = new FluxExterne
+        {
+            Id = Guid.NewGuid(), Nom = "B collectes", Url = "https://sain.exemple.test/b.ics",
+        };
+        Db.FluxExternes.AddRange(pousse, abonnement);
+        Db.EvenementsExternes.Add(new EvenementExterne
+        {
+            FluxExterneId = pousse.Id,
+            Uid = "conseil:2026-09-25",
+            Titre = "Séance du conseil",
+            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(4)),
+        });
+        Db.SaveChanges();
+
+        var client = new HttpClient(new ReponseParHote(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(IcsValide) }));
+        var options = new DbContextOptionsBuilder<HouseOsDbContext>().UseSqlite(Connexion).Options;
+        var services = new ServiceCollection();
+        services.AddScoped<HouseOsDbContext>(_ => new HouseOsDbContextSqlite(options));
+        await using var fournisseur = services.BuildServiceProvider();
+        var journal = new JournalEspion();
+        var service = new FluxExternesRafraichissement(
+            fournisseur.GetRequiredService<IServiceScopeFactory>(),
+            new FabriqueClientFixe(client),
+            journal);
+
+        await service.RafraichirTous(CancellationToken.None);
+
+        // Le flux poussé n'est pas seulement épargné : il n'a jamais été listé. C'est
+        // le filtre de la requête, et non la ceinture de Rafraichir, qui le dit.
+        Assert.Contains(journal.Messages, m => m.Contains("1/1 flux rafraîchis"));
+
+        Db.ChangeTracker.Clear();
+        // Ses événements sont intacts, son horodatage n'a pas bougé, et aucune erreur
+        // n'est venue salir sa fiche.
+        var evenement = Assert.Single(Db.EvenementsExternes.Where(e => e.FluxExterneId == pousse.Id));
+        Assert.Equal("Séance du conseil", evenement.Titre);
+        var relu = Db.FluxExternes.Single(f => f.Id == pousse.Id);
+        Assert.Equal(new DateTimeOffset(2026, 9, 20, 6, 0, 0, TimeSpan.Zero), relu.DernierRafraichissementLe);
+        Assert.Null(relu.DerniereErreur);
+        // Et l'abonnement voisin, lui, a bien été rafraîchi par la même passe.
+        Assert.Single(Db.EvenementsExternes.Where(e => e.FluxExterneId == abonnement.Id));
+    }
+
+    /// <summary>Ceinture du même piège, un cran plus bas : appelé directement sur un
+    /// flux sans URL, le rafraîchissement ne fait rien plutôt que de le vider.</summary>
+    [Fact]
+    public async Task Rafraichir_un_flux_sans_url_ne_fait_rien()
+    {
+        var pousse = new FluxExterne
+        {
+            Id = Guid.NewGuid(), Nom = "Ville", Url = null, Source = SourceFluxExterne.Poussee,
+        };
+        Db.FluxExternes.Add(pousse);
+        Db.EvenementsExternes.Add(new EvenementExterne
+        {
+            FluxExterneId = pousse.Id, Uid = "u:2026-09-25", Titre = "Marché", Date = new DateOnly(2026, 9, 25),
+        });
+        Db.SaveChanges();
+
+        await FluxExternesRafraichissement.Rafraichir(
+            Db, pousse, Client(HttpStatusCode.OK, IcsValide), CancellationToken.None);
+
+        Db.ChangeTracker.Clear();
+        Assert.Single(Db.EvenementsExternes);
+        Assert.Null(Db.FluxExternes.Single().DerniereErreur);
+        Assert.Null(Db.FluxExternes.Single().DernierRafraichissementLe);
     }
 
     [Fact]

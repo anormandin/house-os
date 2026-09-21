@@ -62,7 +62,6 @@ public record DonneesEcran(
     int Faites,
     MeteoEcranDto? Meteo,
     List<EvenementExterneDto> EvenementsDuJour,
-    EvenementExterneDto? ProchaineCollecte,
     CompteEcranDto? ProchainCompte,
     string? Lieu,
     int? NumeroEdition,
@@ -133,8 +132,52 @@ public static class ComposerDonneesEcran
                 new Lieu(options.Latitude, options.Longitude), options.Fuseau(), zonesDehors.ToHashSet()),
             await LireLaMaisonAsync(db, aujourdhui),
             await LireLeCalendrierAsync(db, aujourdhui),
+            await LireLaVilleAsync(db, aujourdhui, new DateTimeOffset(maintenant)),
             banqueDuHasard,
             options is null ? null : await LireLeClimatAsync(db, aujourdhui, options));
+    }
+
+    /// <summary>
+    /// Les collectes et les événements municipaux, par flux — la matière de la famille
+    /// « la ville » (vault : Fonds De Tiroir). Aucune connaissance municipale ici : ce
+    /// sont des flux externes comme les autres, et c'est leur <b>type</b> qui les range
+    /// (vault : D-2026-09-20 Sources Municipales Séparées Par Solidité).
+    ///
+    /// <para>L'âge de chaque flux part d'ici : le fonds ne lit pas l'horloge, et c'est
+    /// lui qui décide qu'un flux qu'on n'alimente plus cesse de parler. La fenêtre est
+    /// celle de l'ingestion, pas celle de l'affichage — c'est sur ce que le flux porte
+    /// qu'on peut dire d'une collecte qu'elle sort de l'ordinaire.</para>
+    /// </summary>
+    private static async Task<EtatDeLaVille> LireLaVilleAsync(
+        HouseOsDbContext db, DateOnly aujourdhui, DateTimeOffset maintenant)
+    {
+        var debut = aujourdhui.AddDays(-1);
+        var fin = aujourdhui.AddDays(FenetreJours);
+        var flux = await db.FluxExternes
+            .Where(f => f.Actif
+                        && (f.Type == TypeFluxExterne.Collecte || f.Type == TypeFluxExterne.Municipal))
+            .Select(f => new
+            {
+                f.Type,
+                f.DernierRafraichissementLe,
+                Evenements = f.Evenements
+                    .Where(e => e.Date >= debut && e.Date < fin)
+                    .Select(e => new EvenementDeLaVille(e.Date, e.Titre, e.Heure))
+                    .ToList(),
+            })
+            .ToListAsync();
+
+        List<FluxDeLaVille> DeType(TypeFluxExterne type) =>
+            [.. flux
+                .Where(f => f.Type == type)
+                .Select(f => new FluxDeLaVille(
+                    f.DernierRafraichissementLe is { } recuLe
+                        ? Math.Max(0, (int)(maintenant - recuLe).TotalDays)
+                        : null,
+                    f.Evenements))];
+
+        return new EtatDeLaVille(
+            DeType(TypeFluxExterne.Collecte), DeType(TypeFluxExterne.Municipal), FenetreJours);
     }
 
     /// <summary>
@@ -353,6 +396,7 @@ public static class ComposerDonneesEcran
         ReglagesDuCiel? ciel,
         EtatDeLaMaison? maison,
         EtatDuCalendrier? calendrier,
+        EtatDeLaVille? ville,
         BanqueDuHasard? hasard,
         EtatDuClimat? climat)
     {
@@ -365,11 +409,17 @@ public static class ComposerDonneesEcran
             climat,
             maison,
             calendrier,
+            ville,
             hasard);
 
         return [.. Tiroir.Ouvrir(contexte, HistoriqueDeParution.Vide)
             .Select(f => new FaitEcranDto(f.Cle, f.Famille.ToString(), f.Etiquette, f.Valeur, f.Texte))];
     }
+
+    /// <summary>Les types de flux dont la famille « la ville » a la charge
+    /// (vault : Fonds De Tiroir).</summary>
+    private static bool EstDeLaVille(string type) =>
+        type == nameof(TypeFluxExterne.Collecte) || type == nameof(TypeFluxExterne.Municipal);
 
     /// <summary>La composition pure — testée sans base.</summary>
     public static DonneesEcran Composer(
@@ -385,6 +435,7 @@ public static class ComposerDonneesEcran
         ReglagesDuCiel? ciel = null,
         EtatDeLaMaison? maison = null,
         EtatDuCalendrier? calendrier = null,
+        EtatDeLaVille? ville = null,
         BanqueDuHasard? hasard = null,
         EtatDuClimat? climat = null)
     {
@@ -427,8 +478,11 @@ public static class ComposerDonneesEcran
             ouvertes.Count(o => o.Echeance is { } e && e < aujourdhui),
             faites.Count,
             meteoEcran,
-            evenements.Where(e => e.Date == aujourdhui).ToList(),
-            evenements.FirstOrDefault(e => e.Type == nameof(TypeFluxExterne.Collecte) && e.Date >= aujourdhui),
+            // Les collectes et la ville ont leur famille au fonds de tiroir depuis
+            // l'étape 6, et elle sait se taire quand son flux n'est plus alimenté. Les
+            // laisser aussi dans le bandeau du jour, qui ne juge rien, publierait deux
+            // fois le même événement — et publierait celui d'un gratteur mort.
+            evenements.Where(e => e.Date == aujourdhui && EstDeLaVille(e.Type) == false).ToList(),
             comptes.Where(c => c.DateCible >= aujourdhui).OrderBy(c => c.DateCible)
                 .Select(c => new CompteEcranDto(c.Titre, c.DateCible)).FirstOrDefault(),
             string.IsNullOrWhiteSpace(lieu) ? null : lieu.Trim(),
@@ -437,7 +491,7 @@ public static class ComposerDonneesEcran
             // main : c'est lui qui transforme « il a fait 14 °C l'an dernier » en
             // comparaison. Absent, le fait dira autre chose plutôt que de se taire.
             FondsDuJour(
-                aujourdhui, ouvertes, ciel, maison, calendrier, hasard,
+                aujourdhui, ouvertes, ciel, maison, calendrier, ville, hasard,
                 climat is null ? null : climat with { MaxDAujourdhuiC = jour?.TempMax }));
     }
 }

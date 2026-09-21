@@ -29,6 +29,10 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
 {
     public const string CleMcp = "cle-de-test-mcp";
 
+    /// <summary>La poussée de flux externe a sa propre clé — c'est tout l'intérêt
+    /// (vault : D-2026-09-20 Flux Externe Poussé).</summary>
+    public const string ClePoussee = "cle-de-test-poussee";
+
     private readonly PostgreSqlContainer _postgres =
         new PostgreSqlBuilder("postgres:17-alpine").Build();
 
@@ -50,6 +54,7 @@ public sealed class HouseOsFactory : WebApplicationFactory<Program>, IAsyncLifet
     {
         builder.UseSetting("ConnectionStrings:HouseOs", _postgres.GetConnectionString());
         builder.UseSetting("Mcp:Cle", CleMcp);
+        builder.UseSetting(PousseeEndpoints.CheminDeLaCle, ClePoussee);
         // Pas de sink Seq sous test : appsettings.Development.json en pointe un, et
         // la suite passerait son temps à tenter de joindre un collecteur local.
         builder.UseSetting("Journalisation:Seq:Url", "");

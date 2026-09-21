@@ -10,11 +10,6 @@ namespace HouseOs.Api.Features.FluxExternes;
 /// format iCalendar entrant.</summary>
 public static class LectureIcs
 {
-    // Longueurs du schéma (HouseOsDbContext) : un SUMMARY réel de 500 caractères ne
-    // doit pas faire échouer tout le flux en « value too long », en boucle, à vie.
-    private const int LongueurMaxTitre = 200;
-    private const int LongueurMaxUid = 300;
-
     public static List<EvenementExterne> Normaliser(string ics, DateOnly debut, DateOnly finExclue)
     {
         var calendrier = Ical.Net.Calendar.Load(ics)
@@ -39,24 +34,12 @@ public static class LectureIcs
                 continue;
             }
 
-            var titre = string.IsNullOrWhiteSpace(evenement.Summary) ? "(sans titre)" : evenement.Summary.Trim();
-            if (titre.Length > LongueurMaxTitre)
-            {
-                titre = titre[..LongueurMaxTitre];
-            }
-            // Le suffixe date garantit l'unicité par occurrence : c'est le préfixe
-            // (l'Uid source) qui se fait tronquer, jamais la date.
-            var suffixe = $":{date:yyyy-MM-dd}";
-            var uidSource = evenement.Uid ?? "";
-            if (uidSource.Length + suffixe.Length > LongueurMaxUid)
-            {
-                uidSource = uidSource[..(LongueurMaxUid - suffixe.Length)];
-            }
-
             evenements.Add(new EvenementExterne
             {
-                Uid = uidSource + suffixe,
-                Titre = titre,
+                // Les bornes du schéma sont les mêmes des deux côtés de l'entrée —
+                // l'ICS téléchargé et la poussée par l'API (BornesDuFlux).
+                Uid = BornesDuFlux.Uid(evenement.Uid, date),
+                Titre = BornesDuFlux.Titre(evenement.Summary),
                 Date = date,
                 Heure = depart.HasTime ? TimeOnly.FromDateTime(local.Value) : null,
             });

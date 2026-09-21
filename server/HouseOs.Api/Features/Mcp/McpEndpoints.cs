@@ -42,7 +42,7 @@ public static class McpEndpoints
                     throw;
                 }
             }))
-            .WithTools([typeof(OutilsTaches), typeof(OutilsMaison), typeof(OutilsIcal)]);
+            .WithTools([typeof(OutilsTaches), typeof(OutilsMaison), typeof(OutilsIcal), typeof(OutilsFlux)]);
         return services;
     }
 

@@ -140,21 +140,27 @@ public class ComposerDonneesEcranTests
         Assert.Null(Composer(meteo: null).Meteo);
     }
 
+    /// <summary>
+    /// Le bandeau du jour montre ce qui n'a pas de famille au fonds de tiroir. Depuis
+    /// l'étape 6, les collectes et la ville en ont une — et elle, contrairement au
+    /// bandeau, sait se taire quand son flux n'est plus alimenté. Les laisser ici
+    /// publierait deux fois le même événement, et publierait celui d'un gratteur mort
+    /// (trouvé en revue de code, étape 6).
+    /// </summary>
     [Fact]
-    public void Les_evenements_du_jour_et_la_prochaine_collecte_sont_extraits()
+    public void Le_bandeau_du_jour_laisse_les_collectes_et_la_ville_a_leur_famille()
     {
         var evenements = new List<EvenementExterneDto>
         {
             new("Rentrée", "Ecole", Aujourdhui, null),
-            new("Ordures", "Collecte", Aujourdhui.AddDays(2), null),
-            new("Recyclage", "Collecte", Aujourdhui.AddDays(9), null),
+            new("Ordures", "Collecte", Aujourdhui, null),
+            new("Séance du conseil", "Municipal", Aujourdhui, null),
+            new("Souper", "Autre", Aujourdhui, null),
         };
 
         var donnees = Composer(evenements: evenements);
 
-        Assert.Single(donnees.EvenementsDuJour);
-        Assert.Equal("Rentrée", donnees.EvenementsDuJour[0].Titre);
-        Assert.Equal("Ordures", donnees.ProchaineCollecte!.Titre);
+        Assert.Equal(["Rentrée", "Souper"], donnees.EvenementsDuJour.Select(e => e.Titre));
     }
 
     [Fact]

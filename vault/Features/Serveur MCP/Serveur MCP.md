@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-20
-verified-against: b65eb2b
+last-verified: 2026-09-21
+verified-against: 957263e
 tags: []
 ---
 
@@ -20,7 +20,8 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 - Le backend expose un endpoint MCP **`/mcp`** (streamable HTTP, stateless) via le SDK
   officiel C#. Quand la requête ne porte pas la clé API (`Authorization: Bearer`,
   config `Mcp:Cle`), le système répond 401 ; clé non configurée = tout est refusé.
-- **22 outils**, noms snake_case français, erreurs en français actionnables
+- **26 outils** (compté sur `tools/list`, 2026-09-21 — la note en annonçait 22,
+  elle en avait déjà 23), noms snake_case français, erreurs en français actionnables
   (`McpException`) ; dates en chaînes `YYYY-MM-DD` ; enums en chaînes ; retours
   camelCase (mêmes formes que les DTO REST) :
   - `lister_utilisateurs`, `lister_zones`, `gerer_zone`
@@ -49,6 +50,10 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   - `lister_appareils_affichage`, `gerer_appareil_affichage` (renommer / supprimer
     un écran e-ink enrôlé ; l'enrôlement est automatique par le protocole TRMNL —
     voir [[Affichage E-ink]])
+  - `lister_flux_externes`, `gerer_flux_externe` (creer/modifier/supprimer, les deux
+    sources d'un flux) et `pousser_evenements_flux` (remplace **tous** les événements
+    d'un flux poussé) — parité avec [[Flux Externes]] depuis l'étape 6 du
+    [[Plan 2026-09-20 Journal Éditorial]]
   - `regenerer_journal_mural` (réécrit la phrase du créneau — appel LLM compris —
     puis tire l'image par le chemin de l'appareil ; parité avec
     `POST /api/affichage/regenerer`. L'image elle-même reste web : `apercu.png`)
@@ -98,10 +103,15 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 ## Ancres de code
 
 - `server/HouseOs.Api/Features/Mcp/McpEndpoints.cs` — wiring AddMcpServer/MapMcp + policy.
-- `server/HouseOs.Api/Features/Mcp/AuthentificationCleApi.cs` — scheme CleApi.
+- `server/HouseOs.Api/Features/Mcp/AuthentificationCleApi.cs` — le schéma de clé
+  partagée, paramétré par `OptionsCleApi` : **deux clés** depuis 2026-09-21, celle du
+  MCP (`Mcp:Cle`) et celle de la poussée de flux (`FluxExternes:ClePoussee`,
+  [[D-2026-09-20 Flux Externe Poussé]]). La poussée n'est pas un outil MCP au sens du
+  transport — c'est un endpoint REST — mais elle emprunte ce mécanisme.
 - `server/HouseOs.Api/Features/Mcp/OutilsTaches.cs` — outils tâches (dont creer_taches).
 - `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — zones, équipements, comptes.
 - `server/HouseOs.Api/Features/Mcp/OutilsIcal.cs` — mon_flux_ical.
+- `server/HouseOs.Api/Features/Mcp/OutilsFlux.cs` — calendriers externes et poussée.
 - `server/HouseOs.Api/Features/Mcp/AgirComme.cs` — résolution d'identité.
 - `server/HouseOs.Api/Features/Taches/OperationsTaches.cs` — logique partagée REST+MCP.
 - `server/HouseOs.Tests/Integration/McpApiTests.cs` et

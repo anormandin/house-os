@@ -1,8 +1,8 @@
 // Helpers purs de la vue e-ink (pages/Ecran.tsx). La page met en forme ; ce qui se
 // calcule se calcule ici, testé.
 
-import { dateLocaleIso, type FaitEcran, type LigneEcran } from '@/lib/api'
-import { dodosAvant, jourCourt } from '@/lib/format'
+import type { FaitEcran, LigneEcran } from '@/lib/api'
+import { dodosAvant } from '@/lib/format'
 
 /**
  * « AL » pour Alain, « AR » pour Ariane — la couleur par personne n'existe pas en
@@ -13,18 +13,6 @@ export function initiales(nomAffichage: string | null): string {
     return ''
   }
   return [...nomAffichage.trim()].slice(0, 2).join('').toLocaleUpperCase('fr-CA')
-}
-
-/**
- * Quand une date arrive, en mots de tous les jours : « aujourd'hui », « demain »,
- * le jour de la semaine cette semaine, sinon « dans N jours ».
- */
-export function quandCeJour(dateIso: string, aujourdhui = dateLocaleIso()): string {
-  const jours = joursEntre(aujourdhui, dateIso)
-  if (jours <= 0) return "aujourd'hui"
-  if (jours === 1) return 'demain'
-  if (jours < 7) return jourCourt(dateIso)
-  return `dans ${jours} jours`
 }
 
 /** « 33 dodos », « 1 dodo », « aujourd'hui » — le vocabulaire des comptes à rebours. */
@@ -57,12 +45,6 @@ function entierBorne(valeur: string | null, defaut: number): number {
     return defaut
   }
   return n
-}
-
-function joursEntre(deIso: string, aIso: string): number {
-  return Math.round(
-    (new Date(`${aIso}T00:00:00`).getTime() - new Date(`${deIso}T00:00:00`).getTime()) / 86_400_000,
-  )
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -362,8 +344,14 @@ export function formeDuCiel(rangeesPossibles: number, budgetDeWidgets: number): 
  * Du Journal). C'est donc ici, chez le consommateur, qu'on évite de le dire deux fois —
  * le défaut « deux colonnes voisines coiffées DEHORS » de l'étape 2, en pire : le même
  * titre et le même chiffre, à dix centimètres l'un de l'autre.
+ *
+ * La prochaine collecte est dans le même cas depuis l'étape 6 : le journal lui garde
+ * une place fixe — sortir le bac est le geste du soir, il ne doit pas dépendre d'un
+ * classement — mais il l'écrit désormais **avec les mots du fait**, qui sait se taire
+ * quand le calendrier n'est plus alimenté et quand la collecte est encore loin. Avant,
+ * le widget lisait une colonne à part qui ne jugeait ni l'un ni l'autre.
  */
-export const CLES_DEJA_AU_JOURNAL = ['calendrier.compte-a-rebours']
+export const CLES_DEJA_AU_JOURNAL = ['calendrier.compte-a-rebours', 'ville.collecte']
 
 /** Le fonds de tiroir, moins ce que le journal dessine autrement. */
 export function faitsEnWidgets(faits: FaitEcran[]): FaitEcran[] {

@@ -21,7 +21,6 @@ import {
   libelleDodos,
   pileAnnoncee,
   plancher,
-  quandCeJour,
   rangeeSerree,
   repartitionColonnes,
   resteAAnnoncer,
@@ -383,8 +382,16 @@ type WidgetEcran = { cle: string; etiquette: string; valeur: ReactNode; detail?:
 
 /**
  * Ce que le journal a à montrer à côté de la liste, dans l'ordre. D'abord ce qui
- * engage la journée — un événement au calendrier, la collecte, le verdict du dehors —
- * puis le fonds de tiroir, qui remplit ce qu'il reste du budget du rang.
+ * engage la journée — un événement au calendrier, le verdict du dehors — puis le fonds
+ * de tiroir, qui remplit ce qu'il reste du budget du rang.
+ *
+ * La collecte garde sa place fixe — c'est le geste du soir, il ne doit pas dépendre
+ * d'un classement — mais depuis l'étape 6 elle est **écrite par le fonds** (« la
+ * ville »), pas tirée d'une colonne à part. Le widget qu'on dessinait ici ne jugeait
+ * ni la fraîcheur du calendrier ni la distance, et court-circuitait la seule règle de
+ * la famille : un flux qu'on n'alimente plus cesse de parler. Même montage que
+ * l'encadré du compte à rebours — le journal choisit la place, le fonds les mots, et
+ * la clé reste dans `CLES_DEJA_AU_JOURNAL` pour ne pas la dire deux fois.
  *
  * Le fonds de tiroir rend des faits déjà classés et sans mise en forme : le choix de
  * la densité est fait ici, et nulle part ailleurs
@@ -401,12 +408,13 @@ function widgetsDuJour(donnees: DonneesEcran, grille: Grille): WidgetEcran[] {
     })
   }
 
-  if (donnees.prochaineCollecte !== null) {
+  const collecte = donnees.faits.find((f) => f.cle === 'ville.collecte')
+  if (collecte !== undefined) {
     widgets.push({
-      cle: 'collecte',
-      etiquette: 'Dans la ville',
-      valeur: donnees.prochaineCollecte.titre,
-      detail: quandCeJour(donnees.prochaineCollecte.date, donnees.date),
+      cle: collecte.cle,
+      etiquette: collecte.etiquette,
+      valeur: collecte.valeur,
+      detail: collecte.texte,
     })
   }
 

@@ -14,7 +14,6 @@ import {
   libelleDodos,
   pileAnnoncee,
   plancher,
-  quandCeJour,
   rangeeSerree,
   repartitionColonnes,
   resteAAnnoncer,
@@ -39,15 +38,6 @@ test('initiales prend deux lettres en majuscules (Alain et Ariane se distinguent
   expect(initiales('A')).toBe('A')
   expect(initiales(null)).toBe('')
   expect(initiales('  ')).toBe('')
-})
-
-test("quandCeJour parle comme à la maison : aujourd'hui, demain, le jour, dans N jours", () => {
-  const aujourdhui = '2026-09-03' // jeudi
-  expect(quandCeJour('2026-09-03', aujourdhui)).toBe("aujourd'hui")
-  expect(quandCeJour('2026-09-01', aujourdhui)).toBe("aujourd'hui")
-  expect(quandCeJour('2026-09-04', aujourdhui)).toBe('demain')
-  expect(quandCeJour('2026-09-07', aujourdhui)).toBe('lun')
-  expect(quandCeJour('2026-09-10', aujourdhui)).toBe('dans 7 jours')
 })
 
 test('libelleDodos compte les nuits', () => {
@@ -313,11 +303,18 @@ test("le compte à rebours ne se dit pas deux fois : l'encadré le montre déjà
   // du matin n'en aura pas. C'est donc le journal qui écarte le doublon, et lui seul.
   const faits = [
     fait('calendrier.compte-a-rebours', 'Calendrier'),
+    // La collecte est dans le même cas depuis l'étape 6 : le journal lui dessine son
+    // propre widget (« Dans la ville »), le fonds la produit pour la lettre du matin.
+    fait('ville.collecte', 'Ville'),
     fait('maison.record', 'Maison'),
     fait('ciel.jour'),
   ]
 
   expect(faitsEnWidgets(faits).map((f) => f.cle)).toEqual(['maison.record', 'ciel.jour'])
+  // Les autres faits de la ville, eux, prennent bien leur place au mur.
+  expect(faitsEnWidgets([fait('ville.evenement', 'Ville')]).map((f) => f.cle)).toEqual([
+    'ville.evenement',
+  ])
   // Et l'ordre du score est intact : le journal écarte, il ne retrie pas.
   expect(faitsEnWidgets([fait('ciel.jour')]).map((f) => f.cle)).toEqual(['ciel.jour'])
 })

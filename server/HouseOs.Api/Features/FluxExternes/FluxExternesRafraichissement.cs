@@ -9,6 +9,11 @@ namespace HouseOs.Api.Features.FluxExternes;
 /// (D-2026-08-24 Tables Flux Externes) : téléchargement, normalisation sur
 /// hier → +60 jours, remplacement des événements du flux en transaction.
 /// Échec → derniers événements conservés, erreur notée sur le flux.
+///
+/// <para><b>Les flux poussés sont hors de ce passage.</b> Ils n'ont pas d'URL : les
+/// prendre pour des abonnements morts les viderait toutes les six heures, et le
+/// programme extérieur qui les remplit ne repasse, lui, qu'une fois par jour
+/// (vault : D-2026-09-20 Flux Externe Poussé).</para>
 /// </summary>
 public class FluxExternesRafraichissement(
     IServiceScopeFactory scopeFactory,
@@ -53,7 +58,10 @@ public class FluxExternesRafraichissement(
         {
             var dbListe = scopeListe.ServiceProvider.GetRequiredService<HouseOsDbContext>();
             flux = (await dbListe.FluxExternes.AsNoTracking()
-                    .Where(f => f.Actif)
+                    // Le filtre de la source est le garde-fou du chantier : un flux
+                    // poussé n'a rien à télécharger, et un passage qui l'oublierait
+                    // remplacerait ses événements par le vide.
+                    .Where(f => f.Actif && f.Source == SourceFluxExterne.Ics)
                     .OrderBy(f => f.Nom) // ordre déterministe (logs, tests)
                     .Select(f => new { f.Id, f.Nom })
                     .ToListAsync(ct))
@@ -107,6 +115,14 @@ public class FluxExternesRafraichissement(
     /// <summary>Rafraîchit un flux ; partagé avec la validation à la création.</summary>
     public static async Task Rafraichir(HouseOsDbContext db, FluxExterne flux, HttpClient client, CancellationToken ct)
     {
+        // Ceinture, en plus du filtre de la requête : un flux sans URL n'a rien à
+        // télécharger, et tomber ici avec un flux poussé ne doit jamais se solder par
+        // une transaction qui le vide.
+        if (flux.Url is null)
+        {
+            return;
+        }
+
         var aujourdhui = DateOnly.FromDateTime(DateTime.Now);
         try
         {

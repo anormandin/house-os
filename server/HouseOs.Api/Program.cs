@@ -97,8 +97,16 @@ builder.Services
             return Task.CompletedTask;
         };
     })
-    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AuthentificationCleApiHandler>(
-        AuthentificationCleApiHandler.NomScheme, null);
+    .AddScheme<OptionsCleApi, AuthentificationCleApiHandler>(
+        AuthentificationCleApiHandler.NomScheme, null)
+    // La poussée de flux externe a sa propre clé : le programme qui pousse vit hors de
+    // la maison (vault : D-2026-09-20 Flux Externe Poussé).
+    .AddScheme<OptionsCleApi, AuthentificationCleApiHandler>(
+        AuthentificationCleApiHandler.NomSchemePoussee, options =>
+        {
+            options.CheminDeLaCle = PousseeEndpoints.CheminDeLaCle;
+            options.Client = "poussee";
+        });
 
 // X-Forwarded-* honoré seulement depuis les proxys déclarés (Reseau:ProxiesConnus —
 // IPs ou CIDR, séparés par des virgules : le NPM du LAN, le réseau du compose au
@@ -169,6 +177,10 @@ builder.Services.AddAuthorization(options =>
     // /mcp : clé API au lieu du cookie (la policy remplace la FallbackPolicy sur ce endpoint).
     options.AddPolicy(McpEndpoints.PolicyCleApi, policy => policy
         .AddAuthenticationSchemes(AuthentificationCleApiHandler.NomScheme)
+        .RequireAuthenticatedUser());
+    // Poussée de flux externe : sa propre clé, hors du cookie de session.
+    options.AddPolicy(PousseeEndpoints.PolicyClePoussee, policy => policy
+        .AddAuthenticationSchemes(AuthentificationCleApiHandler.NomSchemePoussee)
         .RequireAuthenticatedUser());
 });
 
@@ -287,6 +299,7 @@ app.MapIcal();
 app.MapMeteo();
 app.MapHumeur();
 app.MapFluxExternes();
+app.MapPousseeFluxExternes();
 app.MapAffichage();
 app.MapMcpHouseOs();
 // Avant le fallback SPA, sinon index.html avalerait la route du hub.

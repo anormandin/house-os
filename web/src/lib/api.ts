@@ -258,14 +258,23 @@ export type Meteo = {
   verdicts: VerdictMeteo[]
 }
 
-export type TypeFluxExterne = 'Collecte' | 'Ecole' | 'Autre'
+export type TypeFluxExterne = 'Collecte' | 'Ecole' | 'Municipal' | 'Autre'
+
+/**
+ * D'où viennent les événements : `Ics`, l'app télécharge l'URL toutes les 6 h ;
+ * `Poussee`, un programme extérieur les remplace par l'API et le flux n'a pas d'URL
+ * (vault : D-2026-09-20 Flux Externe Poussé).
+ */
+export type SourceFluxExterne = 'Ics' | 'Poussee'
 
 export type FluxExterne = {
   id: string
   nom: string
-  url: string
+  url: string | null
   type: TypeFluxExterne
+  source: SourceFluxExterne
   actif: boolean
+  /** Dernier téléchargement réussi, ou dernière poussée reçue. */
   dernierRafraichissementLe: string | null
   derniereErreur: string | null
   nbEvenements: number
@@ -273,8 +282,9 @@ export type FluxExterne = {
 
 export type FluxExterneDonnees = {
   nom: string
-  url: string
+  url: string | null
   type: TypeFluxExterne
+  source: SourceFluxExterne
 }
 
 export type EvenementExterne = {
@@ -421,7 +431,6 @@ export type DonneesEcran = {
     verdicts: VerdictMeteo[]
   } | null
   evenementsDuJour: EvenementExterne[]
-  prochaineCollecte: EvenementExterne | null
   prochainCompte: { titre: string; dateCible: string } | null
   /** Le lieu de publication du bloc-titre (`MAISON_LIEU`) ; null = rien à imprimer. */
   lieu: string | null

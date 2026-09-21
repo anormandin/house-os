@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-20
-verified-against: b65eb2b
+last-verified: 2026-09-21
+verified-against: 957263e
 tags: [iot]
 ---
 
@@ -102,6 +102,14 @@ tap-pour-compléter déjà prévu en phase 3, ou un firmware ESPHome maison sur 
 mesurée).
 
 ### Contenu de l'écran (paysage 1872×1404, choix utilisateur 2026-09-03)
+
+> [!note] Remplacé par la broadsheet depuis l'étape 1 du [[Plan 2026-09-20 Journal Éditorial]].
+> Ce qui suit décrit la V1. La mise en page vit maintenant dans
+> [[Journal De La Maison]] ; ce qui la nourrit, dans [[Fonds De Tiroir]]. Une
+> différence de contrat vaut d'être notée ici parce qu'elle a été un défaut : la
+> **prochaine collecte** ne vient plus d'un champ à part de `DonneesEcran` mais du fait
+> `ville.collecte`, qui se tait quand le calendrier n'est plus alimenté (étape 6,
+> 2026-09-21).
 
 Grammaire du vault ([[Affichage Mural Et E-ink]]) : noir plein sur blanc, 1-bit,
 2–4 zones aux filets, une seule bande inversée, élaguer plutôt que rapetisser.

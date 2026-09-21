@@ -608,33 +608,146 @@ départ), `npm test` **217** verts.
 [[D-2026-09-20 Sources Municipales Séparées Par Solidité]]. **Rien de municipal n'entre
 dans le dépôt.**
 
-- [ ] Hors dépôt : convertir le PDF 2026 des collectes en ICS et l'héberger. Le secteur
+- [x] Hors dépôt : convertir le PDF 2026 des collectes en ICS et l'héberger. Le secteur
       se lit dans l'index des rues du PDF — « de la Colline » est au **secteur Sud**,
       jeudi. Documenter la recette dans `CLAUDE.local.md`.
-- [ ] Abonner House OS à cet ICS comme [[Flux Externes]] de type `Collecte` : **zéro
-      code**, le chemin existe déjà et `ProchaineCollecte` le lit déjà.
-- [ ] Créer la tâche récurrente annuelle « régénérer le calendrier de collectes »
+- [x] Abonner House OS à cet ICS comme [[Flux Externes]] de type `Collecte` : **zéro
+      code**, le chemin existe déjà et le mur lit déjà la prochaine collecte.
+- [x] Créer la tâche récurrente annuelle « régénérer le calendrier de collectes »
       ([[D-2026-09-20 Calendrier De Collectes Régénéré À La Main]]), échéance en début
       d'année civile.
-- [ ] `FluxExterne.Url` nullable + marque de source ; migration EF
+- [x] `FluxExterne.Url` nullable + marque de source ; migration EF
       ([[D-2026-09-20 Flux Externe Poussé]]).
-- [ ] **Le rafraîchissement ICS doit ignorer les flux poussés** — sinon la passe de 6 h
+- [x] **Le rafraîchissement ICS doit ignorer les flux poussés** — sinon la passe de 6 h
       les vide. C'est le piège principal de l'étape : un test le couvre explicitement
       (`FluxExternesRafraichissement.cs`).
-- [ ] Endpoint authentifié de poussée (remplacement en transaction, mêmes bornes de
+- [x] Endpoint authentifié de poussée (remplacement en transaction, mêmes bornes de
       longueur que l'ICS), hors cookie de session ; UI de gestion sans champ URL, avec
       l'horodatage de dernière réception.
-- [ ] **Parité MCP** ([[Serveur MCP]]) : les outils de gestion de flux suivent dans la
+- [x] **Parité MCP** ([[Serveur MCP]]) : les outils de gestion de flux suivent dans la
       même tranche.
-- [ ] Hors dépôt : le gratteur SCJC (événements) qui pousse une fois par jour,
+- [x] Hors dépôt : le gratteur SCJC (événements) qui pousse une fois par jour,
       User-Agent identifiable, `If-Modified-Since`.
-- [ ] Faits « la ville », avec la règle : un flux poussé périmé **cesse de sortir** au
+- [x] Faits « la ville », avec la règle : un flux poussé périmé **cesse de sortir** au
       lieu de mentir.
+
+#### Ce que l'étape 6 a tranché en chemin
+
+- [x] **L'ICS des collectes est hébergé sur R2, public** (choix d'Alain, 2026-09-21).
+      La garde SSRF refuse tout hôte qui résout vers le réseau interne : le LXC était
+      éliminé d'office, et un fichier derrière NPM aurait fait sortir puis rentrer la
+      requête par l'IP WAN (hairpin NAT), qui marche jusqu'au jour où elle ne marche
+      plus. Une IP publique Cloudflare passe la garde sans rien devoir au lab.
+- [x] **La poussée a sa propre clé**, `HOUSEOS_POUSSEE_CLE`, et non celle du MCP
+      (choix d'Alain, 2026-09-21). La décision citait le MCP comme *précédent* d'un
+      appel machine, pas comme clé à partager : le gratteur vit hors de la maison, et
+      pousser des événements n'a pas à ouvrir les tâches, le budget et les documents.
+      Le schéma d'authentification est partagé (`OptionsCleApi`), le secret ne l'est pas.
+- [x] **Le type `Municipal` plutôt que « poussé = municipal ».** La famille « la ville »
+      avait besoin de savoir quels flux la concernent ; le faire dépendre de la *source*
+      aurait rangé un calendrier scolaire poussé dans les nouvelles de la ville. C'est
+      le **type** qui trie — une valeur d'enum de plus, aucune migration (les enums sont
+      stockés en chaîne).
+- [x] **La fenêtre de péremption vaut pour les deux sources, à sept jours.** La décision
+      ne parlait que des flux poussés, mais un abonnement ICS qui échoue depuis un mois
+      ment exactement de la même façon. Une seule règle, sur le même horodatage
+      (« dernier remplacement »), plus facile à expliquer qu'à distinguer.
+- [x] **La collecte spéciale se reconnaît à ce qu'elle ne revient pas** — un titre qui
+      ne paraît qu'une fois dans la fenêtre du flux, là où le bac hebdomadaire y revient
+      huit fois. C'était ça ou une connaissance municipale dans le dépôt, que la
+      décision interdit.
+- [x] **`ville.collecte` rejoint `CLES_DEJA_AU_JOURNAL`** : le journal garde une place
+      fixe à la collecte — sortir le bac est le geste du soir, il ne doit pas dépendre
+      d'un classement — et le fonds produit le fait quand même, pour la lettre du matin.
+      Même traitement que le compte à rebours, déjà prévu par [[Fonds De Tiroir]]. La
+      revue de code a montré ce que ce partage exigeait de plus (ci-dessous).
+
+#### Ce que le rendu a corrigé, à l'étape 6
+
+- [x] **Le jour de la semaine s'affichait en abrégé au mur.** « jeu » sous la collecte —
+      trois lettres qui se lisent d'abord comme un jeu. Le défaut a disparu avec sa
+      cause : le widget ne fabrique plus sa propre formulation, il prend celle du fait
+      (« Dans 3 jours »). `quandCeJour` n'avait plus d'appelant et a été retiré ;
+      `jourCourt` reste pour les listes denses de l'app.
+- [x] **Les titres du calendrier de collectes étaient trop longs.** « Matières
+      recyclables et Matières organiques » devenait « Matières recyclables et… » dans
+      la phrase du fait, qui élague à trente-deux signes. Le convertisseur (hors dépôt)
+      écrit maintenant court — « Recyclage et compost » — et met la majuscule à la
+      première matière seulement, le titre étant cité dans une phrase.
+
+#### Ce que le PDF a appris au convertisseur (hors dépôt)
+
+- [x] **La lecture est géométrique, pas textuelle** : les colonnes de jours se
+      reconstruisent depuis l'entête « D L M M J V S » de chaque mois, et un code tombe
+      dans la colonne dont la cellule contient son centre. Les collectes d'espèce
+      (encombrants) sont posées **dans** la case du jour, les hebdomadaires sur la ligne
+      en dessous : le même découpage en colonnes traite les deux.
+- [x] **Les notes de bas de case mangeaient deux semaines.** « AU 29 ET 30 DÉC. »
+      imprimé par-dessus la grille : ses chiffres ouvraient une fausse ligne de semaine,
+      et les vraies collectes du 22 janvier et du 10 décembre tombaient à côté. Les
+      numéros de jour se trient par **hauteur de caractère** (13 points contre 7).
+- [x] **Le calendrier valide la géométrie** : dans la colonne d'un jeudi, il ne peut y
+      avoir qu'un jeudi. Ça écarte les cases d'un mois voisin (« 29 DEC. » en tête de
+      janvier) sans rien savoir d'elles, et ça ferait tout refuser si la grille était
+      lue décalée d'une colonne — le risque que
+      [[D-2026-09-20 Calendrier De Collectes Régénéré À La Main]] nomme explicitement.
+- [x] **La ville déplace les collectes des congés, et l'écrit.** Exiger un jour de
+      semaine unique refusait un calendrier juste (secteur Nord : deux collectes
+      déplacées en décembre). Le contrôle tolère un dixième d'exceptions, les **nomme**
+      à l'écran, et refuse au-delà — ce qu'on attrape, c'est une grille lue de travers,
+      qui déplacerait tout.
+- [x] **Le slug de l'URL d'un événement ment** : la « séance du conseil » du 6 octobre
+      porte l'URL `...-2026-10-05`, la date de publication. C'est la date **affichée**
+      qui fait foi. Trouvé en lisant la vraie page, pas en la supposant.
+
+#### Ce que la revue de code a corrigé, à l'étape 6
+
+- [x] **Le widget de la collecte court-circuitait la seule règle de la famille.** Le
+      journal le dessinait depuis `DonneesEcran.ProchaineCollecte` — une colonne qui ne
+      juge ni la fraîcheur du flux ni la distance — pendant que l'étape ajoutait
+      `ville.collecte` à `CLES_DEJA_AU_JOURNAL` au motif que « le journal le dessine
+      déjà ». Un calendrier de collectes mort depuis trente jours continuait donc de
+      s'afficher, et une collecte à quarante-cinq jours aussi, alors que le fait, lui,
+      se taisait dans les deux cas. Le widget garde sa place fixe mais **prend les mots
+      du fait** ; la colonne disparaît du contrat de l'écran.
+- [x] **Le bandeau du jour publiait la ville une seconde fois.** `EvenementsDuJour`
+      prenait tous les types : le jour d'une séance du conseil, le mur l'annonçait en
+      « Aujourd'hui, au calendrier » **et** en « En ville » — et l'annonçait encore avec
+      un gratteur mort. Le bandeau laisse maintenant `Collecte` et `Municipal` à leur
+      famille. C'est exactement le doublon que `CLES_DEJA_AU_JOURNAL` existe pour
+      éviter, par une porte que personne ne regardait.
+- [x] **`Enum.TryParse` acceptait « 5 ».** `POST /api/flux-externes {"source":"5"}`
+      rendait 201 et créait un flux **mort-vivant** : la passe de six heures l'ignore
+      (ce n'est pas `Ics`), la poussée le refuse (ce n'est pas `Poussee`), et l'UI le
+      liste comme un calendrier ordinaire. Le MCP, lui, s'en gardait depuis toujours
+      (`Conversions.ParserEnum`). La règle déménage dans `Infrastructure/ParseurEnum.cs`
+      et sert les deux — REST y gagne aussi la tolérance à la casse. Le même trou était
+      **ouvert depuis un an** sur le type de flux et sur trois enums de la récurrence
+      (`OperationsTaches` : mode, type fixe, stratégie d'assignation) : corrigé partout.
+- [x] **Changer la source d'un flux répondait à côté.** Un client qui relit puis
+      réécrit une fiche renvoie l'URL courante : en demandant `Poussee`, il s'entendait
+      répondre « un calendrier poussé n'a pas d'URL » — vrai, mais sans rapport avec ce
+      qu'il avait demandé. La garde de source passe **avant** la validation de l'URL.
+- [x] **Le MCP acceptait une URL sur un flux poussé et la jetait en silence**, là où
+      REST la refuse. Un « accepté mais ignoré » de plus, et une parité de moins :
+      l'outil lève maintenant le même message.
 
 **Vérification** — `dotnet test` (dont le test de non-vidage) ; pousser deux fois le
 même flux et vérifier le remplacement ; débrancher le gratteur une semaine et vérifier
 que le journal sort sans widget « ville » ; `grep -rni "villescjc\|pdftotext" server/ web/`
 ne retourne rien.
+
+**Vérifié** (dev, 2026-09-21) : `dotnet test` **852** verts (809 au départ), `npm test`
+**222** (217 au départ ; un test est parti avec `quandCeJour`). Le grep de la décision ne rend rien dans le dépôt. L'ICS réel (54 jours
+de collecte, tirés du PDF 2026) hébergé sur R2 public, ingéré par le vrai chemin — garde
+SSRF et Ical.Net comprises, 10 événements dans la fenêtre. Le gratteur réel a poussé les
+**6 événements** de la page municipale par l'endpoint, deux fois de suite, sans doublon.
+Au mur (aperçu 1872×1404, **sans avertissement de débordement**) : « DANS LA VILLE /
+Recyclage et compost / jeudi » et le widget du fonds « EN VILLE / Dans 6 jours / Les
+journées de la culture, le 27 septembre, à 12 h 00 ». En simulant le 5 octobre — deux
+semaines après la dernière réception réelle — la famille entière se tait : la règle de
+péremption, vue de bout en bout. Le 26 septembre, les trois faits sortent, dont
+« Une collecte spéciale / Dans 10 jours / Encombrants, le 6 octobre ».
 
 ### 7 — L'éditorialiste
 

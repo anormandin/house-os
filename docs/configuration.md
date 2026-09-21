@@ -16,6 +16,7 @@ les clés dans `appsettings.local.json`.
 | `COMPTE_1_AFFICHAGE` | non | = nom d'utilisateur | `Seed:Utilisateurs:0:NomAffichage` | |
 | `COMPTE_2_NOM`, `COMPTE_2_AFFICHAGE`, `COMPTE_2_MDP` | non | — | `Seed:Utilisateurs:1` | un seul compte |
 | `HOUSEOS_MCP_KEY` | oui | — | `Mcp:Cle` | le compose refuse ; clé vide côté app = `/mcp` refuse tout |
+| `HOUSEOS_POUSSEE_CLE` | non | vide | `FluxExternes:ClePoussee` | la poussée de calendrier externe refuse tout |
 | `FUSEAU_HORAIRE` | non | `America/Toronto` | `TZ` du conteneur + `Meteo:FuseauHoraire` | |
 | `APP_PORT_HOTE` | non | `8080` | — | |
 | `POSTGRES_PORT_HOTE` | non | `5433` | — | publié sur 127.0.0.1 seulement |
@@ -74,6 +75,36 @@ autre lieu, ou ont plus de `Meteo:NormalesAgeMaxJours`. Une seule requête rése
 an en sort. Open-Meteo injoignable ce jour-là n'a **aucun** effet : les normales
 connues restent servies, et une installation neuve sans réseau garde tout le reste de
 son journal.
+
+## Les calendriers poussés
+
+Un calendrier externe est d'ordinaire un **abonnement iCal** : l'app télécharge son URL
+toutes les six heures. Il peut aussi être **poussé** — il n'a alors pas d'URL, et c'est
+un programme extérieur qui remplace ses événements par l'API. C'est ce qu'il faut quand
+la source n'est pas un calendrier : une page à gratter, un PDF, un tableau.
+
+Le calendrier se crée dans l'app (Aujourd'hui → Calendriers externes → « Poussé ») ou
+par le MCP (`gerer_flux_externe`), puis le programme extérieur pousse :
+
+```
+POST /api/flux-externes/<id>/evenements
+Authorization: Bearer $HOUSEOS_POUSSEE_CLE
+Content-Type: application/json
+
+{"evenements": [{"titre": "Séance du conseil", "date": "2026-10-13", "heure": "19:30"}]}
+```
+
+- La liste **remplace** tout ce que le calendrier portait : ce qui n'y est plus
+  disparaît, comme pour un téléchargement iCal. Une liste vide est une réponse valide
+  (« rien à annoncer »), pas une panne.
+- Les événements hors de la fenêtre d'ingestion (d'hier à +60 jours) sont écartés sans
+  faire échouer l'appel ; au-delà de 500 événements, l'appel est refusé.
+- `HOUSEOS_POUSSEE_CLE` est **sa propre clé**, distincte de `HOUSEOS_MCP_KEY` : le
+  programme qui pousse vit souvent ailleurs que la maison, et n'a aucune raison de
+  porter la clé qui ouvre tout le reste. Absente, la poussée refuse tout.
+- La page de gestion affiche la **dernière réception** de chaque calendrier poussé.
+  Passé sept jours sans réception, le journal du mur cesse de publier ce qu'il porte :
+  un programme mort ne doit pas avoir l'air d'un programme à jour.
 
 ## La banque du hasard
 

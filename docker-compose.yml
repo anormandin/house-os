@@ -65,6 +65,7 @@ services:
       Seed__Utilisateurs__1__MotDePasse: ${COMPTE_2_MDP:-}
       # Clé du endpoint /mcp (Claude Code) — générer avec : openssl rand -hex 32
       Mcp__Cle: ${HOUSEOS_MCP_KEY:?HOUSEOS_MCP_KEY requis (openssl rand -hex 32, dans le .env)}
+      FluxExternes__ClePoussee: ${HOUSEOS_POUSSEE_CLE:-}
       # Derrière un reverse proxy HTTPS : X-Forwarded-* n'est honoré QUE depuis ces
       # proxys (IPs ou CIDR, séparés par des virgules). Vide = aucun proxy de confiance.
       Reseau__ProxiesConnus: ${RESEAU_PROXIES_CONNUS:-}

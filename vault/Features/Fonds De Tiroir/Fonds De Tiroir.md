@@ -1,8 +1,8 @@
 ---
 type: feature
 status: building
-last-verified: 2026-09-20
-verified-against: f4747af
+last-verified: 2026-09-21
+verified-against: 957263e
 tags: [iot]
 ---
 
@@ -19,12 +19,12 @@ Matériau d'origine : [[Éditorialiste De L'Écran]] (trois tours de maquettes,
 2026-09-20). Premier consommateur : [[Journal De La Maison]]. Second consommateur prévu :
 la lettre du matin (courriel sortant), qui aura sa propre feature.
 
-> [!note] Bâti : tout sauf « la ville » (as of 2026-09-20).
+> [!note] Bâti : les six familles (as of 2026-09-21).
 > L'étape 2 du [[Plan 2026-09-20 Journal Éditorial]] a livré le fait, le moteur de score
 > et les sept items du ciel ; l'étape 3 les huit items de la maison et les quatre du
 > calendrier ; l'étape 4 les deux du hasard ; l'étape 5 les cinq du climat, avec la
-> **première migration** du chantier. Reste une famille : ville (étape 6). La
-> **fraîcheur** lit un historique vide jusqu'à l'étape 7.
+> **première migration** du chantier ; l'étape 6 les trois de la ville, avec la
+> **seconde**. La **fraîcheur** lit un historique vide jusqu'à l'étape 7.
 
 ## Comportement
 
@@ -125,7 +125,7 @@ foyer qui n'a pas rempli `METEO_LATITUDE` garde tout le reste de son journal.
 | **Le climat** ✅ | premier gel, première neige, dernière journée à 20°, mois le plus sec ou le plus arrosé, « il a fait X° ce jour-là l'an dernier » | archive ERA5 matérialisée + le maximum du jour des tables de [[Météo]] |
 | **La maison** ✅ | ce jour-là l'an dernier, série en cours et record, N séances depuis, plus vieil équipement, zone la plus négligée, coût de l'année | journal de complétion — **ne donne rien la première année** |
 | **Le calendrier** ✅ | compte à rebours, ça s'en vient (7–30 j), travaux de la saison, garantie qui expire | [[Comptes À Rebours]], occurrences, fenêtres saisonnières, [[Documents]] |
-| **La ville** | prochaine collecte, collecte spéciale, événement municipal | [[Flux Externes]] — ICS pour les collectes, flux poussé pour les événements |
+| **La ville** ✅ | prochaine collecte, collecte spéciale, événement municipal | [[Flux Externes]] — ICS pour les collectes, flux poussé pour les événements |
 | **Le hasard** ✅ | dicton de l'almanach, fête ou journée nationale | fichier de données remplaçable — aucune |
 
 Détail par item, avec source et rareté : la table du fonds de tiroir dans
@@ -269,6 +269,68 @@ vraie devient une chose qu'on a envie de lire.
 > au consommateur d'écarter le doublon : `CLES_DEJA_AU_JOURNAL`
 > (`web/src/lib/ecran-vues.ts`), testé. Trouvé à l'étape 3.
 
+### La ville, en détail (as of 2026-09-21)
+
+Trois items, et **rien de municipal** : la matière arrive par [[Flux Externes]], dont
+le **type** fait le tri — un flux `Collecte` donne les collectes, un flux `Municipal`
+donne les événements ([[D-2026-09-20 Sources Municipales Séparées Par Solidité]]).
+
+| Clé | Rareté | Pertinence | Ne sort que si |
+|---|---|---|---|
+| `ville.collecte` | tous les jours | 1,5 · **3** la veille · 2 le jour même | une collecte est devant, à moins de sept jours — et ce n'est pas la collecte spéciale |
+| `ville.collecte-speciale` | comptée dans le flux (fenêtre de 14 j) | 2 · **3** la veille | une collecte dont le titre **ne revient pas** dans la fenêtre du flux tombe dans les quinze jours, et le calendrier porte au moins quatre collectes |
+| `ville.evenement` | comptée dans le flux (fenêtre de 7 j) | 1,5 · **2** aujourd'hui ou demain | un flux `Municipal` encore alimenté annonce quelque chose dans la semaine |
+
+> [!warning] Un flux périmé cesse de sortir au lieu de mentir.
+> C'est **la** règle de la famille ([[D-2026-09-20 Flux Externe Poussé]]). Un gratteur
+> mort il y a un mois laisserait son programme passer pour celui de cette semaine ; un
+> calendrier de collectes qui ne se télécharge plus finirait par annoncer l'an dernier.
+> Au-delà de **sept jours** sans remplacement — téléchargement ICS réussi ou poussée
+> reçue, c'est le même horodatage — un flux ne nourrit plus le fonds. Sept et non trois :
+> un flux ICS se retélécharge toutes les six heures et un flux poussé une fois par jour ;
+> sept jours de silence, des deux côtés, est une panne et non un creux.
+
+> [!note] La collecte spéciale se reconnaît à ce qu'elle ne revient pas.
+> On ne sait pas ce qu'une collecte **est** — aucune connaissance municipale n'entre
+> dans le dépôt : on voit qu'un titre ne paraît qu'une fois dans la fenêtre du flux, là
+> où le bac hebdomadaire y revient huit fois. C'est générique (ça vaut pour n'importe
+> quelle ville) et c'est la seule marque disponible. Conséquence assumée : une collecte
+> saisonnière qui n'a qu'une occurrence dans la fenêtre (les feuilles, au printemps)
+> sort aussi comme « spéciale » — ce qui est vrai, et utile. Garde-fou : en deçà de
+> quatre collectes, le calendrier n'a pas assez d'habitudes pour qu'on juge, et le fait
+> se tait.
+
+> [!note] Quand la spéciale est aussi la prochaine, une seule des deux parle.
+> Deux widgets pour le même camion, c'est une colonne perdue — même croisement voulu
+> que la série et le record de la maison. C'est `ville.collecte` qui se tait : la
+> spéciale dit la même chose, mieux.
+
+> [!warning] Ce que le journal dessine à part doit être **écrit par le fonds**.
+> Le journal garde une place fixe à la prochaine collecte — sortir le bac est le geste
+> du soir, il ne doit pas dépendre d'un classement — et `ville.collecte` rejoint donc
+> `CLES_DEJA_AU_JOURNAL` (`web/src/lib/ecran-vues.ts`) avec le compte à rebours. Mais
+> ce widget lisait jusqu'à l'étape 6 une **colonne à part** (`DonneesEcran.ProchaineCollecte`)
+> qui ne jugeait ni la fraîcheur du flux ni la distance : la seule règle de la famille
+> était court-circuitée par le seul consommateur qui l'affiche. Le widget prend
+> maintenant les mots du fait, et la colonne a disparu du contrat. Trouvé en revue de
+> code, étape 6.
+
+> [!warning] Le bandeau du jour publiait la ville une seconde fois.
+> `EvenementsDuJour` montrait **tous** les événements externes du jour, types compris,
+> sans rien juger : le jour d'une séance du conseil, le mur l'affichait en « Aujourd'hui,
+> au calendrier » *et* en widget « En ville » — et l'affichait encore si le gratteur était
+> mort depuis un mois. Le bandeau laisse désormais les types `Collecte` et `Municipal` à
+> leur famille (`ComposerDonneesEcran.EstDeLaVille`). Trouvé en revue de code, étape 6.
+
+> [!note] La rareté d'un fait de flux se compte **dans le flux**.
+> Comme la fête du hasard, dont la rareté se compte dans la banque : une ville qui
+> publie deux événements par an donne un fait bien plus rare que celle qui en publie
+> cinquante, et un nombre écrit en dur aurait menti pour l'une des deux. Le flux ne
+> portant que sa fenêtre d'ingestion (60 jours), sa densité est ramenée à l'année puis
+> multipliée par les jours d'avance où le fait parle. L'estimation penche du côté
+> « plus fréquent que la vérité » quand l'événement rare tombe justement dans la
+> fenêtre chargée — et c'est le bon penchant : elle fait **baisser** le score.
+
 ### Le hasard, en détail (as of 2026-09-20)
 
 Deux items, et rien qui vienne d'un calcul ou d'une table : la matière est un **fichier
@@ -339,11 +401,13 @@ tout seul.
   québécoise ; `HASARD_FICHIER` (`Hasard:Fichier`) la remplace, et un chemin réglé mais
   illisible fait **taire** la famille au lieu de retomber sur celle du Québec.
   Référence : `docs/configuration.md`.
-- **La ville** : rien de municipal dans le code
+- **La ville** ✅ : rien de municipal dans le code
   ([[D-2026-09-20 Sources Municipales Séparées Par Solidité]]). Les collectes entrent
   par un ICS régénéré à la main une fois l'an
   ([[D-2026-09-20 Calendrier De Collectes Régénéré À La Main]]) ; les événements par un
-  flux externe poussé ([[D-2026-09-20 Flux Externe Poussé]]).
+  flux externe poussé ([[D-2026-09-20 Flux Externe Poussé]]). Le convertisseur PDF → ICS
+  et le gratteur vivent **hors du dépôt**, avec leur recette dans `CLAUDE.local.md`.
+  Aucune table neuve : la famille lit les tables de [[Flux Externes]].
 
 ## Hors périmètre
 
@@ -389,8 +453,8 @@ Bâties :
   partagées), `FaitsDuCiel.cs`, `EtatDeLaMaison.cs` + `FaitsDeLaMaison.cs`,
   `EtatDuCalendrier.cs` + `FaitsDuCalendrier.cs`, `BanqueDuHasard.cs` +
   `LectureDeLaBanque.cs` + `HasardOptions.cs` + `FaitsDuHasard.cs` et la banque livrée
-  `banque-du-hasard.qc.json`, `EtatDuClimat.cs` + `FaitsDuClimat.cs`. Aucune référence
-  à l'affichage.
+  `banque-du-hasard.qc.json`, `EtatDuClimat.cs` + `FaitsDuClimat.cs`,
+  `EtatDeLaVille.cs` + `FaitsDeLaVille.cs`. Aucune référence à l'affichage.
 - `FaitDeTiroir.cs` — `Rarete` et `Pertinence` : les deux barèmes du score, écrits dans
   le code et non seulement en commentaire, depuis l'étape 4.
 - `server/HouseOs.Api/Domaine/SpecRecurrence.cs` — `FenetreAutour` : la fenêtre
@@ -398,13 +462,13 @@ Bâties :
 - Côté consommateur : `ComposerDonneesEcran.cs` (`ReglagesDuCiel`, `FaitEcranDto`,
   `LireLaMaisonAsync`, `LireLeCalendrierAsync`, `LireLeClimatAsync`) et `web/src/lib/ecran-vues.ts`
   (`formeDuCiel`, `rangeesDuCiel`, `faitsEnWidgets`, `faitAvecTexteLong`,
-  `placesDuFonds`) — c'est là, et nulle part ailleurs, que la densité et l'ordre des
+  `placesDuFonds`, `CLES_DEJA_AU_JOURNAL`) — c'est là, et nulle part ailleurs, que la densité et l'ordre des
   widgets se décident. **Le journal ne retrie jamais le fonds** : il replie le ciel en
   un bloc d'une seule place et coupe au budget du rang.
 
-À créer :
-
-- `server/HouseOs.Api/Features/FluxExternes/` — la source poussée.
+- `server/HouseOs.Api/Features/FluxExternes/` — la source poussée qui alimente « la
+  ville » (migration `AjouterFluxExternePousse`), et `ComposerDonneesEcran.LireLaVilleAsync`
+  qui en tire l'âge de chaque flux : le fonds ne lit pas l'horloge.
 
 ## Sources
 
