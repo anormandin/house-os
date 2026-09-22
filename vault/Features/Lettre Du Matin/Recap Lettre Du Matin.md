@@ -7,8 +7,9 @@ plan: "[[Plan 2026-09-21 Lettre Du Matin]]"
 
 # Recap Lettre Du Matin
 
-Bâti en une session le 2026-09-21, six étapes sur sept ; la septième (le `.env` de
-prod et le release) attend les réglages SMTP. 998 tests serveur et 239 tests web verts.
+Bâti et mis en prod en une session le 2026-09-21, sept étapes. Transport : le compte
+Resend déjà en place pour un autre projet du foyer (domaine `mail.alainnormandin.dev`
+vérifié), port 587, clé distincte. 999 tests serveur et 236 tests web verts.
 
 **Ce qui a été bâti comme prévu** : SMTP par MailKit derrière `IEnvoyeurDeCourriel`,
 l'adresse sur l'utilisateur, l'entité `LettreDuMatin` à une ligne par date, une plume à
@@ -29,7 +30,12 @@ note C3, les trois endpoints, les deux outils MCP, la page `/lettre`, l'atelier.
   colonne, le courriel n'en a pas.
 - Npgsql refuse tout `DateTimeOffset` non UTC : tous les instants de la lettre sont
   normalisés, comme `GenereLe` sur l'édition. Trouvé au test d'intégration.
+- **Le premier envoi de prod était la note.** La tâche du jour s'appelle « Boites! » ;
+  le modèle l'a citée telle quelle, comme demandé, et le validateur refusait tout
+  point d'exclamation. Les titres de la matière qui en portent un sont maintenant
+  retirés du texte avant la vérification. Corrigé et renvoyé le soir même.
 
-**Observé aux rejeux** : la base de dev n'a ni journal récent ni échéance dans la
-semaine devant ; « faites », « semaine devant » et « série » n'ont donc pas encore été
-lus par le modèle sur une vraie journée. À relire après une semaine de lettres.
+**Observé en prod** : la première vraie lettre a bien utilisé la matière étendue (ce
+qu'Ariane a coché la veille, les échéances de mardi et mercredi, treize séances de la
+même tâche). La série au sens strict (même jour de semaine) reste à voir sur une
+tâche hebdomadaire. À relire après une semaine de lettres.

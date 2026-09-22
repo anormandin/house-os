@@ -26,8 +26,8 @@ tort — corriger dans la même session. Maintenu sous le contrat du skill globa
 
 > [!warning] Ne lis pas les notes `Plan …` par défaut
 > Un plan est immuable une fois exécuté ; la vérité courante est dans la spec et le
-> Recap de la feature. Ouvre un plan seulement pour le reprendre (en cours as of
-> 2026-09-21 : [[Plan 2026-09-21 Lettre Du Matin]]) ou pour l'archéologie d'un choix. Certains dépassent 80 Ko.
+> Recap de la feature. Ouvre un plan seulement pour le reprendre (aucun en cours as
+> of 2026-09-21) ou pour l'archéologie d'un choix. Certains dépassent 80 Ko.
 
 ## Échelle de cérémonie (ce qu'une tâche doit au vault)
 
@@ -100,7 +100,7 @@ Liste en texte (le `.base` ci-dessus ne se lit que dans Obsidian). Statut as of
 - [[Affichage E-ink]] — écran mural TRMNL BYOS, rendu Chromium headless, registre d'appareils.
 - [[Fonds De Tiroir]] — les petits faits datés que la maison sait d'elle-même (normales climatiques, banque du hasard, sources municipales).
 - [[Journal De La Maison]] — l'éditorialiste de l'écran : une édition par jour, écrite par Opus, mise en page à rangs.
-- [[Lettre Du Matin]] — le courriel du matin : la maison écrit à ses habitants, même matière que le journal, SMTP (bâti 2026-09-21, release en attente des réglages SMTP).
+- [[Lettre Du Matin]] — le courriel du matin : la maison écrit à ses habitants, même matière que le journal, SMTP (en prod depuis le 2026-09-21).
 
 ### Référence
 - [[Architecture]] — stack, structure du monorepo, feuille de route par phases.

@@ -32,10 +32,9 @@ lit, pas en passant dans le corridor.
 
 ## Comportement
 
-> [!note] As-built depuis le 2026-09-21 : les six premières étapes du
-> [[Plan 2026-09-21 Lettre Du Matin]] sont exécutées et testées ; le release attend
-> les réglages SMTP du `.env` de prod. Écarts et observations :
-> [[Recap Lettre Du Matin]].
+> [!note] As-built et en prod depuis le 2026-09-21 ([[Plan 2026-09-21 Lettre Du Matin]]
+> exécuté). Première lettre partie le soir même ; la première du matin est celle du
+> 2026-09-22 à 6 h 31. Écarts et observations : [[Recap Lettre Du Matin]].
 
 ### Ce qui part, et à qui
 
@@ -187,4 +186,4 @@ Lectures de conception : [[Prompt De La Lettre]], [[Exemples De Lettres]].
 
 ## Historique
 
-- [[Plan 2026-09-21 Lettre Du Matin]] · [[Recap Lettre Du Matin]] — bâti le 2026-09-21, release en attente des réglages SMTP.
+- [[Plan 2026-09-21 Lettre Du Matin]] · [[Recap Lettre Du Matin]] — bâti et mis en prod le 2026-09-21.

@@ -1,6 +1,6 @@
 ---
 type: plan
-status: approved
+status: executed
 date: 2026-09-21
 feature: "[[Lettre Du Matin]]"
 ---
@@ -177,12 +177,12 @@ conservée pour l'atelier. Décisions qui gouvernent : voir la spec.
 - [x] `vault` : spec `status: implemented`, ancres de code posées, Recap, décisions
       liées ; [[Prompt De La Lettre]] nomme la constante et en garde la copie de
       travail ; `Home.md` à jour ; validation.
-- [ ] `.env` de prod : `COMPTE_1_COURRIEL`, `COMPTE_2_COURRIEL`, `LETTRE_SMTP_*`,
+- [x] `.env` de prod : `COMPTE_1_COURRIEL`, `COMPTE_2_COURRIEL`, `LETTRE_SMTP_*`,
       `LETTRE_URL_APP` (hors dépôt, [[Déploiement]]). Vérifier depuis le LXC que le
       port SMTP sort (`nc -vz hote 587`) avant le release.
-- [ ] Release par le chemin habituel, `POST /api/lettre/essai` depuis l'app, puis la
+- [x] Release par le chemin habituel, `POST /api/lettre/essai` depuis l'app, puis la
       première vraie lettre le lendemain matin ; lire le journal Seq du service.
-- [ ] **En attente d'Alain** : les valeurs du `.env` de prod (`LETTRE_SMTP_*`,
+- [x] **En attente d'Alain** : les valeurs du `.env` de prod (`LETTRE_SMTP_*`,
       `COMPTE_n_COURRIEL`, `LETTRE_URL_APP`) ne sont pas dans le dépôt ni dans la
       session ; le release attend qu'elles soient posées. Fournisseur retenu le
       2026-09-21 : **Resend**, le compte déjà en place pour un autre projet du foyer,
@@ -191,6 +191,12 @@ conservée pour l'atelier. Décisions qui gouvernent : voir la spec.
       Port **587** (465 a déjà fait échouer un autre client), usager `resend`, une
       **clé API distincte** pour House OS, expéditeur
       `La maison <maison@mail.alainnormandin.dev>`. Aucun DNS à poser.
+- [x] **Release fait le 2026-09-21 en soirée** (`ed89718` puis `3f3e223`). Le premier
+      envoi de prod est parti en **note** : la tâche du jour s'appelle « Boites! » et le
+      validateur refusait tout point d'exclamation, même cité d'un titre. Corrigé et
+      redéployé dans l'heure ; la lettre réécrite est partie via Opus (964 signes,
+      quatre paragraphes) aux deux adresses. Deux tests fragiles en CI (microseconde
+      de Postgres, fuseau du runner) corrigés du même commit.
 
 ## Vérification d'ensemble
 
