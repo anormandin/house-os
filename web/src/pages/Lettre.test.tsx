@@ -12,8 +12,10 @@ const lettre = {
   paragraphes: ['Je ne vous demande rien aujourd’hui.', 'Douze dodos avant le camion.'],
   source: 'Llm',
   modele: 'claude-opus-5',
-  composeeLe: '2026-09-22T06:28:00-04:00',
-  envoyeeLe: '2026-09-22T06:31:00-04:00',
+  // Des instants construits en heure locale : le formateur rend l'heure du navigateur,
+  // et le runner de CI est en UTC.
+  composeeLe: new Date(2026, 8, 22, 6, 28).toISOString(),
+  envoyeeLe: new Date(2026, 8, 22, 6, 31).toISOString(),
   destinataires: ['alain@exemple.tld'],
   ecrite: true,
   envoiActif: true,

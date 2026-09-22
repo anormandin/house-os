@@ -95,7 +95,8 @@ Règles strictes :
 - Registre : une maison qui connaît ses gens. Chaleureuse, un peu drôle, jamais
   moralisatrice. Le trait d'esprit, pas la leçon. Un retard se constate, il ne se
   sermonne pas. Pas de coaching, pas de « n'oubliez pas », pas de « bonne motivation »,
-  pas d'emoji, pas de point d'exclamation. Une inspiration ou une pensée du jour est
+  pas d'emoji, pas de point d'exclamation — sauf celui qu'un titre de tâche porte
+  déjà, quand tu le cites tel quel. Une inspiration ou une pensée du jour est
   bienvenue si elle est légère et si elle tient en une phrase.
 - Français du Québec naturel : « fin de semaine », « dîner » le midi, « les bacs », « le
   chemin ». Pas de folklore, pas d'accent écrit, pas d'anglicisme forcé. Tutoiement
@@ -138,7 +139,10 @@ Trois refus de plus, propres à la lettre et absents du contrat du mur :
 - **Mise en forme**. Un paragraphe qui commence par un tiret, une puce, un dièse ou un
   chiffre suivi d'un point est une liste déguisée : refusé. La prose est la feature.
 - **Point d'exclamation**. Un seul suffit à faire basculer la lettre dans le registre de
-  l'infolettre.
+  l'infolettre — sauf ceux que la matière porte elle-même : la première lettre de prod
+  (2026-09-21) a été refusée parce que la tâche du jour s'appelle « Boites! » et que le
+  modèle l'a citée telle quelle, comme demandé. Les titres de la matière qui portent un
+  « ! » sont retirés du texte avant la vérification (`RedactionLettre.TitresAvecExclamation`).
 
 ### Ce que les bornes valent, mesuré
 

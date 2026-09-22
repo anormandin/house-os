@@ -104,7 +104,8 @@ public static partial class RedactionLettre
         - Registre : une maison qui connaît ses gens. Chaleureuse, un peu drôle, jamais
           moralisatrice. Le trait d'esprit, pas la leçon. Un retard se constate, il ne se
           sermonne pas. Pas de coaching, pas de « n'oubliez pas », pas de « bonne motivation »,
-          pas d'emoji, pas de point d'exclamation. Une inspiration ou une pensée du jour est
+          pas d'emoji, pas de point d'exclamation — sauf celui qu'un titre de tâche porte
+          déjà, quand tu le cites tel quel. Une inspiration ou une pensée du jour est
           bienvenue si elle est légère et si elle tient en une phrase.
         - Français du Québec naturel : « fin de semaine », « dîner » le midi, « les bacs », « le
           chemin ». Pas de folklore, pas d'accent écrit, pas d'anglicisme forcé. Tutoiement
@@ -147,7 +148,7 @@ public static partial class RedactionLettre
         {
             return new Reponse(null, $"aucun texte (arrêt : {reponse.StopReason})", null);
         }
-        var extrait = Extraire(texte, out var ecart);
+        var extrait = Extraire(texte, matiere, out var ecart);
         return new Reponse(extrait, ecart, texte);
     }
 
@@ -255,11 +256,15 @@ public static partial class RedactionLettre
     private sealed record PrecedenteJson(string Date, string Sujet, string PremiereLigne);
 
     /// <summary>Parse défensif et validation stricte, sur le patron de l'édition :
-    /// clôtures de code et prose tolérées autour du JSON, puis tout écart rend null.</summary>
-    public static TexteDeLettre? Extraire(string texte) => Extraire(texte, out _);
+    /// clôtures de code et prose tolérées autour du JSON, puis tout écart rend null.
+    /// La matière sert à une chose : un point d'exclamation qu'un titre porte déjà
+    /// (« Boites! », vu en prod le 2026-09-21) n'est pas un écart quand le modèle cite le
+    /// titre tel quel, comme le prompt le lui demande.</summary>
+    public static TexteDeLettre? Extraire(string texte, MatiereDeLettre matiere) => Extraire(texte, matiere, out _);
 
-    public static TexteDeLettre? Extraire(string texte, out string? ecart)
+    public static TexteDeLettre? Extraire(string texte, MatiereDeLettre matiere, out string? ecart)
     {
+        var titresAvecExclamation = TitresAvecExclamation(matiere);
         ecart = "aucun objet JSON";
         var octets = System.Text.Encoding.UTF8.GetBytes(texte);
         for (var i = 0; i < octets.Length; i++)
@@ -281,7 +286,7 @@ public static partial class RedactionLettre
                     {
                         continue;
                     }
-                    var resultat = Valider(document.RootElement, out var refus);
+                    var resultat = Valider(document.RootElement, titresAvecExclamation, out var refus);
                     ecart = resultat is null ? refus : null;
                     return resultat;
                 }
@@ -294,7 +299,33 @@ public static partial class RedactionLettre
         return null;
     }
 
-    private static TexteDeLettre? Valider(JsonElement racine, out string ecart)
+    /// <summary>Tout ce que la matière nomme et qui porte un « ! » : titres de tâches
+    /// dues, à venir ou faites, plancher, compte à rebours, textes du fonds.</summary>
+    internal static IReadOnlyList<string> TitresAvecExclamation(MatiereDeLettre matiere)
+    {
+        var e = matiere.Edition;
+        IEnumerable<string?> candidats =
+        [
+            .. e.TachesDues.Select(t => t.Titre),
+            .. matiere.SemaineDevant.Select(t => t.Titre),
+            .. matiere.FaitesDepuisLaDerniere.Select(t => t.Titre),
+            .. e.Faits.Select(f => f.Texte),
+            e.Plancher?.Titre,
+            e.ProchainCompte?.Titre,
+        ];
+        return [.. candidats.Where(c => c is not null && c.Contains('!')).Select(c => c!).Distinct()];
+    }
+
+    private static string SansLesTitres(string texte, IReadOnlyList<string> titres)
+    {
+        foreach (var t in titres)
+        {
+            texte = texte.Replace(t, "", StringComparison.Ordinal);
+        }
+        return texte;
+    }
+
+    private static TexteDeLettre? Valider(JsonElement racine, IReadOnlyList<string> titresAvecExclamation, out string ecart)
     {
         var sujet = Texte(racine, "sujet", 1, LongueurMaxSujet, out ecart);
         if (sujet is null)
@@ -307,7 +338,7 @@ public static partial class RedactionLettre
             ecart = "sujet : point final";
             return null;
         }
-        if (sujet.Contains('!'))
+        if (SansLesTitres(sujet, titresAvecExclamation).Contains('!'))
         {
             ecart = "sujet : point d'exclamation";
             return null;
@@ -331,7 +362,7 @@ public static partial class RedactionLettre
                 ecart = $"paragraphe {paragraphes.Count + 1} : {ecart}";
                 return null;
             }
-            var refus = RefusPropreALaLettre(paragraphe, premier: paragraphes.Count == 0);
+            var refus = RefusPropreALaLettre(paragraphe, titresAvecExclamation, premier: paragraphes.Count == 0);
             if (refus is not null)
             {
                 ecart = $"paragraphe {paragraphes.Count + 1} : {refus}";
@@ -357,9 +388,9 @@ public static partial class RedactionLettre
 
     /// <summary>Les trois refus propres à la lettre : la salutation ou la signature
     /// redonnées par réflexe, une liste déguisée, le point d'exclamation.</summary>
-    private static string? RefusPropreALaLettre(string paragraphe, bool premier)
+    private static string? RefusPropreALaLettre(string paragraphe, IReadOnlyList<string> titresAvecExclamation, bool premier)
     {
-        if (paragraphe.Contains('!'))
+        if (SansLesTitres(paragraphe, titresAvecExclamation).Contains('!'))
         {
             return "point d'exclamation";
         }

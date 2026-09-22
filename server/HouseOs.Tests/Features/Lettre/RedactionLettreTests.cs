@@ -9,6 +9,12 @@ namespace HouseOs.Tests.Features.Lettre;
 /// Lettre). Le modèle n'est jamais appelé ici.</summary>
 public class RedactionLettreTests
 {
+    /// <summary>Une matière sans rien : la validation ne s'en sert que pour les
+    /// titres qui portent un point d'exclamation.</summary>
+    private static readonly MatiereDeLettre Vide = new(
+        new MatiereDEdition(new DateOnly(2026, 9, 21), RangEdition.Chronique, null, [], null, null, [], [], null),
+        [], [], new Dictionary<string, int>(), []);
+
     private static string P(int longueur, char c = 'a') =>
         string.Join(" ", Enumerable.Repeat(new string(c, 9), longueur / 10)) + ".";
 
@@ -18,7 +24,7 @@ public class RedactionLettreTests
     [Fact]
     public void Une_lettre_conforme_est_acceptee_meme_entouree_de_prose()
     {
-        var texte = RedactionLettre.Extraire("Voici la lettre :\n```json\n" + Lettre() + "\n```", out var ecart);
+        var texte = RedactionLettre.Extraire("Voici la lettre :\n```json\n" + Lettre() + "\n```", Vide, out var ecart);
         Assert.NotNull(texte);
         Assert.Null(ecart);
         Assert.Equal("Demain, le camion", texte.Sujet);
@@ -32,36 +38,36 @@ public class RedactionLettreTests
     [InlineData("", "sujet : vide")]
     public void Un_sujet_hors_contrat_est_refuse(string sujet, string ecartAttendu)
     {
-        Assert.Null(RedactionLettre.Extraire(Lettre(sujet), out var ecart));
+        Assert.Null(RedactionLettre.Extraire(Lettre(sujet), Vide, out var ecart));
         Assert.StartsWith(ecartAttendu, ecart);
     }
 
     [Fact]
     public void Deux_paragraphes_ou_six_sont_refuses()
     {
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(150)), out var deux));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(150)), Vide, out var deux));
         Assert.StartsWith("paragraphes", deux);
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(100), P(100), P(100), P(100), P(100)), out var six));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(100), P(100), P(100), P(100), P(100)), Vide, out var six));
         Assert.StartsWith("paragraphes", six);
-        Assert.NotNull(RedactionLettre.Extraire(Lettre("S", P(150), P(100), P(100), P(100), P(100))));
+        Assert.NotNull(RedactionLettre.Extraire(Lettre("S", P(150), P(100), P(100), P(100), P(100)), Vide));
     }
 
     [Fact]
     public void Un_paragraphe_trop_long_ou_un_premier_trop_court_est_refuse()
     {
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(380), P(100)), out var long_));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(380), P(100)), Vide, out var long_));
         Assert.Equal("paragraphe 2 : 380 signes, 360 au plus", long_);
-        Assert.NotNull(RedactionLettre.Extraire(Lettre("S", P(150), P(340), P(100))));
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(80), P(100), P(100)), out var court));
+        Assert.NotNull(RedactionLettre.Extraire(Lettre("S", P(150), P(340), P(100)), Vide));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(80), P(100), P(100)), Vide, out var court));
         Assert.StartsWith("paragraphe 1 : 80 signes, 100 au moins", court);
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(40), P(100)), out var moignon));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(40), P(100)), Vide, out var moignon));
         Assert.StartsWith("paragraphe 2 : 40 signes, 60 au moins", moignon);
     }
 
     [Fact]
     public void Le_plafond_total_mord_meme_quand_chaque_paragraphe_passe()
     {
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(300), P(300), P(300), P(300), P(300)), out var ecart));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(300), P(300), P(300), P(300), P(300)), Vide, out var ecart));
         Assert.StartsWith("total : 1500 signes", ecart);
     }
 
@@ -70,16 +76,16 @@ public class RedactionLettreTests
     [InlineData("Salut, il ne reste qu'une chose aujourd'hui et c'est la même que dimanche dernier, les boîtes du bureau et rien d'autre.", "salutation")]
     public void La_salutation_redonnee_par_reflexe_est_refusee(string premier, string mot)
     {
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", premier, P(100), P(100)), out var ecart));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", premier, P(100), P(100)), Vide, out var ecart));
         Assert.Contains(mot, ecart);
     }
 
     [Fact]
     public void La_signature_et_l_adieu_sont_au_gabarit()
     {
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(100), P(100)[..90] + " — la maison"), out var signature));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(100), P(100)[..90] + " — la maison"), Vide, out var signature));
         Assert.Contains("signature", signature);
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(100), P(100)[..85] + " Bonne journée."), out var adieu));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(100), P(100)[..85] + " Bonne journée."), Vide, out var adieu));
         Assert.Contains("Bonne journée", adieu);
     }
 
@@ -90,23 +96,44 @@ public class RedactionLettreTests
     [InlineData("# ")]
     public void Une_liste_deguisee_est_refusee(string amorce)
     {
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), amorce + P(100), P(100)), out var ecart));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), amorce + P(100), P(100)), Vide, out var ecart));
         Assert.Contains("liste", ecart);
     }
 
     [Fact]
     public void Un_point_d_exclamation_fait_basculer_dans_l_infolettre()
     {
-        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(100)[..95] + " oui !", P(100)), out var ecart));
+        Assert.Null(RedactionLettre.Extraire(Lettre("S", P(150), P(100)[..95] + " oui !", P(100)), Vide, out var ecart));
         Assert.Contains("exclamation", ecart);
+    }
+
+    [Fact]
+    public void Le_point_d_exclamation_d_un_titre_cite_tel_quel_n_est_pas_un_ecart()
+    {
+        // Vu en prod le 2026-09-21 : la tâche « Boites! » faisait refuser la lettre, et la
+        // note partait à sa place.
+        var matiere = Vide with
+        {
+            Edition = Vide.Edition with { TachesDues = [new("Boites!", 0, false, null)] },
+        };
+        var premier = "Une seule chose aujourd'hui, et c'est la même que dimanche dernier : Boites!, la salle de bain et le bureau si le cœur vous en dit.";
+
+        var texte = RedactionLettre.Extraire(Lettre("Une seule chose : Boites!", premier, P(100), P(100)), matiere, out var ecart);
+        Assert.NotNull(texte);
+        Assert.Null(ecart);
+
+        // Le même texte sans ce titre dans la matière reste refusé : le « ! » est au modèle.
+        Assert.Null(RedactionLettre.Extraire(Lettre("Une seule chose : Boites!", premier, P(100), P(100)), Vide, out var refus));
+        Assert.Contains("exclamation", refus);
+        Assert.Equal(["Boites!"], RedactionLettre.TitresAvecExclamation(matiere));
     }
 
     [Fact]
     public void Un_champ_non_textuel_ou_un_json_absent_rendent_null()
     {
-        Assert.Null(RedactionLettre.Extraire("""{"sujet": 12, "paragraphes": []}""", out var nombre));
+        Assert.Null(RedactionLettre.Extraire("""{"sujet": 12, "paragraphes": []}""", Vide, out var nombre));
         Assert.Equal("sujet : pas du texte", nombre);
-        Assert.Null(RedactionLettre.Extraire("Je préfère ne rien écrire ce matin.", out var rien));
+        Assert.Null(RedactionLettre.Extraire("Je préfère ne rien écrire ce matin.", Vide, out var rien));
         Assert.Equal("aucun objet JSON", rien);
     }
 

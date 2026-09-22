@@ -140,7 +140,8 @@ public class LettreApiTests(HouseOsFactory factory)
         var client = await factory.ClientConnecte();
         var parApi = (await client.GetFromJsonAsync<LettreDto>($"/api/lettre?date={date:yyyy-MM-dd}"))!;
         Assert.Equal(ecrite.Sujet, parApi.Sujet);
-        Assert.Equal(ecrite.EnvoyeeLe, parApi.EnvoyeeLe);
+        // Postgres garde la microseconde, l'objet en mémoire les 100 ns : on compare à la milliseconde.
+        Assert.Equal(ecrite.EnvoyeeLe!.Value.ToUnixTimeMilliseconds(), parApi.EnvoyeeLe!.Value.ToUnixTimeMilliseconds());
         await Nettoyer(date);
     }
 }
