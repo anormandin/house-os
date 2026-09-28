@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-21
-verified-against: c095ef2
+last-verified: 2026-09-28
+verified-against: a81cff0
 tags: []
 ---
 
@@ -59,7 +59,8 @@ lit, pas en passant dans le corridor.
   dernière lettre (journal de complétion), la **série** de chaque tâche due (combien
   de fois de suite elle a été faite ce même jour de semaine, ce qui rachète « la même
   que les dix derniers dimanches », non dérivable des sept lettres seules), et les
-  **sept lettres précédentes** (sujet et première ligne) pour ne pas radoter. Rien d'autre : ce que le modèle ne reçoit
+  **sept lettres précédentes** (sujet, première ligne et paragraphes entiers depuis le
+  2026-09-28, [[D-2026-09-28 Fraîcheur Cumulée Des Faits]]) pour ne pas radoter. Rien d'autre : ce que le modèle ne reçoit
   pas, il ne peut pas le citer.
 - **Le registre** : la maison écrit à ses habitants. Trois à cinq paragraphes de prose,
   pas de liste. La première ligne tient seule comme aperçu de notification ; le sujet

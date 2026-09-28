@@ -9,9 +9,22 @@ public sealed record EcheanceDevant(DateOnly Date, string Titre, string? Assigne
 /// enfin un endroit où sortir.</summary>
 public sealed record TacheFaite(DateOnly Date, string Titre, string? Par);
 
-/// <summary>Ce qu'une lettre précédente a dit — le sujet et ce qui partait dans
-/// l'aperçu : la mémoire anti-radotage.</summary>
-public sealed record LettrePrecedente(DateOnly Date, string Sujet, string PremiereLigne);
+/// <summary>Ce qu'une lettre précédente a dit — le sujet, ce qui partait dans l'aperçu,
+/// et les paragraphes entiers : la mémoire anti-radotage. Sans les paragraphes, le
+/// modèle redisait chaque matin la clarté qui raccourcit et les tâches « à personne »
+/// (D-2026-09-28 Fraîcheur Cumulée Des Faits).</summary>
+public sealed record LettrePrecedente(
+    DateOnly Date, string Sujet, string PremiereLigne, IReadOnlyList<string> Paragraphes)
+{
+    /// <summary>Par valeur, paragraphes compris : une matière relue de son JSON est la
+    /// même matière (l'atelier en dépend).</summary>
+    public bool Equals(LettrePrecedente? autre) =>
+        autre is not null
+        && (Date, Sujet, PremiereLigne) == (autre.Date, autre.Sujet, autre.PremiereLigne)
+        && Paragraphes.SequenceEqual(autre.Paragraphes);
+
+    public override int GetHashCode() => HashCode.Combine(Date, Sujet, PremiereLigne, Paragraphes.Count);
+}
 
 /// <summary>
 /// Tout ce que la lettre reçoit, et rien d'autre : la matière de l'édition, étendue de

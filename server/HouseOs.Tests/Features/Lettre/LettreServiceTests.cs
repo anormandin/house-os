@@ -288,5 +288,7 @@ public sealed class LettreServiceTests : TestAvecSqlite
         var precedente = Assert.Single(_redacteur.DerniereMatiere!.Precedentes);
         Assert.Equal("Hier", precedente.Sujet);
         Assert.Equal(RedactionLettre.LongueurPremiereLigne + 1, precedente.PremiereLigne.Length);
+        // Et la lettre entière : c'est là que le modèle voit ce qu'il a déjà raconté.
+        Assert.Equal([new string('h', 200)], precedente.Paragraphes);
     }
 }

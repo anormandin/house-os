@@ -46,7 +46,7 @@ public static partial class RedactionLettre
         fonds de tiroir de petites choses vraies déjà classées (le ciel, le climat, la maison,
         le calendrier, la ville, le hasard), la semaine devant (les échéances des sept
         prochains jours), ce qui a été fait depuis la dernière lettre, et les sept lettres
-        précédentes. Chaque tâche due porte sa « serie » : le nombre de fois de suite qu'elle
+        précédentes, en entier. Chaque tâche due porte sa « serie » : le nombre de fois de suite qu'elle
         a été faite ce même jour de semaine (0 = rien à dire là-dessus).
 
         Ce que tu écris, en JSON et rien d'autre :
@@ -90,10 +90,27 @@ public static partial class RedactionLettre
           « La même que les dix derniers dimanches » se dit si la série vaut dix, pas autrement ;
           « comme dimanche dernier » se dit si une lettre précédente ou la série le prouve.
           Ce qui a été fait se mentionne en passant, sans félicitations.
-        - Ne radote pas. « precedentes » donne le sujet et la première ligne des sept dernières
-          lettres. N'en reprends ni la formule, ni l'angle, ni l'image, ni le patron
-          d'ouverture. Si trois lettres de suite ont ouvert sur la météo, ouvre ailleurs ; si la
+        - Ne radote pas. « precedentes » donne le sujet, la première ligne et les paragraphes
+          des sept dernières lettres. N'en reprends ni la formule, ni l'angle, ni l'image, ni le
+          patron d'ouverture. Si trois lettres de suite ont ouvert sur la météo, ouvre ailleurs ; si la
           semaine a compté les dodos tous les matins, compte autre chose.
+        - Un fait déjà raconté dans la semaine ne revient pas, sauf si sa valeur a changé — et
+          alors une demi-phrase sur ce qui a changé. Un compteur qui prend une unité (treize
+          séances, puis quatorze) ou une date normale qui se rapproche (le premier gel « vers le
+          3 ») n'a pas changé : ni tel quel, ni reformulé. Même chose pour une remarque : qui
+          porte un prénom et qui n'en porte pas (« n'appartient à personne », « seul à porter un
+          prénom »), qu'aucune échéance n'est ferme, que la clarté raccourcit, que la cuisine
+          attend — ça se dit une fois dans la semaine, pas chaque matin.
+        - La lettre n'a pas de plan fixe. Si les lettres de la semaine ont toutes suivi le même
+          ordre (les tâches, puis un compteur, puis le ciel et la météo, puis la semaine
+          devant), change-le : un paragraphe peut tenir une seule idée, la météo peut tenir en
+          une demi-phrase ou pas du tout, et le lever et le coucher du soleil n'ont pas à revenir
+          tous les jours. Le sujet non plus ne suit pas un patron : pas trois fois
+          « X, Y, et Z » dans la semaine.
+        - Va d'abord chercher dans le fonds et dans la semaine devant ce que les lettres n'ont
+          pas encore dit, même modeste : elles se lisent tous les matins, la nouveauté vaut plus
+          que l'exhaustivité. Une lettre de trois paragraphes neufs vaut mieux que cinq
+          paragraphes connus.
         - Le plafond. Une journée à quatorze tâches ne donne pas une lettre plus longue qu'une
           journée à une seule. Nomme ce qui compte, deux ou trois choses, et renvoie au reste en
           une phrase. Le rang dit la forme du jour, pas la longueur de la lettre : « Chronique »
@@ -213,7 +230,7 @@ public static partial class RedactionLettre
                 [.. m.Faits.Select(f => new FaitJson(f.Cle, f.Famille, f.Etiquette, f.Valeur, f.Texte, f.Publie))],
                 [.. l.SemaineDevant.Select(e => new EcheanceJson(Iso(e.Date), e.Date.ToString("dddd", Fr), e.Titre, e.Assigne, e.EcheanceFerme))],
                 [.. l.FaitesDepuisLaDerniere.Select(f => new FaiteJson(Iso(f.Date), f.Titre, f.Par))],
-                [.. l.Precedentes.Select(e => new PrecedenteJson(Iso(e.Date), e.Sujet, e.PremiereLigne))]);
+                [.. l.Precedentes.Select(e => new PrecedenteJson(Iso(e.Date), e.Sujet, e.PremiereLigne, [.. e.Paragraphes]))]);
         }
 
         public MatiereDeLettre VersMatiere()
@@ -241,7 +258,7 @@ public static partial class RedactionLettre
                 [.. (SemaineDevant ?? []).Select(e => new EcheanceDevant(DeIso(e.Date), e.Titre, e.Assigne, e.EcheanceFerme))],
                 [.. (FaitesDepuisLaDerniere ?? []).Select(f => new TacheFaite(DeIso(f.Date), f.Titre, f.Par))],
                 series,
-                [.. (Precedentes ?? []).Select(e => new LettrePrecedente(DeIso(e.Date), e.Sujet, e.PremiereLigne))]);
+                [.. (Precedentes ?? []).Select(e => new LettrePrecedente(DeIso(e.Date), e.Sujet, e.PremiereLigne, e.Paragraphes ?? []))]);
         }
     }
 
@@ -253,7 +270,9 @@ public static partial class RedactionLettre
     private sealed record FaitJson(string Cle, string Famille, string Etiquette, string Valeur, string Texte, bool Publie);
     private sealed record EcheanceJson(string Date, string JourDeSemaine, string Titre, string? Assigne, bool EcheanceFerme);
     private sealed record FaiteJson(string Date, string Titre, string? Par);
-    private sealed record PrecedenteJson(string Date, string Sujet, string PremiereLigne);
+    /// <summary>Les paragraphes sont nuls dans une matière conservée avant le
+    /// 2026-09-28 : elle se relit quand même.</summary>
+    private sealed record PrecedenteJson(string Date, string Sujet, string PremiereLigne, List<string>? Paragraphes);
 
     /// <summary>Parse défensif et validation stricte, sur le patron de l'édition :
     /// clôtures de code et prose tolérées autour du JSON, puis tout écart rend null.

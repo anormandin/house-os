@@ -151,13 +151,15 @@ public class RedactionLettreTests
             [new(date.AddDays(2), "Prêteur", "Ariane", true)],
             [new(date.AddDays(-1), "Changer les draps", "Alain")],
             new Dictionary<string, int> { ["Emballer le bureau"] = 4 },
-            [new(date.AddDays(-7), "Le sous-sol, et rien d'autre", "Une seule chose aujourd'hui : emballer le sous-sol.")]);
+            [new(date.AddDays(-7), "Le sous-sol, et rien d'autre", "Une seule chose aujourd'hui : emballer le sous-sol.",
+                ["Une seule chose aujourd'hui : emballer le sous-sol.", "La clarté raccourcit."])]);
 
         var json = RedactionLettre.SerialiserMatiere(matiere);
         Assert.Contains("\"serie\":4", json);
         Assert.Contains("\"semaineDevant\"", json);
         Assert.Contains("\"faitesDepuisLaDerniere\"", json);
         Assert.Contains("\"premiereLigne\"", json);
+        Assert.Contains("raccourcit.", json);
 
         var relue = RedactionLettre.DeserialiserMatiere(json);
         Assert.NotNull(relue);

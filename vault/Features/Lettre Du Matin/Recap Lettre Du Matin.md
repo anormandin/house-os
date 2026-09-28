@@ -39,3 +39,9 @@ note C3, les trois endpoints, les deux outils MCP, la page `/lettre`, l'atelier.
 qu'Ariane a coché la veille, les échéances de mardi et mercredi, treize séances de la
 même tâche). La série au sens strict (même jour de semaine) reste à voir sur une
 tâche hebdomadaire. À relire après une semaine de lettres.
+
+**Relu après une semaine (2026-09-28)** : huit lettres au même plan, avec les mêmes
+remarques et les mêmes faits d'un matin à l'autre — la mémoire ne voyait que le sujet et
+la première ligne. Elle porte maintenant les paragraphes entiers, et le prompt interdit
+de redire, même reformulé, ce que la semaine a dit ; détail et rejeux dans
+[[Prompt De La Lettre]] (« La première semaine relue »). À relire vers le 2026-10-05.

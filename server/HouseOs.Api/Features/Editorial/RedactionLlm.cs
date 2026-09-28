@@ -47,7 +47,9 @@ public static partial class RedactionLlm
           vrai à y mettre.
         - manchette : le titre, 45 caractères ou moins (60 au plus), sans point final.
           Une phrase courte qui porte une idée (« La maison ne demande rien », « Les
-          boîtes, encore, et c'est tout »). Quand « plancher » est présent, la manchette
+          boîtes, encore, et c'est tout »). Elle ne redit pas le surtitre : si les deux
+          parlent du même sujet (la cuisine, le serveur), l'un des deux prend un autre
+          fait ou un autre angle. Quand « plancher » est présent, la manchette
           est le titre de cette tâche ou de ce compte à rebours, tel quel : il ne peut
           pas être relégué.
         - chapeau : une ligne de faits séparés par « · », 160 caractères max, comme
@@ -95,7 +97,10 @@ public static partial class RedactionLlm
         - Les paragraphes des « precedentes » disent quels faits la semaine a déjà
           racontés. Un fait déjà raconté ne revient pas, sauf si sa valeur a changé (une
           série qui s'allonge, une échéance qui devient demain) — et alors on dit ce qui
-          a changé, en une demi-phrase. Va d'abord chercher dans le fonds de tiroir ce
+          a changé, en une demi-phrase. Un compteur qui prend une unité (13 séances,
+          puis 14, puis 15) n'a pas changé : c'est le même fait, il ne revient pas —
+          ni tel quel, ni reformulé (« quatre semaines de boîtes » redit « 15 séances
+          depuis le 28 août »), ni en surtitre. Va d'abord chercher dans le fonds de tiroir ce
           que la semaine n'a pas encore dit, même un fait modeste : le lecteur voit ce
           journal tous les matins, la nouveauté vaut plus que l'importance.
         - Typographie française : guillemets « », espace avant les deux-points et le

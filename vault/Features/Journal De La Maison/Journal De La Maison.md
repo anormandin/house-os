@@ -207,7 +207,8 @@ Bâti à l'étape 7 (`server/HouseOs.Api/Features/Editorial/`, as of 2026-09-21)
   `Edition:Modele` ; [[Titre D'humeur]] garde Haiku pour ses deux créneaux. La **clé**
   est la même (`ANTHROPIC_API_KEY`) : deux modèles, deux prompts, un seul compte.
 - **Mémoire des sept derniers jours** pour ne pas radoter : un fait déjà raconté ne
-  revient que si sa valeur a changé, et le prompt pousse vers ce que la semaine n'a pas
+  revient que si sa valeur a changé — un compteur qui prend une unité n'a pas changé,
+  et il ne revient pas non plus reformulé —, la manchette ne redit pas le surtitre, et le prompt pousse vers ce que la semaine n'a pas
   dit. Le **chapeau** a les interdits du surtitre — ni compte de tâches, ni météo, ni
   compte à rebours, que la dateline et l'encadré montrent déjà — et le compte à rebours
   ne monte en surtitre, manchette ou chapeau que la veille et le jour même (as of

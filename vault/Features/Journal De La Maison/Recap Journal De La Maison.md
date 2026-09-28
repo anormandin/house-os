@@ -50,6 +50,10 @@ l'étape 8 (`86faebd`) ; l'étape 9 n'a touché aucun code.
   le modèle ne voyait pas ses paragraphes. Rejoué dans l'atelier sur la matière du 28 :
   l'ancien prompt, même avec les paragraphes, refait le même chapeau et les mêmes
   séances ; le nouveau change les trois. [[D-2026-09-28 Fraîcheur Cumulée Des Faits]].
+  Le même jour, l'édition régénérée en prod rouvrait encore sur « quinze séances » (le
+  compteur avait pris une unité, donc « changé ») et le surtitre et la manchette
+  disaient tous deux la cuisine : deux règles de plus au prompt, rejouées quatre fois
+  sur la matière du 28, propres les quatre.
 
 ## À observer
 

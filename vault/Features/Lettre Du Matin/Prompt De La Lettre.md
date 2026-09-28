@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-09-21
-verified-against: c095ef2
+last-verified: 2026-09-28
+verified-against: a81cff0
 tags: []
 ---
 
@@ -16,8 +16,8 @@ différents. Destiné à devenir la constante `PromptParDefaut` de la classe
 
 Il est écrit contre `MatiereDeLettre` (`server/HouseOs.Api/Domaine/Lettre/`) : la
 matière de l'édition, plus la semaine devant, ce qui a été fait depuis la dernière
-lettre, la série de chaque tâche due et les sept lettres précédentes réduites à leur
-sujet et à leur première ligne. Les trois ajouts ont reçu leur ligne à l'étape 3 du
+lettre, la série de chaque tâche due et les sept lettres précédentes — sujet, première
+ligne et, depuis le 2026-09-28, paragraphes entiers. Les trois ajouts ont reçu leur ligne à l'étape 3 du
 plan (as of 2026-09-21), et la série débloque la phrase que la première version
 interdisait (point 7 plus bas). La constante en vigueur est
 `RedactionLettre.PromptParDefaut` (`server/HouseOs.Api/Features/Lettre/RedactionLettre.cs`) ;
@@ -36,7 +36,7 @@ plancher éventuel, les tâches dues, le prochain compte à rebours en dodos, la
 fonds de tiroir de petites choses vraies déjà classées (le ciel, le climat, la maison,
 le calendrier, la ville, le hasard), la semaine devant (les échéances des sept
 prochains jours), ce qui a été fait depuis la dernière lettre, et les sept lettres
-précédentes. Chaque tâche due porte sa « serie » : le nombre de fois de suite qu'elle
+précédentes, en entier. Chaque tâche due porte sa « serie » : le nombre de fois de suite qu'elle
 a été faite ce même jour de semaine (0 = rien à dire là-dessus).
 
 Ce que tu écris, en JSON et rien d'autre :
@@ -49,8 +49,7 @@ Ce que tu écris, en JSON et rien d'autre :
 - paragraphes : de trois à cinq. Vise 250 signes par paragraphe, jamais plus de 320,
   et 1200 signes en tout, 1400 au plus. Compte-les : au-delà, la lettre entière est refusée,
   et la journée retombe sur un second essai puis sur une note de quatre lignes. De la
-  prose seulement, aucune liste, aucune
-  puce, aucun titre, aucun gras, aucun lien.
+  prose seulement, aucune liste, aucune puce, aucun titre, aucun gras, aucun lien.
 - Les cent vingt premiers signes du premier paragraphe partent seuls dans l'aperçu de
   notification. Ils doivent suffire à qui n'ouvrira jamais la lettre : ce qui est dû
   aujourd'hui, ou le fait que rien ne l'est. Le reste de la lettre développe.
@@ -81,10 +80,27 @@ Règles strictes :
   « La même que les dix derniers dimanches » se dit si la série vaut dix, pas autrement ;
   « comme dimanche dernier » se dit si une lettre précédente ou la série le prouve.
   Ce qui a été fait se mentionne en passant, sans félicitations.
-- Ne radote pas. « precedentes » donne le sujet et la première ligne des sept dernières
-  lettres. N'en reprends ni la formule, ni l'angle, ni l'image, ni le patron
-  d'ouverture. Si trois lettres de suite ont ouvert sur la météo, ouvre ailleurs ; si la
+- Ne radote pas. « precedentes » donne le sujet, la première ligne et les paragraphes
+  des sept dernières lettres. N'en reprends ni la formule, ni l'angle, ni l'image, ni le
+  patron d'ouverture. Si trois lettres de suite ont ouvert sur la météo, ouvre ailleurs ; si la
   semaine a compté les dodos tous les matins, compte autre chose.
+- Un fait déjà raconté dans la semaine ne revient pas, sauf si sa valeur a changé — et
+  alors une demi-phrase sur ce qui a changé. Un compteur qui prend une unité (treize
+  séances, puis quatorze) ou une date normale qui se rapproche (le premier gel « vers le
+  3 ») n'a pas changé : ni tel quel, ni reformulé. Même chose pour une remarque : qui
+  porte un prénom et qui n'en porte pas (« n'appartient à personne », « seul à porter un
+  prénom »), qu'aucune échéance n'est ferme, que la clarté raccourcit, que la cuisine
+  attend — ça se dit une fois dans la semaine, pas chaque matin.
+- La lettre n'a pas de plan fixe. Si les lettres de la semaine ont toutes suivi le même
+  ordre (les tâches, puis un compteur, puis le ciel et la météo, puis la semaine
+  devant), change-le : un paragraphe peut tenir une seule idée, la météo peut tenir en
+  une demi-phrase ou pas du tout, et le lever et le coucher du soleil n'ont pas à revenir
+  tous les jours. Le sujet non plus ne suit pas un patron : pas trois fois
+  « X, Y, et Z » dans la semaine.
+- Va d'abord chercher dans le fonds et dans la semaine devant ce que les lettres n'ont
+  pas encore dit, même modeste : elles se lisent tous les matins, la nouveauté vaut plus
+  que l'exhaustivité. Une lettre de trois paragraphes neufs vaut mieux que cinq
+  paragraphes connus.
 - Le plafond. Une journée à quatorze tâches ne donne pas une lettre plus longue qu'une
   journée à une seule. Nomme ce qui compte, deux ou trois choses, et renvoie au reste en
   une phrase. Le rang dit la forme du jour, pas la longueur de la lettre : « Chronique »
@@ -191,3 +207,20 @@ dodos) atterrit autour de 330 quoi que dise la consigne. Le mur a une colonne, l
 courriel n'en a pas : le **contrat tolère 360** pendant que le prompt continue de
 dire 320, exactement le couple 200/240 de l'édition. Le sujet et le total, eux,
 sont restés loin des bornes (1001 et 1157 signes).
+
+## La première semaine relue (2026-09-28)
+
+Huit lettres de prod, du 21 au 28 septembre, relues ensemble : le même plan chaque
+matin (les tâches, un compteur, le ciel et la météo, la semaine devant), la remarque
+« ni échéance ferme ni prénom : elles n'appartiennent à personne » sept fois sur huit,
+la clarté qui raccourcit huit fois, le gel et la douceur six, la cuisine jamais cochée
+et les séances cinq, un sujet en « X, les boîtes, et Y » cinq fois. Même cause qu'au
+mur : la mémoire ne portait que le sujet et la première ligne
+([[D-2026-09-28 Fraîcheur Cumulée Des Faits]]). Trois règles ajoutées — un fait ou une
+remarque déjà dits ne reviennent pas, même reformulés, un compteur qui prend une unité
+n'a pas changé ; pas de plan fixe ni de patron de sujet ; la nouveauté avant
+l'exhaustivité. Rejoué sur la matière du 28 : l'ancien prompt, même avec les
+paragraphes, refait les séances et le ciel ; le nouveau, trois essais sur trois, n'en
+reprend rien et va chercher dimanche, le propane, Tanguay et le lit en vente. Il a
+fallu nommer « seul à porter un prénom » : sans ça, la remarque revenait reformulée
+deux fois sur trois.
