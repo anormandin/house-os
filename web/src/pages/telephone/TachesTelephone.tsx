@@ -8,6 +8,7 @@ import FeuilleActions from '@/components/telephone/FeuilleActions'
 import { api, dateLocaleIso, type Occurrence, type TacheResume } from '@/lib/api'
 import { useCompletionAvecUndo } from '@/lib/completion'
 import { dateCourte, jourCourt } from '@/lib/format'
+import { correspond } from '@/lib/recherche'
 import {
   chipsRecurrence,
   grouperParRythme,
@@ -32,14 +33,6 @@ const COULEURS_CHIPS: Record<ChipRecurrence['classe'], string> = {
   mois: 'text-[#624c83]',
   annuelle: 'text-dore',
   saison: 'text-orange',
-}
-
-/** Recherche insensible aux accents : « corvee » doit trouver « corvée ». */
-function normaliser(texte: string): string {
-  return texte
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
 }
 
 /** FeuilleActions parle Occurrence ; la console, elle, liste des définitions qui
@@ -113,10 +106,7 @@ export default function TachesTelephone() {
 
   // On filtre avant de grouper : les compteurs de rythme et le « en retard » de
   // chaque en-tête doivent parler de ce qui est à l'écran, pas de tout le foyer.
-  const terme = normaliser(recherche.trim())
-  const visibles = (taches ?? []).filter(
-    (t) => terme === '' || normaliser(t.titre).includes(terme),
-  )
+  const visibles = (taches ?? []).filter((t) => correspond(recherche, [t.titre]))
   const { groupes } = grouperParRythme(visibles, aujourdhui)
 
   if (isError) {

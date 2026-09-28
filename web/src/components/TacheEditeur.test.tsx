@@ -134,7 +134,7 @@ test('le document lié s’affiche, se délie, et l’enregistrement envoie la l
   expect((corpsEnvoye as { documentIds: string[] }).documentIds).toEqual([])
 })
 
-test('lier un document via le select l’ajoute à la liste envoyée', async () => {
+test('lier un document via le choix cherchable l’ajoute à la liste envoyée', async () => {
   let corpsEnvoye: unknown = null
   serveur.use(
     http.put('/api/taches/:id', async ({ request }) => {
@@ -146,7 +146,9 @@ test('lier un document via le select l’ajoute à la liste envoyée', async () 
   rendre(<TacheEditeur tacheId={TACHE_COMPLETE.id} onFermer={() => {}} />)
   await waitFor(() => expect(screen.getByLabelText('Titre')).toHaveValue(TACHE_COMPLETE.titre))
 
-  await userEvent.selectOptions(screen.getByLabelText('Lier un document'), 'd-rapport')
+  await userEvent.click(screen.getByRole('button', { name: 'Lier un document' }))
+  await userEvent.type(screen.getByRole('combobox', { name: 'Lier un document' }), 'rapport')
+  await userEvent.click(screen.getByRole('option', { name: /Rapport d’inspection/ }))
   expect(await screen.findByRole('link', { name: 'Rapport d’inspection' })).toBeInTheDocument()
 
   await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))

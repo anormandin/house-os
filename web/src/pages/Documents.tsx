@@ -4,6 +4,7 @@ import {
   BadgeCheck, BookOpen, Download, File, FileSignature, FolderOpen, House, Image, Inbox,
   Landmark, Mail, Map, Plus, Receipt, Shield, TriangleAlert, Wrench, X,
 } from 'lucide-react'
+import ChampRecherche from '@/components/ChampRecherche'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import ErreurChargement from '@/components/ErreurChargement'
 import { libelleTypeFichier, TYPE_MIME_COURRIEL } from '@/components/VignetteDocument'
@@ -19,6 +20,8 @@ import {
 } from '@/lib/documents-vues'
 import { signalerErreur } from '@/lib/erreurs'
 import { dateLisible } from '@/lib/format'
+import { useParametreUnique } from '@/lib/parametre-unique'
+import { correspond } from '@/lib/recherche'
 import { afficherToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -216,6 +219,9 @@ export default function Documents() {
 
   const choisi = documents?.find((d) => d.id === choisiId) ?? null
 
+  // `?id=` ouvre le tiroir d'un document (la recherche globale y mène).
+  useParametreUnique('id', setChoisiId)
+
   useEffect(() => {
     setFiche(choisi === null ? null : versFiche(choisi))
   }, [choisi])
@@ -307,16 +313,13 @@ export default function Documents() {
     .filter((e) => tous.some((d) => d.equipementId === e.id))
 
   // Filtres combinés en ET ; « Sans dossier » est une facette légitime.
-  const rechercheMinuscule = recherche.trim().toLowerCase()
-  const correspond = (document: Document) =>
+  const retenu = (document: Document) =>
     (facetteCategorie === null || document.categorie === facetteCategorie) &&
     (facetteDossier === null ||
       (facetteDossier === SANS_DOSSIER ? document.dossier === null : document.dossier === facetteDossier)) &&
     (facetteEquipement === null || document.equipementId === facetteEquipement) &&
-    (rechercheMinuscule.length === 0 ||
-      [document.titre, document.notes ?? '', document.nomFichier, document.dossier ?? '']
-        .some((texte) => texte.toLowerCase().includes(rechercheMinuscule)))
-  const visibles = tous.filter(correspond).sort((a, b) => comparer(a, b, tri))
+    correspond(recherche, [document.titre, document.notes, document.nomFichier, document.dossier])
+  const visibles = tous.filter(retenu).sort((a, b) => comparer(a, b, tri))
 
   const nbPages = Math.max(1, Math.ceil(visibles.length / TAILLE_PAGE))
   const pageBornee = Math.min(page, nbPages - 1)
@@ -378,15 +381,14 @@ export default function Documents() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
         <h1 className="mr-auto text-4xl font-bold">Documents</h1>
-        <input
-          value={recherche}
-          onChange={(e) => {
-            setRecherche(e.target.value)
+        <ChampRecherche
+          valeur={recherche}
+          onChange={(valeur) => {
+            setRecherche(valeur)
             setPage(0)
           }}
-          placeholder="Chercher…"
-          aria-label="Chercher un document"
-          className={cn(classeChamp, 'w-56')}
+          libelle="Chercher un document"
+          className="w-60"
         />
         <input
           ref={champFichier}

@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-09-28
+verified-against: ff56869
 tags: []
 ---
 
@@ -38,7 +38,10 @@ maison en s'installant.
   les notes de complétion s'affichent sous le titre (sourdine, retours à la ligne
   préservés, même idiome que les listes de tâches).
 - L'onglet Équipements groupe la liste par zone (avec compteur de documents par
-  équipement) ; la fiche est éditable en place.
+  équipement) ; la fiche est éditable en place. Un champ « Chercher un
+  équipement » filtre par nom, marque, modèle ou pièce (téléphone : nom seul),
+  sans accents ; `/equipements?id=` ouvre une fiche — c'est là que mène la
+  recherche globale ({D}).
 - Quand une enveloppe [[Budget]] de type Équipement est liée à l'équipement
   (lien exclusif posé côté Budget), la fiche l'affiche avec son solde — livré
   avec le module Budget (2026-08-27).
@@ -53,6 +56,7 @@ maison en s'installant.
 
 ## Décisions
 
+- {D} — recherche de page + lien `?id=` depuis la palette.
 - [[D-2026-08-23 PostgreSQL]] — JSONB pour les specs flexibles.
 - [[D-2026-08-24 Document Unifié Sur Disque]] — les fichiers de la fiche sont des
   documents (supersède [[D-2026-08-23 Fichiers Sur Disque]]).

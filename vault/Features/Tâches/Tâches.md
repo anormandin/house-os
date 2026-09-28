@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-20
-verified-against: 8d7b8cf
+last-verified: 2026-09-28
+verified-against: ff56869
 tags: []
 ---
 
@@ -220,6 +220,15 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   max(complétion, échéance). L'annulation reste sur Aujourd'hui (rangée verte
   du jour). Compléter/annuler depuis Aujourd'hui invalide aussi la requête
   `taches` de la console.
+- **Recherche** (2026-09-28, {D}) : la console du bureau a un champ
+  « Chercher une tâche » (titre, description, pièce/équipement ; sans accents, mots
+  dans n'importe quel ordre) qui filtre **avant** de grouper — compteurs et
+  « en retard » parlent de ce qui est à l'écran — et vaut pour les deux vues. La
+  console téléphone cherche sur le titre seul, même comparateur. La touche `/`
+  (ou la loupe de l'en-tête) ouvre la recherche globale du bureau ; une tâche
+  trouvée s'ouvre dans son éditeur sur place. ⌘K reste le quick-add.
+- L'éditeur lie un document par un **choix cherchable** (filtre titre/dossier)
+  plutôt qu'un `<select>` de tout le classeur.
 
 ## Dette connue (as of 2026-09-20)
 
@@ -289,6 +298,8 @@ reprendre quand la page Tâches ralentira, ou quand quelqu'un touchera cette req
 - [[D-2026-08-26 Vue Année Défilante]] — le ruban ~11 px/jour + mini-carte +
   bande accordéon des ponctuelles (option D, ronde 3) ; longs intervalles sur
   la chronologie, tempo court ≤ 15 jours.
+- {D} — `/` ouvre la recherche globale, ⌘K reste le quick-add ; comparateur
+  partagé sans accents.
 
 ## Ancres de code
 
@@ -309,6 +320,9 @@ reprendre quand la page Tâches ralentira, ou quand quelqu'un touchera cette req
 - `web/src/pages/Aujourdhui.tsx`, `web/src/components/QuickAdd.tsx` — UI
 - `web/src/pages/Taches.tsx`, `web/src/lib/taches-vues.ts` — console Rythmes ⇄
   Année (groupement et géométrie purs testés)
+- `web/src/lib/recherche.ts` — comparateur partagé (accents, mots en désordre) ;
+  `web/src/components/ChampRecherche.tsx`, `ChoixCherchable.tsx`,
+  `RechercheGlobale.tsx` — champ de page, picker cherchable, palette `/`
 - `web/src/components/OccurrenceListe.tsx` — rangées de tâches (retard, complétée,
   échéance, annuler/passer/reporter/notes)
 - `web/src/components/ConfirmerSuppression.tsx` — suppression en deux temps « Vraiment ? »

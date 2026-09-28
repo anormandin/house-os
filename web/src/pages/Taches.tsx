@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarRange, ChevronDown, ChevronUp, List, Paperclip, Plus } from 'lucide-react'
 import Avatar from '@/components/Avatar'
+import ChampRecherche from '@/components/ChampRecherche'
 import TacheEditeur, { editeurDejaOuvert } from '@/components/TacheEditeur'
 import { api, dateLocaleIso, type CompteARebours, type TacheResume } from '@/lib/api'
 import { useCompletionAvecUndo } from '@/lib/completion'
 import { dateCourte, jourCourt } from '@/lib/format'
+import { correspond } from '@/lib/recherche'
 import {
   chipsRecurrence,
   construireRuban,
@@ -153,6 +155,7 @@ function LibelleEcheance({ echeance, aujourdhui }: { echeance: string | null; au
 export default function Taches() {
   const [vue, setVue] = useState<Vue>(lireVueMemorisee)
   const [editeur, setEditeur] = useState<{ tacheId: string | null } | null>(null)
+  const [recherche, setRecherche] = useState('')
   const aujourdhui = dateLocaleIso()
 
   const { data: taches, isLoading } = useQuery({ queryKey: ['taches'], queryFn: api.taches })
@@ -190,11 +193,24 @@ export default function Taches() {
     return morceaux.length > 0 ? morceaux.join(' · ') : null
   }
 
+  // On filtre avant de grouper (et avant de construire le ruban) : les compteurs
+  // de rythme et le « en retard » de chaque en-tête parlent de ce qui est à
+  // l'écran, pas de tout le foyer — même règle qu'au téléphone.
+  const visibles = (taches ?? []).filter((t) =>
+    correspond(recherche, [t.titre, t.description, lieu(t)]),
+  )
+
   return (
     <div className="mx-auto flex max-w-[1100px] flex-col gap-5">
       <div className="flex items-end justify-between gap-3">
         <h1 className="text-4xl font-bold">Toutes les tâches</h1>
         <div className="flex items-center gap-2">
+          <ChampRecherche
+            valeur={recherche}
+            onChange={setRecherche}
+            libelle="Chercher une tâche"
+            className="w-60"
+          />
           <div className="flex rounded-full bg-carte p-1 shadow-carte">
             {(
               [
@@ -231,16 +247,20 @@ export default function Taches() {
         <p className="py-8 text-center text-sm text-sourdine">
           Aucune tâche encore — ⌘K pour créer la première.
         </p>
+      ) : visibles.length === 0 ? (
+        <p className="py-8 text-center text-sm text-sourdine">
+          Aucune tâche ne correspond à « {recherche.trim()} ».
+        </p>
       ) : vue === 'liste' ? (
         <VueListe
-          taches={taches!}
+          taches={visibles}
           aujourdhui={aujourdhui}
           lieu={lieu}
           onModifier={(tacheId) => setEditeur({ tacheId })}
         />
       ) : (
         <VueRuban
-          taches={taches!}
+          taches={visibles}
           aujourdhui={aujourdhui}
           comptes={comptes ?? []}
           lieu={lieu}

@@ -5,6 +5,7 @@ import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import ErreurChargement from '@/components/ErreurChargement'
 import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
 import { api, type EquipementDetail, type EquipementDonnees } from '@/lib/api'
+import { correspond } from '@/lib/recherche'
 import { cn } from '@/lib/utils'
 
 type Fiche = {
@@ -364,10 +365,7 @@ export default function EquipementsTelephone() {
 
   // La recherche filtre sur le nom seulement : au téléphone on cherche « fournaise »,
   // pas un numéro de série qu'on lirait plutôt sur l'appareil lui-même.
-  const filtre = recherche.trim().toLocaleLowerCase('fr-CA')
-  const visibles = (equipements ?? []).filter((e) =>
-    filtre.length === 0 ? true : e.nom.toLocaleLowerCase('fr-CA').includes(filtre),
-  )
+  const visibles = (equipements ?? []).filter((e) => correspond(recherche, [e.nom]))
   const parZone = new Map<string, typeof visibles>()
   for (const equipement of visibles) {
     const cle = equipement.zoneId ?? ''

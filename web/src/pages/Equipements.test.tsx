@@ -74,3 +74,24 @@ test('les notes acceptent plusieurs lignes (issue #59)', async () => {
   await userEvent.type(notes, 'Filtre 16 × 25{enter}Courroie A-32')
   expect(notes).toHaveValue('Filtre 16 × 25\nCourroie A-32')
 })
+
+test('la recherche trouve un équipement par sa marque', async () => {
+  servirFournaise()
+  serveur.use(
+    http.get('/api/equipements', () =>
+      HttpResponse.json([RESUME, { ...RESUME, id: 'e-jura', nom: 'Machine à café', marque: 'Jura' }])),
+  )
+  rendre(<Equipements />)
+  await screen.findByText('Fournaise')
+
+  await userEvent.type(screen.getByRole('searchbox', { name: 'Chercher un équipement' }), 'carrier')
+  expect(screen.getByText('Fournaise')).toBeInTheDocument()
+  expect(screen.queryByText('Machine à café')).not.toBeInTheDocument()
+})
+
+test('?id= ouvre directement la fiche (lien de la recherche globale)', async () => {
+  servirFournaise()
+  rendre(<Equipements />, undefined, '/equipements?id=e-fournaise')
+
+  await waitFor(() => expect(screen.getByLabelText('Notes')).toHaveValue('Filtre 16 × 25'))
+})

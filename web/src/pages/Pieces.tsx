@@ -8,6 +8,7 @@ import Ruban from '@/components/Ruban'
 import TacheEditeur from '@/components/TacheEditeur'
 import { api, dateLocaleIso, type Occurrence, type Zone } from '@/lib/api'
 import { bornesJourneeLocale, dateLongue } from '@/lib/format'
+import { useParametreUnique } from '@/lib/parametre-unique'
 import { santeZone } from '@/lib/pieces-vues'
 import { cn } from '@/lib/utils'
 
@@ -21,6 +22,9 @@ export default function Pieces() {
   const [typeAjout, setTypeAjout] = useState<'Interieur' | 'Exterieur'>('Interieur')
   const [renommage, setRenommage] = useState<string | null>(null)
   const [editeur, setEditeur] = useState<{ tacheId: string | null } | null>(null)
+
+  // `?zone=` ouvre une pièce (la recherche globale y mène).
+  useParametreUnique('zone', setZoneChoisieId)
 
   const {
     data: zones,

@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-02
-verified-against: f29b6fd
+last-verified: 2026-09-28
+verified-against: ff56869
 tags: []
 ---
 
@@ -37,7 +37,9 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
   « Effacer les filtres ») ; **table dense triable** (Titre, Catégorie en chip
   colorée, Lié à = dossier → équipement → pièce, Daté du, Échéance colorée) avec
   tri par défaut Daté du ↓ (dates nulles en fin) et **pagination client
-  25/page** ; recherche titre/notes/nom de fichier/dossier dans l'en-tête ;
+  25/page** ; recherche titre/notes/nom de fichier/dossier dans l'en-tête (sans
+  accents, mots dans n'importe quel ordre, depuis 2026-09-28) ;
+  `/documents?id=` ouvre le tiroir d'un document (lien de la recherche globale) ;
   téléversement en un clic (titre déduit du nom de fichier, catégorie du type
   MIME). La **fiche éditable vit dans un tiroir** par-dessus le bord droit
   (ouverture au clic de rangée, fermeture Échap/×, champ Dossier autocomplété
@@ -106,6 +108,7 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
 - [[D-2026-08-26 Dossier De Document]] — champ texte libre, pas d'entité.
 - [[D-2026-09-02 Boîte À Classer Des Documents]] — drapeau `AClasser`, archivage
   `.eml` des courriels sans pièce.
+- {D} — comparateur partagé, lien `?id=`, documents dans la palette `/`.
 
 ## Ancres de code
 

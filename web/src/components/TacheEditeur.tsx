@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileText, X } from 'lucide-react'
+import ChoixCherchable from '@/components/ChoixCherchable'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import { api, type Recurrence, type TacheDonnees } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -362,25 +363,16 @@ export default function TacheEditeur({
               })}
             </div>
           )}
-          <select
-            value=""
-            onChange={(e) => {
-              if (e.target.value.length > 0) {
-                maj({ documentIds: [...f.documentIds, e.target.value] })
-              }
-            }}
-            aria-label="Lier un document"
-            className={cn(classeChamp, 'max-w-72 text-sourdine')}
-          >
-            <option value="">Lier un document…</option>
-            {documents
-              ?.filter((d) => f.documentIds.includes(d.id) === false)
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {[d.titre, d.dossier].filter(Boolean).join(' · ')}
-                </option>
-              ))}
-          </select>
+          <ChoixCherchable
+            valeur=""
+            onChoisir={(documentId) => maj({ documentIds: [...f.documentIds, documentId] })}
+            libelle="Lier un document"
+            texteVide="Lier un document…"
+            options={(documents ?? [])
+              .filter((d) => f.documentIds.includes(d.id) === false)
+              .map((d) => ({ valeur: d.id, libelle: d.titre, detail: d.dossier }))}
+            className="w-full max-w-md"
+          />
         </div>
 
         {/* Répétition */}

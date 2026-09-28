@@ -18,6 +18,7 @@ import {
 } from '@/lib/documents-vues'
 import { signalerErreur } from '@/lib/erreurs'
 import { dateLisible } from '@/lib/format'
+import { correspond } from '@/lib/recherche'
 import { afficherToast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -376,16 +377,13 @@ export default function DocumentsTelephone() {
     .filter((e) => tous.some((d) => d.equipementId === e.id))
 
   // Filtres combinés en ET ; « Sans dossier » est une facette légitime.
-  const rechercheMinuscule = recherche.trim().toLowerCase()
-  const correspond = (document: Document) =>
+  const retenu = (document: Document) =>
     (facetteCategorie === null || document.categorie === facetteCategorie) &&
     (facetteDossier === null ||
       (facetteDossier === SANS_DOSSIER ? document.dossier === null : document.dossier === facetteDossier)) &&
     (facetteEquipement === null || document.equipementId === facetteEquipement) &&
-    (rechercheMinuscule.length === 0 ||
-      [document.titre, document.notes ?? '', document.nomFichier, document.dossier ?? '']
-        .some((texte) => texte.toLowerCase().includes(rechercheMinuscule)))
-  const visibles = tous.filter(correspond).sort((a, b) => comparer(a, b, TRI_TELEPHONE))
+    correspond(recherche, [document.titre, document.notes, document.nomFichier, document.dossier])
+  const visibles = tous.filter(retenu).sort((a, b) => comparer(a, b, TRI_TELEPHONE))
   const lot = visibles.slice(0, nbAffiches)
 
   const nbFiltres = [facetteCategorie, facetteDossier, facetteEquipement]

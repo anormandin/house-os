@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import { expect, test } from 'vitest'
 import CoquilleTelephone from '@/components/telephone/CoquilleTelephone'
 import { dateLocaleIso } from '@/lib/api'
@@ -10,14 +10,12 @@ import { ALAIN, serveur } from '@/test/serveur-msw'
 
 function rendreCoquille() {
   return rendre(
-    <MemoryRouter initialEntries={['/']}>
-      <Routes>
-        <Route element={<CoquilleTelephone moi={ALAIN} />}>
-          <Route path="/" element={<p>écran d’accueil</p>} />
-          <Route path="/taches" element={<p>console des tâches</p>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
+    <Routes>
+      <Route element={<CoquilleTelephone moi={ALAIN} />}>
+        <Route path="/" element={<p>écran d’accueil</p>} />
+        <Route path="/taches" element={<p>console des tâches</p>} />
+      </Route>
+    </Routes>,
   )
 }
 

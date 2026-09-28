@@ -164,3 +164,27 @@ test('cliquer une rangée ouvre l’éditeur de la tâche', async () => {
   await waitFor(() =>
     expect(screen.getByLabelText('Titre')).toHaveValue(TACHE_COMPLETE.titre))
 })
+
+test('la recherche filtre avant de grouper, sans tenir compte des accents', async () => {
+  servirTaches([...CORPUS, resume({ id: 'z-1', titre: 'Nettoyer le frigo', zoneId: 'z-cuisine' })])
+  rendre(<Taches />)
+  await screen.findByText('Chaque semaine')
+
+  await userEvent.type(screen.getByRole('searchbox', { name: 'Chercher une tâche' }), 'repartitions')
+  expect(screen.getByText('Notaire — répartitions')).toBeInTheDocument()
+  expect(screen.queryByText('Changer les draps')).not.toBeInTheDocument()
+  // Le groupe hebdo n'a plus rien : son en-tête et son « en retard » s'effacent.
+  expect(screen.queryByText('Chaque semaine')).not.toBeInTheDocument()
+  expect(screen.queryByText('1 en retard')).not.toBeInTheDocument()
+
+  // La pièce compte aussi.
+  await userEvent.clear(screen.getByRole('searchbox', { name: 'Chercher une tâche' }))
+  await userEvent.type(screen.getByRole('searchbox', { name: 'Chercher une tâche' }), 'cuisine')
+  expect(await screen.findByText('Nettoyer le frigo')).toBeInTheDocument()
+
+  await userEvent.type(screen.getByRole('searchbox', { name: 'Chercher une tâche' }), ' zzz')
+  expect(screen.getByText('Aucune tâche ne correspond à « cuisine zzz ».')).toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole('button', { name: 'Effacer la recherche' }))
+  expect(screen.getByText('Changer les draps')).toBeInTheDocument()
+})

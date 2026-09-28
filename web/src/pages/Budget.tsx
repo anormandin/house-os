@@ -13,6 +13,7 @@ import {
   Upload,
   X,
 } from 'lucide-react'
+import ChoixCherchable from '@/components/ChoixCherchable'
 import {
   api,
   dateLocaleIso,
@@ -1193,26 +1194,30 @@ function EnveloppeEditeur({
           <input type="number" min="0" step="1" value={fiche.montantCible}
             onChange={(e) => maj({ montantCible: e.target.value })}
             placeholder="Cible ($)" aria-label="Montant cible" className={classeChamp} />
-          <select
-            value={fiche.lien}
-            aria-label="Lien"
-            onChange={(e) => maj({ lien: e.target.value })}
-            className={cn(classeChamp, 'col-span-2')}
-          >
-            <option value="">Sans lien (cible libre)</option>
-            <optgroup label="Tâches">
-              {taches?.map((tache) => (
-                <option key={tache.id} value={`t:${tache.id}`}>Tâche · {tache.titre}</option>
-              ))}
-            </optgroup>
-            <optgroup label="Équipements">
-              {equipements?.map((equipement) => (
-                <option key={equipement.id} value={`e:${equipement.id}`}>
-                  Équipement · {equipement.nom}
-                </option>
-              ))}
-            </optgroup>
-          </select>
+          <ChoixCherchable
+            valeur={fiche.lien}
+            onChoisir={(lien) => maj({ lien })}
+            libelle="Lien"
+            texteVide="Sans lien (cible libre)"
+            optionVide
+            className="col-span-2"
+            options={[
+              // Une ponctuelle déjà faite ne se finance plus ; on la garde seulement
+              // si l'enveloppe y est déjà liée, pour que le choix actuel s'affiche.
+              ...(taches ?? [])
+                .filter((tache) => tache.completee === false || fiche.lien === `t:${tache.id}`)
+                .map((tache) => ({
+                  valeur: `t:${tache.id}`,
+                  libelle: tache.titre,
+                  groupe: 'Tâches',
+                })),
+              ...(equipements ?? []).map((equipement) => ({
+                valeur: `e:${equipement.id}`,
+                libelle: equipement.nom,
+                groupe: 'Équipements',
+              })),
+            ]}
+          />
           {tacheLiee ? (
             <p className="col-span-2 text-xs text-sourdine italic">
               L’échéance dérive de la prochaine occurrence de la tâche liée.
@@ -1290,8 +1295,10 @@ function EnveloppeEditeur({
 
         {creation === false && detail !== undefined && (
           <>
-            <div className="flex items-center gap-2 border-t border-barre-piste pt-3">
-              <span className="text-sm font-bold text-dore">Ajustement rapide</span>
+            {/* Deux gestes sur une rangée qui passe à la ligne : côte à côte, ils
+                débordaient le modal (barre de défilement horizontale). */}
+            <div className="flex flex-wrap items-center gap-2 border-t border-barre-piste pt-3">
+              <span className="whitespace-nowrap text-sm font-bold text-dore">Ajustement rapide</span>
               <input type="number" step="0.01" value={ajustement}
                 onChange={(e) => setAjustement(e.target.value)}
                 placeholder="± montant" aria-label="Montant d'ajustement"
@@ -1371,7 +1378,7 @@ function TransfertRapide({ enveloppeId }: { enveloppeId: string }) {
 
   return (
     <span className="ml-auto flex items-center gap-2">
-      <span className="text-sm font-bold text-dore">Transférer</span>
+      <span className="whitespace-nowrap text-sm font-bold text-dore">Transférer</span>
       <input type="number" min="0" step="0.01" value={montant}
         onChange={(e) => setMontant(e.target.value)} placeholder="Montant"
         aria-label="Montant du transfert"

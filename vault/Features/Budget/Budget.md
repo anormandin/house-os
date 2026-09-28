@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-09-28
+verified-against: ff56869
 tags: []
 ---
 
@@ -44,7 +44,8 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
 
 - Une enveloppe : nom, type (`Equipement` | `Taxes` | `Projet` | `Reserve`),
   montant cible optionnel, date cible optionnelle, lien optionnel vers une
-  tâche OU un équipement, échéancier de versements optionnel (type `Taxes`,
+  tâche OU un équipement (choisi dans un picker cherchable ; les ponctuelles déjà
+  faites n'y sont plus proposées, sauf celle déjà liée — 2026-09-28), échéancier de versements optionnel (type `Taxes`,
   liste {date, montant} en JSONB), statut (`Active` | `Fermee`).
 - Quand une enveloppe est liée à une tâche récurrente, sa date cible est
   **dérivée** de la prochaine occurrence de la tâche

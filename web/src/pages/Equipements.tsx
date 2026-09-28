@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, FileText, Plus, X } from 'lucide-react'
+import ChampRecherche from '@/components/ChampRecherche'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import ErreurChargement from '@/components/ErreurChargement'
 import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
@@ -8,6 +9,8 @@ import { api, type EquipementDetail, type EquipementDonnees } from '@/lib/api'
 import { problemeTailleFichier } from '@/lib/documents-vues'
 import { signalerErreur } from '@/lib/erreurs'
 import { dateLisible, dollars, heureQuebec } from '@/lib/format'
+import { useParametreUnique } from '@/lib/parametre-unique'
+import { correspond } from '@/lib/recherche'
 import { dateLocaleIso } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -63,6 +66,7 @@ export default function Equipements() {
   const [fiche, setFiche] = useState<Fiche>(ficheVide)
   // Id de l'équipement que la fiche reflète — null pour la fiche vide (création).
   const [ficheDe, setFicheDe] = useState<string | null>(null)
+  const [recherche, setRecherche] = useState('')
   const champFichier = useRef<HTMLInputElement>(null)
   const maj = (champ: Partial<Fiche>) => setFiche((ancienne) => ({ ...ancienne, ...champ }))
 
@@ -99,6 +103,12 @@ export default function Equipements() {
     setFiche(versFiche(detail))
     setFicheDe(detail.id)
   }, [detail, creation, ficheDe])
+
+  // `?id=` ouvre la fiche d'un équipement (la recherche globale y mène).
+  useParametreUnique('id', (id) => {
+    setChoisiId(id)
+    setCreation(false)
+  })
 
   const invalider = () => {
     queryClient.invalidateQueries({ queryKey: ['equipements'] })
@@ -140,13 +150,17 @@ export default function Equipements() {
     onSuccess: invalider,
   })
 
-  const parZone = new Map<string, typeof equipements & {}>()
-  for (const equipement of equipements ?? []) {
+  const nomZone = (zoneId: string) =>
+    zones?.find((z) => z.id === zoneId)?.nom ?? 'Sans pièce'
+  // Au bureau on cherche aussi par marque, modèle ou pièce (« jura », « sous-sol »).
+  const visibles = (equipements ?? []).filter((e) =>
+    correspond(recherche, [e.nom, e.marque, e.modele, nomZone(e.zoneId ?? '')]),
+  )
+  const parZone = new Map<string, typeof visibles>()
+  for (const equipement of visibles) {
     const cle = equipement.zoneId ?? ''
     parZone.set(cle, [...(parZone.get(cle) ?? []), equipement])
   }
-  const nomZone = (zoneId: string) =>
-    zones?.find((z) => z.id === zoneId)?.nom ?? 'Sans pièce'
 
   const classeChamp =
     'rounded-xl bg-creux px-3 py-2 text-sm text-texte focus:outline-2 focus:outline-orange/60'
@@ -155,7 +169,13 @@ export default function Equipements() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-end justify-between">
-        <h1 className="text-4xl font-bold">Équipements</h1>
+        <h1 className="mr-auto text-4xl font-bold">Équipements</h1>
+        <ChampRecherche
+          valeur={recherche}
+          onChange={setRecherche}
+          libelle="Chercher un équipement"
+          className="mr-2 w-60"
+        />
         <button
           type="button"
           onClick={() => {
@@ -177,6 +197,11 @@ export default function Equipements() {
           {equipementsEnErreur === false && (equipements ?? []).length === 0 && creation === false && (
             <p className="rounded-[20px] border-2 border-dashed border-tiret px-5 py-8 text-center text-sm font-bold text-tiret-texte">
               Aucun équipement encore — inventorie la maison en t’installant.
+            </p>
+          )}
+          {(equipements ?? []).length > 0 && visibles.length === 0 && (
+            <p className="py-8 text-center text-sm text-sourdine">
+              Aucun équipement ne correspond à « {recherche.trim()} ».
             </p>
           )}
           {[...parZone.entries()]

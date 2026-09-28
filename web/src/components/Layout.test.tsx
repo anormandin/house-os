@@ -1,7 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { MemoryRouter } from 'react-router-dom'
 import { afterEach, expect, test } from 'vitest'
 import BanniereErreur from '@/components/BanniereErreur'
 import Layout from '@/components/Layout'
@@ -16,11 +15,7 @@ function ouvrirCalendrier() {
 }
 
 test('« Mon calendrier » montre les deux URLs : publique (Google) et interne (Tailscale)', async () => {
-  rendre(
-    <MemoryRouter>
-      <Layout moi={ALAIN} />
-    </MemoryRouter>,
-  )
+  rendre(<Layout moi={ALAIN} />)
 
   await ouvrirCalendrier()
 
@@ -32,11 +27,7 @@ test('« Mon calendrier » montre les deux URLs : publique (Google) et interne (
 })
 
 test('la rotation demande confirmation puis remplace les URLs affichées', async () => {
-  rendre(
-    <MemoryRouter>
-      <Layout moi={ALAIN} />
-    </MemoryRouter>,
-  )
+  rendre(<Layout moi={ALAIN} />)
   await ouvrirCalendrier()
   await screen.findByText(FLUX_ICAL.urlPublique)
 
@@ -53,10 +44,10 @@ test('la rotation demande confirmation puis remplace les URLs affichées', async
 test('une déconnexion qui échoue est signalée — la session locale reste intacte', async () => {
   serveur.use(http.post('/api/auth/deconnexion', () => new HttpResponse(null, { status: 500 })))
   const { client } = rendre(
-    <MemoryRouter>
+    <>
       <Layout moi={ALAIN} />
       <BanniereErreur />
-    </MemoryRouter>,
+    </>,
   )
   client.setQueryData(['moi'], ALAIN)
 
@@ -68,11 +59,7 @@ test('une déconnexion qui échoue est signalée — la session locale reste int
 
 test('la déconnexion réussie vide le cache — le prochain `moi` ramène à la connexion', async () => {
   serveur.use(http.post('/api/auth/deconnexion', () => new HttpResponse(null, { status: 204 })))
-  const { client } = rendre(
-    <MemoryRouter>
-      <Layout moi={ALAIN} />
-    </MemoryRouter>,
-  )
+  const { client } = rendre(<Layout moi={ALAIN} />)
   client.setQueryData(['moi'], ALAIN)
 
   await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }))

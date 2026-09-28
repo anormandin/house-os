@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarDays, LogOut } from 'lucide-react'
+import { CalendarDays, LogOut, Search } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import Avatar, { enregistrerFoyer } from '@/components/Avatar'
 import DialogueCalendrier, { useDeconnexion } from '@/components/DialogueCalendrier'
+import RechercheGlobale from '@/components/RechercheGlobale'
+import TacheEditeur, { editeurDejaOuvert } from '@/components/TacheEditeur'
 import { api, type Utilisateur } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +21,26 @@ const onglets = [
 
 export default function Layout({ moi }: { moi: Utilisateur }) {
   const [calendrierOuvert, setCalendrierOuvert] = useState(false)
+  const [rechercheOuverte, setRechercheOuverte] = useState(false)
+  const [tacheOuverteId, setTacheOuverteId] = useState<string | null>(null)
   const deconnecter = useDeconnexion()
+
+  // `/` ouvre la recherche globale, sauf quand on écrit déjà quelque part ou
+  // qu'un éditeur est ouvert (⌘K reste le quick-add de création).
+  useEffect(() => {
+    function surTouche(e: KeyboardEvent) {
+      const cible = e.target as HTMLElement
+      const enSaisie =
+        cible.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(cible.tagName)
+      if (e.key === '/' && e.metaKey === false && e.ctrlKey === false && enSaisie === false
+        && editeurDejaOuvert() === false) {
+        e.preventDefault()
+        setRechercheOuverte(true)
+      }
+    }
+    window.addEventListener('keydown', surTouche)
+    return () => window.removeEventListener('keydown', surTouche)
+  }, [])
 
   const { data: utilisateurs } = useQuery({
     queryKey: ['utilisateurs'],
@@ -59,6 +80,15 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
         <div className="flex items-center gap-3">
           <button
             type="button"
+            aria-label="Chercher dans la maison"
+            title="Chercher (/)"
+            onClick={() => setRechercheOuverte(true)}
+            className="text-sourdine transition-colors hover:text-orange"
+          >
+            <Search className="size-4" />
+          </button>
+          <button
+            type="button"
             aria-label="Mon calendrier iCal"
             onClick={() => setCalendrierOuvert(true)}
             className="text-sourdine transition-colors hover:text-orange"
@@ -91,6 +121,15 @@ export default function Layout({ moi }: { moi: Utilisateur }) {
       </main>
 
       {calendrierOuvert && <DialogueCalendrier onFermer={() => setCalendrierOuvert(false)} />}
+      {rechercheOuverte && (
+        <RechercheGlobale
+          onFermer={() => setRechercheOuverte(false)}
+          onOuvrirTache={setTacheOuverteId}
+        />
+      )}
+      {tacheOuverteId !== null && (
+        <TacheEditeur tacheId={tacheOuverteId} onFermer={() => setTacheOuverteId(null)} />
+      )}
     </div>
   )
 }
