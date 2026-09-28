@@ -302,7 +302,7 @@ function Page({ donnees, pile }: { donnees: DonneesEcran; pile: number | null })
       )}
 
       <footer
-        className={cn(TROIS_PLACES, 'shrink-0 items-center border-t-[6px] border-black px-16 py-4 text-[28px] font-bold')}
+        className={cn(TROIS_PLACES, 'shrink-0 items-center border-t-[6px] border-black px-16 py-4 text-[28px] font-semibold')}
       >
         <span>Imprimé à {heureQuebec(donnees.renduLe)}</span>
         <span className="uppercase tracking-[0.2em]">House OS</span>
@@ -355,11 +355,11 @@ function BlocTitre({
         <span className="truncate text-right">{droite}</span>
       </div>
       <div className="border-y-[3px] border-black pb-3 pt-1.5 text-center">
-        <span className="block font-journal-nom text-[126px] font-normal leading-[0.95]">
+        <span className="block font-journal-nom text-[126px] font-black uppercase leading-[0.95] tracking-[-0.01em]">
           La maison
         </span>
       </div>
-      <div className={cn(TROIS_PLACES, 'items-center pb-[11px] pt-[9px] text-[28px] font-bold')}>
+      <div className={cn(TROIS_PLACES, 'items-center pb-[11px] pt-[9px] text-[28px] font-semibold')}>
         <span className="whitespace-nowrap">{dateJournal(date)}</span>
         <span
           className={cn(
@@ -412,12 +412,12 @@ function Manchette({
       {surtitre !== null && (
         <div className="text-[30px] font-extrabold uppercase tracking-[0.14em]">{surtitre}</div>
       )}
-      <h1 className="mt-2 font-journal-titre font-bold leading-[1.02]" style={{ fontSize: taille }}>
+      <h1 className="mt-2 font-journal-titre font-extrabold leading-[1.02]" style={{ fontSize: taille }}>
         {lettrine ? (
           <>
             {/* La lettrine : deux lignes de haut, comme au plomb. */}
             <span
-              className="float-left mr-5 mt-2 font-journal-titre font-bold leading-[0.74]"
+              className="float-left mr-5 mt-2 font-journal-titre font-extrabold leading-[0.74]"
               style={{ fontSize: taille * 1.5 }}
             >
               {titre.slice(0, 1)}
@@ -429,7 +429,7 @@ function Manchette({
         )}
       </h1>
       {grille.chapeau && (
-        <p className="clear-both mt-4 line-clamp-2 text-[42px] font-bold leading-tight">{chapeau}</p>
+        <p className="clear-both mt-4 line-clamp-2 text-[42px] font-semibold leading-tight">{chapeau}</p>
       )}
     </section>
   )
@@ -455,7 +455,7 @@ function BandeDuSommaire({ donnees, edition }: { donnees: DonneesEcran; edition:
   // dire serait pire qu'une manchette coupée qu'on sait coupée.
   return (
     <div className="flex items-baseline justify-between gap-10 overflow-hidden bg-black px-16 py-5 text-white">
-      <span className="whitespace-nowrap font-journal-titre font-bold leading-none" style={{ fontSize: tailleDeLaBande(titre, compte) }}>
+      <span className="whitespace-nowrap font-journal-titre font-extrabold leading-none" style={{ fontSize: tailleDeLaBande(titre, compte) }}>
         {titre}
       </span>
       <span
@@ -492,7 +492,7 @@ function ColonneDuSommaire({ items, enPlus }: { items: ItemDeColonne[]; enPlus: 
    que la capacité qui la compte soit la même que celle qui la dessine. */
 function Annonce({ enPlus, serree }: { enPlus: number; serree: boolean }) {
   return (
-    <li className={cn('break-inside-avoid font-bold', serree ? 'py-[10px] text-[34px] leading-[1.2]' : 'py-[13px] text-[44px] leading-[1.2]')}>
+    <li className={cn('break-inside-avoid font-semibold', serree ? 'py-[10px] text-[34px] leading-[1.2]' : 'py-[13px] text-[44px] leading-[1.2]')}>
       + {enPlus} autre{enPlus > 1 ? 's' : ''}
     </li>
   )
@@ -521,7 +521,7 @@ function Chronique({ paragraphes }: { paragraphes: string[] }) {
         // milieu d'une ligne, dans les deux paragraphes à la fois (vu au mur le
         // 2026-09-21 en passant à Gelasio, plus large que Nunito Sans). Ici il garde sa
         // hauteur, et c'est la taille du texte qui cède (`ajusterAuPapier`).
-        <p key={i} className="shrink-0 font-bold leading-[1.3]">
+        <p key={i} className="shrink-0 font-semibold leading-[1.3]">
           {paragraphe}
         </p>
       ))}
@@ -706,7 +706,7 @@ function TableauDuCiel({ faits }: { faits: FaitEcran[] }) {
           key={fait.cle}
           className="flex items-baseline justify-between gap-6 border-b-[3px] border-black py-[7px] last:border-b-0"
         >
-          <dt className="truncate text-[28px] font-bold">{fait.etiquette}</dt>
+          <dt className="truncate text-[28px] font-semibold">{fait.etiquette}</dt>
           <dd className="shrink-0 whitespace-nowrap text-[28px] font-extrabold">{fait.valeur}</dd>
         </div>
       ))}
@@ -745,7 +745,7 @@ function Widget({ widget, compact = false }: { widget: WidgetEcran; compact?: bo
       <Etiquette>{widget.etiquette}</Etiquette>
       <div
         className={cn(
-          'font-bold leading-tight',
+          'font-semibold leading-tight',
           texte && 'line-clamp-2',
           compact ? 'text-[38px]' : 'text-[52px]',
         )}
@@ -753,7 +753,7 @@ function Widget({ widget, compact = false }: { widget: WidgetEcran; compact?: bo
         {widget.valeur}
       </div>
       {widget.detail !== undefined && (
-        <div className={cn('line-clamp-2 font-bold', compact ? 'text-[30px]' : 'text-[36px]')}>
+        <div className={cn('line-clamp-2 font-semibold', compact ? 'text-[30px]' : 'text-[36px]')}>
           {widget.detail}
         </div>
       )}
@@ -766,7 +766,7 @@ function Encadre({ titre, children }: { titre: string; children: ReactNode }) {
   return (
     <div className="my-6 border-[6px] border-black px-6 py-5 text-center">
       <div className="line-clamp-1 text-[30px] font-extrabold uppercase tracking-[0.12em]">{titre}</div>
-      <div className="mt-2 font-journal-titre text-[92px] font-bold leading-none">{children}</div>
+      <div className="mt-2 font-journal-titre text-[92px] font-extrabold leading-none">{children}</div>
     </div>
   )
 }
@@ -798,7 +798,7 @@ function Rangee({ ligne, serree }: { ligne: LigneEcran; serree: boolean }) {
         className={cn(
           // Serrée, la rangée tient sur une ligne : c'est ce qui fait entrer neuf
           // items par colonne (mesuré aux maquettes). Élaguer, pas rapetisser.
-          'font-bold leading-[1.2]',
+          'font-semibold leading-[1.2]',
           serree ? 'line-clamp-1 text-[34px]' : 'line-clamp-2 text-[44px]',
           ligne.faite && 'line-through decoration-[4px]',
         )}
@@ -874,9 +874,9 @@ function limiteVisible(element: Element, cache: Map<Element, Limite>): Limite {
 function Accueil({ identifiant }: { identifiant: string }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-10 text-center">
-      <span className="font-journal-titre text-[200px] font-bold leading-none text-black">House OS</span>
-      <span className="text-[56px] font-bold">Écran enrôlé</span>
-      <span className="border-[6px] border-black px-12 py-4 font-journal-titre text-[120px] font-bold leading-none tracking-[0.12em] text-black">
+      <span className="font-journal-titre text-[200px] font-extrabold leading-none text-black">House OS</span>
+      <span className="text-[56px] font-semibold">Écran enrôlé</span>
+      <span className="border-[6px] border-black px-12 py-4 font-journal-titre text-[120px] font-extrabold leading-none tracking-[0.12em] text-black">
         {identifiant}
       </span>
       <span className="text-[40px]">La maison s&rsquo;affichera au prochain réveil.</span>
@@ -888,7 +888,7 @@ function Accueil({ identifiant }: { identifiant: string }) {
 function Panne() {
   return (
     <div className="flex h-full items-center justify-center">
-      <span className="font-journal-titre text-[96px] font-bold text-black">House OS ne répond pas</span>
+      <span className="font-journal-titre text-[96px] font-extrabold text-black">House OS ne répond pas</span>
     </div>
   )
 }
