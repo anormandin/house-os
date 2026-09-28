@@ -82,7 +82,7 @@ public class FondsDeTiroirTests
         var deriveFraiche = frais.Single(f => f.Cle == "ciel.derive").Score.Total;
 
         var historique = new HistoriqueDeParution(
-            new Dictionary<string, DateOnly> { ["ciel.derive"] = date.AddDays(-1) });
+            new Dictionary<string, IReadOnlyList<DateOnly>> { ["ciel.derive"] = [date.AddDays(-1)] });
         var apres = Tiroir.Ouvrir(Jour(date), historique);
         var deriveRessassee = apres.Single(f => f.Cle == "ciel.derive").Score.Total;
 
@@ -102,10 +102,50 @@ public class FondsDeTiroirTests
         foreach (var age in new[] { 7, 30 })
         {
             var historique = new HistoriqueDeParution(
-                new Dictionary<string, DateOnly> { ["ciel.jour"] = date.AddDays(-age) });
+                new Dictionary<string, IReadOnlyList<DateOnly>> { ["ciel.jour"] = [date.AddDays(-age)] });
             var fait = Tiroir.Ouvrir(Jour(date), historique).Single(f => f.Cle == "ciel.jour");
             Assert.Equal(reference, fait.Score.Total, tolerance: 1e-12);
         }
+    }
+
+    [Fact]
+    public void Chaque_parution_de_la_semaine_pese()
+    {
+        // La semaine du 21 septembre 2026 : le premier gel, sorti huit jours sur huit.
+        // Ce n'est pas le dernier jour qui doit se payer, c'est l'insistance.
+        var aujourdhui = new DateOnly(2026, 9, 28);
+        HistoriqueDeParution Sorti(params int[] joursAvant) => new(
+            new Dictionary<string, IReadOnlyList<DateOnly>>
+            {
+                ["climat.gel"] = [.. joursAvant.Select(j => aujourdhui.AddDays(-j))],
+            });
+
+        var uneFois = Sorti(3).Fraicheur("climat.gel", aujourdhui);
+        var troisFois = Sorti(3, 4, 5).Fraicheur("climat.gel", aujourdhui);
+
+        Assert.True(troisFois < uneFois / 2);
+        Assert.True(troisFois > 0);
+    }
+
+    [Fact]
+    public void Un_fait_a_fenetre_sorti_hier_cede_la_place_a_un_fait_quotidien()
+    {
+        // Le premier gel vaut dix fois un fait quotidien par sa rareté (38 jours par an
+        // contre 365). Avec une pénalité qui laissait encore un septième du score au
+        // lendemain, il sortait chaque jour de sa fenêtre et le mur ne changeait plus.
+        var aujourdhui = new DateOnly(2026, 9, 28);
+        var historique = new HistoriqueDeParution(new Dictionary<string, IReadOnlyList<DateOnly>>
+        {
+            ["climat.gel"] = [aujourdhui.AddDays(-1)],
+        });
+        var gel = new FaitDeTiroir("climat.gel", FamilleDeFait.Climat, "Le premier gel", "Vers le 3 octobre", "t",
+            new ScoreDeFait(Rarete.ParAn(38), 1, Pertinence.EngageLaJournee));
+        var quotidien = new FaitDeTiroir("maison.seances", FamilleDeFait.Maison, "Depuis le 28 août", "14 séances", "t",
+            new ScoreDeFait(Rarete.Quotidien, 1, Pertinence.EclaireLaJournee));
+
+        var classes = Tiroir.Classer([gel, quotidien], historique, aujourdhui).ToList();
+
+        Assert.Equal(["maison.seances", "climat.gel"], classes.Select(f => f.Cle));
     }
 
     [Fact]

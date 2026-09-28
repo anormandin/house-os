@@ -17,34 +17,51 @@ public sealed class HistoriqueDeParution
     public const int JoursDeMemoire = 7;
 
     /// <summary>
-    /// Plancher de la pénalité. Un fait sorti hier ne doit pas valoir exactement zéro :
-    /// le jour où c'est la seule chose vraie qui reste, il vaut mieux se répéter que
-    /// laisser un trou dans le journal.
+    /// Plancher de la pénalité d'<b>une</b> parution. Un fait sorti hier ne doit pas
+    /// valoir exactement zéro : le jour où c'est la seule chose vraie qui reste, il vaut
+    /// mieux se répéter que laisser un trou dans le journal.
     /// </summary>
-    private const double PlancherDeFraicheur = 0.15;
+    private const double PlancherDeFraicheur = 0.02;
 
-    private readonly IReadOnlyDictionary<string, DateOnly> _dernieresParutions;
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<DateOnly>> _parutions;
 
-    public HistoriqueDeParution(IReadOnlyDictionary<string, DateOnly> dernieresParutions) =>
-        _dernieresParutions = dernieresParutions;
+    /// <param name="parutions">Toutes les dates où chaque clé est sortie, pas seulement
+    /// la dernière : c'est l'insistance qui se paie, pas le dernier jour.</param>
+    public HistoriqueDeParution(IReadOnlyDictionary<string, IReadOnlyList<DateOnly>> parutions) =>
+        _parutions = parutions;
 
     /// <summary>L'historique d'une maison qui n'a encore rien publié.</summary>
-    public static readonly HistoriqueDeParution Vide = new(new Dictionary<string, DateOnly>());
+    public static readonly HistoriqueDeParution Vide = new(new Dictionary<string, IReadOnlyList<DateOnly>>());
 
+    /// <summary>
+    /// Le produit des pénalités de chaque parution de la semaine, chacune remontant au
+    /// carré de son âge. Une pénalité linéaire au seul dernier jour ne pesait pas
+    /// assez : un fait sorti hier gardait encore le septième de son score, et la rareté
+    /// d'un fait à fenêtre (le premier gel, 38 jours par an) vaut dix fois celle d'un
+    /// fait quotidien — le gel, la douceur et la collecte spéciale sortaient donc
+    /// <b>tous les jours</b> de leur fenêtre, huit sur huit la semaine du 21 septembre
+    /// 2026 (vault : D-2026-09-28 Fraîcheur Cumulée Des Faits). Au carré, un fait sorti
+    /// hier tombe à ~4 % ; chaque parution de la semaine multiplie la pénalité.
+    /// </summary>
     public double Fraicheur(string cle, DateOnly aujourdhui)
     {
-        if (_dernieresParutions.TryGetValue(cle, out var derniere) == false)
+        if (_parutions.TryGetValue(cle, out var dates) == false)
         {
             return 1;
         }
-        var jours = aujourdhui.DayNumber - derniere.DayNumber;
-        if (jours >= JoursDeMemoire)
+        var fraicheur = 1.0;
+        foreach (var date in dates)
         {
-            return 1;
+            var jours = aujourdhui.DayNumber - date.DayNumber;
+            if (jours >= JoursDeMemoire)
+            {
+                continue;
+            }
+            // Une parution dans le futur (horloge de travers, rattrapage) compte comme
+            // aujourd'hui plutôt que de remonter la fraîcheur au-dessus de 1.
+            var part = Math.Clamp(jours / (double)JoursDeMemoire, 0, 1);
+            fraicheur *= PlancherDeFraicheur + (1 - PlancherDeFraicheur) * part * part;
         }
-        // Une parution dans le futur (horloge de travers, rattrapage) compte comme
-        // aujourd'hui plutôt que de remonter la fraîcheur au-dessus de 1.
-        var part = Math.Clamp(jours / (double)JoursDeMemoire, 0, 1);
-        return PlancherDeFraicheur + (1 - PlancherDeFraicheur) * part;
+        return fraicheur;
     }
 }

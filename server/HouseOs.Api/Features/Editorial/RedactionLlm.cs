@@ -51,7 +51,10 @@ public static partial class RedactionLlm
           est le titre de cette tâche ou de ce compte à rebours, tel quel : il ne peut
           pas être relégué.
         - chapeau : une ligne de faits séparés par « · », 160 caractères max, comme
-          « Aucune occurrence due · 33 jours dans la maison · première neige vers le 20 ».
+          « Le filtre du Jura mercredi · 33 jours dans la maison · première neige vers
+          le 20 ». Mêmes interdits que le surtitre : ni le compte de tâches, ni la météo
+          du jour, ni le compte à rebours — la dateline et l'encadré les montrent déjà.
+          Il porte ce que la page ne dit nulle part ailleurs.
         - paragraphes : exactement deux, 200 caractères chacun au plus (compte-les :
           au-delà, le paragraphe est coupé au mur). Le premier
           fait le rapprochement entre deux faits qu'aucune liste ne ferait ; le second
@@ -78,6 +81,9 @@ public static partial class RedactionLlm
           tutoiement absent (« la maison », « on »). Pas de coach de vie, pas de slogan,
           pas d'emoji, pas de point d'exclamation. Jamais de reproche ni d'urgence
           anxiogène : un retard se dit, il ne se crie pas.
+        - Le compte à rebours a son propre encadré sur la page. Ne le nomme ni en
+          surtitre, ni en manchette, ni au chapeau, sauf la veille et le jour même ;
+          dans les paragraphes, une fois dans la semaine suffit, pas chaque matin.
         - Le rang dit la place : « Chronique » (rien à faire) est le jour où le journal
           raconte ; « Court » et « Sommaire » veulent des phrases plus brèves.
         - « precedentes » liste ce que les éditions de la semaine ont déjà dit. N'en
@@ -86,6 +92,12 @@ public static partial class RedactionLlm
           surtitre précédent (« Le dernier lundi… », « Le samedi où… ») : si la semaine
           a déjà daté ses surtitres par le jour, trouve un autre angle — un chiffre, un
           lieu, une saison, un geste. Même règle pour l'ouverture des paragraphes.
+        - Les paragraphes des « precedentes » disent quels faits la semaine a déjà
+          racontés. Un fait déjà raconté ne revient pas, sauf si sa valeur a changé (une
+          série qui s'allonge, une échéance qui devient demain) — et alors on dit ce qui
+          a changé, en une demi-phrase. Va d'abord chercher dans le fonds de tiroir ce
+          que la semaine n'a pas encore dit, même un fait modeste : le lecteur voit ce
+          journal tous les matins, la nouveauté vaut plus que l'importance.
         - Typographie française : guillemets « », espace avant les deux-points et le
           point-virgule, « 18 h 25 » pour les heures, « −5 °C » pour les degrés.
         - Réponds UNIQUEMENT avec l'objet JSON, sans clôture de code ni commentaire.
@@ -189,7 +201,7 @@ public static partial class RedactionLlm
             m.Meteo is { } me ? new MeteoJson(me.Description, me.TempMin, me.TempMax) : null,
             [.. m.Faits.Select(f => new FaitJson(f.Cle, f.Famille, f.Etiquette, f.Valeur, f.Texte, f.Publie))],
             [.. m.Precedentes.Select(e => new PrecedenteJson(
-                e.Date.ToString("yyyy-MM-dd"), e.Surtitre, e.Manchette, e.Chapeau))]);
+                e.Date.ToString("yyyy-MM-dd"), e.Surtitre, e.Manchette, e.Chapeau, [.. e.Paragraphes]))]);
 
         /// <summary>Le jour de semaine se recalcule de la date ; le reste se relit tel quel.</summary>
         public MatiereDEdition VersMatiere() => new(
@@ -204,7 +216,7 @@ public static partial class RedactionLlm
                 f.Cle, f.Famille, f.Etiquette, f.Valeur, f.Texte, f.Publie))],
             [.. (Precedentes ?? []).Select(e => new EditionPrecedente(
                 DateOnly.ParseExact(e.Date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-                e.Surtitre, e.Manchette, e.Chapeau))],
+                e.Surtitre, e.Manchette, e.Chapeau, e.Paragraphes ?? []))],
             Lieu);
     }
 
@@ -214,7 +226,10 @@ public static partial class RedactionLlm
     private sealed record CompteJson(string Titre, int Dodos);
     private sealed record MeteoJson(string Description, double MinC, double MaxC);
     private sealed record FaitJson(string Cle, string Famille, string Etiquette, string Valeur, string Texte, bool Publie);
-    private sealed record PrecedenteJson(string Date, string Surtitre, string Manchette, string Chapeau);
+    /// <summary>Les paragraphes sont nuls dans une matière conservée avant le
+    /// 2026-09-28 : elle se relit quand même.</summary>
+    private sealed record PrecedenteJson(
+        string Date, string Surtitre, string Manchette, string Chapeau, List<string>? Paragraphes);
 
     /// <summary>
     /// Parse défensif et validation stricte, sur le patron de

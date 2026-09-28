@@ -33,19 +33,15 @@ public sealed record MemoireDesEditions(HistoriqueDeParution Fraicheur, IReadOnl
             return Vide;
         }
 
-        var dernieres = new Dictionary<string, DateOnly>(StringComparer.Ordinal);
-        foreach (var edition in editions)
-        {
-            foreach (var cle in edition.ClesPubliees)
-            {
-                if (dernieres.TryGetValue(cle, out var deja) == false || deja < edition.Date)
-                {
-                    dernieres[cle] = edition.Date;
-                }
-            }
-        }
+        var parutions = editions
+            .SelectMany(e => e.ClesPubliees.Distinct().Select(cle => (cle, e.Date)))
+            .GroupBy(p => p.cle, StringComparer.Ordinal)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<DateOnly>)[.. g.Select(p => p.Date)],
+                StringComparer.Ordinal);
         return new MemoireDesEditions(
-            new HistoriqueDeParution(dernieres),
-            [.. editions.Select(e => new EditionPrecedente(e.Date, e.Surtitre, e.Manchette, e.Chapeau))]);
+            new HistoriqueDeParution(parutions),
+            [.. editions.Select(e => new EditionPrecedente(e.Date, e.Surtitre, e.Manchette, e.Chapeau, e.Paragraphes))]);
     }
 }

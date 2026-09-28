@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-21
-verified-against: c126675
+last-verified: 2026-09-28
+verified-against: e08445f
 tags: [iot]
 ---
 
@@ -206,7 +206,12 @@ Bâti à l'étape 7 (`server/HouseOs.Api/Features/Editorial/`, as of 2026-09-21)
 - **Opus 5** pour l'édition ([[D-2026-09-20 Édition Écrite Par Opus]]), réglage
   `Edition:Modele` ; [[Titre D'humeur]] garde Haiku pour ses deux créneaux. La **clé**
   est la même (`ANTHROPIC_API_KEY`) : deux modèles, deux prompts, un seul compte.
-- **Mémoire des sept derniers jours** pour ne pas radoter, **repli en gabarit** quand
+- **Mémoire des sept derniers jours** pour ne pas radoter : un fait déjà raconté ne
+  revient que si sa valeur a changé, et le prompt pousse vers ce que la semaine n'a pas
+  dit. Le **chapeau** a les interdits du surtitre — ni compte de tâches, ni météo, ni
+  compte à rebours, que la dateline et l'encadré montrent déjà — et le compte à rebours
+  ne monte en surtitre, manchette ou chapeau que la veille et le jour même (as of
+  2026-09-28) ; **repli en gabarit** quand
   l'API ne répond pas — le journal ne dépend jamais du LLM pour être lisible. Le
   gabarit rend exactement ce que le mur montrait avant l'étape 7 : la phrase du jour
   en manchette et en chapeau, la raison du plancher en surtitre, **pas de corps**.
@@ -215,7 +220,8 @@ Bâti à l'étape 7 (`server/HouseOs.Api/Features/Editorial/`, as of 2026-09-21)
   prochain compte à rebours en dodos, la météo du jour en mots, la **zone et
   l'équipement** des tâches dues (en noms, pour ne nommer que le reste), tous les faits du fonds
   avec la marque de ceux qui paraissent, et les sept éditions précédentes (surtitre,
-  manchette, chapeau). Rien d'autre : ce que le modèle ne reçoit pas, il ne peut pas le
+  manchette, chapeau **et paragraphes** — sans eux, le modèle racontait la même cuisine
+  oubliée quatre matins sur huit, [[D-2026-09-28 Fraîcheur Cumulée Des Faits]]). Rien d'autre : ce que le modèle ne reçoit pas, il ne peut pas le
   citer.
 - **La sortie est validée strictement** (`RedactionLlm.Extraire`) : surtitre ≤ 60,
   manchette 1–60, chapeau 1–160, exactement deux paragraphes visés à 200 signes et
@@ -348,6 +354,8 @@ Recap.
   déjà classés.
 - [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] — un booléen sur `Tache`, bâti
   à l'étape 7 ; le troisième cas du plancher.
+- [[D-2026-09-28 Fraîcheur Cumulée Des Faits]] — chaque parution de la semaine pèse ;
+  les paragraphes entrent dans la mémoire du prompt.
 - [[D-2026-09-21 Réédition En Deux Temps]] — gabarit au rendu, Opus par le service de
   fond, un second essai une heure plus tard ; acceptée à l'étape 8.
 - [[D-2026-09-03 Rendu E-ink Par Chromium Headless]] — la page React capturée, inchangé.

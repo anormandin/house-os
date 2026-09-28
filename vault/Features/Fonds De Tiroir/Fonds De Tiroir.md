@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-21
-verified-against: 5a332af
+last-verified: 2026-09-28
+verified-against: e08445f
 tags: [iot]
 ---
 
@@ -64,9 +64,11 @@ et la lettrine appartiennent au journal.
 
 - **rareté** — combien de fois par année l'item peut paraître (l'équinoxe ou le
   solstice, 4 fois ; la durée du jour, tous les jours).
-- **fraîcheur** — pénalité s'il est sorti récemment. C'est ce qui crée la surprise
-  quotidienne ; elle se lit dans les clés publiées par les éditions précédentes
-  ([[D-2026-09-20 Une Édition Par Jour Matérialisée]]).
+- **fraîcheur** — pénalité pour **chaque** parution des sept derniers jours, qui
+  remonte au carré de son âge : ~4 % au lendemain, et deux parutions se multiplient.
+  C'est ce qui crée la surprise quotidienne ; elle se lit dans les clés publiées par
+  les éditions précédentes ([[D-2026-09-20 Une Édition Par Jour Matérialisée]],
+  [[D-2026-09-28 Fraîcheur Cumulée Des Faits]]).
 - **pertinence du jour** — est-ce que le fait change quelque chose à aujourd'hui.
   « Le soleil se couche à 18 h 25 » est de la décoration un mardi ordinaire et une
   consigne le jour du déménagement. Une pertinence nulle fait **disparaître** le fait :
@@ -76,6 +78,15 @@ La rareté se compte en **part de l'année** : l'inverse du nombre de **jours** 
 peut paraître (l'équinoxe, 1/4 ; la durée du jour, 1/365). La fraîcheur ne descend jamais
 à zéro — le jour où un fait ressassé est la seule chose vraie qui reste, mieux vaut se
 répéter qu'un trou dans le journal.
+
+> [!warning] La fraîcheur doit pouvoir battre la rareté.
+> Une fenêtre de trente-huit jours (le premier gel) vaut dix fois un fait quotidien.
+> Avec l'ancienne pénalité — le seul dernier jour, linéaire, plancher à 0,15 — un fait
+> sorti hier gardait encore 27 % de son score, et le gel, la douceur et la collecte
+> spéciale sont sortis **huit matins sur huit** la semaine du 21 septembre 2026, pendant
+> que le dicton, la durée du jour et « l'an dernier » ne paraissaient jamais. Rejoué sur
+> la même semaine, la règle cumulée fait sortir les faits à fenêtre un jour sur deux et
+> tourne le reste. Relevé à la lecture du mur, 2026-09-28.
 
 > [!warning] La rareté est un compte de jours, pas une envie.
 > Beaucoup de faits de la maison et du calendrier sont vrais **tous les jours** une fois

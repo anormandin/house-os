@@ -23,8 +23,21 @@ public sealed record CompteProcheDEdition(string Titre, int Dodos);
 
 public sealed record MeteoDEdition(string Description, double TempMin, double TempMax);
 
-/// <summary>Ce qu'une édition précédente a dit — la mémoire anti-radotage.</summary>
-public sealed record EditionPrecedente(DateOnly Date, string Surtitre, string Manchette, string Chapeau);
+/// <summary>Ce qu'une édition précédente a dit — la mémoire anti-radotage. Les
+/// paragraphes en sont : sans eux, le modèle ne voyait pas qu'il racontait la même
+/// cuisine oubliée quatre matins sur huit (D-2026-09-28 Fraîcheur Cumulée Des Faits).</summary>
+public sealed record EditionPrecedente(
+    DateOnly Date, string Surtitre, string Manchette, string Chapeau, IReadOnlyList<string> Paragraphes)
+{
+    /// <summary>Par valeur, paragraphes compris : une matière relue de son JSON est la
+    /// même matière (l'atelier en dépend).</summary>
+    public bool Equals(EditionPrecedente? autre) =>
+        autre is not null
+        && (Date, Surtitre, Manchette, Chapeau) == (autre.Date, autre.Surtitre, autre.Manchette, autre.Chapeau)
+        && Paragraphes.SequenceEqual(autre.Paragraphes);
+
+    public override int GetHashCode() => HashCode.Combine(Date, Surtitre, Manchette, Chapeau, Paragraphes.Count);
+}
 
 /// <summary>
 /// Tout ce que l'éditorialiste reçoit, et rien d'autre : des faits déjà calculés, en

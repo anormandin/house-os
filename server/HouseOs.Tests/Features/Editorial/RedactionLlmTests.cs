@@ -206,7 +206,7 @@ public class RedactionLlmTests
             Plancher = new PlancherDuJour(RaisonDePlancher.Ferme, "Signer chez le notaire"),
             ProchainCompte = new CompteProcheDEdition("Le camion", 4),
             Meteo = new MeteoDEdition("nuageux", -1, 4),
-            Precedentes = [new EditionPrecedente(new DateOnly(2026, 11, 7), "Hier", "La veille", "Chapeau d'hier")],
+            Precedentes = [new EditionPrecedente(new DateOnly(2026, 11, 7), "Hier", "La veille", "Chapeau d'hier", ["La cuisine attend.", "Le gel s'en vient."])],
         };
 
         var json = RedactionLlm.SerialiserMatiere(matiere);
@@ -217,6 +217,9 @@ public class RedactionLlmTests
         Assert.Contains("\"publie\":true", json);
         Assert.Contains("nuageux", json);
         Assert.Contains("La veille", json);
+        // Les paragraphes d'hier aussi : c'est là que le modèle voit quels faits la
+        // semaine a déjà racontés.
+        Assert.Contains("La cuisine attend.", json);
         Assert.Contains("Pneus d", json);
         Assert.Contains("\"joursDeRetard\":2", json);
         // La zone et l'équipement, en noms : c'est ce qui dit au modèle ce qu'il n'a
@@ -235,7 +238,7 @@ public class RedactionLlmTests
             Plancher = new PlancherDuJour(RaisonDePlancher.Retard, "Pneus d'hiver"),
             ProchainCompte = new CompteProcheDEdition("Le camion", 4),
             Meteo = new MeteoDEdition("nuageux", -1.5, 4),
-            Precedentes = [new EditionPrecedente(new DateOnly(2026, 11, 7), "Hier", "La veille", "Chapeau d'hier")],
+            Precedentes = [new EditionPrecedente(new DateOnly(2026, 11, 7), "Hier", "La veille", "Chapeau d'hier", ["La cuisine attend.", "Le gel s'en vient."])],
         };
         var json = RedactionLlm.SerialiserMatiere(matiere);
 

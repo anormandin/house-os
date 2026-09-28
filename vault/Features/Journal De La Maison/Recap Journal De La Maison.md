@@ -42,7 +42,19 @@ l'étape 8 (`86faebd`) ; l'étape 9 n'a touché aucun code.
   ronde de réglage du prompt, pas encore faite ; « L'atelier du prompt » dans la spec
   dit le geste.
 
+- **Première ronde de lecture du mur** (2026-09-28), sur les huit éditions de prod du
+  21 au 28 septembre : trois widgets sur cinq identiques huit jours sur huit (gel,
+  douceur, collecte spéciale), un chapeau toujours bâti « N tâches dues · N dodos avant
+  le camion · météo », et les mêmes faits en prose (les séances depuis le 28 août, la
+  cuisine jamais cochée, le gel du 3). La piste relevée le 2026-09-21 était la bonne :
+  le modèle ne voyait pas ses paragraphes. Rejoué dans l'atelier sur la matière du 28 :
+  l'ancien prompt, même avec les paragraphes, refait le même chapeau et les mêmes
+  séances ; le nouveau change les trois. [[D-2026-09-28 Fraîcheur Cumulée Des Faits]].
+
 ## À observer
+
+- **La variété, à relire vers le 2026-10-05** : une semaine d'éditions sous la
+  nouvelle fraîcheur et le nouveau prompt.
 
 - **Pile** : 3,79 V (2026-09-20 matin) → 3,77 V / 52 % (20, 22 h 08) → 3,75 V / 50 %
   (21, 10 h 17). Prochain relevé utile vers le **2026-10-04** ; si la pente des deux
