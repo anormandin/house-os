@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-21
-verified-against: 957263e
+last-verified: 2026-09-29
+verified-against: 69ff696
 tags: []
 ---
 
@@ -33,7 +33,14 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
     [[D-2026-08-28 Annulation Et Passage D'occurrences]]),
     `bilan_taches` (complétions du ménage par semaine, heure du serveur — voir
     [[D-2026-08-25 Bilan Hebdo Du Ménage]])
-  - `lister_equipements`, `obtenir_equipement`, `gerer_equipement`
+  - `lister_equipements`, `obtenir_equipement`, `gerer_equipement` (avec la
+    catégorie depuis le 2026-09-29, liste fermée —
+    [[D-2026-09-28 Catégorie D'équipement En Liste Fermée]])
+  - `proposer_entretiens` (le pack de la catégorie d'un équipement, ou le programme de
+    la maison sans `equipementId` ; « dejaPresente » par titre) et `adopter_entretiens`
+    (clés → tâches, lot tout-ou-rien, refus sur clé inconnue ou titre déjà présent) —
+    [[D-2026-09-28 Packs D'entretien En Fichier De Données]], contrat dans
+    [[Emménagement V2]]
   - `lister_documents` (filtre `aClasser` — la boîte des documents arrivés par
     courriel), `gerer_document` (modifier / **classer** / supprimer — jamais
     d'octets : les fichiers entrent par l'interface web ou par courriel ; voir

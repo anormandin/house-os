@@ -1,0 +1,462 @@
+// Les packs d'entretien — version québécoise (zone de rusticité 4), livrée avec l'app.
+//
+// Un foyer ailleurs copie ce fichier, l'adapte à son climat, et règle ENTRETIEN_FICHIER
+// sur son chemin (docs/configuration.md). Rien ici n'est du code : c'est de la donnée
+// d'édition, et les commentaires et virgules finales sont tolérés à la lecture.
+//
+// « maison » est le programme de la maison — ce que toute maison demande, sans
+// équipement particulier. « parCategorie » donne un pack par catégorie d'équipement
+// (les clés sont celles de l'app : Chauffage, EauChaude, Plomberie, Electricite,
+// Toiture, Exterieur, PetitsMoteurs, Electromenager, Vehicule ; « Autre » n'a pas de
+// pack). L'app propose le pack d'un équipement d'après sa catégorie ; ce qui est
+// déjà dans vos tâches (même titre) est marqué, le reste se coche ou non.
+//
+// Chaque item : « cle » stable et unique, « titre » (≤ 200 signes), « description »
+// facultative, « recurrence » au format du moteur de récurrence —
+//   { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 11, "jourAnnuel": 1 }
+//   { "mode": "Fixe", "fixeType": "JourDuMois", "jourDuMois": 1 }
+//   { "mode": "Fixe", "fixeType": "JoursSemaine", "joursSemaine": [1, 4] }  (0 = dimanche)
+//   { "mode": "Intervalle", "intervalleJours": 90 }                          (depuis la dernière fois)
+// plus une fenêtre saisonnière facultative (les quatre bornes ensemble, mois-jour
+// absolus : fenetreDebutMois, fenetreDebutJour, fenetreFinMois, fenetreFinJour) —
+// et « strategie » : Alternance (chacun son tour), MoinsLAFait, ou rien (non assignée,
+// le cas d'un rendez-vous avec un technicien).
+{
+  "maison": [
+    {
+      "cle": "maison.gouttieres-automne",
+      "titre": "Nettoyer les gouttières",
+      "description": "Après la chute des feuilles, avant le gel. Vérifier que les descentes évacuent loin des fondations.",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 11, "jourAnnuel": 1,
+        "fenetreDebutMois": 10, "fenetreDebutJour": 15, "fenetreFinMois": 11, "fenetreFinJour": 20 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.gouttieres-printemps",
+      "titre": "Vérifier les gouttières après l'hiver",
+      "description": "Glace et neige déplacent les crochets ; un coup d'œil aux joints et aux descentes.",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 5, "jourAnnuel": 1,
+        "fenetreDebutMois": 4, "fenetreDebutJour": 15, "fenetreFinMois": 5, "fenetreFinJour": 31 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.robinets-exterieurs-fermer",
+      "titre": "Fermer et vidanger les robinets extérieurs",
+      "description": "Fermer la valve intérieure, ouvrir le robinet dehors pour le vider, rentrer les boyaux.",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 10, "jourAnnuel": 15,
+        "fenetreDebutMois": 10, "fenetreDebutJour": 1, "fenetreFinMois": 11, "fenetreFinJour": 5 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.robinets-exterieurs-ouvrir",
+      "titre": "Rouvrir les robinets extérieurs",
+      "description": "Quand le gel est passé. Vérifier qu'il n'y a pas de fuite au mur.",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 5, "jourAnnuel": 15,
+        "fenetreDebutMois": 5, "fenetreDebutJour": 1, "fenetreFinMois": 6, "fenetreFinJour": 5 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.detecteurs-test",
+      "titre": "Tester les détecteurs de fumée et de CO",
+      "description": "Le bouton de test de chaque détecteur.",
+      "recurrence": { "mode": "Fixe", "fixeType": "JourDuMois", "jourDuMois": 1 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.detecteurs-piles",
+      "titre": "Changer les piles des détecteurs de fumée et de CO",
+      "description": "Deux fois par année ; le changement d'heure est un bon repère. Un détecteur de plus de dix ans se remplace.",
+      "recurrence": { "mode": "Intervalle", "intervalleJours": 180 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.extincteur",
+      "titre": "Vérifier l'extincteur",
+      "description": "Aiguille dans le vert, goupille en place, date de fabrication (recharge ou remplacement après 6 à 12 ans).",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 1, "jourAnnuel": 15 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.coupe-froid",
+      "titre": "Lubrifier les coupe-froid et vérifier le calfeutrage",
+      "description": "Silicone sur les coupe-froid des portes et fenêtres ; refaire le calfeutrage fendu avant le froid.",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 10, "jourAnnuel": 1,
+        "fenetreDebutMois": 9, "fenetreDebutJour": 15, "fenetreFinMois": 10, "fenetreFinJour": 31 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.hotte-filtre",
+      "titre": "Nettoyer le filtre de la hotte",
+      "description": "Au lave-vaisselle ou à l'eau chaude savonneuse.",
+      "recurrence": { "mode": "Intervalle", "intervalleJours": 90 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.valve-entree-eau",
+      "titre": "Manœuvrer la valve d'entrée d'eau",
+      "description": "La fermer et la rouvrir une fois par année pour qu'elle réponde le jour où il le faudra.",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 9, "jourAnnuel": 1 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.fondations-drainage",
+      "titre": "Faire le tour des fondations et du drainage",
+      "description": "Après la fonte : fissures, sol qui penche vers la maison, descentes de gouttière, regards du drain.",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 5, "jourAnnuel": 1,
+        "fenetreDebutMois": 4, "fenetreDebutJour": 15, "fenetreFinMois": 6, "fenetreFinJour": 1 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.grenier",
+      "titre": "Jeter un œil au grenier",
+      "description": "Humidité ou givre sous le toit, isolant déplacé, traces de rongeurs, évents dégagés.",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 3, "jourAnnuel": 1,
+        "fenetreDebutMois": 2, "fenetreDebutJour": 15, "fenetreFinMois": 4, "fenetreFinJour": 1 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.moustiquaires-poser",
+      "titre": "Poser les moustiquaires",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 5, "jourAnnuel": 15,
+        "fenetreDebutMois": 5, "fenetreDebutJour": 1, "fenetreFinMois": 6, "fenetreFinJour": 15 },
+      "strategie": "Alternance"
+    },
+    {
+      "cle": "maison.moustiquaires-retirer",
+      "titre": "Retirer et ranger les moustiquaires",
+      "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 10, "jourAnnuel": 15,
+        "fenetreDebutMois": 10, "fenetreDebutJour": 1, "fenetreFinMois": 11, "fenetreFinJour": 15 },
+      "strategie": "Alternance"
+    }
+  ],
+  "parCategorie": {
+    "Chauffage": [
+      {
+        "cle": "chauffage.filtre",
+        "titre": "Changer ou nettoyer le filtre",
+        "description": "Fournaise, thermopompe ou échangeur d'air : selon le filtre, on le lave ou on le remplace.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 90 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "chauffage.entretien-annuel",
+        "titre": "Entretien annuel par un technicien",
+        "description": "Avant la saison de chauffage. Le contrat d'entretien ou le fabricant dit quoi.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 9, "jourAnnuel": 15,
+          "fenetreDebutMois": 9, "fenetreDebutJour": 1, "fenetreFinMois": 10, "fenetreFinJour": 31 }
+      },
+      {
+        "cle": "chauffage.unite-exterieure-degager",
+        "titre": "Dégager l'unité extérieure",
+        "description": "Neige et glace autour de la thermopompe ; jamais de coups sur les ailettes.",
+        "recurrence": { "mode": "Fixe", "fixeType": "JourDuMois", "jourDuMois": 1,
+          "fenetreDebutMois": 12, "fenetreDebutJour": 1, "fenetreFinMois": 3, "fenetreFinJour": 31 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "chauffage.unite-exterieure-nettoyer",
+        "titre": "Nettoyer les ailettes de l'unité extérieure",
+        "description": "Au boyau, sans pression, une fois les graines et le pollen passés.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 6, "jourAnnuel": 1,
+          "fenetreDebutMois": 5, "fenetreDebutJour": 15, "fenetreFinMois": 6, "fenetreFinJour": 30 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "chauffage.echangeur-air",
+        "titre": "Nettoyer les filtres et le noyau de l'échangeur d'air",
+        "description": "Filtres à l'eau tiède ; le noyau une fois par année.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 90 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "chauffage.foyer-inspection",
+        "titre": "Faire inspecter le foyer",
+        "description": "Foyer au gaz ou au propane : brûleur, thermocouple, vitre et évacuation, avant l'hiver.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 10, "jourAnnuel": 1,
+          "fenetreDebutMois": 9, "fenetreDebutJour": 1, "fenetreFinMois": 11, "fenetreFinJour": 15 }
+      },
+      {
+        "cle": "chauffage.ramonage",
+        "titre": "Ramoner la cheminée",
+        "description": "Poêle ou foyer au bois : chaque année, plus souvent si on chauffe beaucoup.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 9, "jourAnnuel": 1,
+          "fenetreDebutMois": 8, "fenetreDebutJour": 15, "fenetreFinMois": 10, "fenetreFinJour": 15 }
+      },
+      {
+        "cle": "chauffage.plinthes",
+        "titre": "Passer l'aspirateur dans les plinthes électriques",
+        "description": "Avant la première chauffe : la poussière qui brûle, ça sent dans toute la maison.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 10, "jourAnnuel": 1,
+          "fenetreDebutMois": 9, "fenetreDebutJour": 15, "fenetreFinMois": 10, "fenetreFinJour": 31 },
+        "strategie": "Alternance"
+      }
+    ],
+    "EauChaude": [
+      {
+        "cle": "eauchaude.vidange",
+        "titre": "Vidanger quelques litres du chauffe-eau",
+        "description": "Par le robinet du bas, jusqu'à ce que l'eau sorte claire : les sédiments usent le fond.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 1 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "eauchaude.soupape",
+        "titre": "Tester la soupape de sûreté du chauffe-eau",
+        "description": "Lever le levier une seconde, un seau dessous ; si elle ne referme pas, la remplacer.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 1 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "eauchaude.anode",
+        "titre": "Faire vérifier l'anode sacrificielle",
+        "description": "Aux trois ans environ ; une anode neuve double la vie du réservoir.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 1095 }
+      }
+    ],
+    "Plomberie": [
+      {
+        "cle": "plomberie.pompe-puisard",
+        "titre": "Tester la pompe de puisard",
+        "description": "Verser un seau d'eau dans le puisard : la pompe part, évacue, s'arrête. Vérifier le clapet.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 90 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "plomberie.clapet-antiretour",
+        "titre": "Vérifier le clapet antiretour",
+        "description": "Avant les pluies du printemps : ouvrir le regard, nettoyer, s'assurer que le battant bouge.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 15,
+          "fenetreDebutMois": 4, "fenetreDebutJour": 1, "fenetreFinMois": 5, "fenetreFinJour": 15 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "plomberie.adoucisseur-sel",
+        "titre": "Remplir le sel de l'adoucisseur",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 45 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "plomberie.filtre-eau",
+        "titre": "Changer le filtre à eau",
+        "description": "Filtre à sédiments, charbon ou lampe UV : la cartouche du fabricant dit la fréquence.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 180 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "plomberie.puits-analyse",
+        "titre": "Faire analyser l'eau du puits",
+        "description": "Bactéries et nitrates, au printemps et à l'automne, dans un laboratoire accrédité.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 180 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "plomberie.fosse-septique",
+        "titre": "Faire vidanger la fosse septique",
+        "description": "Aux deux ans pour une résidence permanente (Q-2, r. 22) ; la municipalité tient souvent le calendrier.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 730,
+          "fenetreDebutMois": 5, "fenetreDebutJour": 1, "fenetreFinMois": 10, "fenetreFinJour": 31 }
+      },
+      {
+        "cle": "plomberie.bassin-captation",
+        "titre": "Nettoyer le bassin de captation",
+        "description": "Ocre ferreuse et dépôts : vider, brosser, vérifier la pompe et le flotteur.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 180 },
+        "strategie": "Alternance"
+      }
+    ],
+    "Electricite": [
+      {
+        "cle": "electricite.ddft",
+        "titre": "Tester les prises DDFT",
+        "description": "Le bouton TEST de chaque prise de salle de bain, de cuisine et d'extérieur, puis RESET.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 90 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "electricite.panneau",
+        "titre": "Inspecter le panneau électrique",
+        "description": "Couvercle fermé : chaleur, odeur, disjoncteur qui saute souvent. Tout doute, un électricien.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 1, "jourAnnuel": 15 },
+        "strategie": "Alternance"
+      }
+    ],
+    "Toiture": [
+      {
+        "cle": "toiture.inspection-printemps",
+        "titre": "Inspecter la toiture après l'hiver",
+        "description": "Du sol ou de l'échelle : bardeaux soulevés, solins, évents, dégâts de glace.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 15,
+          "fenetreDebutMois": 4, "fenetreDebutJour": 1, "fenetreFinMois": 5, "fenetreFinJour": 31 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "toiture.inspection-automne",
+        "titre": "Inspecter la toiture avant l'hiver",
+        "description": "Solins, évents, joints de la cheminée, débris dans les noues.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 10, "jourAnnuel": 1,
+          "fenetreDebutMois": 9, "fenetreDebutJour": 15, "fenetreFinMois": 10, "fenetreFinJour": 31 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "toiture.charge-neige",
+        "titre": "Surveiller la charge de neige sur la toiture",
+        "description": "Passé 60 cm ou après un redoux qui alourdit la neige, déneiger ou faire déneiger.",
+        "recurrence": { "mode": "Fixe", "fixeType": "JourDuMois", "jourDuMois": 15,
+          "fenetreDebutMois": 1, "fenetreDebutJour": 1, "fenetreFinMois": 3, "fenetreFinJour": 15 },
+        "strategie": "Alternance"
+      }
+    ],
+    "Exterieur": [
+      {
+        "cle": "exterieur.patio-scellant",
+        "titre": "Teindre ou sceller le patio",
+        "description": "Aux deux ans, par temps sec, quand le bois absorbe une goutte d'eau au lieu de la faire perler.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 730,
+          "fenetreDebutMois": 6, "fenetreDebutJour": 1, "fenetreFinMois": 9, "fenetreFinJour": 15 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "exterieur.entree-scellant",
+        "titre": "Sceller l'asphalte de l'entrée",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 1095,
+          "fenetreDebutMois": 6, "fenetreDebutJour": 1, "fenetreFinMois": 9, "fenetreFinJour": 15 }
+      },
+      {
+        "cle": "exterieur.pelouse-automne",
+        "titre": "Aérer et terreauter la pelouse",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 9, "jourAnnuel": 15,
+          "fenetreDebutMois": 9, "fenetreDebutJour": 1, "fenetreFinMois": 10, "fenetreFinJour": 15 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "exterieur.elagage",
+        "titre": "Élaguer arbres et arbustes",
+        "description": "Avant le débourrement, quand la structure se voit.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 1,
+          "fenetreDebutMois": 3, "fenetreDebutJour": 15, "fenetreFinMois": 4, "fenetreFinJour": 30 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "exterieur.abris-poser",
+        "titre": "Installer les abris et protections d'hiver",
+        "description": "Abri d'auto, toiles sur les cèdres, piquets de déneigement.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 11, "jourAnnuel": 1,
+          "fenetreDebutMois": 10, "fenetreDebutJour": 15, "fenetreFinMois": 11, "fenetreFinJour": 30 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "exterieur.abris-retirer",
+        "titre": "Retirer les abris et protections d'hiver",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 15,
+          "fenetreDebutMois": 4, "fenetreDebutJour": 1, "fenetreFinMois": 5, "fenetreFinJour": 15 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "exterieur.mobilier-rentrer",
+        "titre": "Rentrer le mobilier de jardin et le barbecue",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 10, "jourAnnuel": 20,
+          "fenetreDebutMois": 10, "fenetreDebutJour": 1, "fenetreFinMois": 11, "fenetreFinJour": 15 },
+        "strategie": "Alternance"
+      }
+    ],
+    "PetitsMoteurs": [
+      {
+        "cle": "petitsmoteurs.entretien-saison",
+        "titre": "Entretien de saison (huile, bougie, filtre, carburant frais)",
+        "description": "Souffleuse à l'automne, tondeuse au printemps : avant le premier usage de l'année.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 365 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "petitsmoteurs.remisage",
+        "titre": "Remiser (vider ou stabiliser le carburant)",
+        "description": "À la fin de la saison : réservoir vide ou stabilisateur, un coup de chiffon, à l'abri.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 365 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "petitsmoteurs.lame",
+        "titre": "Affûter ou remplacer la lame",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 15,
+          "fenetreDebutMois": 4, "fenetreDebutJour": 1, "fenetreFinMois": 5, "fenetreFinJour": 31 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "petitsmoteurs.generatrice-essai",
+        "titre": "Faire tourner la génératrice quinze minutes",
+        "description": "Sous charge si possible ; c'est la panne de janvier qu'on prépare.",
+        "recurrence": { "mode": "Fixe", "fixeType": "JourDuMois", "jourDuMois": 1 },
+        "strategie": "Alternance"
+      }
+    ],
+    "Electromenager": [
+      {
+        "cle": "electromenager.secheuse-conduit",
+        "titre": "Nettoyer le conduit d'évacuation de la sécheuse",
+        "description": "Du tambour jusqu'au mur extérieur : la charpie est la première cause d'incendie d'appareil.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 1 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "electromenager.lave-vaisselle-filtre",
+        "titre": "Nettoyer le filtre du lave-vaisselle",
+        "recurrence": { "mode": "Fixe", "fixeType": "JourDuMois", "jourDuMois": 1 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "electromenager.frigo-serpentins",
+        "titre": "Dépoussiérer les serpentins du réfrigérateur",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 180 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "electromenager.laveuse-boyaux",
+        "titre": "Vérifier les boyaux de la laveuse",
+        "description": "Renflement, fissure, raccord qui suinte : un boyau se change aux cinq ans.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 3, "jourAnnuel": 1 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "electromenager.detartrage",
+        "titre": "Détartrer et changer le filtre",
+        "description": "Cafetière, bouilloire, machine à espresso : ce que le fabricant demande.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 60 },
+        "strategie": "Alternance"
+      },
+      {
+        "cle": "electromenager.congelateur-degivrer",
+        "titre": "Dégivrer le congélateur",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 365 },
+        "strategie": "Alternance"
+      }
+    ],
+    "Vehicule": [
+      {
+        "cle": "vehicule.pneus-hiver",
+        "titre": "Poser les pneus d'hiver",
+        "description": "Obligatoires au Québec du 1ᵉʳ décembre au 15 mars ; prendre rendez-vous avant la ruée.",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 11, "jourAnnuel": 15,
+          "fenetreDebutMois": 10, "fenetreDebutJour": 15, "fenetreFinMois": 12, "fenetreFinJour": 1 }
+      },
+      {
+        "cle": "vehicule.pneus-ete",
+        "titre": "Poser les pneus d'été",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 4, "jourAnnuel": 15,
+          "fenetreDebutMois": 3, "fenetreDebutJour": 15, "fenetreFinMois": 5, "fenetreFinJour": 15 }
+      },
+      {
+        "cle": "vehicule.entretien",
+        "titre": "Entretien périodique (huile, filtres, freins)",
+        "description": "Le carnet du véhicule fait foi ; six mois est un bon défaut.",
+        "recurrence": { "mode": "Intervalle", "intervalleJours": 180 }
+      },
+      {
+        "cle": "vehicule.essuie-glaces",
+        "titre": "Changer les essuie-glaces",
+        "recurrence": { "mode": "Fixe", "fixeType": "Annuelle", "moisAnnuel": 10, "jourAnnuel": 15,
+          "fenetreDebutMois": 10, "fenetreDebutJour": 1, "fenetreFinMois": 11, "fenetreFinJour": 15 },
+        "strategie": "Alternance"
+      }
+    ]
+  }
+}

@@ -26,8 +26,8 @@ tort — corriger dans la même session. Maintenu sous le contrat du skill globa
 
 > [!warning] Ne lis pas les notes `Plan …` par défaut
 > Un plan est immuable une fois exécuté ; la vérité courante est dans la spec et le
-> Recap de la feature. Ouvre un plan seulement pour le reprendre (aucun en cours as
-> of 2026-09-21) ou pour l'archéologie d'un choix. Certains dépassent 80 Ko.
+> Recap de la feature. Ouvre un plan seulement pour le reprendre (en cours as of
+> 2026-09-28 : [[Plan 2026-09-28 Emménagement V2]]) ou pour l'archéologie d'un choix. Certains dépassent 80 Ko.
 
 ## Échelle de cérémonie (ce qu'une tâche doit au vault)
 
@@ -55,7 +55,7 @@ Liste en texte, groupée par feature (le `.base` ci-dessus ne se lit que dans Ob
 Une décision transversale gouverne plusieurs features.
 
 - **Transversales** — [[D-2026-08-23 Plateforme Hobby Cœur Custom]] · [[D-2026-08-23 Monorepo]] · [[D-2026-08-23 Monolithe Modulaire Tranches Verticales]] · [[D-2026-08-23 PostgreSQL]] · [[D-2026-08-23 Frontend Vite React PWA]] · [[D-2026-08-25 Retrait Du Service Worker]] · [[D-2026-08-23 Direction Artistique Cuisine Chaleureuse]] · [[D-2026-08-23 Pas De N8n Dans Le Cœur]] · [[D-2026-08-23 Notifications Par Flux iCal]] · [[D-2026-08-23 Standard IoT MQTT Discovery]] · [[D-2026-08-23 Interface Desktop Et Écran E-ink]] (remplacée) → [[D-2026-09-19 Interface Téléphone Distincte]] · [[D-2026-08-23 Hébergement Maison Tailscale Docker]] (remplacée) → [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]] · {D}
-- **Tâches** — [[D-2026-08-23 Moteur De Récurrence Trois Modes]] · [[D-2026-08-23 Zones Plates]] · [[D-2026-08-23 Flux iCal Par Personne]] · [[D-2026-08-24 Annulation Et Passage D'occurrences]] (remplacée) → [[D-2026-08-28 Annulation Et Passage D'occurrences]] · [[D-2026-08-25 Invariants D'occurrence En Base]] · [[D-2026-08-25 Ruban Des 7 Prochains Jours]] · [[D-2026-08-25 Bilan Hebdo Du Ménage]] · [[D-2026-08-26 Documents Liés Aux Tâches]] · [[D-2026-08-26 Page Tâches Rythmes Et Année]] · [[D-2026-08-26 Vue Année Défilante]] · [[D-2026-08-28 Glissement Hors Fenêtre Des Intervalles]] · [[D-2026-08-28 Passer Conserve L'assigné]]
+- **Tâches** — [[D-2026-08-23 Moteur De Récurrence Trois Modes]] · [[D-2026-08-23 Zones Plates]] · [[D-2026-08-23 Flux iCal Par Personne]] · [[D-2026-08-24 Annulation Et Passage D'occurrences]] (remplacée) → [[D-2026-08-28 Annulation Et Passage D'occurrences]] · [[D-2026-08-25 Invariants D'occurrence En Base]] · [[D-2026-08-25 Ruban Des 7 Prochains Jours]] · [[D-2026-08-25 Bilan Hebdo Du Ménage]] · [[D-2026-08-26 Documents Liés Aux Tâches]] · [[D-2026-08-26 Page Tâches Rythmes Et Année]] · [[D-2026-08-26 Vue Année Défilante]] · [[D-2026-08-28 Glissement Hors Fenêtre Des Intervalles]] · [[D-2026-08-28 Passer Conserve L'assigné]] · [[D-2026-09-28 Recherche Globale Sur La Touche Slash]]
 - **Équipements / Documents** — [[D-2026-08-23 Fichiers Sur Disque]] (remplacée) → [[D-2026-08-24 Document Unifié Sur Disque]] · [[D-2026-08-24 Catégories Et Échéance De Document]] · [[D-2026-08-25 Miniatures De Documents]] · [[D-2026-08-26 Dossier De Document]] · [[D-2026-08-26 Navigation Documents Par Facettes]] · [[D-2026-09-02 Boîte À Classer Des Documents]]
 - **Courriel Entrant** — [[D-2026-09-02 Courriel Entrant Par Cloudflare Et R2]] · [[D-2026-09-02 Enrichissement LLM À L'ingestion]]
 - **Budget** — [[D-2026-08-26 Compte Unique Et Enveloppes Virtuelles]] · [[D-2026-08-26 Mouvements D'enveloppe En Journal]] · [[D-2026-08-26 Cibles D'enveloppe Dérivées Des Tâches]] · [[D-2026-08-26 Ventilation Du Dépôt Multi-Enveloppes]] · [[D-2026-08-26 Import Manuel D'abord Sync Ensuite]] · [[D-2026-08-26 Page Budget Flux Raffiné Et Bascule Flux Tracé]]
@@ -68,9 +68,10 @@ Une décision transversale gouverne plusieurs features.
 - **Observabilité** — [[D-2026-08-29 Journalisation Structurée Serilog Et Seq]] · [[D-2026-08-29 Collecteur Dans Son Propre LXC]]
 - **Suite De Tests** — [[D-2026-08-25 Stratégie De Tests Trois Couches]]
 - **Déploiement / Distribution** — [[D-2026-08-24 Prod LXC Proxmox NPM GitHub]] · [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]] · [[D-2026-09-02 Dépôt Public AGPL Et Instance Générique]]
-- **Vue Téléphone** — [[D-2026-09-19 Interface Téléphone Distincte]] · [[D-2026-09-19 Portée De La Vue Téléphone]]
+- **Vue Téléphone** — [[D-2026-09-19 Interface Téléphone Distincte]] · [[D-2026-09-19 Portée De La Vue Téléphone]] · [[D-2026-09-19 Direction La Pile Pour Le Téléphone]]
 - **Affichage E-ink** — [[D-2026-09-03 Protocole TRMNL BYOS Comme API D'affichage]] · [[D-2026-09-03 Registre Des Appareils D'affichage]] · [[D-2026-09-03 Rendu E-ink Par Chromium Headless]]
-- **Fonds De Tiroir** — [[D-2026-09-20 Fonds De Tiroir Séparé Du Journal]] · [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] · [[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]] · [[D-2026-09-20 Sources Municipales Séparées Par Solidité]] · [[D-2026-09-20 Calendrier De Collectes Régénéré À La Main]]
+- **Fonds De Tiroir** — [[D-2026-09-20 Fonds De Tiroir Séparé Du Journal]] · [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] · [[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]] · [[D-2026-09-20 Sources Municipales Séparées Par Solidité]] · [[D-2026-09-20 Calendrier De Collectes Régénéré À La Main]] · [[D-2026-09-28 Fraîcheur Cumulée Des Faits]]
+- **Emménagement V2** — [[D-2026-09-28 Catégorie D'équipement En Liste Fermée]] · [[D-2026-09-28 Packs D'entretien En Fichier De Données]] · [[D-2026-09-28 Fenêtres Des Packs En Mois-Jour Absolus]] · [[D-2026-09-28 Semis De La Maison Par Skill MCP]]
 - **Lettre Du Matin** — [[D-2026-09-21 Courriel Sortant Par SMTP]] · [[D-2026-09-21 Une Lettre Au Foyer]] · [[D-2026-09-21 Adresse De Courriel Sur L'Utilisateur]] · [[D-2026-09-21 Lettre Écrite À Part Sur La Même Matière]] · [[D-2026-09-21 Lettre Matérialisée Et Rattrapée Le Jour Même]]
 - **Journal De La Maison** — [[D-2026-09-20 Une Édition Par Jour Matérialisée]] · [[D-2026-09-20 Édition Écrite Par Opus]] · [[D-2026-09-20 Une Seule Mise En Page À Rangs]] · [[D-2026-09-20 Regroupement Sans Catégorie De Tâche]] · [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] · [[D-2026-09-21 Réédition En Deux Temps]] · [[D-2026-09-21 Matière Conservée Sur L'Édition]]
 
@@ -78,7 +79,7 @@ Une décision transversale gouverne plusieurs features.
 ![[Features.base]]
 
 Liste en texte (le `.base` ci-dessus ne se lit que dans Obsidian). Statut as of
-2026-09-21 : toutes `implemented`. Quand un statut change, mettre la ligne à jour.
+2026-09-28 : toutes `implemented` sauf [[Emménagement V2]] (`approved`). Quand un statut change, mettre la ligne à jour.
 
 - [[Tâches]] — le cœur : tâches récurrentes/ponctuelles, occurrences, assignation, ruban 7 jours, vue année.
 - [[Équipements]] — inventaire de la maison : marque, série, garantie, manuels, specs JSONB.
@@ -101,6 +102,7 @@ Liste en texte (le `.base` ci-dessus ne se lit que dans Obsidian). Statut as of
 - [[Fonds De Tiroir]] — les petits faits datés que la maison sait d'elle-même (normales climatiques, banque du hasard, sources municipales).
 - [[Journal De La Maison]] — l'éditorialiste de l'écran : une édition par jour, écrite par Opus, mise en page à rangs.
 - [[Lettre Du Matin]] — le courriel du matin : la maison écrit à ses habitants, même matière que le journal, SMTP (en prod depuis le 2026-09-21).
+- [[Emménagement V2]] — parapluie post-déménagement (approuvé 2026-09-28) : catégorie d'équipement, packs d'entretien de zone 4, skill de semis, budget sur le vrai compte, dette.
 
 ### Référence
 - [[Architecture]] — stack, structure du monorepo, feuille de route par phases.

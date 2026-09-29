@@ -111,6 +111,8 @@ services:
       # La banque du hasard : vide, celle qui est livrée avec l'image sert. Un autre
       # pays monte la sienne et pointe cette clé dessus (docs/configuration.md).
       Hasard__Fichier: ${HASARD_FICHIER:-}
+      # Les packs d'entretien (zone 4 livrée) : même mécanique que la banque du hasard.
+      Entretien__Fichier: ${ENTRETIEN_FICHIER:-}
     ports:
       - "${APP_PORT_HOTE:-8080}:8080"
     volumes:

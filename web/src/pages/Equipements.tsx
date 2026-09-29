@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, FileText, Plus, X } from 'lucide-react'
+import { Download, FileText, Plus, Wrench, X } from 'lucide-react'
 import ChampRecherche from '@/components/ChampRecherche'
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import ErreurChargement from '@/components/ErreurChargement'
+import PropositionsEntretien from '@/components/PropositionsEntretien'
 import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
-import { api, type EquipementDetail, type EquipementDonnees } from '@/lib/api'
+import { api, type CategorieEquipement, type EquipementDetail, type EquipementDonnees } from '@/lib/api'
+import {
+  CATEGORIES_EQUIPEMENT,
+  LIBELLES_CATEGORIE_EQUIPEMENT,
+  libelleCategorieEquipement,
+} from '@/lib/categories-equipement'
 import { problemeTailleFichier } from '@/lib/documents-vues'
 import { signalerErreur } from '@/lib/erreurs'
 import { dateLisible, dollars, heureQuebec } from '@/lib/format'
@@ -17,6 +23,7 @@ import { cn } from '@/lib/utils'
 type Fiche = {
   nom: string
   zoneId: string
+  categorie: CategorieEquipement | ''
   marque: string
   modele: string
   numeroSerie: string
@@ -27,7 +34,7 @@ type Fiche = {
 }
 
 const ficheVide: Fiche = {
-  nom: '', zoneId: '', marque: '', modele: '', numeroSerie: '',
+  nom: '', zoneId: '', categorie: '', marque: '', modele: '', numeroSerie: '',
   dateAchat: '', finGarantie: '', notes: '', specs: [],
 }
 
@@ -35,6 +42,7 @@ function versFiche(detail: EquipementDetail): Fiche {
   return {
     nom: detail.nom,
     zoneId: detail.zoneId ?? '',
+    categorie: detail.categorie ?? '',
     marque: detail.marque ?? '',
     modele: detail.modele ?? '',
     numeroSerie: detail.numeroSerie ?? '',
@@ -49,6 +57,7 @@ function versDonnees(f: Fiche): EquipementDonnees {
   return {
     nom: f.nom,
     zoneId: f.zoneId || null,
+    categorie: f.categorie || null,
     marque: f.marque || null,
     modele: f.modele || null,
     numeroSerie: f.numeroSerie || null,
@@ -67,6 +76,8 @@ export default function Equipements() {
   // Id de l'équipement que la fiche reflète — null pour la fiche vide (création).
   const [ficheDe, setFicheDe] = useState<string | null>(null)
   const [recherche, setRecherche] = useState('')
+  const [filtreCategorie, setFiltreCategorie] = useState<CategorieEquipement | ''>('')
+  const [propositionsOuvertes, setPropositionsOuvertes] = useState(false)
   const champFichier = useRef<HTMLInputElement>(null)
   const maj = (champ: Partial<Fiche>) => setFiche((ancienne) => ({ ...ancienne, ...champ }))
 
@@ -153,8 +164,10 @@ export default function Equipements() {
   const nomZone = (zoneId: string) =>
     zones?.find((z) => z.id === zoneId)?.nom ?? 'Sans pièce'
   // Au bureau on cherche aussi par marque, modèle ou pièce (« jura », « sous-sol »).
-  const visibles = (equipements ?? []).filter((e) =>
-    correspond(recherche, [e.nom, e.marque, e.modele, nomZone(e.zoneId ?? '')]),
+  const visibles = (equipements ?? []).filter(
+    (e) =>
+      (filtreCategorie === '' || e.categorie === filtreCategorie) &&
+      correspond(recherche, [e.nom, e.marque, e.modele, nomZone(e.zoneId ?? '')]),
   )
   const parZone = new Map<string, typeof visibles>()
   for (const equipement of visibles) {
@@ -170,6 +183,17 @@ export default function Equipements() {
     <div className="flex flex-col gap-5">
       <div className="flex items-end justify-between">
         <h1 className="mr-auto text-4xl font-bold">Équipements</h1>
+        <select
+          value={filtreCategorie}
+          onChange={(e) => setFiltreCategorie(e.target.value as CategorieEquipement | '')}
+          aria-label="Filtrer par catégorie"
+          className="mr-2 rounded-xl bg-creux px-3 py-2 text-sm text-texte focus:outline-2 focus:outline-orange/60"
+        >
+          <option value="">Toutes les catégories</option>
+          {CATEGORIES_EQUIPEMENT.map((c) => (
+            <option key={c} value={c}>{LIBELLES_CATEGORIE_EQUIPEMENT[c]}</option>
+          ))}
+        </select>
         <ChampRecherche
           valeur={recherche}
           onChange={setRecherche}
@@ -201,7 +225,9 @@ export default function Equipements() {
           )}
           {(equipements ?? []).length > 0 && visibles.length === 0 && (
             <p className="py-8 text-center text-sm text-sourdine">
-              Aucun équipement ne correspond à « {recherche.trim()} ».
+              {recherche.trim().length > 0
+                ? <>Aucun équipement ne correspond à « {recherche.trim()} ».</>
+                : <>Aucun équipement dans « {libelleCategorieEquipement(filtreCategorie || null)} ».</>}
             </p>
           )}
           {[...parZone.entries()]
@@ -233,6 +259,11 @@ export default function Equipements() {
                           </div>
                         )}
                       </div>
+                      {equipement.categorie !== null && (
+                        <span className="shrink-0 rounded-full bg-creux px-2 py-0.5 text-[11px] font-bold text-dore">
+                          {LIBELLES_CATEGORIE_EQUIPEMENT[equipement.categorie]}
+                        </span>
+                      )}
                       {equipement.nbDocuments > 0 && (
                         <span className="flex items-center gap-1 text-xs text-dore">
                           <FileText className="size-3.5" /> {equipement.nbDocuments}
@@ -286,6 +317,17 @@ export default function Equipements() {
                   <option value="">Sans pièce</option>
                   {zones?.map((z) => (
                     <option key={z.id} value={z.id}>{z.nom}</option>
+                  ))}
+                </select>
+                <select
+                  value={fiche.categorie}
+                  onChange={(e) => maj({ categorie: e.target.value as CategorieEquipement | '' })}
+                  aria-label="Catégorie"
+                  className={classeChamp}
+                >
+                  <option value="">Sans catégorie</option>
+                  {CATEGORIES_EQUIPEMENT.map((c) => (
+                    <option key={c} value={c}>{LIBELLES_CATEGORIE_EQUIPEMENT[c]}</option>
                   ))}
                 </select>
                 <input value={fiche.marque} onChange={(e) => maj({ marque: e.target.value })}
@@ -384,6 +426,28 @@ export default function Equipements() {
               {/* Documents liés */}
               {creation === false && detail !== undefined && (
                 <>
+                  {/* Packs d'entretien : seulement pour un équipement classé (sinon la fiche le dit) */}
+                  {detail.categorie !== null && detail.categorie !== 'Autre' && (
+                    <div className="flex items-center justify-between border-t border-barre-piste pt-4">
+                      <span className="text-sm text-sourdine">
+                        Les entretiens habituels d’un équipement de cette catégorie, prêts à adopter.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPropositionsOuvertes(true)}
+                        className="flex shrink-0 items-center gap-1.5 rounded-full bg-creux px-3 py-1.5 text-xs font-bold text-dore hover:text-orange"
+                      >
+                        <Wrench className="size-3.5" /> Proposer les entretiens
+                      </button>
+                    </div>
+                  )}
+                  {propositionsOuvertes && choisiId !== null && (
+                    <PropositionsEntretien
+                      equipementId={choisiId}
+                      titre={`Entretiens — ${detail.nom}`}
+                      onFermer={() => setPropositionsOuvertes(false)}
+                    />
+                  )}
                   <div className="border-t border-barre-piste pt-4">
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-sm font-bold text-dore">Documents</span>

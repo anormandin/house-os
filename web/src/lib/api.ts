@@ -95,6 +95,18 @@ export type Zone = {
   ordre: number
 }
 
+export type CategorieEquipement =
+  | 'Chauffage'
+  | 'EauChaude'
+  | 'Plomberie'
+  | 'Electricite'
+  | 'Toiture'
+  | 'Exterieur'
+  | 'PetitsMoteurs'
+  | 'Electromenager'
+  | 'Vehicule'
+  | 'Autre'
+
 export type EquipementResume = {
   id: string
   nom: string
@@ -103,6 +115,7 @@ export type EquipementResume = {
   modele: string | null
   finGarantie: string | null
   nbDocuments: number
+  categorie: CategorieEquipement | null
 }
 
 export type CategorieDocument =
@@ -188,6 +201,7 @@ export type EquipementDetail = {
   specs: Record<string, string>
   documents: Document[]
   entretiens: Entretien[]
+  categorie: CategorieEquipement | null
 }
 
 export type EquipementDonnees = {
@@ -200,7 +214,28 @@ export type EquipementDonnees = {
   finGarantie?: string | null
   notes?: string | null
   specs?: Record<string, string>
+  categorie?: CategorieEquipement | null
 }
+
+export type PropositionEntretien = {
+  cle: string
+  titre: string
+  description: string | null
+  recurrence: Recurrence
+  strategie: string | null
+  dejaPresente: boolean
+  tacheExistanteId: string | null
+}
+
+export type PropositionsEntretien = {
+  pack: string
+  equipementId: string | null
+  equipement: string | null
+  raison: string | null
+  propositions: PropositionEntretien[]
+}
+
+export type TacheAdoptee = { id: string; titre: string; echeance: string | null }
 
 export type IconeCompte =
   | 'Camion'
@@ -664,6 +699,17 @@ export const api = {
     requete<void>(`/api/zones/${id}`, { method: 'PUT', body: JSON.stringify(donnees) }),
   supprimerZone: (id: string) => requete<void>(`/api/zones/${id}`, { method: 'DELETE' }),
 
+  propositionsEntretien: (equipementId: string | null) =>
+    requete<PropositionsEntretien>(
+      equipementId === null
+        ? '/api/entretien/propositions'
+        : `/api/entretien/propositions?equipementId=${encodeURIComponent(equipementId)}`,
+    ),
+  adopterEntretiens: (cles: string[], equipementId: string | null) =>
+    requete<{ creees: TacheAdoptee[] }>('/api/entretien/adopter', {
+      method: 'POST',
+      body: JSON.stringify({ cles, equipementId }),
+    }),
   equipements: () => requete<EquipementResume[]>('/api/equipements'),
   equipement: (id: string) => requete<EquipementDetail>(`/api/equipements/${id}`),
   creerEquipement: (donnees: EquipementDonnees) =>

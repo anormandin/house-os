@@ -42,3 +42,5 @@ que dire qu'il n'y en a pas eu.
 **Reste ouvert** : la direction « La pile » a été choisie parmi plusieurs maquettes
 du 2026-09-19 sans qu'un fichier de décision soit minté ; si les alternatives valent
 d'être consignées, une décision dédiée est due.
+
+> [!note] Fermé le 2026-09-29 : [[D-2026-09-19 Direction La Pile Pour Le Téléphone]] (`#backfill`).

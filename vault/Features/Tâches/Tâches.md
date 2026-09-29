@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-28
-verified-against: ff56869
+last-verified: 2026-09-29
+verified-against: 69ff696
 tags: []
 ---
 
@@ -229,6 +229,15 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   trouvée s'ouvre dans son éditeur sur place. ⌘K reste le quick-add.
 - L'éditeur lie un document par un **choix cherchable** (filtre titre/dossier)
   plutôt qu'un `<select>` de tout le classeur.
+- **Programme de la maison** (2026-09-29,
+  [[D-2026-09-28 Packs D'entretien En Fichier De Données]]) : le bouton « Programme
+  de la maison » de l'en-tête ouvre le panneau des entretiens qu'une maison de zone 4
+  demande au fil des saisons (gouttières, robinets extérieurs, détecteurs, coupe-froid…),
+  lus d'un fichier de données ; une tâche de même titre déjà présente (n'importe où,
+  sans accents ni casse) est cochée-grisée, le reste se crée en une transaction par
+  le moteur ordinaire (première occurrence matérialisée, stratégie du pack). Les packs
+  par équipement vivent sur la fiche de l'[[Équipements|équipement]] ; contrat complet
+  dans [[Emménagement V2]].
 
 ## Dette connue (as of 2026-09-20)
 
@@ -254,6 +263,16 @@ seule tâche par identifiant** : l'explosion y est bornée et sans conséquence.
 Non corrigé volontairement : le correctif (`AsSplitQuery()`, ou deux requêtes explicites)
 change le nombre d'allers-retours SQL et mérite d'être mesuré, pas appliqué au jugé. À
 reprendre quand la page Tâches ralentira, ou quand quelqu'un touchera cette requête.
+
+> [!note] Fermée le 2026-09-29 ([[Plan 2026-09-28 Emménagement V2]], étape 5).
+> Mesuré sur la copie de prod (65 tâches, 66 occurrences, 6 liens de document) : la
+> requête unique renvoie 66 lignes, `AsSplitQuery()` en aurait renvoyé 131 en trois
+> allers-retours. La raison est l'invariant du moteur — **une seule occurrence en
+> attente par tâche** ([[D-2026-08-25 Invariants D'occurrence En Base]]) — et
+> l'`Include` ne charge que celle-là : le « produit » est borné à 1 × documents, il ne
+> grossit pas. La requête unique est donc la bonne ; `AsSingleQuery()` le dit à EF sur
+> les cinq sites, et l'avertissement disparaît des logs. Le diagnostic d'origine
+> (« ça grossit en produit ») était faux : il comptait les occurrences sans le filtre.
 
 ## Hors périmètre
 
@@ -300,6 +319,7 @@ reprendre quand la page Tâches ralentira, ou quand quelqu'un touchera cette req
   la chronologie, tempo court ≤ 15 jours.
 - {D} — `/` ouvre la recherche globale, ⌘K reste le quick-add ; comparateur
   partagé sans accents.
+- [[D-2026-09-28 Packs D'entretien En Fichier De Données]] — le programme de la maison.
 
 ## Ancres de code
 
@@ -310,6 +330,7 @@ reprendre quand la page Tâches ralentira, ou quand quelqu'un touchera cette req
 - `server/HouseOs.Api/Domaine/Occurrence.cs` — complétion + entrée de journal
 - `server/HouseOs.Api/Features/Taches/TachesEndpoints.cs` — API tâches/occurrences
 - `server/HouseOs.Api/Features/Taches/RolloverService.cs` — glissement quotidien
+- `server/HouseOs.Api/Features/Entretien/` — packs d'entretien (programme de la maison, proposer / adopter)
 - `server/HouseOs.Api/Features/FluxIcal/FluxIcalEndpoints.cs` — flux iCal
 - `server/HouseOs.Tests/Domaine/` — tests du domaine (moteur, stratégies)
 - `web/src/components/TacheEditeur.tsx` — éditeur complet (récurrence en français),

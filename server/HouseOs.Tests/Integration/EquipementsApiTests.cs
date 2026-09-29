@@ -78,6 +78,36 @@ public class EquipementsApiTests(HouseOsFactory factory)
     }
 
     [Fact]
+    public async Task CreerAvecCategorieInconnue_Repond400()
+    {
+        var client = await factory.ClientConnecte();
+
+        var reponse = await client.PostAsJsonAsync("/api/equipements",
+            new { nom = "Fournaise", categorie = "Chauffage central" });
+
+        // La liste est fermée (D-2026-09-28) : hors liste = 400, jamais un 500 de conversion.
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task LaCategorie_FaitLAllerRetour_EtSeVide()
+    {
+        var client = await factory.ClientConnecte();
+        var id = await CreerEquipement(client, new { nom = $"Thermopompe {Guid.NewGuid():N}", categorie = "chauffage" });
+
+        var detail = await client.GetFromJsonAsync<EquipementDetailDto>($"/api/equipements/{id}");
+        Assert.Equal("Chauffage", detail!.Categorie); // casse tolérée à l'entrée, canonique en sortie
+        var resume = await client.GetFromJsonAsync<List<EquipementResumeDto>>("/api/equipements");
+        Assert.Equal("Chauffage", Assert.Single(resume!, e => e.Id == id).Categorie);
+
+        // Un PUT sans catégorie déclasse : le PUT remplace tout, comme pour les autres champs.
+        var modification = await client.PutAsJsonAsync($"/api/equipements/{id}", new { nom = "Thermopompe" });
+        Assert.Equal(HttpStatusCode.NoContent, modification.StatusCode);
+        detail = await client.GetFromJsonAsync<EquipementDetailDto>($"/api/equipements/{id}");
+        Assert.Null(detail!.Categorie);
+    }
+
+    [Fact]
     public async Task CreerAvecZoneInconnue_Repond400()
     {
         var client = await factory.ClientConnecte();

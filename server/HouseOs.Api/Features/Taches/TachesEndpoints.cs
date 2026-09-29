@@ -141,6 +141,7 @@ public static class TachesEndpoints
             var tache = await db.Taches.AsNoTracking()
                 .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
                 .Include(t => t.Documents)
+                .AsSingleQuery() // ≤ 1 occurrence en attente : produit borné (voir ListerTachesAsync)
                 .SingleOrDefaultAsync(t => t.Id == id);
             return tache is null ? Results.NotFound() : Results.Ok(OperationsTaches.VersTacheDto(tache));
         });
@@ -153,6 +154,7 @@ public static class TachesEndpoints
             var tache = await db.Taches
                 .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
                 .Include(t => t.Documents)
+                .AsSingleQuery() // ≤ 1 occurrence en attente : produit borné (voir ListerTachesAsync)
                 .SingleOrDefaultAsync(t => t.Id == id);
             if (tache is null)
             {

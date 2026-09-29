@@ -28,6 +28,7 @@ les clés dans `appsettings.local.json`.
 | `TS_AUTHKEY` | non | — | — | requis si `funnel` |
 | `MAISON_LIEU` | non | vide | `Affichage:Lieu` | le bloc-titre de l'écran mural n'imprime pas de lieu |
 | `HASARD_FICHIER` | non | vide | `Hasard:Fichier` | la banque du hasard livrée avec l'app sert (dictons et fêtes du Québec) |
+| `ENTRETIEN_FICHIER` | non | vide | `Entretien:Fichier` | les packs d'entretien livrés avec l'app servent (maison de zone 4, Québec) |
 | `ICAL_URL_PUBLIQUE_BASE` | non | vide | `Ical:UrlPubliqueBase` | l'UI n'affiche que l'URL interne |
 | `COURRIEL_R2_ENDPOINT`, `COURRIEL_R2_BUCKET`, `COURRIEL_R2_CLE_ACCES`, `COURRIEL_R2_CLE_SECRETE` | non | — | `Courriel:R2:*` | relevé des courriels désactivé (il faut les quatre) |
 | `COMPTE_1_COURRIEL`, `COMPTE_2_COURRIEL` | non | — | `Seed:Utilisateurs:n:Courriel` | le compte ne reçoit pas la lettre du matin |
@@ -129,6 +130,24 @@ retombe pas** sur la banque québécoise : la famille se tait, et le reste du jo
 sort normalement — servir des jours fériés du Québec à un foyer qui a justement demandé
 les siens serait pire que le silence. Le démarrage journalise le fichier lu et le nombre
 d'entrées retenues.
+
+## Les packs d'entretien
+
+Les propositions d'entretien (bouton « Proposer les entretiens » sur la fiche d'un
+équipement classé, « Programme de la maison » sur la page Tâches, outils MCP
+`proposer_entretiens` / `adopter_entretiens`) lisent un fichier de données, jamais une
+table en dur. L'app en livre une version pour une maison de zone 4 au Québec
+(`server/HouseOs.Api/Features/Entretien/packs-entretien.qc.json`) ; son en-tête documente
+le format : un programme de la maison et un pack par catégorie d'équipement, chaque item
+avec sa clé, son titre, une récurrence complète au format du moteur (mode, paramètres,
+fenêtre saisonnière en mois-jour) et une stratégie d'assignation.
+
+Pour un autre climat : copier ce fichier, l'adapter, et régler `ENTRETIEN_FICHIER` sur son
+chemin **dans le conteneur** (donc le monter, comme pour la banque du hasard). Un chemin
+réglé mais introuvable ou illisible **ne retombe pas** sur les packs québécois : aucune
+proposition n'est faite, et le reste de l'app tourne normalement. Un item qui ne fait pas
+une récurrence valide est écarté et journalisé au démarrage, jamais fatal. Le fichier est
+relu au redémarrage seulement.
 
 ## Variables de la session Claude Code (`.mcp.json`)
 

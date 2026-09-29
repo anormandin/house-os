@@ -879,10 +879,16 @@ public static class OperationsTaches
     /// </summary>
     public static async Task<List<TacheResumeDto>> ListerTachesAsync(HouseOsDbContext db)
     {
+        // Deux collections dans une seule requête : EF avertit du produit cartésien. Mesuré
+        // le 2026-09-29 sur la copie de prod (65 tâches) : 66 lignes en une requête contre
+        // 131 en trois (AsSplitQuery). L'invariant « une seule occurrence en attente par
+        // tâche » borne le produit à 1 × documents — la requête unique est la bonne, et
+        // AsSingleQuery le dit à EF (vault : Tâches, dette fermée par Emménagement V2).
         var taches = await db.Taches.AsNoTracking()
             .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
             .ThenInclude(o => o.AssigneA)
             .Include(t => t.Documents)
+            .AsSingleQuery()
             .ToListAsync();
 
         return taches

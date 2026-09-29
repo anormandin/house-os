@@ -8,12 +8,12 @@ import { serveur } from '@/test/serveur-msw'
 
 const RESUME = {
   id: 'e-fournaise', nom: 'Fournaise', zoneId: null, marque: 'Carrier',
-  modele: null, finGarantie: null, nbDocuments: 0,
+  modele: null, finGarantie: null, nbDocuments: 0, categorie: 'Chauffage',
 }
 const DETAIL = {
   id: 'e-fournaise', nom: 'Fournaise', zoneId: null, marque: 'Carrier', modele: 'X9',
   numeroSerie: 'SN-12', dateAchat: null, finGarantie: null, notes: 'Filtre 16 × 25',
-  specs: {}, documents: [], entretiens: [],
+  specs: {}, documents: [], entretiens: [], categorie: 'Chauffage',
 }
 
 function servirFournaise() {
@@ -94,4 +94,46 @@ test('?id= ouvre directement la fiche (lien de la recherche globale)', async () 
   rendre(<Equipements />, undefined, '/equipements?id=e-fournaise')
 
   await waitFor(() => expect(screen.getByLabelText('Notes')).toHaveValue('Filtre 16 × 25'))
+})
+
+test('la catégorie se lit, se change et repart avec la fiche (jamais effacée par un PUT)', async () => {
+  servirFournaise()
+  let corpsEnvoye: Record<string, unknown> | null = null
+  serveur.use(
+    http.put('/api/equipements/e-fournaise', async ({ request }) => {
+      corpsEnvoye = (await request.json()) as Record<string, unknown>
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  rendre(<Equipements />)
+
+  await userEvent.click(await screen.findByText('Fournaise'))
+  const categorie = await screen.findByLabelText('Catégorie')
+  await waitFor(() => expect(categorie).toHaveValue('Chauffage'))
+
+  await userEvent.selectOptions(categorie, 'Eau chaude')
+  await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+  await waitFor(() => expect(corpsEnvoye).not.toBeNull())
+  expect(corpsEnvoye!.categorie).toBe('EauChaude')
+  expect(corpsEnvoye!.notes).toBe('Filtre 16 × 25')
+})
+
+test('le filtre par catégorie ne garde que les équipements classés dedans', async () => {
+  serveur.use(
+    http.get('/api/equipements', () =>
+      HttpResponse.json([
+        RESUME,
+        { ...RESUME, id: 'e-chauffe-eau', nom: 'Chauffe-eau', categorie: 'EauChaude' },
+        { ...RESUME, id: 'e-velo', nom: 'Vélo', categorie: null },
+      ])),
+  )
+  rendre(<Equipements />)
+
+  await screen.findByText('Chauffe-eau')
+  await userEvent.selectOptions(screen.getByLabelText('Filtrer par catégorie'), 'Eau chaude')
+
+  expect(screen.getByText('Chauffe-eau')).toBeInTheDocument()
+  expect(screen.queryByText('Fournaise')).not.toBeInTheDocument()
+  expect(screen.queryByText('Vélo')).not.toBeInTheDocument()
 })

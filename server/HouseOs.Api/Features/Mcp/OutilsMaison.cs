@@ -30,7 +30,10 @@ public record EquipementDonnees(
     [property: Description("Date d'achat YYYY-MM-DD, ou null.")] string? DateAchat,
     [property: Description("Fin de garantie YYYY-MM-DD, ou null.")] string? FinGarantie,
     string? Notes,
-    [property: Description("Caractéristiques libres clé→valeur (ex. {\"HP\": \"12000 BTU\"}).")] Dictionary<string, string>? Specs);
+    [property: Description("Caractéristiques libres clé→valeur (ex. {\"HP\": \"12000 BTU\"}).")] Dictionary<string, string>? Specs,
+    [property: Description("Catégorie (liste fermée) : Chauffage, EauChaude, Plomberie, Electricite, " +
+        "Toiture, Exterieur, PetitsMoteurs, Electromenager, Vehicule ou Autre ; null = pas encore " +
+        "classé. Les packs d'entretien s'y accrochent (proposer_entretiens).")] string? Categorie = null);
 
 /// <summary>Métadonnées d'un document pour modifier via MCP (remplace la fiche complète).</summary>
 public record DocumentDonnees(
@@ -132,13 +135,14 @@ public static class OutilsMaison
 
     [McpServerTool(Name = "lister_equipements")]
     [Description("Liste les équipements de la maison (résumé : id, nom, zoneId, marque, modèle, " +
-        "fin de garantie, nombre de documents liés).")]
+        "fin de garantie, nombre de documents liés, catégorie ou null si pas encore classé).")]
     public static async Task<List<EquipementResumeDto>> ListerEquipements(HouseOsDbContext db) =>
         await db.Equipements
             .OrderBy(e => e.Nom)
             .Select(e => new EquipementResumeDto(
                 e.Id, e.Nom, e.ZoneId, e.Marque, e.Modele, e.FinGarantie,
-                db.Documents.Count(d => d.EquipementId == e.Id)))
+                db.Documents.Count(d => d.EquipementId == e.Id),
+                e.Categorie.HasValue ? e.Categorie.Value.ToString() : null))
             .ToListAsync();
 
     [McpServerTool(Name = "obtenir_equipement")]
@@ -718,7 +722,7 @@ public static class OutilsMaison
             donnees.Nom, donnees.ZoneId, donnees.Marque, donnees.Modele, donnees.NumeroSerie,
             Conversions.ParserDate(donnees.DateAchat, "dateAchat"),
             Conversions.ParserDate(donnees.FinGarantie, "finGarantie"),
-            donnees.Notes, donnees.Specs);
+            donnees.Notes, donnees.Specs, donnees.Categorie);
         // Mêmes règles que le POST/PUT REST (longueurs, zone, dates, bornes des
         // specs) : sans elles, Postgres répondrait par une erreur brute.
         if (await EquipementsEndpoints.ValiderAsync(requete, db) is { } erreur)

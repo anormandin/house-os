@@ -15,7 +15,9 @@ public record EquipementRequete(
     DateOnly? DateAchat,
     DateOnly? FinGarantie,
     string? Notes,
-    Dictionary<string, string>? Specs);
+    Dictionary<string, string>? Specs,
+    // Nom d'une CategorieEquipement, ou null (pas encore classé).
+    string? Categorie = null);
 
 public record EquipementResumeDto(
     Guid Id,
@@ -24,7 +26,8 @@ public record EquipementResumeDto(
     string? Marque,
     string? Modele,
     DateOnly? FinGarantie,
-    int NbDocuments);
+    int NbDocuments,
+    string? Categorie = null);
 
 public record EntretienDto(DateTimeOffset CompleteeLe, string Utilisateur, string? TitreTache, string? Notes);
 
@@ -40,7 +43,8 @@ public record EquipementDetailDto(
     string? Notes,
     Dictionary<string, string> Specs,
     List<DocumentDto> Documents,
-    List<EntretienDto> Entretiens);
+    List<EntretienDto> Entretiens,
+    string? Categorie = null);
 
 public static class EquipementsEndpoints
 {
@@ -53,7 +57,8 @@ public static class EquipementsEndpoints
                 .OrderBy(e => e.Nom)
                 .Select(e => new EquipementResumeDto(
                     e.Id, e.Nom, e.ZoneId, e.Marque, e.Modele, e.FinGarantie,
-                    db.Documents.Count(d => d.EquipementId == e.Id)))
+                    db.Documents.Count(d => d.EquipementId == e.Id),
+                    e.Categorie.HasValue ? e.Categorie.Value.ToString() : null))
                 .ToListAsync());
 
         app.MapGet("/api/equipements/{id:guid}", async (Guid id, HouseOsDbContext db) =>
@@ -170,7 +175,8 @@ public static class EquipementsEndpoints
             equipement.Modele, equipement.NumeroSerie, equipement.DateAchat,
             equipement.FinGarantie, equipement.Notes, equipement.Specs,
             documents,
-            entretiens);
+            entretiens,
+            equipement.Categorie?.ToString());
     }
 
     /// <summary>
@@ -201,6 +207,10 @@ public static class EquipementsEndpoints
         if (requete.ZoneId is { } zoneId && await db.Zones.AnyAsync(z => z.Id == zoneId) == false)
         {
             return ("zoneId", "Cette pièce n'existe pas (ou plus).");
+        }
+        if (LireCategorie(requete.Categorie, out _) == false)
+        {
+            return ("categorie", "Catégorie inconnue : " + string.Join(", ", Enum.GetNames<CategorieEquipement>()) + ".");
         }
         if (requete.Specs is { } specs)
         {
@@ -236,6 +246,27 @@ public static class EquipementsEndpoints
         equipement.FinGarantie = requete.FinGarantie;
         equipement.Notes = Nettoyer(requete.Notes);
         equipement.Specs = requete.Specs ?? [];
+        LireCategorie(requete.Categorie, out var categorie);
+        equipement.Categorie = categorie;
+    }
+
+    /// <summary>
+    /// Vide = pas classé (null) ; sinon un nom de la liste fermée, casse tolérée
+    /// (vault : D-2026-09-28 Catégorie D'équipement En Liste Fermée). Faux = inconnu.
+    /// </summary>
+    private static bool LireCategorie(string? valeur, out CategorieEquipement? categorie)
+    {
+        categorie = null;
+        if (string.IsNullOrWhiteSpace(valeur))
+        {
+            return true;
+        }
+        if (ParseurEnum.Lire(valeur.Trim(), out CategorieEquipement lue) == false)
+        {
+            return false;
+        }
+        categorie = lue;
+        return true;
     }
 
     private static string? Nettoyer(string? valeur) =>

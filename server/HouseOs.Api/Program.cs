@@ -7,6 +7,7 @@ using HouseOs.Api.Features.Documents;
 using HouseOs.Api.Features.Equipements;
 using HouseOs.Api.Features.FluxExternes;
 using HouseOs.Api.Features.FluxIcal;
+using HouseOs.Api.Features.Entretien;
 using HouseOs.Api.Features.FondsDeTiroir;
 using HouseOs.Api.Features.Editorial;
 using HouseOs.Api.Features.Humeur;
@@ -269,6 +270,14 @@ builder.Services.AddSingleton(sp => LectureDeLaBanque.Lire(
     sp.GetRequiredService<IHostEnvironment>().ContentRootPath,
     sp.GetRequiredService<ILoggerFactory>().CreateLogger("HouseOs.FondsDeTiroir")));
 
+// Les packs d'entretien : même patron que la banque du hasard — de la donnée d'édition
+// lue une fois au démarrage (D-2026-09-28 Packs D'entretien En Fichier De Données).
+builder.Services.Configure<EntretienOptions>(builder.Configuration.GetSection("Entretien"));
+builder.Services.AddSingleton(sp => LecturePacks.Lire(
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<EntretienOptions>>().Value.Fichier,
+    sp.GetRequiredService<IHostEnvironment>().ContentRootPath,
+    sp.GetRequiredService<ILoggerFactory>().CreateLogger("HouseOs.Entretien")));
+
 // Vue e-ink (D-2026-09-03 Rendu E-ink Par Chromium Headless) : le jeton que le
 // serveur donne à son propre navigateur, et ce navigateur, préchauffé au démarrage.
 builder.Services.Configure<AffichageOptions>(builder.Configuration.GetSection("Affichage"));
@@ -285,6 +294,8 @@ var app = builder.Build();
 // cherche après un redémarrage (docs/configuration.md). Un singleton paresseux aurait
 // gardé l'avertissement pour lui jusqu'au prochain tirage du mur.
 app.Services.GetRequiredService<BanqueDuHasard>();
+// Même raison pour les packs d'entretien : un ENTRETIEN_FICHIER fautif se voit au démarrage.
+app.Services.GetRequiredService<PacksEntretien>();
 
 // Avant tout le reste : le schéma/IP vus par l'app (cookie Secure, partition du
 // rate limiter) doivent être ceux du client, pas ceux du proxy.
@@ -315,6 +326,7 @@ app.MapTaches();
 app.MapZones();
 app.MapComptesARebours();
 app.MapEquipements();
+app.MapEntretien();
 app.MapDocuments();
 app.MapCourriel();
 app.MapLettre();

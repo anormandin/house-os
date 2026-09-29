@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-20
-verified-against: a77b04a
+last-verified: 2026-09-29
+verified-against: 69ff696
 tags: []
 ---
 
@@ -76,6 +76,8 @@ l'application complète. C'est un **compagnon de commodité**, pas un remplaceme
   l'aiguillage.
 
 ## Décisions
+
+- [[D-2026-09-19 Direction La Pile Pour Le Téléphone]] — la forme retenue (rétro-datée le 2026-09-29).
 
 - [[D-2026-09-19 Interface Téléphone Distincte]] — le téléphone devient une cible avec
   son propre arbre de présentation ; supersède

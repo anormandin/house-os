@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-28
-verified-against: ff56869
+last-verified: 2026-09-29
+verified-against: 69ff696
 tags: []
 ---
 
@@ -48,6 +48,20 @@ maison en s'installant.
 - **MCP** ([[Serveur MCP]]) : `lister_equipements`, `obtenir_equipement` et
   `gerer_equipement` (modifier = remplacement complet de la fiche ; supprimer
   délie les documents) — les fichiers restent dans l'interface web.
+- **Catégorie** (2026-09-29, [[D-2026-09-28 Catégorie D'équipement En Liste Fermée]]) :
+  un équipement porte une catégorie parmi dix (`Chauffage`, `EauChaude`, `Plomberie`,
+  `Electricite`, `Toiture`, `Exterieur`, `PetitsMoteurs`, `Electromenager`, `Vehicule`,
+  `Autre`) ou aucune (« pas encore classé »). REST et MCP refusent une valeur hors liste
+  (400, casse tolérée à l'entrée). Le bureau montre la catégorie en pastille dans la
+  liste et filtre par catégorie ; la fiche (bureau **et** téléphone — un PUT sans la
+  catégorie la vide, la fiche téléphone doit donc la porter) a son sélecteur.
+- **Propositions d'entretien** (2026-09-29,
+  [[D-2026-09-28 Packs D'entretien En Fichier De Données]]) : sur la fiche d'un
+  équipement classé (hors `Autre`), « Proposer les entretiens » ouvre le panneau du pack
+  de sa catégorie ; ce qu'une tâche liée à cet équipement porte déjà (même titre, sans
+  accents ni casse) est coché-grisé, le reste part coché et se décoche ; « Créer N
+  tâches » les crée en une transaction, liées à l'équipement et à sa pièce. Un
+  équipement sans catégorie n'a pas le bouton. Contrat complet : [[Emménagement V2]].
 
 ## Hors périmètre
 
@@ -57,6 +71,9 @@ maison en s'installant.
 ## Décisions
 
 - {D} — recherche de page + lien `?id=` depuis la palette.
+- [[D-2026-09-28 Catégorie D'équipement En Liste Fermée]] — colonne nullable, dix valeurs.
+- [[D-2026-09-28 Packs D'entretien En Fichier De Données]] — le pack de la catégorie,
+  proposé depuis la fiche.
 - [[D-2026-08-23 PostgreSQL]] — JSONB pour les specs flexibles.
 - [[D-2026-08-24 Document Unifié Sur Disque]] — les fichiers de la fiche sont des
   documents (supersède [[D-2026-08-23 Fichiers Sur Disque]]).
@@ -70,6 +87,10 @@ maison en s'installant.
 - `web/src/pages/Equipements.tsx` — liste par zone + fiche
 - `web/src/components/VignetteDocument.tsx` — vignettes des documents liés
 - `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — outils MCP équipements
+- `server/HouseOs.Api/Domaine/Equipement.cs` — `CategorieEquipement` (liste fermée)
+- `web/src/lib/categories-equipement.ts` — libellés et ordre des catégories
+- `server/HouseOs.Api/Features/Entretien/` — packs d'entretien (proposer / adopter)
+- `web/src/components/PropositionsEntretien.tsx` — le panneau des propositions
 
 ## Sources
 
@@ -79,3 +100,4 @@ maison en s'installant.
 
 Livré au fil des plans de [[Tâches]] (V1 « Emménagement ») et de [[Documents]]
 (documents liés) — pas de plan dédié ; l'enveloppe liée vient du plan [[Budget]].
+Catégorie et propositions d'entretien : [[Plan 2026-09-28 Emménagement V2]] (étapes 1 et 2).

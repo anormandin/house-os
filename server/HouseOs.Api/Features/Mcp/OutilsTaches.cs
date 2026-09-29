@@ -169,6 +169,7 @@ public static class OutilsTaches
                 var existante = await db.Taches.AsNoTracking()
                     .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
                     .Include(t => t.Documents)
+                    .AsSingleQuery() // ≤ 1 occurrence en attente : produit borné (voir ListerTachesAsync)
                     .SingleOrDefaultAsync(t => t.Id == id);
                 return existante is null
                     ? throw new McpException($"Tâche introuvable : {id}.")
@@ -183,6 +184,7 @@ public static class OutilsTaches
                 var existante = await db.Taches
                     .Include(t => t.Occurrences.Where(o => o.Statut == StatutOccurrence.EnAttente))
                     .Include(t => t.Documents)
+                    .AsSingleQuery() // ≤ 1 occurrence en attente : produit borné (voir ListerTachesAsync)
                     .SingleOrDefaultAsync(t => t.Id == id);
                 if (existante is null)
                 {

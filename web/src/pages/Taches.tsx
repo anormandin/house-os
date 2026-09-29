@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarRange, ChevronDown, ChevronUp, List, Paperclip, Plus } from 'lucide-react'
+import { CalendarRange, ChevronDown, ChevronUp, List, Paperclip, Plus, Wrench } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import ChampRecherche from '@/components/ChampRecherche'
+import PropositionsEntretien from '@/components/PropositionsEntretien'
 import TacheEditeur, { editeurDejaOuvert } from '@/components/TacheEditeur'
 import { api, dateLocaleIso, type CompteARebours, type TacheResume } from '@/lib/api'
 import { useCompletionAvecUndo } from '@/lib/completion'
@@ -156,6 +157,7 @@ export default function Taches() {
   const [vue, setVue] = useState<Vue>(lireVueMemorisee)
   const [editeur, setEditeur] = useState<{ tacheId: string | null } | null>(null)
   const [recherche, setRecherche] = useState('')
+  const [programmeOuvert, setProgrammeOuvert] = useState(false)
   const aujourdhui = dateLocaleIso()
 
   const { data: taches, isLoading } = useQuery({ queryKey: ['taches'], queryFn: api.taches })
@@ -233,11 +235,26 @@ export default function Taches() {
           </div>
           <button
             type="button"
+            onClick={() => setProgrammeOuvert(true)}
+            title="Les entretiens qu’une maison d’ici demande au fil des saisons"
+            className="flex items-center gap-1.5 rounded-full bg-carte px-4 py-1.5 text-sm font-bold text-dore shadow-carte hover:text-orange"
+          >
+            <Wrench className="size-4" /> Programme de la maison
+          </button>
+          <button
+            type="button"
             onClick={() => setEditeur({ tacheId: null })}
             className="flex items-center gap-1.5 rounded-full bg-orange px-4 py-1.5 text-sm font-bold text-carte"
           >
             <Plus className="size-4" /> Nouvelle
           </button>
+          {programmeOuvert && (
+            <PropositionsEntretien
+              equipementId={null}
+              titre="Programme de la maison"
+              onFermer={() => setProgrammeOuvert(false)}
+            />
+          )}
         </div>
       </div>
 

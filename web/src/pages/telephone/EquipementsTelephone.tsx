@@ -4,13 +4,15 @@ import { ChevronLeft, Download, FileText, Plus, Search, Trash2, X } from 'lucide
 import ConfirmerSuppression from '@/components/ConfirmerSuppression'
 import ErreurChargement from '@/components/ErreurChargement'
 import VignetteDocument, { libelleTypeFichier } from '@/components/VignetteDocument'
-import { api, type EquipementDetail, type EquipementDonnees } from '@/lib/api'
+import { api, type CategorieEquipement, type EquipementDetail, type EquipementDonnees } from '@/lib/api'
 import { correspond } from '@/lib/recherche'
+import { CATEGORIES_EQUIPEMENT, LIBELLES_CATEGORIE_EQUIPEMENT } from '@/lib/categories-equipement'
 import { cn } from '@/lib/utils'
 
 type Fiche = {
   nom: string
   zoneId: string
+  categorie: CategorieEquipement | ''
   marque: string
   modele: string
   numeroSerie: string
@@ -21,7 +23,7 @@ type Fiche = {
 }
 
 const ficheVide: Fiche = {
-  nom: '', zoneId: '', marque: '', modele: '', numeroSerie: '',
+  nom: '', zoneId: '', categorie: '', marque: '', modele: '', numeroSerie: '',
   dateAchat: '', finGarantie: '', notes: '', specs: [],
 }
 
@@ -29,6 +31,7 @@ function versFiche(detail: EquipementDetail): Fiche {
   return {
     nom: detail.nom,
     zoneId: detail.zoneId ?? '',
+    categorie: detail.categorie ?? '',
     marque: detail.marque ?? '',
     modele: detail.modele ?? '',
     numeroSerie: detail.numeroSerie ?? '',
@@ -43,6 +46,7 @@ function versDonnees(f: Fiche): EquipementDonnees {
   return {
     nom: f.nom,
     zoneId: f.zoneId || null,
+    categorie: f.categorie || null,
     marque: f.marque || null,
     modele: f.modele || null,
     numeroSerie: f.numeroSerie || null,
@@ -172,6 +176,19 @@ export default function EquipementsTelephone() {
               <option value="">Sans pièce</option>
               {zones?.map((z) => (
                 <option key={z.id} value={z.id}>{z.nom}</option>
+              ))}
+            </select>
+          </label>
+          <label className={classeEtiquette}>
+            Catégorie
+            <select
+              value={fiche.categorie}
+              onChange={(e) => maj({ categorie: e.target.value as CategorieEquipement | '' })}
+              className={classeChamp}
+            >
+              <option value="">Sans catégorie</option>
+              {CATEGORIES_EQUIPEMENT.map((c) => (
+                <option key={c} value={c}>{LIBELLES_CATEGORIE_EQUIPEMENT[c]}</option>
               ))}
             </select>
           </label>
@@ -446,9 +463,13 @@ export default function EquipementsTelephone() {
                   <span className="block truncate text-[17px] font-bold text-encre">
                     {equipement.nom}
                   </span>
-                  {(equipement.marque !== null || equipement.modele !== null) && (
+                  {(equipement.marque !== null || equipement.modele !== null || equipement.categorie !== null) && (
                     <span className="block truncate text-[13px] text-dore">
-                      {[equipement.marque, equipement.modele].filter(Boolean).join(' · ')}
+                      {[
+                        equipement.categorie && LIBELLES_CATEGORIE_EQUIPEMENT[equipement.categorie],
+                        equipement.marque,
+                        equipement.modele,
+                      ].filter(Boolean).join(' · ')}
                     </span>
                   )}
                 </span>

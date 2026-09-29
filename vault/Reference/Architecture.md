@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-09-20
-verified-against: a77b04a
+last-verified: 2026-09-29
+verified-against: 69ff696
 tags: []
 ---
 
@@ -74,7 +74,9 @@ Le backend expose un endpoint MCP `/mcp` ([[Serveur MCP]],
 lot de tâches, compléter, zones/équipements/comptes) avec une clé API partagée et une
 identité déclarée par appel ([[D-2026-08-24 Clé API Partagée Et AgirComme]]).
 `.mcp.json` vise le dev par défaut, la prod via `HOUSEOS_MCP_URL`/`HOUSEOS_MCP_KEY`.
-Deux skills projet : `planifier-taches` (workflow plan → push) et `demarrer` (dev).
+Trois skills projet : `planifier-taches` (workflow plan → push), `inventorier-maison`
+(semis des équipements depuis un rapport d'inspection, puis packs d'entretien —
+[[D-2026-09-28 Semis De La Maison Par Skill MCP]]) et `demarrer` (dev).
 
 ## Ingestion de données externes (phase 2)
 
@@ -82,31 +84,40 @@ Un `BackgroundService` par source ([[D-2026-08-23 Pas De N8n Dans Le Cœur]]) ve
 des tables normalisées, payloads bruts archivés. Livrés (2026-08-24) : [[Météo]]
 (Open-Meteo HRDPS + règles « bonne journée pour… » en classes C# évaluées à la
 lecture) et [[Flux Externes]] (calendriers ICS — collectes Recollect,
-calendriers scolaires — gérés dans l'app). À venir : Hydro-Québec
-`evenements-pointe`. Détails : `docs/research/2026-08-23-donnees-externes-meteo.md`.
+calendriers scolaires — gérés dans l'app), plus les flux poussés (la ville,
+[[D-2026-09-20 Flux Externe Poussé]]) et les normales climatiques tirées de l'archive
+Open-Meteo ([[Fonds De Tiroir]]). Hydro-Québec `evenements-pointe` est **écarté tant
+que le foyer n'est inscrit à aucune offre de pointe** (as of 2026-09, voir
+[[Emménagement V2]]). Détails : `docs/research/2026-08-23-donnees-externes-meteo.md`.
 
 ## IoT (phase 3)
 
 MQTT + convention HA Discovery ([[D-2026-08-23 Standard IoT MQTT Discovery]]) ;
 Mosquitto + Zigbee2MQTT en Docker ; tablette murale Fully Kiosk sur l'app web ; NFC
-tap-pour-compléter ; panneaux openHASP ensuite. L'écran e-ink mural est en cours
-([[Affichage E-ink]], reTerminal E1003 commandé 2026-09-03) : House OS sert le
-protocole du firmware TRMNL, pas MQTT. Détails :
+tap-pour-compléter ; panneaux openHASP ensuite. L'écran e-ink mural est **livré**
+([[Affichage E-ink]], reTerminal E1003 reçu et enrôlé le 2026-09-04) et rend le
+[[Journal De La Maison]] : House OS sert le protocole du firmware TRMNL, pas MQTT. Le
+reste de la phase 3 attend la remise en route du lab dans la nouvelle maison. Détails :
 `docs/research/2026-08-23-affichages-iot-hardware.md` et
 `docs/research/2026-09-03-ecrans-eink-candidats.md`.
 
-## Feuille de route (as of 2026-08)
+## Feuille de route (as of 2026-09-29)
 
 1. **Phase 1a — V0 « Déménagement »** — livrée 2026-08-23 (tâches ponctuelles, vue
-   Aujourd'hui, quick-add, login, PWA, design chaleureuse).
+   Aujourd'hui, quick-add, login, design chaleureuse).
 2. **Phase 1b — V1 « Emménagement »** — livrée 2026-08-23 (moteur de récurrence
-   3 modes, zones + vue Pièces, module [[Équipements]] avec fichiers, flux iCal par
-   personne, backups). **En prod depuis 2026-08-24** : `https://houseos.alainnormandin.dev`
-   ([[Déploiement]] — LXC sur pve, NPM, backups cron + PBS ; le lab déménage avec
-   la maison).
-3. **Phase 2** (entamée) : météo + règles ([[Météo]]), [[Titre D'humeur]]
-   serveur (Haiku 4.5), calendriers ICS ([[Flux Externes]]) et classeur
-   [[Documents]] — livrés 2026-08-24 ; module [[Budget]] (fonds de prévoyance
-   en enveloppes virtuelles, import CSV/OFX) — livré 2026-08-27, et flux iCal
-   public via Funnel le même jour ; reste : Hydro-Québec, consommables.
-4. **Phase 3** : IoT (hub MQTT, affichages, capteurs).
+   3 modes, zones + vue Pièces, [[Équipements]] avec fichiers, flux iCal par personne,
+   backups). **En prod depuis 2026-08-24** : `https://houseos.alainnormandin.dev`
+   ([[Déploiement]]).
+3. **Phase 2 — la maison qui sait des choses** — livrée entre le 2026-08-24 et le
+   2026-09-21 : [[Météo]] + règles, [[Titre D'humeur]], [[Flux Externes]] (ICS puis
+   poussés), [[Documents]] et [[Courriel Entrant]], [[Budget]], [[Synchro]],
+   [[Observabilité]], [[Distribution]] (dépôt public AGPL), [[Vue Téléphone]],
+   [[Fonds De Tiroir]], [[Journal De La Maison]] et [[Lettre Du Matin]]. Écartés :
+   Hydro-Québec (pas d'inscription) et consommables (pas de besoin prouvé).
+4. **Emménagement V2 — la maison qui s'entretient elle-même** (en cours,
+   [[Emménagement V2]], approuvé 2026-09-28) : catégorie d'équipement, packs
+   d'entretien de zone 4, skill de semis, budget sur le vrai compte, dette connue.
+5. **Phase 3 — IoT** : l'écran e-ink est livré ([[Affichage E-ink]]) ; hub MQTT,
+   NFC et capteurs après la remise en route du lab dans la nouvelle maison
+   (2026-10-06), vraisemblablement en novembre 2026.

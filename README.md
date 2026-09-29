@@ -15,7 +15,9 @@ Projet-hobby : le but est autant de construire que d'utiliser. Les outils exista
   manquées, assignation fixe, en alternance ou à qui l'a le moins fait ; journal de
   complétion (qui, quand, notes) ; vue Aujourd'hui, ruban des 7 jours, vue Année.
 - **Pièces et équipements** — inventaire des appareils (marque, série, garantie,
-  manuels, photos) rattaché aux pièces, avec les tâches d'entretien liées.
+  manuels, photos) rattaché aux pièces, avec les tâches d'entretien liées ; **packs
+  d'entretien** par catégorie d'équipement et programme saisonnier de la maison (zone 4
+  livrée, fichier remplaçable), à adopter en un clic.
 - **Documents** — factures, garanties, contrats… classés par catégorie et dossier,
   liés aux équipements ; boîte « À classer » alimentée par courriel (Cloudflare,
   facultatif).

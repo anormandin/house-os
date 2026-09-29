@@ -130,6 +130,7 @@ public class HouseOsDbContext(DbContextOptions<HouseOsDbContext> options) : DbCo
         modelBuilder.Entity<Equipement>(e =>
         {
             e.Property(x => x.Nom).HasMaxLength(200);
+            e.Property(x => x.Categorie).HasConversion<string>().HasMaxLength(20);
             e.Property(x => x.Marque).HasMaxLength(100);
             e.Property(x => x.Modele).HasMaxLength(100);
             e.Property(x => x.NumeroSerie).HasMaxLength(100);

@@ -114,8 +114,28 @@ public class OutilsMaisonTests : TestAvecSqlite
         string nom = "Fournaise",
         string? dateAchat = null,
         string? finGarantie = null,
-        Dictionary<string, string>? specs = null) =>
-        new(nom, null, null, null, null, dateAchat, finGarantie, null, specs);
+        Dictionary<string, string>? specs = null,
+        string? categorie = null) =>
+        new(nom, null, null, null, null, dateAchat, finGarantie, null, specs, categorie);
+
+    [Fact]
+    public async Task Gerer_equipement_refuse_une_categorie_inconnue()
+    {
+        var exception = await Assert.ThrowsAsync<McpException>(() =>
+            OutilsMaison.GererEquipement(Db, "creer", donnees: Equipement("Fournaise", categorie: "Plomb")));
+
+        Assert.Contains("Catégorie inconnue", exception.Message);
+        Assert.Empty(Db.Equipements);
+    }
+
+    [Fact]
+    public async Task Gerer_equipement_classe_et_liste_la_categorie()
+    {
+        await OutilsMaison.GererEquipement(Db, "creer", donnees: Equipement("Chauffe-eau", categorie: "eauchaude"));
+
+        Assert.Equal(CategorieEquipement.EauChaude, Db.Equipements.Single().Categorie);
+        Assert.Equal("EauChaude", Assert.Single(await OutilsMaison.ListerEquipements(Db)).Categorie);
+    }
 
     [Fact]
     public async Task Gerer_equipement_cree_une_fiche_valide()
