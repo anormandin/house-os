@@ -1,6 +1,6 @@
 ---
 type: plan
-status: draft
+status: approved
 date: 2026-09-28
 feature: "[[Emménagement V2]]"
 ---
@@ -104,6 +104,16 @@ dans la nouvelle maison.
       présent » les gouttières de prod, un équipement non classé reçoit la raison, le
       classement par PUT ouvre le pack Chauffage (8 items).
 - [x] Vault : [[Architecture]] (« Interface agent », trois skills), [[Équipements]].
+- [x] 2026-09-29 — semis réel en prod avec Alain, depuis le rapport d'inspection (90 pages lues
+      par `pdftotext`) : 10 équipements classés, 11 créés, pièce « Garage », 12 tâches d'Alain,
+      3 retouchées, 19 items de packs adoptés (sans le test DDFT). Les premières occurrences
+      d'automne tombant avant le 6 octobre ont été repoussées au 2026-10-10 : une annuelle
+      manquée glisse d'un an. Constats pour le Recap : (1) les packs par catégorie sont
+      grossiers — chaque équipement de plomberie se voit proposer fosse septique, puits et
+      adoucisseur ; (2) un nouvel outil MCP n'apparaît dans une session Claude Code qu'au
+      redémarrage de la session ; (3) Alain corrige beaucoup les notes du rapport (évaluations
+      jugées inutiles, fenêtres et chauffe-eau déjà remplacés) : le rapport est une source, pas
+      une vérité.
 
 ### Étape 4 — le budget sur le vrai compte
 
@@ -120,6 +130,12 @@ dans la nouvelle maison.
       tâche « Virer X $ au fonds » (fixe, jour du mois) liée par `TacheVirementId`.
       Par MCP (`gerer_budget`) ou dans l'UI, au choix d'Alain.
 - [ ] Vault : [[Budget]] (lecteur CSV confronté au réel, date), Recap.
+- [x] 2026-09-30 — corrections relevées par `/vault sync`, sans réécrire les lignes
+      d'origine : (1) à l'étape 3, « fenêtres et chauffe-eau déjà remplacés » est inexact —
+      ce sont les fenêtres et le réservoir de propane ; le chauffe-eau du garage reste à
+      remplacer (Recap et prod font foi) ; (2) ci-dessus, « ancrage du compte » est fait
+      depuis le 2026-09-29 (première ligne de l'étape) — restent les enveloppes et la tâche
+      de virement.
 
 ### Étape 5 — la dette
 
@@ -130,7 +146,7 @@ dans la nouvelle maison.
 - [x] 2026-09-29 — correctif inversé après mesure : `AsSingleQuery()` et non
       `AsSplitQuery()` (66 lignes contre 131 ; le produit est borné par l'invariant
       « une occurrence en attente par tâche »). Le diagnostic de la dette était faux.
-- [ ] Une nuit d'observation de l'écran avec `ECRAN_PLAFOND_SECONDES=14400` sur le LXC
+- [x] Une nuit d'observation de l'écran avec `ECRAN_PLAFOND_SECONDES=14400` sur le LXC
       (override compose, pas de rebuild) : lire `dernierContact` au matin ; verdict et
       valeur retenue consignés dans [[Affichage E-ink]] et `docs/configuration.md`.
       Revenir à 3600 si le firmware n'honore pas.
@@ -142,10 +158,18 @@ dans la nouvelle maison.
 
 ### Étape 6 — release et clôture
 
-- [ ] Release prod (push, `git pull && docker compose up -d --build`, prune du cache),
+- [x] Release prod (push, `git pull && docker compose up -d --build`, prune du cache),
       200 sur `/api/sante`, migration appliquée, nouveau bundle.
-- [ ] Recap [[Recap Emménagement V2]] ; specs touchées à l'as-built ; plan
-      `status: executed` ; Home.md (feature `implemented`, plan clos).
+- [x] 2026-09-29 08:27 — commit `c4fdf0e` en prod : santé 200, bundle `index-DxlqIQnV`,
+      58 items de packs lus au démarrage, `Affichage__PlafondSecondes=14400` dans le
+      conteneur (`.env` du LXC : `ECRAN_PLAFOND_SECONDES=14400`). Cache de build pruné
+      (9 Go). Observation de nuit lancée : lire `dernierContact` du B73199 le 2026-09-30
+      au matin — des trous de ~4 h entre 22 h et 5 h 30 = le firmware honore le délai ;
+      des contacts toutes les heures = il plafonne lui-même, remettre 3600.
+- [x] Recap [[Recap Emménagement V2]] ; specs touchées à l'as-built ; Home.md (feature
+      `implemented`). Le plan reste `approved` tant que l'étape 4 est ouverte.
+- [x] 2026-09-30 — verdict e-ink : le firmware honore 14400 s (22 h 09 → 2 h 08 → 5 h 28) ;
+      le défaut livré passe à 14400 (code, test, compose, docs, spec).
 
 ## Vérification
 

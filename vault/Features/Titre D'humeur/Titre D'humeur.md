@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -31,13 +31,14 @@ sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher
    factuel vient de cette couche — jamais du LLM (pas de chiffres hallucinés).
    Cette même structure nourrira la vue e-ink.
 2. **Banque de gabarits (plancher)** : une douzaine de titres en trois familles
-   (calme / actif / compte à rebours ≤ 60 dodos) et 1-2 variantes de sous-titre
+   (calme / actif / compte à rebours ≤ 60 dodos — le **prochain** compte à rebours
+   du foyer, jamais une date écrite dans le code) et 1-2 variantes de sous-titre
    par état de maison (`ToutFait`, `RienAuProgramme`, `Retard`, `JourneeChargee`,
    `Calme` — enum `EtatMaison`), rotation ensemencée par la date. Variante
    « Prochaine affaire : … » sur les journées libres ; la touche météo est
    retirée sur `Retard`/`JourneeChargee` même quand le signal remarquable est
    présent. Zéro coût, testable, sert de repli permanent.
-3. **Polissage LLM (optionnel, jamais dans le chemin de requête)** : un
+3. **Polissage LLM (optionnel, jamais dans un chemin de lecture)** : un
    `BackgroundService` (cohérent avec [[D-2026-08-23 Pas De N8n Dans Le Cœur]])
    appelle Haiku 4.5 à deux créneaux fixes — matin 5 h 30 et soir 17 h,
    configurables ([[D-2026-08-24 Phrase Du Jour Haiku Matin Et Soir]]) — avec
@@ -52,7 +53,20 @@ sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher
    signal météo est celui de la **date de la phrase** (au rattrapage de 3 h du
    matin, le soir d'hier n'annonce pas les orages d'aujourd'hui) ; le réveil des
    créneaux utilise l'offset de la date cible (changement d'heure) et un délai
-   plancher (une config farfelue ne tue pas le service).
+   plancher (une config farfelue ne tue pas le service). L'appel est plafonné à
+   30 s (`PolissageLlm.DelaiMax`) : un modèle qui traîne ne bloque pas le
+   rattrapage du créneau. Le prompt ne nomme personne (dépôt public, 2026-09-02).
+   **Une seule fabrication, deux appelants** (as of 2026-09-21,
+   `GenerationHumeur.GenererAsync`) : le service de fond, qui veut la phrase *si elle
+   manque* au créneau, et la régénération à la demande du mur
+   (`POST /api/affichage/regenerer`, outil MCP `regenerer_journal_mural` —
+   [[Affichage E-ink]]), qui la **réécrit même si elle existe**, appel LLM compris.
+   C'est la seule entrée du LLM dans une requête : un geste explicite, jamais une
+   lecture.
+   La lecture, elle, tient compte du **créneau** (`HumeurEndpoints.PhraseCouranteAsync`,
+   partagée avec la vue e-ink) : la phrase la plus récente qui ne soit pas postérieure
+   au créneau demandé — un tirage « du matin » composé en soirée ne prend pas la
+   phrase du soir.
    Contenu priorisé (2026-08-25) : tâches nommées d'abord (motivation, ce qui
    s'en vient), comptes à rebours ensuite, météo uniquement sur signal
    remarquable et en passant — pas d'assignations par personne (choix
@@ -69,7 +83,9 @@ du quick-add — candidat futur, lui aussi peu coûteux à ~1 court appel par cr
 
 ## Hors périmètre
 
-- LLM dans le chemin de requête (jamais).
+- LLM dans un chemin de lecture (jamais) : `GET /api/phrase-du-jour` ne fait que lire
+  la table. La seule requête qui appelle le modèle est la régénération demandée à la
+  main (voir couche 3).
 - Notifications basées sur la phrase. [[Synchro]] diffuse bien la phrase aux onglets
   ouverts dès qu'elle est écrite, mais silencieusement (aucun toast) et sans rien
   changer à l'horaire de génération.
@@ -89,11 +105,15 @@ du quick-add — candidat futur, lui aussi peu coûteux à ~1 court appel par cr
 - `server/HouseOs.Api/Domaine/Humeur/` — état structuré (`EtatMaison`), banque
   de gabarits, entité `PhraseDuJour`.
 - `server/HouseOs.Api/Features/Humeur/` — construction de l'état, polissage
-  Haiku (SDK C# officiel), worker deux-créneaux, `GET /api/phrase-du-jour`.
+  Haiku (SDK C# officiel, `PolissageLlm.cs`), la fabrication partagée
+  (`GenerationHumeur.cs`), worker deux-créneaux (`HumeurService.cs`),
+  `GET /api/phrase-du-jour` et la lecture par créneau (`HumeurEndpoints.cs`).
+- `server/HouseOs.Api/Features/Affichage/TirageDuMur.cs` — la régénération à la
+  demande, qui réécrit la phrase puis l'édition.
 - `server/HouseOs.Tests/Domaine/BanquePhrasesTests.cs` et
   `server/HouseOs.Tests/Features/Humeur/PolissageLlmTests.cs` — tests.
 - `web/src/lib/humeur.ts` — banque client (ex-intérim V0, désormais repli
-  ultime) ; `web/src/pages/Aujourdhui.tsx` — héros branché sur la phrase
+  ultime ; `dodosProchainCompte` vient des [[Comptes À Rebours]] de l'API) ; `web/src/pages/Aujourdhui.tsx` — héros branché sur la phrase
   serveur.
 
 ## Sources

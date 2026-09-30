@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-09-28
-verified-against: a81cff0
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -11,8 +11,8 @@ Le prompt système de [[Lettre Du Matin]], écrit et éprouvé le 2026-09-21 con
 journées (voir [[Exemples De Lettres]]). Il est au courriel ce que `PromptParDefaut`
 (`server/HouseOs.Api/Features/Editorial/RedactionLlm.cs`) est au mur : mêmes principes
 d'atelier, aucun fait inventé, sortie JSON validée strictement, registre et espace
-différents. Destiné à devenir la constante `PromptParDefaut` de la classe
-`RedactionLettre` prévue par [[D-2026-09-21 Lettre Écrite À Part Sur La Même Matière]].
+différents. Devenu la constante `PromptParDefaut` de la classe `RedactionLettre`
+([[D-2026-09-21 Lettre Écrite À Part Sur La Même Matière]]).
 
 Il est écrit contre `MatiereDeLettre` (`server/HouseOs.Api/Domaine/Lettre/`) : la
 matière de l'édition, plus la semaine devant, ce qui a été fait depuis la dernière
@@ -21,7 +21,8 @@ ligne et, depuis le 2026-09-28, paragraphes entiers. Les trois ajouts ont reçu 
 plan (as of 2026-09-21), et la série débloque la phrase que la première version
 interdisait (point 7 plus bas). La constante en vigueur est
 `RedactionLettre.PromptParDefaut` (`server/HouseOs.Api/Features/Lettre/RedactionLettre.cs`) ;
-ce bloc en est la copie de travail.
+ce bloc en est la copie de travail (comparée ligne à ligne à la constante le
+2026-09-30 : identique).
 
 ## Le prompt système
 

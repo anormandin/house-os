@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-28
-verified-against: a81cff0
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -120,8 +120,8 @@ l'atelier, comme celle de l'édition
   un **aperçu en note**, composé sans modèle et sans rien écrire, si elle n'existe pas
   encore : un GET ne fait pas attendre Opus. `ecrite` dit lequel des deux.
 - `POST /api/lettre/regenerer` (`date`, `envoyer`) réécrit la lettre, appel LLM
-  compris, et l'envoie si demandé ; outil MCP `regenerer_lettre_du_matin` en parité
-  ([[Serveur MCP]]). `POST /api/lettre/essai` l'envoie **à moi seulement** sans marquer
+  compris, et l'envoie si demandé ; outils MCP `lire_lettre_du_matin` et
+  `regenerer_lettre_du_matin` en parité ([[Serveur MCP]]). `POST /api/lettre/essai` l'envoie **à moi seulement** sans marquer
   `EnvoyeeLe`.
 - Page desktop `/lettre` : la lettre du jour rendue comme le courriel, « Réécrire »
   (appel du modèle, en requête, comme le tirage du mur), « M'envoyer un essai ». Pas
@@ -178,6 +178,8 @@ une journée qui n'a pas encore de lettre (as of 2026-09-21).
 - `server/HouseOs.Api/Infrastructure/AmorcageDb.cs` — l'adresse seedée et resynchronisée.
 - `server/HouseOs.Essais/Program.cs` — l'atelier de la lettre.
 - `web/src/pages/Lettre.tsx` — la page ; `web/src/lib/api.ts` — `LettreDuMatin`.
+  Un onglet ouvert suit une lettre réécrite ailleurs (worker du matin, MCP) par le
+  module `lettre` de la [[Synchro]].
 - `design/maquettes/eink-publications.html` — les trois maquettes C1, C2, C3.
 
 ## Sources

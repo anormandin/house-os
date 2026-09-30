@@ -369,17 +369,20 @@ public static class OutilsTaches
         "la suivante conserve l'assigné de l'occurrence sautée — les stratégies tournantes " +
         "n'avancent pas d'un tour — et seule son échéance est calculée comme après une " +
         "complétion aujourd'hui) ; 'reporter' glisse " +
-        "l'échéance de l'occurrence en attente sans toucher la définition de la tâche.")]
+        "l'échéance de l'occurrence en attente sans toucher la définition de la tâche ; 'noter' " +
+        "remplace après coup les notes du journal d'une occurrence complétée.")]
     public static async Task<object> GererOccurrence(
         HouseOsDbContext db,
         IDiffuseurSynchro diffuseur,
-        [Description("annuler-completion, passer ou reporter.")] string action,
+        [Description("annuler-completion, passer, reporter ou noter.")] string action,
         [Description("Id de l'occurrence (via lister_occurrences).")] Guid occurrenceId,
         [Description("Requis pour passer : nom d'utilisateur du membre qui passe — le tour n'est " +
             "pas pris : l'assigné de la suivante reste celui de l'occurrence sautée. " +
             "Demander si ambigu.")] string? agirComme = null,
         [Description("Requis pour reporter : nouvelle échéance YYYY-MM-DD (aujourd'hui ou plus tard).")]
-        string? echeance = null)
+        string? echeance = null,
+        [Description("Pour noter : les notes du journal (coût, remarques…) ; vide = les effacer.")]
+        string? notes = null)
     {
         switch (Conversions.NormaliserAction(action))
         {
@@ -458,8 +461,21 @@ public static class OutilsTaches
                     _ => new { reportee = true, echeance = nouvelleEcheance },
                 };
             }
+            case "noter":
+            {
+                var statut = await OperationsTaches.AjouterNotesAsync(db, occurrenceId, notes);
+                return statut switch
+                {
+                    StatutNotes.Introuvable =>
+                        throw new McpException($"Occurrence introuvable : {occurrenceId}."),
+                    StatutNotes.PasCompletee =>
+                        throw new McpException("L'occurrence n'est pas complétée."),
+                    _ => new { notee = true, occurrenceId },
+                };
+            }
             default:
-                throw new McpException($"Action inconnue : '{action}' (annuler-completion, passer ou reporter).");
+                throw new McpException(
+                    $"Action inconnue : '{action}' (annuler-completion, passer, reporter ou noter).");
         }
     }
 }

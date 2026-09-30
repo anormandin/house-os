@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-02
-verified-against: 487f777
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -12,7 +12,9 @@ tags: []
 
 Transférer un reçu, une facture ou un papier important à
 `documents@alainnormandin.dev` et le retrouver dans le classeur de [[Documents]] sans
-rien téléverser à la main. Troisième source d'ingestion après [[Météo]] et
+rien téléverser à la main. (L'adresse est celle de l'instance du mainteneur : depuis le
+dépôt public, chaque foyer pose la sienne et le code n'en porte aucune —
+[[D-2026-09-02 Dépôt Public AGPL Et Instance Générique]].) Troisième source d'ingestion après [[Météo]] et
 [[Flux Externes]] : un `BackgroundService` par source, jamais de n8n
 ([[D-2026-08-23 Pas De N8n Dans Le Cœur]]).
 
@@ -23,6 +25,10 @@ rien téléverser à la main. Troisième source d'ingestion après [[Météo]] e
   `houseos-courriel` (`infra/courriel-worker/`). Le Worker rejette (SMTP 5xx) tout
   expéditeur absent de `EXPEDITEURS_PERMIS` et tout message > 25 MiB, sinon dépose le
   MIME brut dans le bucket R2 `houseos-courriel` sous `entrants/<horodatage>-<uuid>.eml`.
+  La liste des expéditeurs est vide dans `infra/courriel-worker/wrangler.toml` et passée
+  au déploiement (`wrangler deploy --var EXPEDITEURS_PERMIS:…`, voir
+  `infra/courriel-worker/README.md`) : aucune adresse personnelle n'est committée, et
+  un Worker déployé sans la variable rejette tout.
 - **Relève** : `CourrielEntrantHote` relève R2 au démarrage puis toutes les
   `Courriel:CadenceMinutes` (défaut 2, plancher 1) via `CourrielEntrantService`
   (singleton, verrou anti-passe concurrente). Sans configuration R2, le service
@@ -47,8 +53,11 @@ rien téléverser à la main. Troisième source d'ingestion après [[Météo]] e
 - **Temps réel** : événement fin `documents.recus` (source `courriel`, nombre) →
   toast « N document(s) reçu(s) par courriel » sur les onglets ouverts ([[Synchro]]).
 - **Configuration** : section `Courriel` (`R2:Endpoint/Bucket/CleAcces/CleSecrete/
-  Prefixe`, `CadenceMinutes`, `TailleMaxOctets`) ; en prod, variables
-  `COURRIEL_R2_*` du `.env` (facultatives : absentes = relevé désactivé).
+  Prefixe`, `CadenceMinutes`, `TailleMaxOctets`) ; en prod, les quatre variables
+  `COURRIEL_R2_*` du `.env` (facultatives, mais il faut les quatre : une absente =
+  relevé désactivé). L'enrichissement lit `ANTHROPIC_API_KEY`, la clé partagée avec le
+  titre d'humeur et le journal mural ; sans clé, le repli. Référence :
+  `docs/configuration.md`.
 
 ## Hors périmètre
 

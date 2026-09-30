@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-28
-verified-against: ff56869
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -108,7 +108,7 @@ entité fichier dans tout House OS ([[D-2026-08-24 Document Unifié Sur Disque]]
 - [[D-2026-08-26 Dossier De Document]] — champ texte libre, pas d'entité.
 - [[D-2026-09-02 Boîte À Classer Des Documents]] — drapeau `AClasser`, archivage
   `.eml` des courriels sans pièce.
-- {D} — comparateur partagé, lien `?id=`, documents dans la palette `/`.
+- [[D-2026-09-28 Recherche Globale Sur La Touche Slash]] — comparateur partagé, lien `?id=`, documents dans la palette `/`.
 
 ## Ancres de code
 

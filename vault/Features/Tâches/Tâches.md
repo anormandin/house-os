@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-29
-verified-against: 69ff696
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -220,7 +220,7 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   max(complétion, échéance). L'annulation reste sur Aujourd'hui (rangée verte
   du jour). Compléter/annuler depuis Aujourd'hui invalide aussi la requête
   `taches` de la console.
-- **Recherche** (2026-09-28, {D}) : la console du bureau a un champ
+- **Recherche** (2026-09-28, [[D-2026-09-28 Recherche Globale Sur La Touche Slash]]) : la console du bureau a un champ
   « Chercher une tâche » (titre, description, pièce/équipement ; sans accents, mots
   dans n'importe quel ordre) qui filtre **avant** de grouper — compteurs et
   « en retard » parlent de ce qui est à l'écran — et vaut pour les deux vues. La
@@ -229,6 +229,15 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   trouvée s'ouvre dans son éditeur sur place. ⌘K reste le quick-add.
 - L'éditeur lie un document par un **choix cherchable** (filtre titre/dossier)
   plutôt qu'un `<select>` de tout le classeur.
+- **Échéance ferme** (2026-09-21,
+  [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]]) : la tâche porte un booléen
+  `echeanceFerme` (défaut faux), coché à la main dans l'éditeur — « Cette date ne se
+  négocie pas (notaire, livraison, date légale) » —, jamais déduit. Il voyage dans le
+  POST/PUT, le détail, `TacheResumeDto`, l'`OccurrenceDto` et les outils MCP
+  (`creer_taches`, `gerer_tache` — omis en modification = conservé, alors que le PUT
+  REST remplace tout : omis = faux). Les tâches n'en
+  font rien elles-mêmes : c'est le [[Journal De La Maison]] et la [[Lettre Du Matin]]
+  qui ne relèguent jamais une telle date.
 - **Programme de la maison** (2026-09-29,
   [[D-2026-09-28 Packs D'entretien En Fichier De Données]]) : le bouton « Programme
   de la maison » de l'en-tête ouvre le panneau des entretiens qu'une maison de zone 4
@@ -239,40 +248,21 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   par équipement vivent sur la fiche de l'[[Équipements|équipement]] ; contrat complet
   dans [[Emménagement V2]].
 
-## Dette connue (as of 2026-09-20)
+## Dette connue
 
-**Produit cartésien sur la liste des tâches.** `OperationsTaches.ListerTachesAsync`
-(`server/HouseOs.Api/Features/Taches/OperationsTaches.cs`) charge deux navigations de
-collection dans une seule requête — `Tache.Occurrences` **et** `Tache.Documents` — sans
-`AsSplitQuery()`. EF Core l'annonce à chaque appel en prod, relevé le 2026-09-20 dans les
-logs du LXC 105 :
+Aucune dette ouverte (as of 2026-09-30).
 
-> Compiling a query which loads related collections for more than one collection
-> navigation […] no 'QuerySplittingBehavior' has been configured.
-
-Le SQL produit rend `occurrences × documents` lignes par tâche, et les colonnes de la
-tâche sont répétées dans chacune. Aujourd'hui c'est bénin — une centaine de tâches, peu
-de documents liés — mais ça grossit en **produit**, pas en somme : c'est la liste
-complète (`GET /api/taches`, page Tâches) qui paiera en premier, et elle est appelée à
-chaque ouverture de la page.
-
-Quatre autres appels portent le même double `Include` — le GET et le PUT d'une tâche
-(`TachesEndpoints.cs`) et deux outils MCP (`Mcp/OutilsTaches.cs`) — mais ils visent **une
-seule tâche par identifiant** : l'explosion y est bornée et sans conséquence.
-
-Non corrigé volontairement : le correctif (`AsSplitQuery()`, ou deux requêtes explicites)
-change le nombre d'allers-retours SQL et mérite d'être mesuré, pas appliqué au jugé. À
-reprendre quand la page Tâches ralentira, ou quand quelqu'un touchera cette requête.
-
-> [!note] Fermée le 2026-09-29 ([[Plan 2026-09-28 Emménagement V2]], étape 5).
-> Mesuré sur la copie de prod (65 tâches, 66 occurrences, 6 liens de document) : la
-> requête unique renvoie 66 lignes, `AsSplitQuery()` en aurait renvoyé 131 en trois
-> allers-retours. La raison est l'invariant du moteur — **une seule occurrence en
-> attente par tâche** ([[D-2026-08-25 Invariants D'occurrence En Base]]) — et
-> l'`Include` ne charge que celle-là : le « produit » est borné à 1 × documents, il ne
-> grossit pas. La requête unique est donc la bonne ; `AsSingleQuery()` le dit à EF sur
-> les cinq sites, et l'avertissement disparaît des logs. Le diagnostic d'origine
-> (« ça grossit en produit ») était faux : il comptait les occurrences sans le filtre.
+**Fermée le 2026-09-29 — la liste des tâches en une seule requête.**
+`OperationsTaches.ListerTachesAsync` (`server/HouseOs.Api/Features/Taches/OperationsTaches.cs`)
+charge deux collections (`Tache.Occurrences` filtrée sur l'en-attente, `Tache.Documents`)
+dans une même requête, et EF avertissait d'un produit cartésien à chaque appel. Mesuré
+sur la copie de prod : le produit est borné à 1 × documents par l'invariant « une seule
+occurrence en attente par tâche » ([[D-2026-08-25 Invariants D'occurrence En Base]]) —
+la requête unique est la bonne. `AsSingleQuery()` le dit à EF sur les cinq sites (la
+liste, le GET et le PUT d'une tâche dans `TachesEndpoints.cs`, `obtenir` et `modifier`
+de `gerer_tache` dans `Mcp/OutilsTaches.cs`). Ne pas y mettre `AsSplitQuery()` : le
+diagnostic d'origine (« ça grossit en produit ») comptait les occurrences sans le
+filtre. Mesure et récit : [[Recap Emménagement V2]].
 
 ## Hors périmètre
 
@@ -317,9 +307,11 @@ reprendre quand la page Tâches ralentira, ou quand quelqu'un touchera cette req
 - [[D-2026-08-26 Vue Année Défilante]] — le ruban ~11 px/jour + mini-carte +
   bande accordéon des ponctuelles (option D, ronde 3) ; longs intervalles sur
   la chronologie, tempo court ≤ 15 jours.
-- {D} — `/` ouvre la recherche globale, ⌘K reste le quick-add ; comparateur
+- [[D-2026-09-28 Recherche Globale Sur La Touche Slash]] — `/` ouvre la recherche globale, ⌘K reste le quick-add ; comparateur
   partagé sans accents.
 - [[D-2026-09-28 Packs D'entretien En Fichier De Données]] — le programme de la maison.
+- [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] — le booléen `EcheanceFerme`
+  sur la tâche, affirmation du foyer, lu par le journal mural et la lettre.
 
 ## Ancres de code
 

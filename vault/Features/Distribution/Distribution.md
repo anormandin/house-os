@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-20
-verified-against: 0d1eda7
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -25,16 +25,25 @@ lab du mainteneur.
 - **Contrat d'installation = le `.env`** (`docker-compose.yml` + `.env.example`).
   Requis (`:?`, le compose refuse sinon) : `POSTGRES_PASSWORD`, `METEO_LATITUDE`,
   `METEO_LONGITUDE`, `COMPTE_1_NOM`, `COMPTE_1_MDP`, `HOUSEOS_MCP_KEY`. Facultatif :
-  `COMPTE_1_AFFICHAGE`, `COMPTE_2_*`, `FUSEAU_HORAIRE` (défaut `America/Toronto`,
-  alimente `TZ` et `Meteo:FuseauHoraire`), `APP_PORT_HOTE`, `POSTGRES_PORT_HOTE`,
+  `COMPTE_1_AFFICHAGE`, `COMPTE_2_*`, `COMPTE_n_COURRIEL` (l'adresse où arrive la
+  [[Lettre Du Matin]]), `FUSEAU_HORAIRE` (défaut `America/Toronto`, alimente `TZ` et
+  `Meteo:FuseauHoraire`), `APP_PORT_HOTE`, `POSTGRES_PORT_HOTE`,
   `RESEAU_PROXIES_CONNUS` (vide = aucun proxy de confiance), `ANTHROPIC_API_KEY`,
-  `JOURNALISATION_SEQ_URL/CLE`, Funnel, `COURRIEL_R2_*`, `MAISON_LIEU` (le lieu de
-  publication du journal mural), `HASARD_FICHIER` (la banque de dictons et de fêtes qui
-  remplace celle du Québec — [[D-2026-09-20 Banque Du Hasard En Fichier De Données]]).
+  `JOURNALISATION_SEQ_URL/CLE`, Funnel, `COURRIEL_R2_*`, `HOUSEOS_POUSSEE_CLE` (la
+  clé des calendriers poussés, distincte de celle du MCP), `LETTRE_*` (SMTP, heure
+  et lien de la lettre), `ECRAN_*` (cadence et plafond de sommeil de l'écran mural),
+  `MAISON_LIEU` (le lieu de publication du journal mural), et les deux fichiers de
+  données régionaux remplaçables : `HASARD_FICHIER` (la banque de dictons et de
+  fêtes — [[D-2026-09-20 Banque Du Hasard En Fichier De Données]]) et
+  `ENTRETIEN_FICHIER` (les packs d'entretien —
+  [[D-2026-09-28 Packs D'entretien En Fichier De Données]]). La liste qui fait foi,
+  avec défauts et effets d'une valeur absente : `docs/configuration.md`.
 - **Comptes** : `Seed:Utilisateurs` est vide dans `appsettings.json` ; le compose
   alimente deux entrées depuis `COMPTE_n_*` ; l'amorçage ignore une entrée sans nom
-  (second compte facultatif) ou sans mot de passe, et prend le nom d'utilisateur
-  comme nom d'affichage si celui-ci est vide (`server/HouseOs.Api/Infrastructure/AmorcageDb.cs`).
+  (second compte facultatif) ou sans mot de passe, prend le nom d'utilisateur
+  comme nom d'affichage si celui-ci est vide, et réaligne l'adresse de courriel sur
+  le `.env` à chaque démarrage — le reste n'est posé qu'à la création
+  (`server/HouseOs.Api/Infrastructure/AmorcageDb.cs`, [[Auth]]).
   Les fixtures dev (`alain`/`ariane`) vivent en entier dans
   `appsettings.Development.json` ; `infra/exemples/.env.dev` fournit les valeurs
   jetables que Compose exige même pour `up -d postgres` (il interpole tout le fichier).
@@ -49,16 +58,19 @@ lab du mainteneur.
   génériques, `wrangler.toml` sans adresses (`EXPEDITEURS_PERMIS` passé par
   `wrangler deploy --var`), défauts météo = ville de Québec. Ce qui est **régional**
   (et non propre au foyer) a le droit d'être un défaut, à condition d'être remplaçable
-  par la configuration : c'est le cas des coordonnées météo et de la banque du hasard,
-  livrée en version québécoise et échangée par `HASARD_FICHIER`.
+  par la configuration : c'est le cas des coordonnées météo, de la banque du hasard
+  (livrée en version québécoise, échangée par `HASARD_FICHIER`) et des packs
+  d'entretien (livrés pour une maison de zone 4, échangés par `ENTRETIEN_FICHIER`).
 - **Claude Code** : `.mcp.json` vise `http://localhost:5000/mcp` par défaut ;
   `CLAUDE.md` est le contexte projet, `CLAUDE.local.md` (gitignoré) le contexte
-  personnel ; les skills `demarrer` et `planifier-taches` sont génériques.
+  personnel ; les skills `demarrer`, `planifier-taches` et `inventorier-maison`
+  (`.claude/skills/`) sont génériques.
 - **CI** (`.github/workflows/ci.yml`) : `dotnet test` (intégration via
   Testcontainers), `npm run lint && npm test && npm run build`, `docker build`.
 - **Hygiène** : `server/global.json` (SDK 10, `latestFeature`), `.editorconfig`,
-  `.gitattributes`, `design/README.md` ; `web/README.md` (gabarit Vite) et
-  `web/components.json` (shadcn, plus utilisé) supprimés.
+  `.gitattributes`, `design/README.md` ; sous `web/`, le README gabarit de Vite et
+  le `components.json` de shadcn (plus utilisé) ont été supprimés à l'ouverture du
+  dépôt.
 
 ## Hors périmètre
 
@@ -74,6 +86,8 @@ lab du mainteneur.
   généricité par config, split du contexte personnel.
 - [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] — le contenu régional est un
   fichier de données remplaçable, jamais une table en dur.
+- [[D-2026-09-28 Packs D'entretien En Fichier De Données]] — le même patron, appliqué
+  aux packs d'entretien.
 
 ## Ancres de code
 

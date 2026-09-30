@@ -32,3 +32,7 @@ Déviations :
    sinon le `BackgroundService` meurt silencieusement (bug latent de
    [[Météo]]/[[Titre D'humeur]] corrigé aussi).
 2. Suppression avec confirmation deux-clics (pas de `confirm()` navigateur).
+
+Depuis ce plan (2026-09-20) : un second type de flux, **poussé** par un outil externe
+avec sa propre clé ([[D-2026-09-20 Flux Externe Poussé]]), livré sous le chantier du
+[[Fonds De Tiroir]] ; l'état courant est dans [[Flux Externes]].

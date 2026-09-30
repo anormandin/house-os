@@ -36,7 +36,7 @@ public sealed class HistoriqueDeParution
     /// <summary>
     /// Le produit des pénalités de chaque parution de la semaine, chacune remontant au
     /// carré de son âge. Une pénalité linéaire au seul dernier jour ne pesait pas
-    /// assez : un fait sorti hier gardait encore le septième de son score, et la rareté
+    /// assez : un fait sorti hier gardait encore plus du quart de son score, et la rareté
     /// d'un fait à fenêtre (le premier gel, 38 jours par an) vaut dix fois celle d'un
     /// fait quotidien — le gel, la douceur et la collecte spéciale sortaient donc
     /// <b>tous les jours</b> de leur fenêtre, huit sur huit la semaine du 21 septembre

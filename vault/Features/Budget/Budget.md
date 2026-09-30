@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-28
-verified-against: ff56869
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -93,7 +93,8 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
 
 - Import manuel de fichiers CSV/OFX exportés de la banque, **web seulement** ;
   formats visés : OFX standard (FITID) et CSV AccWeb Desjardins, testés sur
-  fichiers d'exemple ; déduplication par FITID (OFX — hashé au-delà de 100
+  fichiers d'exemple (as of 2026-09 : le lecteur CSV n'a encore vu aucun vrai export
+  AccWeb — c'est l'étape ouverte d'[[Emménagement V2]]) ; déduplication par FITID (OFX — hashé au-delà de 100
   caractères) ou hash invariant-culture (date, montant, description, numéro de
   séquence AccWeb quand présent ; sinon rang d'occurrence intra-fichier — deux
   transactions identiques le même jour survivent toutes les deux) — le réimport

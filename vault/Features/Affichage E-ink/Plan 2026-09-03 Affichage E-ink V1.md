@@ -142,8 +142,12 @@ Ordre voulu par l'utilisateur : **l'image d'abord**, le protocole ensuite.
   `B73199`, `reterminal_e1003`, firmware 1.8.10, annonce **1872×1404**, pile
   4,04 V / 82 %, RSSI −46, première image tirée en HTTPS 5 s après le setup.)
 - [x] Sur l'écran réel : orientation et aspect du 1-bit OK (2026-09-04).
-- [ ] Plafond de `refresh_rate` accepté la nuit (regarder `dernierContact` demain
-  matin) ; calibrer les tailles à 2–3 m ; noter dans la spec.
+- [x] Plafond de `refresh_rate` accepté la nuit (regarder `dernierContact` demain
+  matin) ; calibrer les tailles à 2–3 m ; noter dans la spec. (Fait en deux temps :
+  calibration le 2026-09-21, étape 9 du [[Plan 2026-09-20 Journal Éditorial]] ;
+  plafond de nuit observé dans la nuit du 2026-09-29 — le firmware 1.8.10 honore
+  14400 s —, étape 5 du [[Plan 2026-09-28 Emménagement V2]]. Les deux sont notés dans
+  [[Affichage E-ink]] et [[Journal De La Maison]]. Case cochée au sync du 2026-09-30.)
 
 ## Vérification
 

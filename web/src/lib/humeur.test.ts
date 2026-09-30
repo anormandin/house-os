@@ -25,15 +25,15 @@ test('la phrase est stable pour une même date', () => {
   expect(matin).toEqual(soir)
 })
 
-test('60 dodos déclenche encore le ton déménagement, 61 non', () => {
+test('60 dodos déclenche encore le ton du compte proche, 61 non', () => {
   const date = new Date(2026, 7, 25)
   const a60 = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosProchainCompte: 60 }, date)
   const a61 = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosProchainCompte: 61 }, date)
   const jourJ = phraseDuJour({ ...faits, ouvertes: 0, faites: 2, dodosProchainCompte: 0 }, date)
 
-  const tonsDemenagement = ['On y est presque.', 'Bientôt chez nous.', 'Le compte à rebours est parti.']
-  expect(tonsDemenagement).toContain(a60.titre)
-  expect(tonsDemenagement).not.toContain(a61.titre)
+  const tonsCompteProche = ['On y est presque.', 'Bientôt le grand jour.', 'Le compte à rebours est parti.']
+  expect(tonsCompteProche).toContain(a60.titre)
+  expect(tonsCompteProche).not.toContain(a61.titre)
   // Dodos = 0 : le jour J n'est plus « proche », il est là — ton calme.
-  expect(tonsDemenagement).not.toContain(jourJ.titre)
+  expect(tonsCompteProche).not.toContain(jourJ.titre)
 })

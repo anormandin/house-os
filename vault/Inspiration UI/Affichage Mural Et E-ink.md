@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-08-23
-verified-against: 5f9f080
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: [iot]
 ---
 

@@ -34,6 +34,7 @@ const CLES_PAR_MODULE: Record<string, string[][]> = {
   'comptes-a-rebours': [['comptes-a-rebours']],
   meteo: [['meteo']],
   'phrase-du-jour': [['phrase-du-jour']],
+  lettre: [['lettre']],
   'flux-externes': [['flux-externes'], ['evenements-externes']],
   budget: [['budget'], ['budget-transactions'], ['budget-enveloppe']],
 }

@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 ---
 
 # Suite de tests
@@ -27,8 +27,10 @@ déjà rencontrée a une couche qui l'attrape avant le push-and-release.
   (intégration) ET côté éditeur — avec les deux fixtures `TACHE_COMPLETE` et
   `TACHE_RECURRENTE` (une hebdo en saison : la ponctuelle seule ne peut pas
   attraper la perte d'une récurrence).
-- **Auth** : test-garde 401 sur toutes les routes `/api` + liste explicite des
-  routes anonymes (`GardeAuthTests`) ; `/mcp` répond 401 sans clé API.
+- **Auth** : test-garde 401 sur un échantillon de routes `/api` + la liste exacte
+  des routes anonymes, comparée à la table de routage (`GardeAuthTests` — une route
+  anonyme nouvelle casse la suite tant qu'elle n'y est pas inscrite, voir [[Auth]]) ;
+  `/mcp` répond 401 sans clé API.
 - **Cycle de vie des occurrences** via HTTP : compléter → journal + prochaine
   occurrence ; annuler ; passer ; reporter (passé → 400) ; notes post-hoc ;
   **courses de complétion** tranchées par les index uniques
@@ -38,7 +40,9 @@ déjà rencontrée a une couche qui l'attrape avant le push-and-release.
   compléter depuis la console → annuler sur Aujourd'hui → supprimer) ;
   récurrence (créer une intervalle → compléter → la prochaine occurrence se
   matérialise) ; budget (ancrage → enveloppe → ajustement → import CSV AccWeb →
-  lier le retrait → fermeture à solde zéro, qui prouve le débit exact).
+  lier le retrait → fermeture à solde zéro, qui prouve le débit exact). L'instance
+  et le compte visés se règlent par `E2E_URL`, `E2E_UTILISATEUR` et
+  `E2E_MOT_DE_PASSE` (défauts = la pile dev ; `docs/configuration.md`).
 
 ## Campagne cas de bord (2026-08-25)
 
@@ -60,12 +64,25 @@ humeur, flux externes, import de transactions), Comptes à rebours étoffé,
 extraits et testés côté web, garde SSRF et magic bytes testés sans réseau.
 Totaux au 2026-08-28 : **523 backend**, **125 frontend**, **3 parcours E2E**.
 
+Depuis, chaque tranche livrée a apporté ses tests dans les mêmes trois couches
+(affichage e-ink, fonds de tiroir, journal, lettre, entretien, normales…). Ordre de
+grandeur as of 2026-09-30 : ~870 méthodes de test backend, ~260 cas frontend,
+toujours 3 parcours E2E. La CI les rejoue à chaque push ([[Distribution]]) — sauf
+l'E2E, qui exige la pile dev.
+
 ## Conventions
 
-- Intégration : services d'arrière-plan (météo, humeur, flux externes, rollover)
-  retirés de l'hôte de test ; deux comptes seedés par la config de test ; le
+- Intégration (`server/HouseOs.Tests/Integration/HouseOsFactory.cs`) : **tous** les
+  services d'arrière-plan sont retirés de l'hôte de test (rollover, météo, normales,
+  humeur, éditorialiste, flux externes, courriel entrant, lettre, rendu d'écran) ; ce
+  qui parle au dehors est remplacé par un fictif — rédacteurs LLM (édition, lettre,
+  enrichisseur de courriel : jamais d'appel Anthropic sous test, même avec une clé
+  dans l'env), dépôt de courriels, envoyeur SMTP, Chromium (image grise) — et le
+  diffuseur de synchro par un espion ; deux comptes seedés par la config de test ; le
   cookie de session vient d'un vrai POST login ; `Fichiers:Chemin` pointe un
-  dossier temporaire (les uploads ne touchent jamais le dépôt).
+  dossier temporaire (les uploads ne touchent jamais le dépôt). Un nouveau
+  `BackgroundService` ou un nouveau client externe s'ajoute à cette liste dans la
+  même tranche.
 - Sqlite : les `DateTimeOffset` comparés ou triés en SQL passent par des
   converters binaires dans `ContexteSqlite` ; les FK et le jsonb ne sont fidèles
   qu'en intégration Postgres — choisir la couche en conséquence.

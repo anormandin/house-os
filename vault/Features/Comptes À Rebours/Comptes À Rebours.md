@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -32,17 +32,26 @@ visite), pas un widget codé en dur pour le déménagement. Demandé par Alain e
   affichée, avec un état vide.
 - Chaque compte à venir est un évènement toute-la-journée dans les flux iCal
   personnels ([[D-2026-08-23 Comptes À Rebours Au Flux iCal]]).
-- Données amorcées : Déménagement (2026-10-06, camion) et Noël (2026-12-25, sapin),
-  remplaçant les deux comptes codés en dur de l'intérim V0.
+- **Aucune donnée amorcée** (as of 2026-09-02, dépôt public) : les comptes d'un foyer
+  lui appartiennent. L'`InsertData` d'origine (deux comptes du premier foyer) a été
+  retiré de la migration `ComptesARebours` ; sans effet sur une base déjà migrée.
+- Modifier sans redonner l'icône **conserve** celle du compte (REST comme MCP) ; à la
+  création, le défaut est `Soleil`.
+- Parité MCP : `gerer_comptes_a_rebours` (lister avec les passés, creer, modifier,
+  supprimer — [[Serveur MCP]]).
+- Le **prochain** compte à venir sert ailleurs, en dodos : la banque client du
+  [[Titre D'humeur]] (repli ultime), la matière du [[Journal De La Maison]] et de la
+  [[Lettre Du Matin]] (où un compte à zéro fait plancher).
 
 ## Hors périmètre
 
 - Récurrence (un compte à rebours est ponctuel ; Noël se recrée chaque année ou se
   régénère — à trancher plus tard).
 - Rappels/notifications dédiés au-delà du flux iCal.
-- La phrase d'humeur du héros garde sa propre date de déménagement codée en dur
-  (`web/src/lib/humeur.ts`) — concern distinct, retiré naturellement après le
-  6 octobre 2026.
+- Une date de foyer écrite dans le code : la date codée en dur de la phrase d'humeur
+  (`web/src/lib/humeur.ts`) a été retirée (dépôt public, 2026-09-02) — la banque client
+  lit le prochain compte à rebours de l'API, et ses titres de compte proche ne parlent
+  plus de déménagement (2026-09-30 : mêmes mots que la banque serveur).
 
 ## Décisions
 
@@ -56,7 +65,10 @@ visite), pas un widget codé en dur pour le déménagement. Demandé par Alain e
 - `server/HouseOs.Api/Domaine/CompteARebours.cs` — entité + enum d'icônes
 - `server/HouseOs.Api/Features/ComptesARebours/ComptesAReboursEndpoints.cs` — CRUD
 - `server/HouseOs.Api/Features/FluxIcal/FluxIcalEndpoints.cs` — évènements iCal
-- `web/src/pages/Aujourdhui.tsx` — carte + modal de gestion
+- `web/src/pages/Aujourdhui.tsx` — la carte et le « + » ;
+  `web/src/components/ComptesAReboursGestion.tsx` — le modal de gestion
+- `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — `gerer_comptes_a_rebours`
+- `server/HouseOs.Tests/Integration/ComptesAReboursApiTests.cs` — le CRUD, l'icône conservée
 - `web/src/components/Illustrations.tsx` — les icônes SVG (`ICONES_COMPTE`)
 - `web/src/lib/format.ts` — calcul des dodos
 

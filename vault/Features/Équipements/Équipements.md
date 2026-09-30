@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-29
-verified-against: 69ff696
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -41,7 +41,7 @@ maison en s'installant.
   équipement) ; la fiche est éditable en place. Un champ « Chercher un
   équipement » filtre par nom, marque, modèle ou pièce (téléphone : nom seul),
   sans accents ; `/equipements?id=` ouvre une fiche — c'est là que mène la
-  recherche globale ({D}).
+  recherche globale ([[D-2026-09-28 Recherche Globale Sur La Touche Slash]]).
 - Quand une enveloppe [[Budget]] de type Équipement est liée à l'équipement
   (lien exclusif posé côté Budget), la fiche l'affiche avec son solde — livré
   avec le module Budget (2026-08-27).
@@ -53,15 +53,20 @@ maison en s'installant.
   `Electricite`, `Toiture`, `Exterieur`, `PetitsMoteurs`, `Electromenager`, `Vehicule`,
   `Autre`) ou aucune (« pas encore classé »). REST et MCP refusent une valeur hors liste
   (400, casse tolérée à l'entrée). Le bureau montre la catégorie en pastille dans la
-  liste et filtre par catégorie ; la fiche (bureau **et** téléphone — un PUT sans la
-  catégorie la vide, la fiche téléphone doit donc la porter) a son sélecteur.
+  liste et filtre par catégorie ; le téléphone la met en tête de la ligne de détail
+  (catégorie · marque · modèle), sans filtre ; la fiche (bureau **et** téléphone — un
+  PUT sans la catégorie la vide, la fiche téléphone doit donc la porter) a son
+  sélecteur. `lister_equipements` et `obtenir_equipement` la renvoient.
 - **Propositions d'entretien** (2026-09-29,
   [[D-2026-09-28 Packs D'entretien En Fichier De Données]]) : sur la fiche d'un
   équipement classé (hors `Autre`), « Proposer les entretiens » ouvre le panneau du pack
   de sa catégorie ; ce qu'une tâche liée à cet équipement porte déjà (même titre, sans
   accents ni casse) est coché-grisé, le reste part coché et se décoche ; « Créer N
   tâches » les crée en une transaction, liées à l'équipement et à sa pièce. Un
-  équipement sans catégorie n'a pas le bouton. Contrat complet : [[Emménagement V2]].
+  équipement sans catégorie n'a pas le bouton. Bureau seulement ; côté agent, les
+  outils MCP `proposer_entretiens` et `adopter_entretiens` portent le même contrat
+  (`server/HouseOs.Api/Features/Mcp/OutilsEntretien.cs`). Contrat complet :
+  [[Emménagement V2]].
 
 ## Hors périmètre
 
@@ -70,7 +75,7 @@ maison en s'installant.
 
 ## Décisions
 
-- {D} — recherche de page + lien `?id=` depuis la palette.
+- [[D-2026-09-28 Recherche Globale Sur La Touche Slash]] — recherche de page + lien `?id=` depuis la palette.
 - [[D-2026-09-28 Catégorie D'équipement En Liste Fermée]] — colonne nullable, dix valeurs.
 - [[D-2026-09-28 Packs D'entretien En Fichier De Données]] — le pack de la catégorie,
   proposé depuis la fiche.
@@ -82,12 +87,14 @@ maison en s'installant.
 
 ## Ancres de code
 
-- `server/HouseOs.Api/Domaine/Equipement.cs` — entité (fichiers : voir [[Documents]])
+- `server/HouseOs.Api/Domaine/Equipement.cs` — entité et `CategorieEquipement` (liste
+  fermée) ; fichiers : voir [[Documents]]
 - `server/HouseOs.Api/Features/Equipements/EquipementsEndpoints.cs` — CRUD + entretien
+  (`ValiderAsync`, `LireCategorie`)
 - `web/src/pages/Equipements.tsx` — liste par zone + fiche
+- `web/src/pages/telephone/EquipementsTelephone.tsx` — la liste et la fiche du téléphone
 - `web/src/components/VignetteDocument.tsx` — vignettes des documents liés
 - `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — outils MCP équipements
-- `server/HouseOs.Api/Domaine/Equipement.cs` — `CategorieEquipement` (liste fermée)
 - `web/src/lib/categories-equipement.ts` — libellés et ordre des catégories
 - `server/HouseOs.Api/Features/Entretien/` — packs d'entretien (proposer / adopter)
 - `web/src/components/PropositionsEntretien.tsx` — le panneau des propositions

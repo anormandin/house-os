@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-09-29
-verified-against: 69ff696
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -30,8 +30,10 @@ Funnel ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]], qui supersède
 Une deuxième brique transversale, la journalisation ([[Observabilité]],
 [[D-2026-08-29 Journalisation Structurée Serilog Et Seq]]) : Serilog émet des évènements
 structurés corrélés par un `TraceId` unique — requêtes, durées de phase, écritures
-métier, outils MCP, services d'arrière-plan et piste de session du navigateur — que le
-conteneur Seq du compose collecte, sur le LAN/tailnet uniquement.
+métier, outils MCP, services d'arrière-plan et piste de session du navigateur — qu'un
+Seq **facultatif** collecte (`JOURNALISATION_SEQ_URL` ; sans lui, console seulement). Le
+collecteur vit hors du compose de l'app, sur le LAN/tailnet uniquement
+([[D-2026-08-29 Collecteur Dans Son Propre LXC]]).
 
 Un canal SignalR transversal ([[Synchro]]) pousse aux onglets ouverts de quoi se
 rafraîchir. Sa particularité architecturale : le gros du signal n'est pas publié par les
@@ -47,6 +49,9 @@ d'arrière-plan.
 - `server/HouseOs.Tests` — tests xunit : `Domaine/` + `Features/` (unitaires,
   harnais Sqlite in-memory) et `Integration/` (WebApplicationFactory +
   Testcontainers Postgres) ; voir [[Suite De Tests]].
+- `server/HouseOs.Essais` — l'atelier des prompts (journal mural, lettre du matin) :
+  une console qui rejoue la matière conservée contre un prompt ; hors de l'image
+  ([[D-2026-09-21 Matière Conservée Sur L'Édition]]).
 - `web/` — Vite + TS + TanStack Query + Tailwind, installable (manifest sans
   service worker : [[D-2026-08-25 Retrait Du Service Worker]]), design « Cuisine
   chaleureuse » (shadcn retiré à la reconstruction UI de 2026-08-23) ; tests
@@ -101,7 +106,7 @@ reste de la phase 3 attend la remise en route du lab dans la nouvelle maison. D�
 `docs/research/2026-08-23-affichages-iot-hardware.md` et
 `docs/research/2026-09-03-ecrans-eink-candidats.md`.
 
-## Feuille de route (as of 2026-09-29)
+## Feuille de route (as of 2026-09-30)
 
 1. **Phase 1a — V0 « Déménagement »** — livrée 2026-08-23 (tâches ponctuelles, vue
    Aujourd'hui, quick-add, login, design chaleureuse).
@@ -115,9 +120,10 @@ reste de la phase 3 attend la remise en route du lab dans la nouvelle maison. D�
    [[Observabilité]], [[Distribution]] (dépôt public AGPL), [[Vue Téléphone]],
    [[Fonds De Tiroir]], [[Journal De La Maison]] et [[Lettre Du Matin]]. Écartés :
    Hydro-Québec (pas d'inscription) et consommables (pas de besoin prouvé).
-4. **Emménagement V2 — la maison qui s'entretient elle-même** (en cours,
-   [[Emménagement V2]], approuvé 2026-09-28) : catégorie d'équipement, packs
-   d'entretien de zone 4, skill de semis, budget sur le vrai compte, dette connue.
+4. **Emménagement V2 — la maison qui s'entretient elle-même** ([[Emménagement V2]]) —
+   livrée le 2026-09-29 : catégorie d'équipement, packs d'entretien de zone 4, skill
+   de semis, dette connue fermée. Seule l'étape « budget sur le vrai compte » du plan
+   reste ouverte.
 5. **Phase 3 — IoT** : l'écran e-ink est livré ([[Affichage E-ink]]) ; hub MQTT,
    NFC et capteurs après la remise en route du lab dans la nouvelle maison
    (2026-10-06), vraisemblablement en novembre 2026.

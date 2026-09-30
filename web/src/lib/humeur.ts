@@ -30,16 +30,18 @@ export function phraseDuJour(faits: FaitsDuJour, date = new Date()): Phrase {
   const graine =
     date.getFullYear() * 366 +
     Math.round((minuit.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86_400_000)
-  const demenagementProche =
+  const compteProche =
     faits.dodosProchainCompte !== null && faits.dodosProchainCompte > 0 && faits.dodosProchainCompte <= 60
 
-  const titresDemenagement = ['On y est presque.', 'Bientôt chez nous.', 'Le compte à rebours est parti.']
+  // Les mêmes mots que la banque serveur (BanquePhrases.cs) : le prochain compte peut
+  // être n'importe lequel, pas seulement un déménagement.
+  const titresCompteProche = ['On y est presque.', 'Bientôt le grand jour.', 'Le compte à rebours est parti.']
   const titresCalmes = ['La maison respire.', 'Tout doux aujourd’hui.', 'Belle journée pour flâner.']
   const titresActifs = ['On avance, tranquillement.', 'Une chose à la fois.', 'La maison s’occupe de nous.']
 
   if (faits.ouvertes === 0 && faits.faites > 0) {
     return {
-      titre: choisir(demenagementProche ? titresDemenagement : titresCalmes, graine),
+      titre: choisir(compteProche ? titresCompteProche : titresCalmes, graine),
       sousTitre: choisir(
         [
           `Tout est fait — ${pluriel(faits.faites, 'chose')} de réglée${faits.faites > 1 ? 's' : ''} aujourd’hui. Bravo l’équipe.`,
@@ -52,7 +54,7 @@ export function phraseDuJour(faits: FaitsDuJour, date = new Date()): Phrase {
 
   if (faits.ouvertes === 0) {
     return {
-      titre: choisir(demenagementProche ? titresDemenagement : titresCalmes, graine),
+      titre: choisir(compteProche ? titresCompteProche : titresCalmes, graine),
       sousTitre: choisir(
         ['Rien au programme aujourd’hui.', 'Journée libre — la maison ne demande rien.'],
         graine,
@@ -60,7 +62,7 @@ export function phraseDuJour(faits: FaitsDuJour, date = new Date()): Phrase {
     }
   }
 
-  const titre = choisir(demenagementProche ? titresDemenagement : titresActifs, graine)
+  const titre = choisir(compteProche ? titresCompteProche : titresActifs, graine)
 
   if (faits.enRetard > 0) {
     const retard =

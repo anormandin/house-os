@@ -1,4 +1,7 @@
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HouseOs.Tests.Integration;
 
@@ -36,6 +39,41 @@ public class GardeAuthTests(HouseOsFactory factory)
         var reponse = await client.GetAsync(route);
 
         Assert.Equal(HttpStatusCode.Unauthorized, reponse.StatusCode);
+    }
+
+    /// <summary>
+    /// Tout ce qui répond sans session. Un ajout ici se justifie dans la spec Auth
+    /// (vault), pas seulement dans le code.
+    /// </summary>
+    private static readonly string[] RoutesAnonymesConnues =
+    [
+        "/api/sante",
+        "/api/auth/connexion", // on ne peut pas exiger la session pour l'ouvrir
+        "/api/journal-client", // les erreurs du navigateur, écran de connexion compris
+        "/ical/{jeton}.ics", // le jeton EST l'authentification
+        // L'écran e-ink : l'appareil s'identifie par son jeton, le navigateur de rendu
+        // lit les données du mur sans cookie.
+        "/api/setup",
+        "/api/display",
+        "/api/log",
+        "/api/affichage/{identifiant:length(6)}/{jeton:length(32)}/{fichier:regex(^[a-z0-9]{{1,32}}$)}.png",
+        "/api/affichage/donnees",
+        "{*path:nonfile}", // la SPA (index.html)
+    ];
+
+    [Fact]
+    public void LesRoutesAnonymes_SontExactementLaListeConnue()
+    {
+        // Dérivé de la table de routage, pas d'un échantillon : un AllowAnonymous posé
+        // par distraction casse ici.
+        var anonymes = factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(route => route.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+            .Select(route => route.RoutePattern.RawText)
+            .Distinct()
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(RoutesAnonymesConnues.Order(StringComparer.Ordinal), anonymes);
     }
 
     [Theory]

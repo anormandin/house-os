@@ -52,7 +52,9 @@ l'application complète. C'est un **compagnon de commodité**, pas un remplaceme
 - **Les vues d'analyse n'existent pas ici.** Budget → Flux et Tâches → Année restent
   desktop seulement, et leurs commutateurs (« Aperçu | Flux », « Liste | Année »)
   **disparaissent** de la vue téléphone plutôt que d'afficher un segment inerte
-  ([[D-2026-09-19 Portée De La Vue Téléphone]]).
+  ([[D-2026-09-19 Portée De La Vue Téléphone]]). La page Lettre non plus : `/lettre`
+  ramène à l'accueil sur téléphone (`web/src/App.tsx`) — la lettre s'y lit dans la
+  boîte de courriel.
 - **Contraintes tactiles tenues sur les six écrans** (vérifiées en émulation iPhone 15) :
   aucun débordement horizontal, aucune cible sous 44 pt, aucun champ de saisie sous
   16 px (en dessous, iOS zoome au focus). `viewport-fit=cover` dans `web/index.html` —

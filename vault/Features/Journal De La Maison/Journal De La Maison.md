@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-28
-verified-against: e08445f
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: [iot]
 ---
 
@@ -335,6 +335,12 @@ lettrine, filets, pastilles et points de suspension en noir plein ; la dateline
 débordement à 0 sur les quatre. La pile se suit dans l'étape 9 du plan et dans le
 Recap.
 
+> [!note] Mesuré avec le couple du Times, pas refait depuis.
+> Le passage à Playfair Display et Libre Franklin (2026-09-28) n'a changé aucune taille
+> en pixels de `pages/Ecran.tsx` — seulement les graisses et les capitales du nom. Les
+> hauteurs de capitale, les distances et la vérification 1-bit ci-dessus datent donc du
+> 2026-09-21 et restent à refaire au mur avec les nouvelles fontes.
+
 ## Hors périmètre
 
 - Le protocole de l'appareil, la cadence, la pile, la capture Chromium : c'est
@@ -364,6 +370,8 @@ Recap.
   les paragraphes entrent dans la mémoire du prompt.
 - [[D-2026-09-21 Réédition En Deux Temps]] — gabarit au rendu, Opus par le service de
   fond, un second essai une heure plus tard ; acceptée à l'étape 8.
+- [[D-2026-09-21 Matière Conservée Sur L'Édition]] — ce que le modèle a reçu reste sur
+  l'édition ; l'atelier du prompt la rejoue.
 - [[D-2026-09-03 Rendu E-ink Par Chromium Headless]] — la page React capturée, inchangé.
 
 ## Ancres de code

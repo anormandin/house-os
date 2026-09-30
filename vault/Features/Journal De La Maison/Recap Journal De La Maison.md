@@ -74,3 +74,6 @@ l'étape 8 (`86faebd`) ; l'étape 9 n'a touché aucun code.
   passé) ; le bloc des rubriques pèse un tiers du prompt pour les seules journées
   chargées ; aucun exemple d'édition réussie n'est donné ; l'appel ne fixe ni
   température ni réflexion.
+- **Depuis le plan** (2026-09-28) : le journal est passé à Playfair Display et Libre
+  Franklin ; l'état courant est dans [[Journal De La Maison]]. La calibration au mur
+  date des polices d'avant.

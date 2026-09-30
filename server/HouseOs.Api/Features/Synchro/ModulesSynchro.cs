@@ -13,6 +13,7 @@ public static class ModulesSynchro
     public const string ComptesARebours = "comptes-a-rebours";
     public const string Meteo = "meteo";
     public const string PhraseDuJour = "phrase-du-jour";
+    public const string Lettre = "lettre";
     public const string FluxExternes = "flux-externes";
     public const string Budget = "budget";
 }

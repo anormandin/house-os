@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-02
-verified-against: 884b383
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -20,7 +20,10 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 - **Image unique** : Dockerfile multi-étages (build web Vite → `wwwroot`, publish
   .NET) ; l'API sert la SPA, applique les migrations et le seed au démarrage.
   Depuis la ronde QA 2026-08-28 : conteneur **non-root** (`USER $APP_UID`) et
-  image tailscale **épinglée** (plus de `:latest`).
+  image tailscale **épinglée** (plus de `:latest`). Depuis le 2026-09-03, l'image
+  embarque aussi le **Chromium de Playwright** (à la révision du paquet NuGet, avec
+  ses bibliothèques système et une police de repli) : c'est lui qui rend l'écran
+  mural ([[D-2026-09-03 Rendu E-ink Par Chromium Headless]], [[Affichage E-ink]]).
 - **`docker compose up -d --build`** dans le LXC `house-os` sur `pve` : Postgres 17
   + app (port 8080), volumes nommés (`postgres-data`, `fichiers`), redémarrage
   automatique, `TZ` = `FUSEAU_HORAIRE` (défaut `America/Toronto`), en-têtes proxy
@@ -58,8 +61,11 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   `.env` (facultatives : absentes = relevé désactivé). Rien n'entre par HTTP ; le
   Funnel reste `/ical` seulement.
 - **Secrets** : `.env` sur le serveur seulement (`.env.example` committé) —
-  mot de passe Postgres, clé MCP, clé Anthropic, mots de passe initiaux des
-  2 comptes, jeton R2. Le compose **refuse de démarrer** sans les variables requises
+  mot de passe Postgres, clé MCP, clé de poussée des calendriers
+  (`HOUSEOS_POUSSEE_CLE`, distincte de la clé MCP), clé Anthropic, mots de passe
+  initiaux des 2 comptes, jeton R2, mot de passe SMTP de la [[Lettre Du Matin]].
+  Toutes les variables, leurs défauts et l'effet d'une absence :
+  `docs/configuration.md`. Le compose **refuse de démarrer** sans les variables requises
   (syntaxe `:?`) : `POSTGRES_PASSWORD`, `COMPTE_1_NOM`/`COMPTE_1_MDP` (ex-`SEED_MDP_*`,
   renommées le 2026-09-02 — [[Distribution]]), `METEO_LATITUDE`/`METEO_LONGITUDE`,
   `HOUSEOS_MCP_KEY` — plus aucun repli committé ; les valeurs dev vivent dans
@@ -80,7 +86,10 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 > login 200 + cookie `secure`, flux Funnel `.ics` 200/66 évènements avec
 > `cache-control: private, no-store`, racine Funnel 404, nouveau bundle servi.
 - **Backups** : `scripts/backup.sh` en cron quotidien dans le LXC (dumps +
-  archive fichiers, rétention 30 j) + snapshot PBS nocturne du LXC.
+  archive fichiers, rétention 30 j) + snapshot PBS nocturne du LXC. Le dump est
+  vérifié par `pg_restore --list` avant d'être déplacé en place (jamais de fichier
+  partiel d'apparence valide) ; le volume de fichiers est retrouvé par le montage
+  du conteneur app, pas par un nom en dur.
 - **Code** : GitHub `anormandin/house-os` (public, AGPL-3.0 depuis [[Distribution]]) ;
   mise à jour par
   `git pull && docker compose up -d --build`.
@@ -91,8 +100,10 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
   viennent du `.env` ; changer ensuite = SQL).
 - CI/CD, registry d'images — inutile à cette échelle.
 - Métriques et alertes — rien ne réveille personne la nuit dans une maison de deux.
-  (La journalisation, elle, est entrée au compose le 2026-08-29 : voir
-  [[Observabilité]] et [[D-2026-08-29 Journalisation Structurée Serilog Et Seq]].)
+  (La journalisation, elle, est livrée depuis le 2026-08-29 : l'app envoie à un Seq
+  **facultatif** désigné par `JOURNALISATION_SEQ_URL`, qui vit hors de ce compose —
+  voir [[Observabilité]], [[D-2026-08-29 Journalisation Structurée Serilog Et Seq]]
+  et [[D-2026-08-29 Collecteur Dans Son Propre LXC]].)
 - Exposition publique de l'app ou du MCP (jamais) — seule exception : le flux iCal
   ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]).
 
@@ -110,6 +121,9 @@ Prêt avant le déménagement du 2026-10-06 — et le lab déménage avec la mai
 - `infra/tailscale-serve.json` — config serve/funnel du sidecar (monte `/ical` seulement).
 - `scripts/backup.sh` — backup + aide-mémoire de restauration.
 - `server/HouseOs.Api/Infrastructure/AmorcageDb.cs` — migrations + seed au démarrage.
+- `infra/exemples/docker-compose.override.gelf.yml` — gabarit d'override propre à un
+  hébergement (driver GELF).
+- `docs/configuration.md` — référence des variables du `.env`.
 
 ## Sources
 

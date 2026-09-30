@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-21
-verified-against: 5a332af
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: [iot]
 ---
 
@@ -66,12 +66,14 @@ cookie de session :
   du panneau — la cadence est le seul levier de pile qui compte.
 - La nuit (`Affichage:NuitDebut` 22 h → `Affichage:NuitFin` 5 h 30, défauts), le
   serveur répond un délai qui mène au prochain matin, **borné par
-  `Affichage:PlafondSecondes` (1 h, `ECRAN_PLAFOND_SECONDES`)** : la nuit n'est donc
-  pas un seul sommeil mais ~8 réveils. 3600 s reste la seule valeur éprouvée sur le
-  firmware 1.8.10 ; au-delà, l'acceptation n'a jamais été confirmée sur une nuit
-  (`Plan 2026-09-03 Affichage E-ink V1`, case restée ouverte). Lever le plafond
-  vaudrait ~7 réveils par jour, soit ~10 % du total à 15 min : à faire quand
-  quelqu'un veut passer la nuit à observer `dernierContact`, pas avant.
+  `Affichage:PlafondSecondes` (4 h depuis le 2026-09-30, `ECRAN_PLAFOND_SECONDES`)** :
+  la nuit se découpe en deux ou trois sommeils. Vérifié dans la nuit du 2026-09-29
+  sur le firmware 1.8.10 avec le plafond à 14400 s : contacts à 22 h 09 (délai demandé
+  14400 s), 2 h 08 (12102 s) et 5 h 28, puis la cadence du jour — le firmware honore
+  le délai, la case ouverte depuis `Plan 2026-09-03 Affichage E-ink V1` est fermée
+  ([[Plan 2026-09-28 Emménagement V2]], étape 5). C'est ~6 réveils Wi-Fi de moins par
+  nuit. Un autre firmware qui plafonnerait lui-même se verrait à des contacts horaires :
+  revenir à 3600.
 - Le bouton *Refresh* force un réveil et un rendu immédiat : rien à faire côté
   serveur. Détail des boutons et du tactile : « Interaction physique » ci-dessous.
 - La tension de pile et le RSSI reçus sont des données de l'appareil ; « pile
@@ -211,8 +213,9 @@ mentirait à la seule personne qui le lit de loin.
 
 ## Décisions
 
-- [[D-2026-08-23 Interface Desktop Et Écran E-ink]] — l'e-ink est une seconde vue
-  distincte, rendue côté serveur.
+- [[D-2026-08-23 Interface Desktop Et Écran E-ink]] (remplacée) →
+  [[D-2026-09-19 Interface Téléphone Distincte]] — l'e-ink est une vue distincte,
+  rendue côté serveur : ce point de la première reste valide dans la seconde.
 - [[D-2026-09-03 Protocole TRMNL BYOS Comme API D'affichage]] — House OS
   implémente le protocole du firmware TRMNL plutôt qu'un firmware maison.
 - [[D-2026-09-03 Rendu E-ink Par Chromium Headless]] — page React capturée par
@@ -270,11 +273,12 @@ mentirait à la seule personne qui le lit de loin.
   bouton « boot » : le reset est automatique. Portail captif : Refresh pour réveiller,
   Page Up + Page Down 2 s, SSID `TRMNL`, `http://4.3.2.1`. Un champ serveur vide
   renvoie vers trmnl.com (« purchase a BYOD license »).
-- Orientation et rendu 1-bit validés à l'œil sur le panneau. Reste ouvert : cadence
-  de nuit. La calibration des tailles à 2–3 m est faite le 2026-09-21, avec la
-  broadsheet (« Calibration au mur » dans [[Journal De La Maison]]).
+- Orientation et rendu 1-bit validés à l'œil sur le panneau. La calibration des
+  tailles à 2–3 m est faite le 2026-09-21, avec la broadsheet (« Calibration au mur »
+  dans [[Journal De La Maison]]) ; la cadence de nuit, restée ouverte jusque-là, est
+  réglée le 2026-09-30 (« Cadence et pile »).
 - **2026-09-20** — 16 jours de service mesurés : 4,04 V → 3,79 V. Cadence de jour
-  ramenée de 5 à 15 min (voir « Cadence et pile »). La cadence de nuit reste ouverte.
+  ramenée de 5 à 15 min (voir « Cadence et pile »). La cadence de nuit est réglée le 2026-09-30 : plafond à 4 h.
 - **2026-09-20** — la colonne de droite débordait : mesurée à 1078 px de contenu pour
   1028 px disponibles dès que la date passe sur deux lignes (ce qu'elle fait pour la
   plupart des jours longs, « dimanche 20 septembre » faisant 1046 px à 104 px), donc

@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-29
-verified-against: 69ff696
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -20,16 +20,19 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 - Le backend expose un endpoint MCP **`/mcp`** (streamable HTTP, stateless) via le SDK
   officiel C#. Quand la requête ne porte pas la clé API (`Authorization: Bearer`,
   config `Mcp:Cle`), le système répond 401 ; clé non configurée = tout est refusé.
-- **26 outils** (compté sur `tools/list`, 2026-09-21 — la note en annonçait 22,
-  elle en avait déjà 23), noms snake_case français, erreurs en français actionnables
-  (`McpException`) ; dates en chaînes `YYYY-MM-DD` ; enums en chaînes ; retours
-  camelCase (mêmes formes que les DTO REST) :
-  - `lister_utilisateurs`, `lister_zones`, `gerer_zone`
+- **30 outils** (as of 2026-09, compté sur les `[McpServerTool]` de
+  `server/HouseOs.Api/Features/Mcp/`), noms snake_case français, erreurs en français
+  actionnables (`McpException`) ; dates en chaînes `YYYY-MM-DD` ; enums en chaînes ;
+  retours camelCase (mêmes formes que les DTO REST) :
+  - `lister_utilisateurs` (avec le `courriel` du compte, nul = pas de lettre du
+    matin), `lister_zones`, `gerer_zone`
   - `lister_taches`, `creer_taches` (lot **tout-ou-rien** : une tâche invalide →
-    rien n'est créé, erreurs par index), `gerer_tache` (obtenir/modifier/supprimer),
+    rien n'est créé, erreurs par index), `gerer_tache` (obtenir/modifier/supprimer ;
+    porte `echeanceFerme` comme `creer_taches` —
+    [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]]),
     `lister_occurrences` (filtres aujourdhui/avenir/en-attente/completees),
     `completer_occurrence` (matérialise la prochaine occurrence si récurrente),
-    `gerer_occurrence` (annuler-completion/passer/reporter — voir
+    `gerer_occurrence` (annuler-completion/passer/reporter/noter — voir
     [[D-2026-08-28 Annulation Et Passage D'occurrences]]),
     `bilan_taches` (complétions du ménage par semaine, heure du serveur — voir
     [[D-2026-08-25 Bilan Hebdo Du Ménage]])
@@ -64,8 +67,14 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   - `regenerer_journal_mural` (réécrit la phrase du créneau — appel LLM compris —
     puis tire l'image par le chemin de l'appareil ; parité avec
     `POST /api/affichage/regenerer`. L'image elle-même reste web : `apercu.png`)
-- Quand un outil enregistre une identité (`creer_taches`, `completer_occurrence`,
-  `gerer_occurrence` action passer, `mon_flux_ical`), le paramètre **`agirComme`**
+  - `lire_lettre_du_matin` (la lettre écrite d'une journée, ou un aperçu jamais
+    écrit) et `regenerer_lettre_du_matin` (réécriture à la demande, appel LLM
+    compris ; `envoyer` la renvoie à tous les comptes qui ont une adresse) — parité
+    avec `GET /api/lettre` et `POST /api/lettre/regenerer` ; l'essai « à moi
+    seulement » reste web, il n'y a pas de « moi » en MCP ([[Lettre Du Matin]])
+- Quand un outil enregistre une identité (`creer_taches`, `adopter_entretiens`,
+  `completer_occurrence`, `gerer_occurrence` action passer, `mon_flux_ical`), le
+  paramètre **`agirComme`**
   (nom d'utilisateur d'un compte, via `lister_utilisateurs` ; l'erreur liste les
   valeurs valides) est requis
   sans défaut — voir
@@ -75,7 +84,8 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
 - **Garde-fous fiche partielle** (durcissement 2026-08-25, le client est un LLM) :
   `gerer_tache modifier` refuse une fiche sans `recurrence` sur une tâche
   récurrente (obtenir d'abord), conserve l'échéance en attente quand `echeance`
-  est omise (`'aucune'` pour l'effacer) ; `gerer_zone`/`gerer_comptes_a_rebours`
+  est omise (`'aucune'` pour l'effacer) et l'échéance ferme quand `echeanceFerme`
+  est omis ; `gerer_zone`/`gerer_comptes_a_rebours`
   traitent un nom/titre vide comme « ne pas toucher ». Le paramètre `action` est
   insensible à la casse et aux espaces (comme `agirComme`) ; un filtre de liste
   inconnu est refusé au lieu de tout retourner ; les enums refusent les valeurs
@@ -89,9 +99,11 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   `${HOUSEOS_MCP_URL:-http://localhost:5000/mcp}`, clé `${HOUSEOS_MCP_KEY}` **sans
   repli** (clé absente = 401, jamais un défaut committé — 2026-09-02). Chaque
   personne exporte les deux variables vers son instance ([[Distribution]]).
-- Deux skills projet accompagnent le MCP : `.claude/skills/planifier-taches/`
+- Trois skills projet accompagnent le MCP : `.claude/skills/planifier-taches/`
   (workflow conversation → tableau récapitulatif → confirmation humaine → un seul
-  `creer_taches`) et `.claude/skills/demarrer/` (démarrage dev + smoke tests MCP).
+  `creer_taches`), `.claude/skills/inventorier-maison/` (semis des équipements et
+  adoption des packs — [[D-2026-09-28 Semis De La Maison Par Skill MCP]]) et
+  `.claude/skills/demarrer/` (démarrage dev + smoke tests MCP).
 
 ## Hors périmètre
 
@@ -99,6 +111,8 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   seulement ; MCP liste les métadonnées et peut supprimer.
 - Clés par utilisateur ou par device (reporté aux clés IoT de la phase 3).
 - Élicitation/sampling MCP (le transport est stateless).
+- Sans outil (as of 2026-09) : les lectures d'affichage que sont la météo, la phrase
+  du jour et le fonds de tiroir.
 
 ## Décisions
 
@@ -116,7 +130,9 @@ pousser d'un coup dans l'app, consulter ce qui est dû, compléter, gérer zones
   [[D-2026-09-20 Flux Externe Poussé]]). La poussée n'est pas un outil MCP au sens du
   transport — c'est un endpoint REST — mais elle emprunte ce mécanisme.
 - `server/HouseOs.Api/Features/Mcp/OutilsTaches.cs` — outils tâches (dont creer_taches).
-- `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — zones, équipements, comptes.
+- `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — zones, équipements, documents,
+  courriel, comptes à rebours, budget, appareils d'affichage, journal mural, lettre.
+- `server/HouseOs.Api/Features/Mcp/OutilsEntretien.cs` — proposer / adopter un pack.
 - `server/HouseOs.Api/Features/Mcp/OutilsIcal.cs` — mon_flux_ical.
 - `server/HouseOs.Api/Features/Mcp/OutilsFlux.cs` — calendriers externes et poussée.
 - `server/HouseOs.Api/Features/Mcp/AgirComme.cs` — résolution d'identité.

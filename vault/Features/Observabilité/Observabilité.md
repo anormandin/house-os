@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-20
-verified-against: 431db04
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -88,7 +88,10 @@ survécu à trois sessions d'enquête faute de preuves.
 - [[D-2026-08-29 Journalisation Structurée Serilog Et Seq]] — Serilog + Seq, corrélation
   par `TraceId`, piste de session navigateur, pas d'OpenTelemetry.
 - [[D-2026-08-29 Collecteur Dans Son Propre LXC]] — le collecteur sort du compose de
-  house-os : les logs du lab ne dépendent pas d'une seule app.
+  house-os : les logs du lab ne dépendent pas d'une seule app. Sa clause « la clé
+  d'ingestion est requise » ne tient plus depuis
+  [[D-2026-09-02 Dépôt Public AGPL Et Instance Générique]] : Seq est facultatif, le
+  compose démarre sans.
 
 ## Ancres de code
 

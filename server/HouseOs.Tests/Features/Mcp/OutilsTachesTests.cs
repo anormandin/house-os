@@ -209,6 +209,31 @@ public class OutilsTachesTests : TestAvecSqlite
     }
 
     [Fact]
+    public async Task Noter_remplace_les_notes_du_journal_d_une_occurrence_completee()
+    {
+        await CreerUne(Item("Vidanger"));
+        var occurrenceId = Db.Occurrences.Single().Id;
+        await OutilsTaches.CompleterOccurrence(
+            Db, Mouchard, NullLoggerFactory.Instance, occurrenceId, "alain", notes: "rien à signaler");
+
+        await OutilsTaches.GererOccurrence(Db, Mouchard, "noter", occurrenceId, notes: "  42 $ d'huile  ");
+
+        Assert.Equal("42 $ d'huile", Db.Journal.Single(j => j.OccurrenceId == occurrenceId).Notes);
+    }
+
+    [Fact]
+    public async Task Noter_une_occurrence_pas_completee_est_refuse()
+    {
+        await CreerUne(Item("Vidanger"));
+        var occurrenceId = Db.Occurrences.Single().Id;
+
+        var exception = await Assert.ThrowsAsync<McpException>(() =>
+            OutilsTaches.GererOccurrence(Db, Mouchard, "noter", occurrenceId, notes: "trop tôt"));
+
+        Assert.Contains("pas complétée", exception.Message);
+    }
+
+    [Fact]
     public async Task Completer_une_occurrence_d_une_tache_supprimee_repond_introuvable()
     {
         var id = await CreerUne(Item("Éphémère"));

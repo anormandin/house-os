@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-09-20
-verified-against: 01f4ff1
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -46,6 +46,9 @@ depuis : le téléphone a sa propre interface ([[Vue Téléphone]], 2026-09-20).
   l'écran n'est pas un miroir de l'app, il *édite*. **Retenues (2026-09-20)** : A1 (la
   broadsheet) comme mise en page, et les « widgets » de B1 (le ciel, l'équinoxe, le
   premier gel…) comme matière.
+- `design/maquettes/eink-polices.html` — planche d'essai des polices du journal mural
+  (2026-09-21). Le couple retenu et ses révisions vivent dans la spec
+  [[Journal De La Maison]], pas ici.
 - `design/maquettes/une-editorialiste.html` — la broadsheet à **densité variable** :
   une seule grammaire CSS, six remplissages sur six vraies journées de la prod (0, 1,
   1, 5, 14 tâches, et le jour J). Contient le **fonds de tiroir** (≈ 25 widgets en

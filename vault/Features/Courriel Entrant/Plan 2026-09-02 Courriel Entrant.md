@@ -45,6 +45,13 @@ enrichis par LLM, avec parité MCP et toast temps réel. Approuvé par Alain le
   titré par Haiku, toast reçu, bouton « relever » → 409 pendant un passage.
 - [ ] Vérification restante : courriel avec PDF joint, doublon, expéditeur hors
   liste, MCP `relever_courriels` — à cocher au fil de l'usage.
+- [x] 2026-09-30 (sync du vault) — bilan de l'étape précédente, laissée décochée : le
+  PDF joint et l'outil MCP ont été vérifiés en prod le soir du 2026-09-02
+  ([[Recap Courriel Entrant]]) ; le doublon par Message-ID est tenu par le test
+  `Le_meme_message_id_deux_fois_est_ignore_sans_doublon`, et l'usage a montré sa limite
+  (une relance SMTP porte un nouveau Message-ID) ; l'**expéditeur hors liste n'a jamais
+  été éprouvé en réel** et ne le sera pas par ce plan — le rejet tient en quatre lignes
+  de `infra/courriel-worker/src/index.js`, sans test.
 
 ## Vérification
 

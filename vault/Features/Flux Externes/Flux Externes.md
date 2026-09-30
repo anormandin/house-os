@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-21
-verified-against: 957263e
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -127,7 +127,11 @@ pour que n'importe quel foyer branche sa propre source.
 - `server/HouseOs.Api/Features/Mcp/OutilsFlux.cs` — les trois outils MCP ;
   `AuthentificationCleApi.cs` — un schéma, deux clés (`OptionsCleApi`).
 - `server/HouseOs.Tests/Features/FluxExternes/LectureIcsTests.cs` — fixtures ;
-  `RafraichissementTests.cs` — la passe n'emporte pas les flux poussés.
+  `RafraichissementTests.cs` — la passe n'emporte pas les flux poussés ;
+  `PousseeTests.cs` — les refus de la poussée, sans base.
+- `server/HouseOs.Tests/Integration/FluxExternesApiTests.cs` — la gestion, les deux
+  clés (`LaCleDuMcp_NOuvrePasLaPoussee`) et le remplacement complet
+  (`PousserDeuxFois_RemplaceLesEvenements`).
 - `web/src/components/FluxExternesGestion.tsx` — modal de gestion ;
   `web/src/pages/Aujourdhui.tsx` — bandeau du jour + fusion Cette semaine.
 

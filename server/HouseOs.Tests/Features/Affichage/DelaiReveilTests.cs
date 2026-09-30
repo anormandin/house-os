@@ -47,9 +47,9 @@ public class DelaiReveilTests
         // en quelques semaines (0,25 V en 16 jours). Le réveil Wi-Fi est ce qui coûte.
         var defauts = new AffichageOptions();
         Assert.Equal(900, DelaiReveil.Calculer(new DateTime(2026, 9, 20, 14, 0, 0), defauts));
-        // La nuit reste plafonnée : tant que 3600 s est la seule valeur éprouvée sur le
-        // firmware, elle se découpe en sommeils d'une heure plutôt qu'un seul.
-        Assert.Equal(3600, DelaiReveil.Calculer(new DateTime(2026, 9, 20, 22, 0, 0), defauts));
+        // La nuit se découpe en sommeils de quatre heures : 14400 s est la valeur éprouvée
+        // sur le firmware 1.8.10 dans la nuit du 2026-09-29 (22 h 09 → 2 h 08 → 5 h 28).
+        Assert.Equal(14400, DelaiReveil.Calculer(new DateTime(2026, 9, 20, 22, 0, 0), defauts));
     }
 
     [Fact]

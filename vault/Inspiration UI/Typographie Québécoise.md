@@ -1,7 +1,7 @@
 ---
 type: reference
-last-verified: 2026-08-28
-verified-against: 0d96d5f
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -15,6 +15,8 @@ Normes de rédaction pour que l'UI se sente *native*, pas traduite. Source : OQL
 - Date longue : « samedi 23 août » — pas de majuscule au jour ni au mois.
 - Année affichée **seulement hors année courante** : « 22 septembre » cette année,
   « 22 septembre 2025 » sinon (helper `dateLisible` de `web/src/lib/format.ts`).
+  Exception : la dateline du journal mural porte toujours l'année, comme un quotidien
+  (`dateJournal`, même fichier) — le mur est un objet qu'on regarde de loin.
 - Date numérique : **ISO 8601 (2026-08-23)**, jamais 08/23.
 - Heure : **24 h avec « h » espacé : « 19 h 30 », « 9 h »** — pas de zéro de tête en
   texte courant ; « 19:30 » acceptable en contexte tabulaire/technique. Jamais

@@ -26,11 +26,13 @@ public sealed class AffichageOptions
     public TimeOnly NuitFin { get; set; } = new(5, 30);
 
     /// <summary>
-    /// Plus long sommeil qu'on ose demander au firmware. 3600 s est la seule valeur
-    /// éprouvée sur le TRMNL 1.8.10 ; au-dessus, rien ne dit qu'il l'honore. C'est ce
-    /// plafond qui fait que la nuit n'est pas un seul sommeil mais ~8 réveils.
+    /// Plus long sommeil qu'on ose demander au firmware. C'est ce plafond qui fait que
+    /// la nuit n'est pas un seul sommeil. 14400 s (quatre heures) est éprouvé sur le
+    /// TRMNL 1.8.10 depuis la nuit du 2026-09-29 : deux réveils entre 22 h et 5 h 30, au
+    /// lieu des huit du plafond d'origine de 3600 s (vault : Affichage E-ink). Au-dessus,
+    /// rien ne dit que le firmware l'honore.
     /// </summary>
-    public int PlafondSecondes { get; set; } = 3600;
+    public int PlafondSecondes { get; set; } = 14400;
 
     /// <summary>
     /// Le lieu de publication, dans l'oreille centrale du bloc-titre du journal,

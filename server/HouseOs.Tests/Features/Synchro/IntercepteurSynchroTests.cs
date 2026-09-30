@@ -1,5 +1,6 @@
 using HouseOs.Api.Domaine;
 using HouseOs.Api.Domaine.Humeur;
+using HouseOs.Api.Domaine.Lettre;
 using HouseOs.Api.Domaine.Meteo;
 using HouseOs.Api.Features.Synchro;
 using HouseOs.Api.Infrastructure;
@@ -59,11 +60,13 @@ public class IntercepteurSynchroTests : IDisposable
     [InlineData(typeof(Zone), ModulesSynchro.Zones)]
     [InlineData(typeof(Equipement), ModulesSynchro.Equipements)]
     [InlineData(typeof(Document), ModulesSynchro.Documents)]
+    [InlineData(typeof(ImportCourriel), ModulesSynchro.Documents)]
     [InlineData(typeof(CompteARebours), ModulesSynchro.ComptesARebours)]
     [InlineData(typeof(PrevisionHoraire), ModulesSynchro.Meteo)]
     [InlineData(typeof(PrevisionQuotidienne), ModulesSynchro.Meteo)]
     [InlineData(typeof(ReleveMeteo), ModulesSynchro.Meteo)]
     [InlineData(typeof(PhraseDuJour), ModulesSynchro.PhraseDuJour)]
+    [InlineData(typeof(LettreDuMatin), ModulesSynchro.Lettre)]
     [InlineData(typeof(FluxExterne), ModulesSynchro.FluxExternes)]
     [InlineData(typeof(EvenementExterne), ModulesSynchro.FluxExternes)]
     [InlineData(typeof(CompteBudget), ModulesSynchro.Budget)]
@@ -72,6 +75,23 @@ public class IntercepteurSynchroTests : IDisposable
     [InlineData(typeof(TransactionBancaire), ModulesSynchro.Budget)]
     public void ChaqueEntitePersistee_estRattacheeAUnModule(Type entite, string module) =>
         Assert.Equal(module, IntercepteurSynchro.ModulePour(entite));
+
+    [Fact]
+    public void ToutTypeDuModele_aUnModuleOuUneDispenseExplicite()
+    {
+        // Dérivé du modèle EF, pas d'une liste tenue à la main : une table ajoutée sans
+        // ligne dans l'intercepteur casse ici. La table de jointure Tâche ⇄ Document
+        // (type CLR partagé) est rattachée par son nom d'entité.
+        var oublies = _db.Model.GetEntityTypes()
+            .Where(type => type.IsOwned() == false && type.HasSharedClrType == false)
+            .Select(type => type.ClrType)
+            .Where(type => IntercepteurSynchro.ModulePour(type) is null
+                && IntercepteurSynchro.EstSansModule(type) == false)
+            .Select(type => type.Name)
+            .ToList();
+
+        Assert.Empty(oublies);
+    }
 
     [Fact]
     public void Utilisateur_nEstRattacheAAucunModule() =>

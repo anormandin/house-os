@@ -33,3 +33,7 @@ consommateur : [[Journal De La Maison]].
   valeur est refusé par un test.
 - **La famille « la maison » est muette la première année** (journal de complétion
   vide) ; le rang 0 tient sans elle, vérifié sur un jour de prod sans rien.
+- **Depuis le plan** (2026-09-28) : la fraîcheur n'est plus une pénalité linéaire sur la
+  dernière parution mais le produit des parutions de la semaine, au carré de leur âge
+  ([[D-2026-09-28 Fraîcheur Cumulée Des Faits]]) — le gel, la douceur et la collecte
+  spéciale sortaient tous les jours de leur fenêtre.

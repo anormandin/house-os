@@ -1,8 +1,8 @@
 ---
 type: feature
-status: approved
-last-verified: 2026-09-28
-verified-against: 69ff696
+status: implemented
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -27,7 +27,7 @@ touchées et son Recap.
 
 ## Comportement
 
-Contrat visé (à passer en as-built à l'exécution).
+As-built (livré le 2026-09-29, commit `c4fdf0e` ; voir [[Recap Emménagement V2]]).
 
 ### Volet 1 — la catégorie d'équipement
 
@@ -57,8 +57,11 @@ Contrat visé (à passer en as-built à l'exécution).
 - Quand un utilisateur **adopte** des items (`POST /api/entretien/adopter`, clés +
   équipement optionnel), le système crée les tâches en une transaction (tout ou rien),
   liées à l'équipement et à sa zone, avec la première occurrence matérialisée par le
-  moteur habituel ; une clé inconnue ou déjà présente fait échouer le lot (409 avec la
-  clé fautive). Réponse : les ids créés.
+  moteur habituel. Un seul refus fait échouer le lot, rien n'est créé : clé inconnue
+  ou hors du pack visé, liste vide, équipement pas classé ou `Autre` → 400 ; équipement
+  introuvable → 404 ; titre déjà présent → 409 (le message nomme le titre et la clé).
+  Réponse 201 : les tâches créées (id, titre, première échéance). Un lot = un seul
+  événement [[Synchro]] « tâches créées ».
 - UI bureau : sur la fiche d'un équipement classé, un bouton « Proposer les
   entretiens » ouvre le panneau des propositions (cases à cocher, déjà présents cochés
   et grisés, résumé lisible de la récurrence et de la fenêtre) et « Créer N tâches ».
@@ -78,19 +81,23 @@ Contrat visé (à passer en as-built à l'exécution).
 
 ### Volet 4 — le budget prend vie
 
-- Le lecteur CSV AccWeb (`server/HouseOs.Api/Features/Budget/FournisseurTransactions.cs`)
-  est confronté au premier vrai export Desjardins d'Alain et corrigé s'il le faut ; le
-  fichier réel (anonymisé) devient un exemple de test.
-- Puis, gestes de données en prod (pas de code) : ancrage du compte, enveloppes
-  `Taxes` (municipales et scolaires de Sainte-Catherine, échéancier réel), `Equipement`
-  (toiture, thermopompe), tâche de virement mensuel liée.
+- **Encore à faire** (étape 4 du plan) : le lecteur CSV AccWeb
+  (`server/HouseOs.Api/Features/Budget/FournisseurTransactions.cs`) est confronté au
+  premier vrai export Desjardins d'Alain et corrigé s'il le faut ; le fichier réel
+  (anonymisé) devient un exemple de test. En attendant, le compte est ancré à sa valeur du
+  2026-09-29 (pas de chiffres dans le vault).
+- Puis, gestes de données en prod (pas de code) : l'ancrage est fait (2026-09-29) ;
+  restent les enveloppes `Taxes` (municipales et scolaires de Sainte-Catherine,
+  échéancier réel) et `Equipement` (toiture, chauffe-eau du garage — le semis l'a
+  désigné, là où le plan disait thermopompe), et la tâche de virement mensuel liée.
 
 ### Dette fermée par le plan
 
-- Liste des tâches : `AsSplitQuery()` mesuré puis appliqué
-  ([[Tâches#Dette connue (as of 2026-09-20)]]).
-- Cadence de nuit de l'écran : une nuit d'observation avec `ECRAN_PLAFOND_SECONDES`
-  levé, verdict consigné dans [[Affichage E-ink]].
+- Liste des tâches : mesurée, puis `AsSingleQuery()` — et non `AsSplitQuery()`, le
+  produit étant borné par l'invariant « une occurrence en attente par tâche »
+  ([[Tâches#Dette connue]]).
+- Cadence de nuit de l'écran : vérifiée dans la nuit du 2026-09-29, plafond par défaut
+  porté à 4 h ([[Affichage E-ink]]).
 - Décision « La pile » de la [[Vue Téléphone]] mintée rétroactivement (`#backfill`).
 - Feuille de route d'[[Architecture]] remise au présent.
 
@@ -149,5 +156,6 @@ Contrat visé (à passer en as-built à l'exécution).
 ## Historique
 
 - [[Plan 2026-09-28 Emménagement V2]] — le plan, approuvé le 2026-09-28.
+- [[Recap Emménagement V2]] — fermé le 2026-09-30, étape 4 (budget) encore ouverte.
 - 2026-09-28 — spec ouverte après la revue d'état ; grill en deux tours (semis, catégorie,
   fenêtres, Hydro, packs, budget, extras) ; Hydro écarté faute d'inscription.

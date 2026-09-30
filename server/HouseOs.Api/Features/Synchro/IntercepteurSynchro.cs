@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Domaine.Editorial;
 using HouseOs.Api.Domaine.Humeur;
+using HouseOs.Api.Domaine.Lettre;
 using HouseOs.Api.Domaine.Meteo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -27,10 +29,8 @@ public sealed class IntercepteurSynchro(
 {
     /// <summary>
     /// Type d'entité → module. Une nouvelle table = une ligne ici, et tout le reste
-    /// (invalidation web, MCP, arrière-plan) suit sans autre changement.
-    ///
-    /// <see cref="Utilisateur"/> est volontairement absent : l'amorçage au démarrage
-    /// écrit des utilisateurs et n'a aucun client à prévenir.
+    /// (invalidation web, MCP, arrière-plan) suit sans autre changement. Une table
+    /// qu'aucun onglet ne lit va plutôt dans <see cref="SansModule"/>.
     /// </summary>
     private static readonly Dictionary<Type, string> ModuleParType = new()
     {
@@ -46,6 +46,7 @@ public sealed class IntercepteurSynchro(
         [typeof(PrevisionQuotidienne)] = ModulesSynchro.Meteo,
         [typeof(ReleveMeteo)] = ModulesSynchro.Meteo,
         [typeof(PhraseDuJour)] = ModulesSynchro.PhraseDuJour,
+        [typeof(LettreDuMatin)] = ModulesSynchro.Lettre,
         [typeof(FluxExterne)] = ModulesSynchro.FluxExternes,
         [typeof(EvenementExterne)] = ModulesSynchro.FluxExternes,
         [typeof(CompteBudget)] = ModulesSynchro.Budget,
@@ -53,6 +54,24 @@ public sealed class IntercepteurSynchro(
         [typeof(MouvementEnveloppe)] = ModulesSynchro.Budget,
         [typeof(TransactionBancaire)] = ModulesSynchro.Budget,
     };
+
+    /// <summary>
+    /// Les entités persistées qu'aucun onglet ne lit, dispensées de module en le disant :
+    /// le test dérivé du modèle EF exige qu'une nouvelle table soit dans l'une des deux
+    /// listes, pour qu'un oubli ne passe plus pour un choix.
+    /// </summary>
+    private static readonly HashSet<Type> SansModule =
+    [
+        // L'amorçage au démarrage écrit des utilisateurs et n'a aucun client à prévenir.
+        typeof(Utilisateur),
+        // Matière du fonds de tiroir, lue à la composition d'une édition seulement.
+        typeof(JourDeClimat),
+        typeof(NormalesClimatiques),
+        // Le mur est rendu par le serveur au réveil de l'appareil, jamais dans un onglet.
+        typeof(Edition),
+        // Écrit à chaque réveil de l'écran (dernier contact) ; aucune page web ne le liste.
+        typeof(AppareilAffichage),
+    ];
 
     /// <summary>Table de jointure sans type CLR (many-to-many Tâche ⇄ Document).</summary>
     private static readonly Dictionary<string, string> ModuleParNomEntite = new()
@@ -70,6 +89,9 @@ public sealed class IntercepteurSynchro(
     /// <summary>Exposé pour les tests : le module associé à un type, ou null.</summary>
     public static string? ModulePour(Type type) =>
         ModuleParType.TryGetValue(type, out var module) ? module : null;
+
+    /// <summary>Exposé pour les tests : vrai pour un type dispensé de module exprès.</summary>
+    public static bool EstSansModule(Type type) => SansModule.Contains(type);
 
     // ---- Capture : avant la sauvegarde, tant que les états sont encore lisibles ----
 

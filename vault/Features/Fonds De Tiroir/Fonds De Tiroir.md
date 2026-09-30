@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-28
-verified-against: e08445f
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: [iot]
 ---
 
@@ -446,6 +446,8 @@ tout seul.
   qu'une table de faits séparée.
 - [[D-2026-09-20 Banque Du Hasard En Fichier De Données]] — dictons et fêtes en fichier
   remplaçable, quatre formes de date déclaratives, jamais de table en dur.
+- [[D-2026-09-28 Fraîcheur Cumulée Des Faits]] — chaque parution de la semaine pèse,
+  au carré de son âge ; la fraîcheur peut battre la rareté.
 - [[D-2026-08-23 Pas De N8n Dans Le Cœur]] — les règles sont des classes C# testables.
 
 ## Ancres de code

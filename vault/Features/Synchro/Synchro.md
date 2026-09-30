@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-02
-verified-against: f29b6fd
+last-verified: 2026-09-30
+verified-against: c4fdf0e
 tags: []
 ---
 
@@ -28,8 +28,22 @@ affiché, et annonce les gestes qui ne viennent pas de moi.
   module touché (`{ module }`, sans acteur). Le client invalide les requêtes de ce
   module et refetch. Aucun toast. Dérivé automatiquement du `ChangeTracker`, donc
   couvre HTTP, MCP et l'arrière-plan sans que les slices aient rien à publier.
+
+  Toute entité persistée est soit rattachée à un module, soit **dispensée en le
+  disant** (`SansModule` dans `IntercepteurSynchro.cs`) : `Utilisateur` (l'amorçage n'a
+  personne à prévenir), `JourDeClimat` et `NormalesClimatiques` (matière du fonds de
+  tiroir, lue à la composition), `Edition` (le mur est rendu par le serveur, jamais
+  dans un onglet) et `AppareilAffichage` (aucune page web ne le liste). Le test
+  `ToutTypeDuModele_aUnModuleOuUneDispenseExplicite` parcourt le modèle EF : une table
+  ajoutée sans ligne dans l'une des deux listes casse la suite, comme le promet
+  [[D-2026-08-28 Événements Par Intercepteur EF]]. Corrigé le 2026-09-30 : le test
+  tenait sa liste à la main et cinq entités ajoutées depuis n'y figuraient pas ; la
+  page Lettre, seule vue web concernée, a reçu le module `lettre`.
+
 - **Fin** — quand un geste mérite d'être annoncé (complétion, annulation de
-  complétion, création d'un lot MCP, documents reçus par courriel), le système
+  complétion, création d'un lot de tâches — `creer_taches` par MCP, ou l'adoption
+  d'un pack d'entretien, du web comme du MCP ([[Emménagement V2]]) —, documents
+  reçus par courriel), le système
   diffuse en plus un événement portant `genre`, `source` (`web`, `mcp` ou
   `courriel`), l'acteur, un libellé et un `nombre`. Le genre `documents.recus`
   (source `courriel`, sans acteur) vient de [[Courriel Entrant]] : le toast dit
@@ -53,7 +67,8 @@ poussées d'un lot — le système ne produit ni dix rafraîchissements ni dix t
 
 1. une sauvegarde qui touche dix entités du même module ne diffuse qu'un événement
    (dédoublonnage par module) ;
-2. un lot MCP diffuse un seul événement fin portant son décompte ;
+2. un lot (MCP, ou adoption d'un pack) diffuse un seul événement fin portant son
+   décompte ;
 3. côté client, les invalidations sont regroupées sur ~300 ms, et les toasts de même
    `(genre, acteur, source)` arrivés à moins de ~2 s fusionnent **en place** — le
    premier toast s'affiche tout de suite puis se réécrit en « … a complété 3 tâches »
@@ -132,6 +147,11 @@ la même durée. Le minuteur reste un confort : la rangée complétée garde son
 - `server/HouseOs.Api/Features/Taches/OperationsTaches.cs` — tier fin des complétions.
 - `server/HouseOs.Api/Features/Mcp/OutilsTaches.cs` — tier fin des écritures MCP
   (lot agrégé).
+- `server/HouseOs.Api/Features/Entretien/EntretienEndpoints.cs` et
+  `server/HouseOs.Api/Features/Mcp/OutilsEntretien.cs` — tier fin de l'adoption d'un
+  pack (`taches.creees`, source `web` ou `mcp`).
+- `server/HouseOs.Api/Features/Courriel/CourrielEntrantService.cs` — tier fin des
+  documents reçus (`documents.recus`).
 - `web/src/lib/synchro.ts` — table module → clés à invalider, coalescence, règle du
   toast, libellés, auteur du médaillon (`auteurPour`).
 - `web/src/hooks/useSynchro.ts` — connexion, reconnexion, montée des toasts.

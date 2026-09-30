@@ -27,7 +27,7 @@ tort — corriger dans la même session. Maintenu sous le contrat du skill globa
 > [!warning] Ne lis pas les notes `Plan …` par défaut
 > Un plan est immuable une fois exécuté ; la vérité courante est dans la spec et le
 > Recap de la feature. Ouvre un plan seulement pour le reprendre (en cours as of
-> 2026-09-28 : [[Plan 2026-09-28 Emménagement V2]]) ou pour l'archéologie d'un choix. Certains dépassent 80 Ko.
+> 2026-09-30 : [[Plan 2026-09-28 Emménagement V2]], étape 4 seulement) ou pour l'archéologie d'un choix. Certains dépassent 80 Ko.
 
 ## Échelle de cérémonie (ce qu'une tâche doit au vault)
 
@@ -38,12 +38,12 @@ tort — corriger dans la même session. Maintenu sous le contrat du skill globa
 - **T3 — coûteux à renverser** (schéma, architecture, sécurité, convention
   transversale, contrat externe) : fichier de décision obligatoire + spec + note de plan.
 
-## Contexte projet (as of 2026-08)
+## Contexte projet (as of 2026-09)
 
-Déménagement le 2026-10-06 à Sainte-Catherine-de-la-Jacques-Cartier. V0
-« Déménagement » visée mi-septembre (tâches ponctuelles), V1 autour de l'emménagement
-(récurrence + équipements). Jamais d'enfants — aucune feature famille/points, jamais.
-Recherche initiale : `docs/research/` (3 rapports, 2026-08-23).
+Déménagement le 2026-10-06 à Sainte-Catherine-de-la-Jacques-Cartier. Phases 1 et 2
+livrées ; la feuille de route par phases et ce qui reste sont dans [[Architecture]].
+Jamais d'enfants — aucune feature famille/points, jamais.
+Recherche de marché et de matériel : `docs/research/` (un rapport daté par sujet).
 
 ## Map of content
 
@@ -54,7 +54,7 @@ Liste en texte, groupée par feature (le `.base` ci-dessus ne se lit que dans Ob
 `(remplacée)` = `status: superseded` ; la remplaçante est dans la même ligne.
 Une décision transversale gouverne plusieurs features.
 
-- **Transversales** — [[D-2026-08-23 Plateforme Hobby Cœur Custom]] · [[D-2026-08-23 Monorepo]] · [[D-2026-08-23 Monolithe Modulaire Tranches Verticales]] · [[D-2026-08-23 PostgreSQL]] · [[D-2026-08-23 Frontend Vite React PWA]] · [[D-2026-08-25 Retrait Du Service Worker]] · [[D-2026-08-23 Direction Artistique Cuisine Chaleureuse]] · [[D-2026-08-23 Pas De N8n Dans Le Cœur]] · [[D-2026-08-23 Notifications Par Flux iCal]] · [[D-2026-08-23 Standard IoT MQTT Discovery]] · [[D-2026-08-23 Interface Desktop Et Écran E-ink]] (remplacée) → [[D-2026-09-19 Interface Téléphone Distincte]] · [[D-2026-08-23 Hébergement Maison Tailscale Docker]] (remplacée) → [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]] · {D}
+- **Transversales** — [[D-2026-08-23 Plateforme Hobby Cœur Custom]] · [[D-2026-08-23 Monorepo]] · [[D-2026-08-23 Monolithe Modulaire Tranches Verticales]] · [[D-2026-08-23 PostgreSQL]] · [[D-2026-08-23 Frontend Vite React PWA]] · [[D-2026-08-25 Retrait Du Service Worker]] · [[D-2026-08-23 Direction Artistique Cuisine Chaleureuse]] · [[D-2026-08-23 Pas De N8n Dans Le Cœur]] · [[D-2026-08-23 Notifications Par Flux iCal]] · [[D-2026-08-23 Standard IoT MQTT Discovery]] · [[D-2026-08-23 Interface Desktop Et Écran E-ink]] (remplacée) → [[D-2026-09-19 Interface Téléphone Distincte]] · [[D-2026-08-23 Hébergement Maison Tailscale Docker]] (remplacée) → [[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]
 - **Tâches** — [[D-2026-08-23 Moteur De Récurrence Trois Modes]] · [[D-2026-08-23 Zones Plates]] · [[D-2026-08-23 Flux iCal Par Personne]] · [[D-2026-08-24 Annulation Et Passage D'occurrences]] (remplacée) → [[D-2026-08-28 Annulation Et Passage D'occurrences]] · [[D-2026-08-25 Invariants D'occurrence En Base]] · [[D-2026-08-25 Ruban Des 7 Prochains Jours]] · [[D-2026-08-25 Bilan Hebdo Du Ménage]] · [[D-2026-08-26 Documents Liés Aux Tâches]] · [[D-2026-08-26 Page Tâches Rythmes Et Année]] · [[D-2026-08-26 Vue Année Défilante]] · [[D-2026-08-28 Glissement Hors Fenêtre Des Intervalles]] · [[D-2026-08-28 Passer Conserve L'assigné]] · [[D-2026-09-28 Recherche Globale Sur La Touche Slash]]
 - **Équipements / Documents** — [[D-2026-08-23 Fichiers Sur Disque]] (remplacée) → [[D-2026-08-24 Document Unifié Sur Disque]] · [[D-2026-08-24 Catégories Et Échéance De Document]] · [[D-2026-08-25 Miniatures De Documents]] · [[D-2026-08-26 Dossier De Document]] · [[D-2026-08-26 Navigation Documents Par Facettes]] · [[D-2026-09-02 Boîte À Classer Des Documents]]
 - **Courriel Entrant** — [[D-2026-09-02 Courriel Entrant Par Cloudflare Et R2]] · [[D-2026-09-02 Enrichissement LLM À L'ingestion]]
@@ -79,7 +79,7 @@ Une décision transversale gouverne plusieurs features.
 ![[Features.base]]
 
 Liste en texte (le `.base` ci-dessus ne se lit que dans Obsidian). Statut as of
-2026-09-28 : toutes `implemented` sauf [[Emménagement V2]] (`approved`). Quand un statut change, mettre la ligne à jour.
+2026-09-30 : toutes `implemented` ([[Emménagement V2]] l'est depuis le 2026-09-30, son étape budget encore ouverte). Quand un statut change, mettre la ligne à jour.
 
 - [[Tâches]] — le cœur : tâches récurrentes/ponctuelles, occurrences, assignation, ruban 7 jours, vue année.
 - [[Équipements]] — inventaire de la maison : marque, série, garantie, manuels, specs JSONB.
@@ -102,11 +102,10 @@ Liste en texte (le `.base` ci-dessus ne se lit que dans Obsidian). Statut as of
 - [[Fonds De Tiroir]] — les petits faits datés que la maison sait d'elle-même (normales climatiques, banque du hasard, sources municipales).
 - [[Journal De La Maison]] — l'éditorialiste de l'écran : une édition par jour, écrite par Opus, mise en page à rangs.
 - [[Lettre Du Matin]] — le courriel du matin : la maison écrit à ses habitants, même matière que le journal, SMTP (en prod depuis le 2026-09-21).
-- [[Emménagement V2]] — parapluie post-déménagement (approuvé 2026-09-28) : catégorie d'équipement, packs d'entretien de zone 4, skill de semis, budget sur le vrai compte, dette.
+- [[Emménagement V2]] — parapluie post-déménagement (livré 2026-09-29) : catégorie d'équipement, packs d'entretien de zone 4, skill de semis, dette fermée ; reste le budget sur le vrai compte.
 
 ### Référence
 - [[Architecture]] — stack, structure du monorepo, feuille de route par phases.
-- [[Distribution]] — dépôt public : contrat d'installation (`.env`), contribution, CI.
 - [[Éditorialiste De L'Écran]] — la direction retenue pour l'écran mural (2026-09-20) :
   fonds de tiroir, règle de bascule, sources municipales. Matériau ; bâti le
   2026-09-21 en [[Fonds De Tiroir]] + [[Journal De La Maison]].
