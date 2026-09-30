@@ -70,4 +70,11 @@ consommations proposées.
 - `grep -r "AmazonS3Client" server/HouseOs.Api/Features/Courriel/` retourne le
   dépôt R2.
 - `infra/tailscale-serve.json` ne monte toujours que `/ical`.
-- Aucun paquet MailKit dans `server/HouseOs.Api/HouseOs.Api.csproj` (MimeKit seul).
+- `rg ImapClient server/HouseOs.Api` ne retourne rien : le serveur ne relève aucune
+  boîte.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> La clause « aucun paquet MailKit » est tombée le 2026-09-21 : MailKit sert au courriel
+> **sortant** ([[D-2026-09-21 Courriel Sortant Par SMTP]]). Ce que la décision écarte —
+> relever une boîte par IMAP — se vérifie maintenant directement. Le corps de la décision
+> n'a pas été touché.

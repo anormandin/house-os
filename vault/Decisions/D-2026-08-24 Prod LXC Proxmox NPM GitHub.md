@@ -57,6 +57,11 @@ Contraintes d'exécution qui découlent du lab :
 
 ## Confirmation
 
-`Dockerfile` + `.env.example` à la racine ; `TZ` et `ASPNETCORE_FORWARDEDHEADERS_ENABLED`
+`Dockerfile` + `.env.example` à la racine ; `TZ` et `Reseau__ProxiesConnus`
 dans `docker-compose.yml` ; remote `origin` → `github.com/anormandin/house-os` ;
 LXC `house-os` sur pve avec cron `backup.sh`.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> `ASPNETCORE_FORWARDEDHEADERS_ENABLED` a été remplacé par une liste explicite de proxies
+> de confiance (`RESEAU_PROXIES_CONNUS`) à la ronde QA d'août — voir [[Déploiement]]. Le
+> corps de la décision n'a pas été touché.

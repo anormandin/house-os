@@ -52,5 +52,10 @@ Choix d'Alain, en grillage.
 ## Confirmation
 
 Une tâche récurrente annuelle dont le titre contient « collectes » existe en prod
-(`lister_taches` via [[Serveur MCP]]), et `grep -rn "pdftotext" .` dans le dépôt ne
-retourne rien.
+(`lister_taches` via [[Serveur MCP]]), et `grep -rn "pdftotext" server web/src infra`
+ne retourne rien.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> Le `grep` portait sur tout le dépôt et ne pouvait pas revenir vide : le mot est dans
+> cette décision, dans d'autres notes du vault et dans une maquette. Il est resserré au
+> code. Le corps de la décision n'a pas été touché.

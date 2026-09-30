@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-30
-verified-against: c4fdf0e
+verified-against: 6d1fda0
 tags: [iot]
 ---
 
@@ -18,15 +18,6 @@ quatorze, il doit rester de quoi remplir une bande de pied.
 Matériau d'origine : [[Éditorialiste De L'Écran]] (trois tours de maquettes,
 2026-09-20). Premier consommateur : [[Journal De La Maison]]. Second consommateur prévu :
 [[Lettre Du Matin]] (courriel sortant, spec 2026-09-21).
-
-> [!note] Bâti : les six familles (as of 2026-09-21).
-> L'étape 2 du [[Plan 2026-09-20 Journal Éditorial]] a livré le fait, le moteur de score
-> et les sept items du ciel ; l'étape 3 les huit items de la maison et les quatre du
-> calendrier ; l'étape 4 les deux du hasard ; l'étape 5 les cinq du climat, avec la
-> **première migration** du chantier ; l'étape 6 les trois de la ville, avec la
-> **seconde**. Depuis l'étape 7, la **fraîcheur** lit les clés publiées par les sept
-> dernières éditions (`Features/Editorial/MemoireDesEditions.cs`) — le fonds, lui, ne
-> sait toujours pas qu'une édition existe.
 
 ## Comportement
 
@@ -144,245 +135,13 @@ foyer qui n'a pas rempli `METEO_LATITUDE` garde tout le reste de son journal.
 Détail par item, avec source et rareté : la table du fonds de tiroir dans
 `design/maquettes/une-editorialiste.html`. ✅ = famille branchée.
 
-### Le ciel, en détail (as of 2026-09-20)
+Les règles propres à chaque famille — seuils, pièges trouvés en chemin, ce qui fait
+taire un fait — vivent dans deux sous-notes :
 
-| Clé | Rareté | Ne sort que si |
-|---|---|---|
-| `ciel.jour` | tous les jours | — (nuit ou jour polaire : il le dit autrement, 60×/an) |
-| `ciel.derive` | tous les jours | la dérive atteint la minute (nulle autour des solstices) |
-| `ciel.lune` | 25×/an | pleine ou nouvelle lune, une seule journée |
-| `ciel.saison` | 4×/an | le jour même, **dans le fuseau du foyer** |
-| `ciel.saison-approche` | 40×/an | dix jours avant |
-| `ciel.equilibre` | 2×/an | la durée du jour franchit douze heures — ce n'est **pas** l'équinoxe : la réfraction décale la bascule de quelques jours |
-| `ciel.changement-heure` | 28×/an | quatorze jours avant **et le jour même**, si le fuseau en a un |
-| `ciel.noirceur` | tous les jours | une tâche ouverte est dans une zone extérieure |
-
-> [!warning] La bascule d'heure a lieu au petit matin.
-> Le jour du changement, l'horloge porte déjà le nouveau décalage à midi. Chercher la
-> prochaine bascule « à partir d'aujourd'hui » la rend donc **invisible le seul jour où
-> elle compte** — le fait doit comparer à partir de la veille, et parler au passé ce
-> jour-là. Trouvé en revue de code, 2026-09-20.
-
-### Le climat, en détail (as of 2026-09-20)
-
-Cinq items, sur une dizaine d'années de l'archive Open-Meteo (réanalyse ERA5) tirées
-une fois l'an pour les coordonnées du `.env`
-([[D-2026-09-20 Normales Climatiques Depuis L'archive Open-Meteo]]).
-
-| Clé | Rareté | Pertinence | Ne sort que si |
-|---|---|---|---|
-| `climat.gel` | 38×/an | 2 · **3** dans la semaine | la date normale du premier gel est à moins d'un mois devant, ou à moins d'une semaine derrière |
-| `climat.neige` | 38×/an | 2 · **3** dans la semaine | idem, pour la première neige |
-| `climat.douceur` | 29×/an | 1,5 · **2** dans la semaine | idem, pour la dernière journée à vingt degrés — fenêtre plus courte : trois semaines avant, ce n'est encore qu'une statistique |
-| `climat.mois` | 61×/an | 1,5 les sept premiers jours, sinon 1 | on est **dans** le mois le plus sec ou le plus arrosé de l'année — et l'écart entre les deux vaut au moins un quart, sans quoi on classerait la longueur des mois |
-| `climat.an-dernier` | tous les jours | 1 · **1,5** au-delà de huit degrés d'écart | l'archive couvre la même date, un an plus tôt |
-
-La fenêtre **est** la rareté : « un mois avant, une semaine après » fait trente-huit
-jours de parution possible, et c'est ce compte-là qu'on écrit — pas une envie.
-
-> [!warning] Le gel qu'on annonce est celui du **sol**, pas celui de l'abri.
-> Relevé au premier tirage réel : à zéro degré, la médiane des neuf saisons tombait au
-> **27 octobre**, trois semaines après le gel que tout le monde connaît ici. Une maille
-> de neuf kilomètres à deux mètres du sol ne voit ni le rayonnement nocturne d'un jardin
-> ni l'air froid qui s'y accumule — c'est la raison pour laquelle les avertissements de
-> gel s'émettent partout à deux ou quatre degrés annoncés. Seuil à **3 °C** : médiane au
-> **3 octobre**, ce que disent les normales publiées de la station. Ce n'est pas un
-> ajustement québécois, c'est un écart vrai partout.
-
-> [!note] La saison, et non l'année civile.
-> Un premier gel du 3 janvier et un du 5 octobre appartiennent au même hiver ; une
-> moyenne par année civile les mélangerait en une date de juin qui n'existe nulle part.
-> Les saisons se comptent depuis le **mois qui suit le plus chaud**, déduit de l'archive
-> et non supposé — le dépôt est public et l'hémisphère sud a son été en janvier.
-> La **date** se prend à la médiane (une année aberrante ne doit pas la déplacer),
-> l'**écart** à la moyenne (cette même année doit se voir dans l'imprécision annoncée).
-
-> [!note] Une normale qui n'en est pas ne sort pas.
-> Moins de trois saisons complètes, un événement qui n'arrive pas dans 60 % des saisons
-> (une neige décennale), ou une douceur qui ne s'arrête jamais — la normale tomberait
-> alors au bord de la fenêtre de recherche, ce qui est le signe des tropiques. Dans les
-> trois cas la valeur est absente et le fait se tait, exactement comme le lever du
-> soleil au-delà du cercle polaire.
-
-> [!warning] « L'an dernier » ne peut pas venir des tables de prévisions.
-> `previsions_quotidiennes` est **remplacée à chaque heure** (`past_days=1`) et
-> `releves_meteo` ne garde sept jours de brut : la maison n'a aucune mémoire du temps
-> qu'il a fait. La journée d'il y a un an vient donc de l'archive, qui est **gardée en
-> table** plutôt que jetée après le calcul. Les tables de [[Météo]] servent l'autre
-> moitié du fait : le **maximum d'aujourd'hui**, qui transforme une température en
-> comparaison. Sans lui, le fait change de phrase au lieu de se taire.
-
-> [!warning] Le rattrapage d'une semaine doit franchir le Nouvel An.
-> Une normale au 28 décembre, lue le 2 janvier, vient de passer depuis cinq jours — en
-> plein dans la fenêtre de rattrapage — mais son occurrence de l'**année courante** est
-> à presque douze mois. Chercher la date « cette année, sinon l'an prochain » faisait
-> donc disparaître le fait précisément dans la fenêtre pour laquelle le rattrapage
-> existe. C'est le même défaut que la bascule d'heure du ciel, à l'autre bout de
-> l'année. Trouvé en revue de code, étape 5.
-
-> [!warning] Un tirage maigre ne remplace pas un bon.
-> Le danger n'est pas la panne, qui se voit et se réessaie : c'est le 200 maigre. Une
-> réponse tronquée remplacerait dix ans d'archive par trois mois **et** poserait un
-> horodatage tout neuf, qui interdit de réessayer avant 360 jours — une année de
-> silence sur une ligne d'*information*. Un tirage doit couvrir 90 % de la fenêtre
-> demandée et ne pas rendre moins de saisons complètes que ce qui est en base, sinon il
-> est écarté et on repasse dans quelques heures. Trouvé en revue de code, étape 5.
-
-> [!note] Les textes du climat portent leur chiffre à la fin, et le mur coupe.
-> Le widget s'arrête à deux lignes : « Sur 9 saisons, la première gelée au sol s'est
-> présentée à… » perdait précisément l'imprécision que la décision exige de porter. Les
-> cinq textes sont écrits court et un test les borne à **soixante signes** — une règle
-> d'écriture comme les trente signes de la valeur, ni pixel ni colonne. Trouvé au rendu
-> de l'étape 5.
-
-### La maison, en détail (as of 2026-09-20)
-
-Les seuils sont éditoriaux, pas techniques : ils disent à partir de quand une chose
-vraie devient une chose qu'on a envie de lire.
-
-| Clé | Rareté | Pertinence | Ne sort que si |
-|---|---|---|---|
-| `maison.serie` | tous les jours | 1,5 | trois jours d'affilée au moins, et le fait `maison.record` ne parle pas (donc : série < record, **ou** série trop courte pour être un record) |
-| `maison.record` | 6×/an | 2 | la série en cours **égale ou dépasse** le record, à partir de cinq jours |
-| `maison.seances` | tous les jours | 1,5 · **3** aux dizaines | une tâche a été cochée dix fois ou plus |
-| `maison.doyen` | tous les jours | 1,5 · **3** si l'entretien est dans la quinzaine | le plus vieil équipement daté a au moins un an |
-| `maison.piece-oubliee` | tous les jours | 2 · **3** passé six mois | une zone **qui a des tâches** n'a rien eu de coché depuis soixante jours (ou jamais) |
-| `maison.cout` | tous les jours | 1,5 | au moins un coût consigné depuis le 1er janvier |
-| `maison.anniversaire` | 12×/an | 2 | un équipement ou un jalon du foyer a son mois-jour aujourd'hui, et au moins un an |
-| `maison.an-dernier` | 180×/an | 1,5 | quelque chose a été coché un an jour pour jour avant aujourd'hui |
-
-> [!warning] Deux seuils qui se croisent font un trou, et il faut les croiser exprès.
-> La série se tait quand elle **est** le record (deux colonnes pour le même chiffre,
-> c'est une colonne perdue) et le record ne parle qu'**à partir de cinq jours**. Pris
-> séparément, les deux seuils laissaient muette une série de trois ou quatre jours qui
-> est aussi le record — c'est-à-dire **la première série d'une maison neuve**, le moment
-> précis que ce fait existe pour raconter. La série ne se tait donc que lorsque le record
-> parle vraiment, et elle change de texte quand elle est le meilleur résultat à ce jour,
-> plutôt que de citer un record égal au chiffre qu'elle affiche déjà. Trouvé en revue de
-> code, étape 4.
-
-> [!note] La série se compte **jusqu'à hier** quand la journée n'a rien donné.
-> À six heures du matin rien n'est encore fait. Exiger une complétion du jour ferait
-> annoncer « série rompue » chaque matin et « douze jours » chaque soir — un journal qui
-> se contredit entre deux réveils. La série se casse à la fin de la journée, pas à son
-> premier café.
-
-### Le calendrier, en détail (as of 2026-09-20)
-
-| Clé | Rareté | Pertinence | Ne sort que si |
-|---|---|---|---|
-| `calendrier.compte-a-rebours` | tous les jours | 1,5 · **3** la dernière semaine | la cible est devant et à moins de cent vingt jours |
-| `calendrier.ca-s-en-vient` | tous les jours | 1,5 | **au moins deux** échéances ouvertes entre 7 et 30 jours — en deçà de sept, la liste du jour les montre déjà |
-| `calendrier.saison` | 56×/an (fermeture), 28×/an (ouverture) | 2 · 1 | une fenêtre saisonnière se referme dans la quinzaine, sinon une qui s'est ouverte dans la semaine |
-| `calendrier.expiration` | 60×/an | 1,5 · **3** dans la quinzaine | une garantie d'équipement ou l'échéance d'un document tombe dans les soixante jours |
-
-> [!warning] Le compte à rebours sort **deux fois** si le consommateur n'y prend garde.
-> [[Journal De La Maison]] dessine déjà son encadré, et le fonds ne sait pas qu'un
-> encadré existe — c'est la décision, et la lettre du matin voudra le fait. C'est donc
-> au consommateur d'écarter le doublon : `CLES_DEJA_AU_JOURNAL`
-> (`web/src/lib/ecran-vues.ts`), testé. Trouvé à l'étape 3.
-
-### La ville, en détail (as of 2026-09-21)
-
-Trois items, et **rien de municipal** : la matière arrive par [[Flux Externes]], dont
-le **type** fait le tri — un flux `Collecte` donne les collectes, un flux `Municipal`
-donne les événements ([[D-2026-09-20 Sources Municipales Séparées Par Solidité]]).
-
-| Clé | Rareté | Pertinence | Ne sort que si |
-|---|---|---|---|
-| `ville.collecte` | tous les jours | 1,5 · **3** la veille · 2 le jour même | une collecte est devant, à moins de sept jours — et ce n'est pas la collecte spéciale |
-| `ville.collecte-speciale` | comptée dans le flux (fenêtre de 14 j) | 2 · **3** la veille | une collecte dont le titre **ne revient pas** dans la fenêtre du flux tombe dans les quinze jours, et le calendrier porte au moins quatre collectes |
-| `ville.evenement` | comptée dans le flux (fenêtre de 7 j) | 1,5 · **2** aujourd'hui ou demain | un flux `Municipal` encore alimenté annonce quelque chose dans la semaine |
-
-> [!warning] Un flux périmé cesse de sortir au lieu de mentir.
-> C'est **la** règle de la famille ([[D-2026-09-20 Flux Externe Poussé]]). Un gratteur
-> mort il y a un mois laisserait son programme passer pour celui de cette semaine ; un
-> calendrier de collectes qui ne se télécharge plus finirait par annoncer l'an dernier.
-> Au-delà de **sept jours** sans remplacement — téléchargement ICS réussi ou poussée
-> reçue, c'est le même horodatage — un flux ne nourrit plus le fonds. Sept et non trois :
-> un flux ICS se retélécharge toutes les six heures et un flux poussé une fois par jour ;
-> sept jours de silence, des deux côtés, est une panne et non un creux.
-
-> [!note] La collecte spéciale se reconnaît à ce qu'elle ne revient pas.
-> On ne sait pas ce qu'une collecte **est** — aucune connaissance municipale n'entre
-> dans le dépôt : on voit qu'un titre ne paraît qu'une fois dans la fenêtre du flux, là
-> où le bac hebdomadaire y revient huit fois. C'est générique (ça vaut pour n'importe
-> quelle ville) et c'est la seule marque disponible. Conséquence assumée : une collecte
-> saisonnière qui n'a qu'une occurrence dans la fenêtre (les feuilles, au printemps)
-> sort aussi comme « spéciale » — ce qui est vrai, et utile. Garde-fou : en deçà de
-> quatre collectes, le calendrier n'a pas assez d'habitudes pour qu'on juge, et le fait
-> se tait.
-
-> [!note] Quand la spéciale est aussi la prochaine, une seule des deux parle.
-> Deux widgets pour le même camion, c'est une colonne perdue — même croisement voulu
-> que la série et le record de la maison. C'est `ville.collecte` qui se tait : la
-> spéciale dit la même chose, mieux.
-
-> [!warning] Ce que le journal dessine à part doit être **écrit par le fonds**.
-> Le journal garde une place fixe à la prochaine collecte — sortir le bac est le geste
-> du soir, il ne doit pas dépendre d'un classement — et `ville.collecte` rejoint donc
-> `CLES_DEJA_AU_JOURNAL` (`web/src/lib/ecran-vues.ts`) avec le compte à rebours. Mais
-> ce widget lisait jusqu'à l'étape 6 une **colonne à part** (`DonneesEcran.ProchaineCollecte`)
-> qui ne jugeait ni la fraîcheur du flux ni la distance : la seule règle de la famille
-> était court-circuitée par le seul consommateur qui l'affiche. Le widget prend
-> maintenant les mots du fait, et la colonne a disparu du contrat. Trouvé en revue de
-> code, étape 6.
-
-> [!warning] Le bandeau du jour publiait la ville une seconde fois.
-> `EvenementsDuJour` montrait **tous** les événements externes du jour, types compris,
-> sans rien juger : le jour d'une séance du conseil, le mur l'affichait en « Aujourd'hui,
-> au calendrier » *et* en widget « En ville » — et l'affichait encore si le gratteur était
-> mort depuis un mois. Le bandeau laisse désormais les types `Collecte` et `Municipal` à
-> leur famille (`ComposerDonneesEcran.EstDeLaVille`). Trouvé en revue de code, étape 6.
-
-> [!note] La rareté d'un fait de flux se compte **dans le flux**.
-> Comme la fête du hasard, dont la rareté se compte dans la banque : une ville qui
-> publie deux événements par an donne un fait bien plus rare que celle qui en publie
-> cinquante, et un nombre écrit en dur aurait menti pour l'une des deux. Le flux ne
-> portant que sa fenêtre d'ingestion (60 jours), sa densité est ramenée à l'année puis
-> multipliée par les jours d'avance où le fait parle. L'estimation penche du côté
-> « plus fréquent que la vérité » quand l'événement rare tombe justement dans la
-> fenêtre chargée — et c'est le bon penchant : elle fait **baisser** le score.
-
-### Le hasard, en détail (as of 2026-09-20)
-
-Deux items, et rien qui vienne d'un calcul ou d'une table : la matière est un **fichier
-de données remplaçable** ([[D-2026-09-20 Banque Du Hasard En Fichier De Données]]).
-L'app en livre une version québécoise ; `HASARD_FICHIER` la remplace.
-
-| Clé | Rareté | Pertinence | Ne sort que si |
-|---|---|---|---|
-| `hasard.fete` | le nombre de fêtes **de la banque** (20 dans celle du Québec) | 2 si c'est un jour chômé, sinon 1,5 | une fête de la banque tombe aujourd'hui |
-| `hasard.dicton` | tous les jours | **0,5** (bouche-trou) | la banque a au moins un dicton pour le mois |
-
-La rareté de la fête **se compte dans la banque elle-même** : « combien de jours par
-année le fait peut paraître » est exactement le nombre d'entrées. Un foyer qui n'inscrit
-que ses huit jours chômés obtient un fait deux fois plus rare que celui qui en inscrit
-vingt — et c'est exact, là où un nombre écrit en dur aurait menti pour l'un des deux.
-
-Le dicton du jour est choisi par le **quantième**, dans la liste du mois : figé pour la
-journée (comme tout `ContexteDuJour`), différent le lendemain. Rien d'aléatoire, malgré
-le nom de la famille — un journal qui change de dicton entre deux réveils se contredirait
-tout seul.
-
-> [!note] Le dicton est le seul fait dont la matière vit dans le **texte long**.
-> Un proverbe n'a pas de chiffre à mettre en valeur, et il ne tient pas dans les trente
-> signes de la forme courte : c'est donc l'étiquette qui dit « Le dicton », la valeur qui
-> dit le mois, et le texte qui porte le proverbe. Ça tombe bien — un bouche-trou ne
-> paraît que lorsque le journal a de la place, donc lorsqu'il montre les textes longs.
-> **Relevé au rendu de l'étape 4** : la hiérarchie typographique du widget s'en trouve
-> inversée (le mois en gros, le proverbe en petit). C'est vivable et c'est le seul
-> découpage qui ne coupe pas le proverbe ; à revoir avec l'éditorialiste (étape 7), pas
-> avant.
-
-> [!warning] Les fêtes mobiles sont la moitié des jours fériés du Québec.
-> Pâques et ses deux congés, la Journée des patriotes, la fête du Travail, l'Action de
-> grâce : une banque de dates fixes serait fausse quatre jours par an. Une fête déclare
-> donc **quand elle tombe** sous l'une de quatre formes déclaratives — date fixe ;
-> n-ième jour de semaine du mois (rang négatif = depuis la fin) ; dernier jour de semaine
-> **avant** une date (« le lundi qui précède le 25 mai », strictement avant, même quand le
-> 25 est lui-même un lundi) ; décalage en jours depuis Pâques. Le comput grégorien est
-> écrit à la main, comme les éphémérides.
+- [[Fonds De Tiroir Ciel Et Climat]] — ce qui se calcule du dehors : éphémérides et
+  normales climatiques.
+- [[Fonds De Tiroir Maison Calendrier Ville Et Hasard]] — ce qui se lit dans les
+  données du foyer, les flux de la ville et la banque du hasard.
 
 ### Les sources
 

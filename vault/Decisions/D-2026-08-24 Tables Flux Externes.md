@@ -48,5 +48,13 @@ lecture). Pas d'archive brute.
 
 - Une migration EF contenant `FluxExternes`/`EvenementsExternes` existe sous
   `server/HouseOs.Api/Infrastructure/Migrations/`.
-- Le seul téléchargement hors worker est dans le handler de création/validation
-  de flux (`Features/FluxExternes/`).
+- Hors worker, `FluxExternesRafraichissement.Rafraichir` n'est appelé que par les
+  gestes d'administration d'un flux : création, et modification quand l'URL change
+  (`Features/FluxExternes/FluxExternesEndpoints.cs`, et leurs pendants MCP dans
+  `Features/Mcp/OutilsFlux.cs`). Aucune lecture ne télécharge.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> La clause disait « le seul téléchargement hors worker est dans le handler de
+> création ». Le changement d'URL et la parité MCP s'y sont ajoutés ; le principe (aucune
+> lecture ne dépend du réseau externe) tient. Le corps de la décision n'a pas été touché
+> — voir [[Flux Externes]].

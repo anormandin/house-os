@@ -111,7 +111,8 @@ Liste en texte (le `.base` ci-dessus ne se lit que dans Obsidian). Statut as of
   2026-09-21 en [[Fonds De Tiroir]] + [[Journal De La Maison]].
 - [[Ronde QA 2026-08]] — constats de la ronde QA d'août, ce qui a été corrigé ou non.
 - [[Banque D'idées]] — sac d'idées de features tiré du balayage du marché
-  (110 apps notées, catalogue par catégorie, leçons de monétisation).
+  (110 apps notées, leçons de monétisation) ; le catalogue par catégorie est dans
+  [[Catalogue Des Apps Du Domaine]].
 
 ### Inspiration UI
 - [[Inspiration UI]] — index du dossier : directions artistiques, patterns, e-ink,

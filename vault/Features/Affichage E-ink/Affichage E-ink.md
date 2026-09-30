@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-30
-verified-against: c4fdf0e
+verified-against: 6d1fda0
 tags: [iot]
 ---
 
@@ -275,7 +275,7 @@ mentirait à la seule personne qui le lit de loin.
   renvoie vers trmnl.com (« purchase a BYOD license »).
 - Orientation et rendu 1-bit validés à l'œil sur le panneau. La calibration des
   tailles à 2–3 m est faite le 2026-09-21, avec la broadsheet (« Calibration au mur »
-  dans [[Journal De La Maison]]) ; la cadence de nuit, restée ouverte jusque-là, est
+  dans [[Typographie Du Journal]]) ; la cadence de nuit, restée ouverte jusque-là, est
   réglée le 2026-09-30 (« Cadence et pile »).
 - **2026-09-20** — 16 jours de service mesurés : 4,04 V → 3,79 V. Cadence de jour
   ramenée de 5 à 15 min (voir « Cadence et pile »). La cadence de nuit est réglée le 2026-09-30 : plafond à 4 h.

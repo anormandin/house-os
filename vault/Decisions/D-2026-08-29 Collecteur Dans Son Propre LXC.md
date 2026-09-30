@@ -53,7 +53,15 @@ Docker Compose. house-os y expédie par le LAN. Une clé d'ingestion par applica
 ## Confirmation
 
 - `grep -c "seq:" docker-compose.yml` vaut 0 dans le dépôt house-os.
-- `grep JOURNALISATION_SEQ_CLE .env.example` la documente comme requise.
+- `grep JOURNALISATION_SEQ_CLE .env.example` la montre commentée, avec l'URL : Seq est
+  facultatif pour une installation ; une instance qui pointe vers un collecteur
+  fournit sa clé.
 - `ssh proxmox "pct config 106"` montre le LXC ; `pct exec 106 -- docker compose -f
   /opt/observabilite/docker-compose.yml ps` montre Seq healthy.
 - Une ingestion sans clé sur `http://<106>:5341/api/events/raw` doit rendre **401**.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> La clé n'est plus « requise » dans `.env.example` depuis l'ouverture du dépôt
+> ([[D-2026-09-02 Dépôt Public AGPL Et Instance Générique]]) : la journalisation vers
+> Seq est devenue une option. Le collecteur, lui, refuse toujours une ingestion sans clé
+> (dernière ligne). Le corps de la décision n'a pas été touché — voir [[Observabilité]].

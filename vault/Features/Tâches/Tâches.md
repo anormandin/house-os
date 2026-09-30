@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-30
-verified-against: c4fdf0e
+verified-against: 6d1fda0
 tags: []
 ---
 
@@ -87,148 +87,6 @@ Implémenté (V1 « Emménagement », as-built) :
   parité MCP via `regenerer` sur `mon_flux_ical`) et **URL publique** (Funnel)
   affichée à côté de l'interne quand configurée
   ([[D-2026-08-27 Flux iCal Public Via Tailscale Funnel]]).
-
-Implémenté (cycle de vie des occurrences, 2026-08-24, as-built —
-[[D-2026-08-28 Annulation Et Passage D'occurrences]]) :
-
-- **Annuler une complétion** (deux recours : le toast à action inverse pendant 6 s
-  juste après le geste, et le bouton « Annuler » au survol de la rangée verte, qui ne
-  s'éteint jamais) :
-  journal effacé, occurrence remise en attente avec son échéance d'origine (elle
-  redevient éligible au rollover), occurrence suivante matérialisée supprimée.
-  Garde-fou : seulement la complétion la plus récente de la tâche, et si la suivante
-  est encore en attente (sinon 409).
-- **Passer** (récurrentes seulement, icône au survol) : statut `Passee` daté, aucun
-  journal, la suivante est générée avec l'échéance qu'aurait donnée une complétion
-  aujourd'hui, mais **conserve l'assigné** pour les stratégies tournantes — le tour
-  n'a pas été pris ([[D-2026-08-28 Passer Conserve L'assigné]], QA 2026-08-28).
-  Un passage n'est pas annulable.
-- **Reporter** (icône au survol) : glisse l'échéance de l'occurrence en attente
-  (préréglages demain / +2 j / +7 j, ou date libre ≥ aujourd'hui) sans toucher la
-  définition.
-- **Notes post-hoc** : la rangée verte permet d'ajouter/modifier la note de
-  l'entrée de journal (la complétion reste à un clic) ; la note est retournée dans
-  le DTO d'occurrence.
-- **Confirmation avant suppression** partout (composant partagé « Vraiment ? »,
-  extrait de l'idiome Pièces/Équipements) ; le bouton poubelle d'une rangée supprime
-  toujours la tâche entière.
-- **Erreurs API visibles** : messages ProblemDetails parsés côté client et affichés
-  dans une bannière globale (toutes les mutations, 401 exclus).
-
-Implémenté (bilan hebdo du ménage, 2026-08-25, as-built —
-[[D-2026-08-25 Bilan Hebdo Du Ménage]]) :
-
-- La carte « L'équipe » d'Aujourd'hui est remplacée par **« Bilan »** : total
-  complété cette semaine + mini-histogramme des 8 dernières semaines (lundi au
-  dimanche, semaine locale). Le total est celui du **ménage entier** — l'attribution
-  individuelle (qui a cliqué) est indicative, jamais un fondement de feature.
-- `GET /api/journal/bilan?de=&a=` retourne les instants de complétion dans `[de, a)` ;
-  le client agrège par semaine locale (même patron que le filtre `faites`).
-- Parité MCP : outil `bilan_taches` (comptes par semaine, heure du serveur).
-
-Implémenté (éditeur de tâche, 2026-08-25, as-built) :
-
-- `GET /api/taches/{id}` (et l'outil MCP `gerer_tache`, action `obtenir`) retourne
-  maintenant **`echeance`** : celle de l'occurrence en attente. Corrige le bug où
-  l'éditeur, n'affichant pas l'échéance existante, l'effaçait silencieusement à
-  l'enregistrement d'une tâche ponctuelle.
-- Éditeur : la description est un `textarea` de 4 lignes ; le quick-add (⌘K, pages
-  Aujourd'hui et Tâches) et le panneau d'une pièce ouvrent le **modal complet**
-  (zone préremplie depuis la pièce) ; Échap ferme le modal. `TacheEditeur` est
-  l'unique point d'entrée de création **et** d'édition ; cliquer une rangée
-  d'occurrence (Aujourd'hui, Tâches, Pièces) ouvre l'éditeur de sa tâche.
-- Listes : la description s'affiche en doré, retours à la ligne préservés, y compris
-  sur les tâches en retard (sous la ligne « depuis X jours ») ; les notes de la
-  rangée verte préservent aussi leurs retours à la ligne (en sourdine).
-
-Implémenté (durcissement cas de bord, 2026-08-25, as-built) :
-
-- **Courses de complétion fermées en base** ([[D-2026-08-25 Invariants D'occurrence En Base]]) :
-  deux clics simultanés donnent un 204 et un 409, jamais deux journaux ni deux
-  occurrences suivantes.
-- **Validation croisée récurrence × fenêtre saisonnière** : une combinaison qui ne
-  planifie jamais rien (annuelle hors fenêtre, 31 avril…) répond 400 à la création
-  au lieu de boucler puis 500.
-- **Édition** : convertir une tâche sans occurrence en attente (ponctuelle complétée)
-  en récurrente matérialise une occurrence — plus de tâche invisible ; en stratégie
-  Fixe, la désassignation suit la tâche jusqu'à l'occurrence ; en stratégie
-  tournante, l'assigné choisi par la stratégie est conservé.
-- **Annulation** : refusée aussi quand un « passer » postérieur a fait avancer la
-  chaîne (l'occurrence passée resterait orpheline), et signalée distinctement quand
-  l'entrée de journal manque.
-- **Listes** : filtre inconnu → 400 (au lieu de tout retourner en silence),
-  `faites` exige ses bornes, les complétées sortent des plus récentes (tri avant le
-  plafond de 200) ; FK inexistantes (zone/équipement/assigné) et titres trop longs
-  → 400 au lieu de 500.
-
-Implémenté (ruban des 7 prochains jours, 2026-08-25, as-built —
-[[D-2026-08-25 Ruban Des 7 Prochains Jours]]) :
-
-- **Ruban des 7 prochains jours** (`web/src/components/Ruban.tsx`), composant
-  canonique des tâches à venir : colonnes En retard · aujourd'hui (surligné) ·
-  6 jours (week-end teinté, jour vide = point) · « Plus tard → » (jours 7 à 30,
-  6 lignes max). Puces couleur-de-pièce + avatar, clic → éditeur ; max 3 puces
-  par jour puis « + n autres » dépliable sur place.
-- Sur **Aujourd'hui** : pleine largeur sous le héros ; remplace la carte « Cette
-  semaine » (code retiré) et absorbe les **événements externes** (italique doré
-  + icône, non cliquables) ; le bouton de gestion des flux vit dans son en-tête.
-- Sur **Pièces** : au-dessus de la grille ; choisir une pièce **estompe le reste
-  à 40 %** (événements externes compris).
-- **Horizon : un cycle d'avance, plafonné à 30 jours** — réduit côté client à
-  `échéance ≤ aujourd'hui + 30` (`web/src/lib/ruban.ts`), la matérialisation à
-  la complétion garantissant qu'une occurrence en attente est à au plus un cycle.
-  Aucun changement d'API, pas de parité MCP à toucher.
-- **Couleurs de pièces** : palette fixe de 6 teintes, attribution déterministe
-  par position dans la liste des zones (pas de colonne en base).
-
-Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
-[[D-2026-08-26 Page Tâches Rythmes Et Année]]) :
-
-- La page Tâches est la **console des définitions** (Aujourd'hui reste la todo
-  list) : vue **Rythmes** par défaut — groupes Chaque semaine · Aux quelques
-  jours · Chaque mois · Chaque année & au fil des saisons · Ponctuelles (barre
-  de progression « X faites sur Y », les faites n'apparaissent plus) — avec
-  chips de récurrence en français, lieu (zone · équipement · n docs), échéance
-  colorée (retard rouge / ≤ 3 jours doré), avatar + stratégie ; rangée → éditeur.
-- **Commutateur segmenté « Liste | Année »** à droite du titre ; le dernier mode
-  est mémorisé (localStorage, accès protégé). Le filtre À faire/Complétées et la
-  barre quick-add pointillée ont disparu (⌘K demeure).
-- Vue **Année** ([[D-2026-08-26 Vue Année Défilante]], révision du même jour —
-  la version 12-mois pleine largeur ne survivait pas aux vraies données) :
-  **ruban défilant** à ~11 px/jour, domaine du 1ᵉʳ du mois courant au 31 déc,
-  aujourd'hui ancré à ~20 % au montage, colonne d'étiquettes sticky (titre
-  complet, chips, lieu, avatar) ; **mini-carte** de l'année (fenêtre visible
-  synchronisée, tics de jalons, clic = téléportation) ; jalons des
-  [[Comptes À Rebours|comptes à rebours]] sur deux voies d'étiquettes ; points
-  mensuels (passés estompés) et annuels datés, barres de fenêtres saisonnières
-  (vert en cours / jaune à venir), **longs intervalles (> 15 j) sur la
-  chronologie** avec note « ensuite ≈ … » ; grappes de ponctuelles par jour
-  (voie basse pour les voisines), grappe multiple → **bande « Les ponctuelles —
-  semaine par semaine »** (bloc En retard en rouge + toutes les semaines
-  entièrement dépliées — demande d'Alain du 2026-08-26, remplace l'accordéon
-  3-semaines de la décision ; « Replier » réduit à la barre-titre) ; bandeau
-  « Le tempo court » réduit aux
-  cadences ≤ 15 jours sans fenêtre ; tout clic → éditeur.
-- Nouveau contrat : `GET /api/taches` retourne les définitions
-  (`TacheResumeDto` : récurrence complète, stratégie, `occurrenceId`, échéance
-  et assigné de l'occurrence en attente, `nbDocuments`, `completee`), tri
-  échéance puis titre ; parité MCP `lister_taches`. La logique des deux vues est
-  pure et testée (`web/src/lib/taches-vues.ts`, patron ruban).
-- **Compléter depuis la console** (2026-08-26) : case à cocher sur chaque rangée
-  de la vue Liste et de la bande semaine-par-semaine (via `occurrenceId`) — on
-  peut prendre de l'avance, le moteur matérialisant la suivante à partir de
-  max(complétion, échéance). L'annulation reste sur Aujourd'hui (rangée verte
-  du jour). Compléter/annuler depuis Aujourd'hui invalide aussi la requête
-  `taches` de la console.
-- **Recherche** (2026-09-28, [[D-2026-09-28 Recherche Globale Sur La Touche Slash]]) : la console du bureau a un champ
-  « Chercher une tâche » (titre, description, pièce/équipement ; sans accents, mots
-  dans n'importe quel ordre) qui filtre **avant** de grouper — compteurs et
-  « en retard » parlent de ce qui est à l'écran — et vaut pour les deux vues. La
-  console téléphone cherche sur le titre seul, même comparateur. La touche `/`
-  (ou la loupe de l'en-tête) ouvre la recherche globale du bureau ; une tâche
-  trouvée s'ouvre dans son éditeur sur place. ⌘K reste le quick-add.
-- L'éditeur lie un document par un **choix cherchable** (filtre titre/dossier)
-  plutôt qu'un `<select>` de tout le classeur.
 - **Échéance ferme** (2026-09-21,
   [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]]) : la tâche porte un booléen
   `echeanceFerme` (défaut faux), coché à la main dans l'éditeur — « Cette date ne se
@@ -238,15 +96,13 @@ Implémenté (page Tâches Rythmes ⇄ Année, 2026-08-26, as-built —
   REST remplace tout : omis = faux). Les tâches n'en
   font rien elles-mêmes : c'est le [[Journal De La Maison]] et la [[Lettre Du Matin]]
   qui ne relèguent jamais une telle date.
-- **Programme de la maison** (2026-09-29,
-  [[D-2026-09-28 Packs D'entretien En Fichier De Données]]) : le bouton « Programme
-  de la maison » de l'en-tête ouvre le panneau des entretiens qu'une maison de zone 4
-  demande au fil des saisons (gouttières, robinets extérieurs, détecteurs, coupe-froid…),
-  lus d'un fichier de données ; une tâche de même titre déjà présente (n'importe où,
-  sans accents ni casse) est cochée-grisée, le reste se crée en une transaction par
-  le moteur ordinaire (première occurrence matérialisée, stratégie du pack). Les packs
-  par équipement vivent sur la fiche de l'[[Équipements|équipement]] ; contrat complet
-  dans [[Emménagement V2]].
+
+Le reste du comportement vit dans deux sous-notes :
+
+- [[Cycle De Vie Des Occurrences]] — annuler une complétion, passer, reporter, noter
+  après coup ; courses et cas de bord fermés en base ; bilan hebdo du ménage.
+- [[Écrans Des Tâches]] — l'éditeur unique, le ruban des 7 prochains jours, la console
+  Rythmes ⇄ Année, la recherche, le programme de la maison.
 
 ## Dette connue
 
@@ -284,32 +140,12 @@ filtre. Mesure et récit : [[Recap Emménagement V2]].
   flux + rotation du jeton.
 - [[D-2026-08-23 Zones Plates]] — zones = liste plate CRUD.
 - [[D-2026-08-23 Auth Simple Deux Comptes]] — attribution des complétions.
-- [[D-2026-08-28 Annulation Et Passage D'occurrences]] — annuler/passer/reporter,
-  sort du journal, garde-fous, et les deux recours d'annulation (toast + survol).
-  Supersède [[D-2026-08-24 Annulation Et Passage D'occurrences]], dont la clause
-  « pas de toast » était devenue fausse.
-- [[D-2026-08-28 Passer Conserve L'assigné]] — passer ne fait plus tourner
-  l'assignation (précise la précédente).
 - [[D-2026-08-28 Glissement Hors Fenêtre Des Intervalles]] — une intervalle échue
   hors saison glisse à la prochaine fenêtre.
-- [[D-2026-08-25 Bilan Hebdo Du Ménage]] — carte Bilan (total par semaine) à la
-  place de L'équipe ; attribution individuelle conservée mais indicative.
 - [[D-2026-08-25 Invariants D'occurrence En Base]] — index uniques (une en-attente
   par tâche, une complétion par occurrence), courses converties en 409.
-- [[D-2026-08-25 Ruban Des 7 Prochains Jours]] — le ruban comme composant
-  canonique des tâches à venir ; horizon un-cycle plafonné à 30 jours ;
-  placement Aujourd'hui + Pièces (focus) ; couleurs de zones déterministes.
 - [[D-2026-08-26 Documents Liés Aux Tâches]] — jointure many-to-many
   `TacheDocuments`, sémantique null/[]/liste de `documentIds`.
-- [[D-2026-08-26 Page Tâches Rythmes Et Année]] — la page Tâches comme console
-  des définitions : vue Rythmes + bascule Année, axe Pièces écarté, filtre
-  Complétées retiré, `GET /api/taches` + `lister_taches`.
-- [[D-2026-08-26 Vue Année Défilante]] — le ruban ~11 px/jour + mini-carte +
-  bande accordéon des ponctuelles (option D, ronde 3) ; longs intervalles sur
-  la chronologie, tempo court ≤ 15 jours.
-- [[D-2026-09-28 Recherche Globale Sur La Touche Slash]] — `/` ouvre la recherche globale, ⌘K reste le quick-add ; comparateur
-  partagé sans accents.
-- [[D-2026-09-28 Packs D'entretien En Fichier De Données]] — le programme de la maison.
 - [[D-2026-09-20 Échéance Ferme Explicite Sur La Tâche]] — le booléen `EcheanceFerme`
   sur la tâche, affirmation du foyer, lu par le journal mural et la lettre.
 
@@ -325,21 +161,8 @@ filtre. Mesure et récit : [[Recap Emménagement V2]].
 - `server/HouseOs.Api/Features/Entretien/` — packs d'entretien (programme de la maison, proposer / adopter)
 - `server/HouseOs.Api/Features/FluxIcal/FluxIcalEndpoints.cs` — flux iCal
 - `server/HouseOs.Tests/Domaine/` — tests du domaine (moteur, stratégies)
-- `web/src/components/TacheEditeur.tsx` — éditeur complet (récurrence en français),
-  unique point d'entrée création/édition (`zoneInitialeId`, fermeture par Échap)
 - `web/src/pages/Pieces.tsx` — vue Pièces (fraîcheur, gestion des zones)
-- `web/src/components/Ruban.tsx`, `web/src/lib/ruban.ts` — ruban des 7 prochains
-  jours (groupement pur testé, couleurs de zones)
-- `web/src/pages/Aujourdhui.tsx`, `web/src/components/QuickAdd.tsx` — UI
-- `web/src/pages/Taches.tsx`, `web/src/lib/taches-vues.ts` — console Rythmes ⇄
-  Année (groupement et géométrie purs testés)
-- `web/src/lib/recherche.ts` — comparateur partagé (accents, mots en désordre) ;
-  `web/src/components/ChampRecherche.tsx`, `ChoixCherchable.tsx`,
-  `RechercheGlobale.tsx` — champ de page, picker cherchable, palette `/`
-- `web/src/components/OccurrenceListe.tsx` — rangées de tâches (retard, complétée,
-  échéance, annuler/passer/reporter/notes)
-- `web/src/components/ConfirmerSuppression.tsx` — suppression en deux temps « Vraiment ? »
-- `web/src/lib/erreurs.ts`, `web/src/components/BanniereErreur.tsx` — erreurs globales
+- `web/src/pages/Aujourdhui.tsx` — la page d'accueil
 - `server/HouseOs.Tests/Features/Taches/` — tests d'orchestration (harnais Sqlite in-memory)
 - `web/src/index.css` — tokens du design chaleureuse (source : maquettes)
 - `web/src/lib/format.ts` — typographie québécoise (dates, « 14 h 10 », dodos)
@@ -354,10 +177,10 @@ filtre. Mesure et récit : [[Recap Emménagement V2]].
 - [[Plan 2026-08-23 V1 Emménagement]] · [[Recap V1 Emménagement]]
 - [[Plan 2026-08-24 Cycle De Vie Des Occurrences]] · [[Recap Cycle De Vie Des Occurrences]]
 - 2026-08-25 Bilan hebdo du ménage — tranche directe sans plan, voir
-  [[D-2026-08-25 Bilan Hebdo Du Ménage]] et la section as-built ci-dessus.
+  [[Cycle De Vie Des Occurrences]].
 - 2026-08-25 Éditeur de tâche / quick-add / pièces — tranche directe sans plan
   (échéance chargée dans l'éditeur, modal unique, tâches depuis une pièce), voir
-  la section as-built ci-dessus.
+  [[Écrans Des Tâches]].
 - 2026-08-25 Durcissement cas de bord — audit de couverture (artifact « Angles
   morts de House OS »), correctifs + tests, voir [[Suite De Tests]] et
   [[D-2026-08-25 Invariants D'occurrence En Base]].

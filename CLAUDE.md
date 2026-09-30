@@ -17,9 +17,9 @@ Le contexte personnel du mainteneur vit dans `CLAUDE.local.md` (gitignoré).
 - **Monorepo** ; hébergé sur une machine maison toujours allumée, tout en **Docker Compose** (une image API + web, Postgres à côté).
 - **Backend** : .NET 10, monolithe modulaire en **tranches verticales** (`Features/<Module>/` : endpoints + opérations + DTOs), minimal APIs, EF Core + Npgsql. Domaine riche (`Domaine/`) testé sans base.
 - **DB** : PostgreSQL (JSONB pour métadonnées flexibles ; backups pg_dump). Migrations EF générées, jamais de schéma modifié à la main.
-- **Frontend** : Vite + React + TypeScript + TanStack Query + Tailwind. **UI 100 % français, chaînes en dur** (pas de lib i18n). **Desktop d'abord** ; installable sans service worker ; l'écran e-ink mural sera une seconde vue distincte (rendu serveur, phase 3).
+- **Frontend** : Vite + React + TypeScript + TanStack Query + Tailwind. **UI 100 % français, chaînes en dur** (pas de lib i18n). **Desktop d'abord** ; installable sans service worker. Deux autres vues distinctes sur la même API : le téléphone (son propre arbre d'écrans, pas un bureau rétréci) et l'écran e-ink mural (page rendue par le serveur, protocole TRMNL BYOS).
 - **Auth** : login simple, comptes seedés depuis la config à la première mise en route, cookie de session ; clés API pour les devices IoT plus tard.
-- **Notifications v1** : flux iCal (Ical.Net) par personne. Push/ntfy plus tard.
+- **Notifications v1** : flux iCal (Ical.Net) par personne, et une lettre du matin par courriel (SMTP). Push/ntfy plus tard.
 - **Pas de n8n/Node-RED dans le cœur** : l'ingestion (météo, ICS, courriel…) = un `BackgroundService` .NET par source vers des tables normalisées ; les règles (« bonne journée pour tondre ») = classes C# testables.
 - **Serveur MCP intégré** (`/mcp`, clé partagée + paramètre `agirComme`) : **parité MCP / API** — toute tranche REST met à jour les outils MCP dans la même session ; les fichiers restent web seulement.
 - **Observabilité** : Serilog structuré, `TraceId` par requête ; Seq facultatif.
@@ -29,20 +29,23 @@ Le contexte personnel du mainteneur vit dans `CLAUDE.local.md` (gitignoré).
 
 - Récurrence stockée **type + paramètres, PAS de chaînes RRULE/cron** : `mode` = fixe (jours de semaine / jour du mois / annuel) | intervalle-depuis-complétion | ponctuelle ; + **fenêtre saisonnière** optionnelle (plage mois-jour, combinable) ; + flag **rollover** (une occurrence manquée glisse au lieu de s'empiler en retard).
 - **Prochaine échéance matérialisée à la complétion**, pas calculée à la lecture.
-- **Journal de complétion = table séparée** (qui/quand/notes/coût/photo), jamais une simple date mutée.
+- **Journal de complétion = table séparée** (qui/quand/notes/coût), jamais une simple date mutée.
 - Stratégie d'assignation sur la tâche : fixe | alternance | moins-l'a-fait.
 - Différenciateur prévu : échéance déclenchée par capteur (phase 3).
 
 ## Domaine (termes français dans le code)
 
-Utilisateur · Zone (pièce/extérieur) · Équipement (marque, série, garantie, manuels, specs JSONB) · Tâche (définition + spec de récurrence) · Occurrence (instance planifiée) · Journal de complétion · Document · Compte à rebours · Enveloppe (budget) · Flux externe. À venir : Consommable, Appareil (IoT).
+Utilisateur · Zone (pièce/extérieur) · Équipement (marque, série, garantie, manuels, specs JSONB) · Tâche (définition + spec de récurrence) · Occurrence (instance planifiée) · Journal de complétion · Document · Compte à rebours · Enveloppe (budget) · Flux externe · Édition (journal mural) · Lettre du matin · Appareil d'affichage. À venir : Appareil (IoT).
 
 ## Feuille de route
 
 Phases 1 et 2 livrées (tâches, récurrence, zones, équipements, iCal, météo, humeur,
-ICS, documents, budget, courriel entrant, MCP, synchro). Reste de la phase 2 :
-Hydro-Québec `evenements-pointe`, consommables. **Phase 3** : hub MQTT, tablette
-murale, NFC tap-pour-compléter, e-ink, capteurs. Détail : `vault/Reference/Architecture.md`.
+ICS, documents, budget, courriel entrant, MCP, synchro, vue téléphone, journal mural,
+lettre du matin), puis Emménagement V2 (catégorie d'équipement, packs d'entretien,
+skill de semis) — il en reste le budget sur le vrai compte. Écartés : Hydro-Québec
+`evenements-pointe` (pas d'inscription) et consommables (pas de besoin prouvé).
+**Phase 3** : l'écran e-ink est livré ; restent hub MQTT, tablette murale, NFC
+tap-pour-compléter, capteurs. Détail : `vault/Reference/Architecture.md`.
 
 ## Vault
 

@@ -52,6 +52,12 @@ de la maison ; la facture du lave-vaisselle ne meurt pas avec le lave-vaisselle.
 
 ## Confirmation
 
-`rg PieceJointe server/ web/` ne retourne que des migrations historiques ; la
+`rg "class PieceJointe|DbSet<PieceJointe>" server/ web/src` ne retourne rien hors des
+migrations historiques ; la
 migration `AjouterDocuments` contient l'INSERT‑SELECT et le DROP ; FK
 `Documents.EquipementId` en `ON DELETE SET NULL` dans le snapshot EF.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> `rg PieceJointe` touche désormais aussi les pièces jointes des courriels
+> (`Features/Courriel/`), qui n'ont rien à voir avec l'ancienne entité. La vérification
+> vise maintenant l'entité et son `DbSet`. Le corps de la décision n'a pas été touché.

@@ -57,6 +57,13 @@ projet, pas un secret).
 ## Confirmation
 
 - `LICENSE` commence par « GNU AFFERO GENERAL PUBLIC LICENSE ».
-- `grep -rn "alain\|ariane\|alainnormandin\|192\.168\." server/HouseOs.Api web/src docker-compose.yml .env.example .mcp.json infra --exclude-dir=bin --exclude-dir=obj --exclude-dir=node_modules`
-  ne retourne que `appsettings.Development.json` (fixtures dev).
+- `git grep -nE "alain|ariane|alainnormandin|192\.168\." -- server/HouseOs.Api web/src docker-compose.yml .env.example .mcp.json infra ':!*.test.*' ':!web/src/test' ':!infra/exemples'`
+  ne retourne que `appsettings.Development.json` (fixtures dev), l'exemple générique
+  de `.env.example` et la plage privée de `GardeSsrf.cs`.
 - `test -f CLAUDE.local.md && git check-ignore -q CLAUDE.local.md`.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> Le `grep` d'origine lisait aussi les fichiers ignorés par git (un `.env` local) et les
+> fixtures de tests, et ne pouvait plus revenir au seul fichier attendu. Il passe à
+> `git grep` (fichiers suivis seulement), hors tests et exemples. Le corps de la décision
+> n'a pas été touché.

@@ -2,7 +2,7 @@
 type: feature
 status: implemented
 last-verified: 2026-09-30
-verified-against: c4fdf0e
+verified-against: 6d1fda0
 tags: []
 ---
 
@@ -38,7 +38,7 @@ sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher
    « Prochaine affaire : … » sur les journées libres ; la touche météo est
    retirée sur `Retard`/`JourneeChargee` même quand le signal remarquable est
    présent. Zéro coût, testable, sert de repli permanent.
-3. **Polissage LLM (optionnel, jamais dans un chemin de lecture)** : un
+3. **Polissage LLM (optionnel, écrit d'avance)** : un
    `BackgroundService` (cohérent avec [[D-2026-08-23 Pas De N8n Dans Le Cœur]])
    appelle Haiku 4.5 à deux créneaux fixes — matin 5 h 30 et soir 17 h,
    configurables ([[D-2026-08-24 Phrase Du Jour Haiku Matin Et Soir]]) — avec
@@ -61,8 +61,10 @@ sans jamais culpabiliser, et sans dépendre d'un service externe pour s'afficher
    manque* au créneau, et la régénération à la demande du mur
    (`POST /api/affichage/regenerer`, outil MCP `regenerer_journal_mural` —
    [[Affichage E-ink]]), qui la **réécrit même si elle existe**, appel LLM compris.
-   C'est la seule entrée du LLM dans une requête : un geste explicite, jamais une
-   lecture.
+   C'est aujourd'hui la seule requête de cette tranche qui appelle le modèle. La phrase
+   est écrite d'avance parce que l'accueil doit s'afficher tout de suite — un choix de
+   latence pour cette phrase, pas une règle : rien dans le projet n'interdit un LLM
+   dans une requête (précisé par Alain, 2026-09-30).
    La lecture, elle, tient compte du **créneau** (`HumeurEndpoints.PhraseCouranteAsync`,
    partagée avec la vue e-ink) : la phrase la plus récente qui ne soit pas postérieure
    au créneau demandé — un tirage « du matin » composé en soirée ne prend pas la
@@ -83,9 +85,9 @@ du quick-add — candidat futur, lui aussi peu coûteux à ~1 court appel par cr
 
 ## Hors périmètre
 
-- LLM dans un chemin de lecture (jamais) : `GET /api/phrase-du-jour` ne fait que lire
-  la table. La seule requête qui appelle le modèle est la régénération demandée à la
-  main (voir couche 3).
+- Écrire la phrase à la lecture : `GET /api/phrase-du-jour` ne fait que lire la table,
+  pour que l'accueil n'attende pas un modèle. La régénération demandée à la main, elle,
+  l'appelle dans sa requête (voir couche 3).
 - Notifications basées sur la phrase. [[Synchro]] diffuse bien la phrase aux onglets
   ouverts dès qu'elle est écrite, mais silencieusement (aucun toast) et sans rien
   changer à l'horaire de génération.
@@ -98,7 +100,7 @@ du quick-add — candidat futur, lui aussi peu coûteux à ~1 court appel par cr
 - [[D-2026-08-25 Phrase Du Jour Axée Tâches]] — tâches nommées au premier plan,
   météo sur exception seulement (signal remarquable).
 - [[D-2026-08-23 Pas De N8n Dans Le Cœur]] — le polissage est un
-  `BackgroundService` C#, jamais dans le chemin de requête.
+  `BackgroundService` C#.
 
 ## Ancres de code
 

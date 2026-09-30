@@ -69,9 +69,15 @@ de bruit pour un bénéfice nul, l'intercepteur étant déjà le filet.
 ## Confirmation
 
 `server/HouseOs.Api/Features/Synchro/IntercepteurSynchro.cs` existe et est enregistré
-via `AddInterceptors` dans `Program.cs`. Le test paramétré
-`IntercepteurSynchroTests.ChaqueEntitePersistee_estRattacheeAUnModule` couvre les 17
-entités persistées : ajouter un `DbSet` sans l'inscrire dans la table fait échouer la
-suite dès qu'on l'y ajoute. Voir aussi `DansUneTransaction_rienNEstDiffuseAvantLeCommit`,
+via `AddInterceptors` dans `Program.cs`. Le test
+`IntercepteurSynchroTests.ToutTypeDuModele_aUnModuleOuUneDispenseExplicite` parcourt
+le modèle EF : ajouter un `DbSet` sans l'inscrire dans la table, ni le dispenser
+explicitement, fait échouer la suite. Voir aussi `DansUneTransaction_rienNEstDiffuseAvantLeCommit`,
 `UneTransactionAnnulee_neDiffuseRien` et
 `UnDiffuseurQuiEchoue_neFaitPasEchouerLEcriture`.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> Le test paramétré tenait sa liste d'entités à la main (17 à l'écriture) et n'attrapait
+> pas un `DbSet` oublié : cinq l'ont été. Il est doublé depuis le 2026-09-30 d'un test
+> dérivé du modèle, qui tient la promesse. Le corps de la décision n'a pas été touché —
+> voir [[Synchro]].

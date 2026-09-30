@@ -44,5 +44,15 @@ Choix de l'utilisateur (2026-08-24).
 - `grep -r "claude-haiku-4-5" server/HouseOs.Api` touche uniquement
   `Features/Humeur/` et la config (`appsettings*.json`, valeur par défaut de
   `HumeurOptions`).
-- `grep -r "AnthropicClient" server/HouseOs.Api` n'apparaît jamais dans un
-  endpoint — seulement dans le worker de la tranche Humeur.
+- `server/HouseOs.Api/Features/Humeur/HumeurOptions.cs` porte les deux créneaux par
+  défaut : `HeureMatin` 5 h 30 et `HeureSoir` 17 h.
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> La clause « `AnthropicClient` n'apparaît jamais dans un endpoint — seulement dans le
+> worker de la tranche Humeur » est retirée. Elle gardait un principe (« LLM jamais
+> dans le chemin de requête ») que le Contexte dit « déjà fixé » : il venait du premier
+> jet de la spec (2026-08-23) et n'a jamais été une décision du foyer — Alain,
+> 2026-09-30 : il n'a jamais voulu interdire les LLM. Le client sert depuis à
+> l'éditorialiste, à la lettre, à l'enrichissement des courriels et aux régénérations à
+> la demande. Ce que la décision tranche — Haiku, deux créneaux fixes — se vérifie
+> ci-dessus. Le corps de la décision n'a pas été touché — voir [[Titre D'humeur]].

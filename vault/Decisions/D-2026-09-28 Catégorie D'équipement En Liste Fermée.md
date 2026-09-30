@@ -49,5 +49,9 @@ par saisie.
 
 - `grep -n "enum CategorieEquipement" server/HouseOs.Api/Domaine/Equipement.cs`
   trouve l'enum avec ses dix valeurs.
-- Test `EquipementsTests.Une_categorie_inconnue_est_refusee` (400 sur une valeur hors
-  liste, REST et MCP).
+- Tests `EquipementsApiTests.CreerAvecCategorieInconnue_Repond400` (REST) et
+  `OutilsMaisonTests.Gerer_equipement_refuse_une_categorie_inconnue` (MCP).
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> Le test nommé à l'écriture n'a jamais existé sous ce nom ; les deux tests qui couvrent
+> le comportement sont nommés à sa place. Le corps de la décision n'a pas été touché.

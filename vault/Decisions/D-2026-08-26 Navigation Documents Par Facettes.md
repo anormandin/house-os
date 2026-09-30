@@ -47,5 +47,9 @@ côté client — l'API liste tout comme avant. Choisi par Alain le 2026-08-26
 
 ## Confirmation
 
-`grep -l "Lieux & dossiers" web/src/pages/Documents.tsx` retourne le fichier ;
+`grep -l "Lieux &amp; dossiers" web/src/pages/Documents.tsx` retourne le fichier ;
 la page ne rend plus de bannière pleine largeur d'échéances (bloc latéral).
+
+> [!note] Mise à jour de la seule Confirmation (2026-09-30)
+> Le source écrit l'esperluette en entité (`&amp;`) : le `grep` littéral ne trouvait
+> rien. Le corps de la décision n'a pas été touché.
