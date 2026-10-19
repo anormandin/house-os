@@ -1,5 +1,6 @@
 using System.Text;
 using HouseOs.Api.Domaine;
+using HouseOs.Api.Features.Taches;
 using HouseOs.Api.Infrastructure;
 using HouseOs.Api.Infrastructure.Journalisation;
 using Microsoft.EntityFrameworkCore;
@@ -8,10 +9,25 @@ namespace HouseOs.Api.Features.Budget;
 
 public record RapportImportDto(int Importees, int Doublons, int Anterieures);
 
+/// <summary>Une ligne de relevé tapée à la main : montant signé (négatif = retrait).
+/// <paramref name="Forcer"/> accepte un doublon exact (même date, montant, description)
+/// quand la banque a vraiment passé deux lignes identiques.</summary>
+public record SaisieTransactionRequete(DateOnly Date, decimal Montant, string Description, bool Forcer = false);
+
+/// <summary>Issue d'une saisie manuelle : la transaction créée, ou le refus (champ +
+/// message), <paramref name="Doublon"/> distinguant « déjà saisie » d'une validation.</summary>
+public sealed record IssueSaisie(TransactionBancaire? Transaction, ErreurValidation? Erreur, bool Doublon = false)
+{
+    public static IssueSaisie Refus(string champ, string message, bool doublon = false) =>
+        new(null, new ErreurValidation(champ, message), doublon);
+}
+
 /// <summary>
-/// Téléversement d'un export bancaire CSV/OFX — web seulement, comme les documents
-/// (l'upload de fichiers est exclu du MCP). Dédup par FITID/hash : réimporter le
-/// même fichier est sans effet (D-2026-08-26 Import Manuel D'abord Sync Ensuite).
+/// Entrée des transactions bancaires : téléversement d'un export CSV/OFX — web seulement,
+/// comme les documents (l'upload de fichiers est exclu du MCP) — et saisie manuelle d'une
+/// ligne (web et MCP), pour les comptes dont la banque n'offre aucun export (D-2026-10-19
+/// Saisie Manuelle De Transaction). Dédup par FITID/hash : réimporter le même fichier
+/// est sans effet (D-2026-08-26 Import Manuel D'abord Sync Ensuite).
 /// </summary>
 public static class ImportTransactionsEndpoints
 {
@@ -66,7 +82,101 @@ public static class ImportTransactionsEndpoints
             return Results.Ok(rapport);
         }).DisableAntiforgery();
 
+        app.MapPost("/api/budget/transactions", async (SaisieTransactionRequete requete, HouseOsDbContext db) =>
+        {
+            var compte = await db.ComptesBudget.OrderBy(c => c.CreeLe).FirstOrDefaultAsync();
+            if (compte is null)
+            {
+                return Results.Conflict(new { message = "Ancrer le compte avant de saisir une ligne." });
+            }
+            var issue = await SaisirAsync(db, compte, requete, BudgetEndpoints.Aujourdhui());
+            if (issue.Erreur is { } erreur)
+            {
+                return issue.Doublon
+                    ? Results.Conflict(new { message = erreur.Message })
+                    : ResultatsApi.Erreur(journal, erreur);
+            }
+            await db.SaveChangesAsync();
+            var transaction = issue.Transaction!;
+            journal.LogInformation(
+                "Saisie manuelle — {Date} {Montant} « {Description} » → {TransactionId}.",
+                transaction.Date, transaction.Montant, transaction.Description, transaction.Id);
+            return Results.Created(
+                $"/api/budget/transactions/{transaction.Id}",
+                new TransactionDto(transaction.Id, transaction.Date, transaction.Montant,
+                    transaction.Description, nameof(StatutTransaction.Nouvelle), null, null, false));
+        });
+
         return app;
+    }
+
+    /// <summary>
+    /// Saisie manuelle d'une ligne de relevé (web et MCP) ; ajoute sans sauvegarder.
+    /// Mêmes gardes que l'import : date après l'ancrage, jamais dans le futur (une ligne
+    /// de banque est un fait, pas une prévision — les prévisions sont les enveloppes).
+    /// La clé de dédup est celle d'un import sans numéro de séquence : une ligne identique
+    /// déjà en base est refusée (rejeu, double clic) sauf <see cref="SaisieTransactionRequete.Forcer"/>,
+    /// qui prend le rang d'occurrence libre suivant — comme deux doublons intra-fichier.
+    /// </summary>
+    public static async Task<IssueSaisie> SaisirAsync(
+        HouseOsDbContext db, CompteBudget compte, SaisieTransactionRequete requete, DateOnly aujourdhui)
+    {
+        var description = (requete.Description ?? "").Trim();
+        if (description.Length == 0)
+        {
+            return IssueSaisie.Refus("description", "La description est requise.");
+        }
+        if (description.Length > 300)
+        {
+            return IssueSaisie.Refus("description", "La description dépasse 300 caractères.");
+        }
+        if (requete.Montant == 0)
+        {
+            return IssueSaisie.Refus("montant", "Le montant ne peut pas être zéro (négatif = retrait).");
+        }
+        if (requete.Date < compte.DateAncrage)
+        {
+            return IssueSaisie.Refus("date",
+                $"Antérieure à l'ancrage du compte ({compte.DateAncrage:yyyy-MM-dd}) : elle vit à la banque.");
+        }
+        if (requete.Date > aujourdhui)
+        {
+            return IssueSaisie.Refus("date", "Une ligne de relevé ne peut pas être dans le futur.");
+        }
+
+        var cle = TransactionBancaire.CalculerCleDedup(null, requete.Date, requete.Montant, description);
+        var existantes = await db.TransactionsBancaires
+            .Where(t => t.CompteBudgetId == compte.Id && t.Date == requete.Date && t.Montant == requete.Montant)
+            .Select(t => t.CleDedup)
+            .ToListAsync();
+        if (existantes.Contains(cle))
+        {
+            if (requete.Forcer == false)
+            {
+                return IssueSaisie.Refus("description",
+                    "Une ligne identique (même date, montant et description) existe déjà — " +
+                    "forcer si la banque en a vraiment passé deux.", doublon: true);
+            }
+            var occurrence = 1;
+            while (existantes.Contains(cle = TransactionBancaire.CalculerCleDedup(
+                null, requete.Date, requete.Montant, description, occurrence: occurrence)))
+            {
+                occurrence++;
+            }
+        }
+
+        var transaction = new TransactionBancaire
+        {
+            Id = Guid.NewGuid(),
+            CompteBudgetId = compte.Id,
+            Date = requete.Date,
+            Montant = requete.Montant,
+            Description = description,
+            CleDedup = cle,
+            ImporteeLe = DateTimeOffset.UtcNow,
+        };
+        db.TransactionsBancaires.Add(transaction);
+        return new IssueSaisie(transaction, null);
     }
 
     /// <summary>UTF-8 strict d'abord ; les exports bancaires québécois sont souvent en

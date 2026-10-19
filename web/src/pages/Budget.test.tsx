@@ -300,6 +300,67 @@ test('la saisie dans l’éditeur d’enveloppe survit à un refetch du détail'
   expect(nom).toHaveValue('Nom en cours de frappe')
 })
 
+test('saisir une ligne à la main envoie un retrait signé puis force le doublon', async () => {
+  servirBudget()
+  const corps: unknown[] = []
+  serveur.use(
+    http.post('/api/budget/transactions', async ({ request }) => {
+      const recu = await request.json()
+      corps.push(recu)
+      if ((recu as { forcer: boolean }).forcer === false) {
+        return HttpResponse.json({ message: 'Une ligne identique existe déjà' }, { status: 409 })
+      }
+      return HttpResponse.json({ id: 'tx-saisie' }, { status: 201 })
+    }),
+  )
+  rendre(<Budget />)
+
+  await screen.findByText('CANADIAN TIRE #213')
+  await userEvent.clear(screen.getByLabelText('Date de la ligne'))
+  await userEvent.type(screen.getByLabelText('Date de la ligne'), '2026-10-09')
+  await userEvent.type(screen.getByLabelText('Description de la ligne'), 'Virement - AccèsD Internet')
+  await userEvent.type(screen.getByLabelText('Montant de la ligne'), '10000')
+  await userEvent.click(screen.getByRole('button', { name: 'Ajouter' }))
+
+  // Le sens « Retrait » signe le montant ; le doublon remonte avec l'option de forcer.
+  expect(await screen.findByText('Une ligne identique existe déjà')).toBeInTheDocument()
+  expect(corps[0]).toEqual({
+    date: '2026-10-09', description: 'Virement - AccèsD Internet', montant: -10000, forcer: false,
+  })
+  await userEvent.click(screen.getByRole('button', { name: 'Saisir quand même' }))
+  await waitFor(() => expect(corps[1]).toMatchObject({ montant: -10000, forcer: true }))
+  await waitFor(() => expect(screen.getByLabelText('Description de la ligne')).toHaveValue(''))
+})
+
+test('les enveloppes fermées restent visibles, repliées, et s’ouvrent en lecture seule', async () => {
+  const fermee = enveloppe({
+    id: 'env-fermee', nom: 'Meubles Tanguay', type: 'Projet', montantCible: 10_000, statut: 'Fermee',
+  })
+  servirBudget({ ...RESUME, enveloppes: [...ENVELOPPES, fermee] })
+  serveur.use(
+    http.get('/api/budget/enveloppes/env-fermee', () =>
+      HttpResponse.json({
+        enveloppe: fermee,
+        mouvements: [{
+          id: 'm-1', date: '2026-10-09', montant: -10_000, type: 'Retrait', note: null,
+          transactionBancaireId: 'tx-1', descriptionTransaction: 'Virement - AccèsD Internet',
+          entreeJournalId: null, soldeApres: 0,
+        }],
+      })),
+  )
+  rendre(<Budget />)
+
+  // Hors de la grille des actives, dans le repli des fermées.
+  expect(await screen.findByText('1 enveloppe fermée')).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: /Meubles Tanguay/ }))
+
+  expect(await screen.findByText('Virement - AccèsD Internet')).toBeInTheDocument()
+  expect(screen.getByText('fermée')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Enregistrer' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Fermer l’enveloppe' })).not.toBeInTheDocument()
+  expect(screen.queryByLabelText("Montant d'ajustement")).not.toBeInTheDocument()
+})
+
 test('sans compte ancré, la page offre le formulaire d’ancrage', async () => {
   rendre(<Budget />)
 

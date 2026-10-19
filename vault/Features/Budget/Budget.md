@@ -1,8 +1,8 @@
 ---
 type: feature
 status: implemented
-last-verified: 2026-09-30
-verified-against: 6d1fda0
+last-verified: 2026-10-19
+verified-against: cb9dc80
 tags: []
 ---
 
@@ -23,8 +23,8 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
 ### Compte et invariant
 
 - Un seul compte (`CompteBudget`) : nom, institution, solde initial ancré à une
-  date. Solde courant = solde initial + Σ transactions importées postérieures —
-  jamais saisi après l'ancrage.
+  date. Solde courant = solde initial + Σ transactions (importées ou saisies)
+  postérieures — jamais saisi après l'ancrage.
 - L'ancrage (solde initial + date) reste **éditable** — c'est un point de
   départ, le solde courant se redérive. À l'import, une transaction datée avant
   l'ancrage est **écartée** et comptée dans le rapport d'import. Ré-ancrer à
@@ -58,7 +58,10 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
 - Fermer une enveloppe exige un solde à zéro (transférer d'abord le reste).
   Une enveloppe ne se **supprime** jamais — le journal de mouvements est de
   l'historique. Une **fermée est figée** : mouvements ET fiche (nom, type,
-  cible, liens, échéancier) refusés ; pas de réouverture (QA 2026-08-28).
+  cible, liens, échéancier) refusés ; pas de réouverture (QA 2026-08-28). Les
+  fermées restent **visibles** sous la grille, repliées (« N enveloppes
+  fermées ») ; ouvrir l'une d'elles montre la fiche et le journal en lecture
+  seule, sans aucun geste (2026-10-19).
 - Un solde d'enveloppe **négatif est permis** (lier un retrait plus gros que le
   solde) : affiché en rouge, le Non affecté encaisse la différence, l'invariant
   tient. La fermeture, elle, exige toujours zéro.
@@ -105,7 +108,14 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
   cumulatif de la 2ᵉ colonne ; indécidable → refus avec message clair (durci
   QA 2026-08-28). Le parsing passe par l'abstraction
   `IFournisseurTransactions` (SimpleFIN plus tard, par config).
-- Une transaction importée est `Nouvelle` jusqu'à être `Liee` (rapprochée) ou
+- **Saisie manuelle d'une ligne** (REST `POST /api/budget/transactions`, MCP
+  `gerer_budget` `saisir_transaction`) : date, montant signé (négatif = retrait),
+  description. Mêmes gardes que l'import (date ≥ ancrage, jamais dans le futur,
+  montant non nul) ; clé de dédup d'un import sans numéro de séquence ; doublon
+  exact refusé (409) sauf `forcer` ([[D-2026-10-19 Saisie Manuelle De Transaction]]).
+  La ligne entre dans l'inbox comme une importée. Raison d'être : un compte
+  d'épargne AccèsD n'offre aucun export.
+- Une transaction importée ou saisie est `Nouvelle` jusqu'à être `Liee` (rapprochée) ou
   `Ignoree` — une ignorée se **restaure** (retour à `Nouvelle`, REST + MCP,
   QA 2026-08-28). L'inbox de rapprochement liste les nouvelles ; lier un
   **retrait** crée le mouvement d'enveloppe correspondant (mono-enveloppe,
@@ -127,13 +137,14 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
   gestion du compte, résumé (soldes, provisions, non affecté), import de
   fichier, inbox et actions de rapprochement. Auth requise partout (401 sinon).
 - **Parité MCP** ([[Serveur MCP]]) : `gerer_budget` (enveloppes,
-  mouvements, lier/ignorer une transaction) et `bilan_budget` (soldes,
+  mouvements, saisir/lier/ignorer une transaction) et `bilan_budget` (soldes,
   provisions, virement suggéré, transactions à rapprocher). L'upload de
   fichiers reste web-only, comme pour les documents.
 - Page **Budget** (desktop, français) : vue par défaut « Flux raffiné » (E1) —
   bandeau chemin de l'argent (entrée mensuelle → compte partitionné en barre
   empilée → sorties prévues), rythme mensuel des provisions, grille
-  d'enveloppes avec jauges et liens, inbox de rapprochement ; commutateur
+  d'enveloppes avec jauges et liens (fermées repliées dessous), inbox de
+  rapprochement avec le formulaire « Saisir une ligne » ; commutateur
   segmenté vers la vue « Flux » (diagramme de flux tracé d'E2), dernier mode
   mémorisé ([[D-2026-08-26 Page Budget Flux Raffiné Et Bascule Flux Tracé]]).
   La fiche d'un équipement lié montre son enveloppe (solde, provision).
@@ -165,6 +176,8 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
   en N mouvements `Provision` liés à la même transaction.
 - [[D-2026-08-26 Page Budget Flux Raffiné Et Bascule Flux Tracé]] — E1 par
   défaut, bascule vers le flux tracé d'E2, mode mémorisé.
+- [[D-2026-10-19 Saisie Manuelle De Transaction]] — une ligne de relevé tapée
+  à la main entre dans l'inbox comme une importée (REST + MCP).
 
 ## Ancres de code
 
@@ -172,8 +185,8 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
   `MouvementEnveloppe.cs`, `TransactionBancaire.cs`, `MoteurProvision.cs`
 - `server/HouseOs.Api/Features/Budget/` — `BudgetEndpoints.cs` (résumé,
   compte, enveloppes, mouvements, transferts, liaison),
-  `ImportTransactionsEndpoints.cs`, `FournisseurTransactions.cs` (OFX + CSV),
-  `SuggestionRapprochement.cs`
+  `ImportTransactionsEndpoints.cs` (import de fichier + `SaisirAsync`),
+  `FournisseurTransactions.cs` (OFX + CSV), `SuggestionRapprochement.cs`
 - `server/HouseOs.Api/Features/Mcp/OutilsMaison.cs` — `gerer_budget`,
   `bilan_budget`
 - `server/HouseOs.Api/Infrastructure/Migrations/*AjouterBudget*`
@@ -182,6 +195,7 @@ patrons du marché : [[Banque D'idées]] (section « Argent de la maison »).
 - Tests : `server/HouseOs.Tests/Domaine/MoteurProvisionTests.cs`,
   `server/HouseOs.Tests/Features/Budget/`,
   `server/HouseOs.Tests/Integration/BudgetApiTests.cs`,
+  `server/HouseOs.Tests/Integration/ImportTransactionsApiTests.cs`,
   `web/src/pages/Budget.test.tsx`
 
 ## Sources

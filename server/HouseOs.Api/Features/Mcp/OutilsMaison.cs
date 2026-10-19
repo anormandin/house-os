@@ -450,13 +450,16 @@ public static class OutilsMaison
         "Provision|Retrait|Ajustement, montant signé), transferer (deEnveloppeId → " +
         "versEnveloppeId, montant positif), lier_transaction (retrait : une seule part ; " +
         "dépôt : ventilation multi-enveloppes, le reste demeure non affecté), " +
-        "ignorer_transaction, restaurer_transaction (ramène une ignorée dans l'inbox). " +
+        "ignorer_transaction, restaurer_transaction (ramène une ignorée dans l'inbox), " +
+        "saisir_transaction (une ligne de relevé tapée à la main : date, montant signé " +
+        "négatif = retrait, description ; refuse un doublon exact sauf forcer ; la ligne " +
+        "arrive dans l'inbox, à lier ensuite). " +
         "L'import de fichiers CSV/OFX passe par l'interface web, pas par MCP.")]
     public static async Task<object> GererBudget(
         HouseOsDbContext db,
         [Description("ancrer_compte, modifier_compte, creer_enveloppe, modifier_enveloppe, " +
             "fermer_enveloppe, ajouter_mouvement, transferer, lier_transaction, " +
-            "ignorer_transaction ou restaurer_transaction.")] string action,
+            "ignorer_transaction, restaurer_transaction ou saisir_transaction.")] string action,
         [Description("Id de l'enveloppe (modifier/fermer/ajouter_mouvement) ou de la " +
             "transaction (lier/ignorer/restaurer).")] Guid? id = null,
         [Description("Fiche du compte (requise pour ancrer_compte et modifier_compte).")]
@@ -474,7 +477,10 @@ public static class OutilsMaison
         [Description("Parts de la liaison (lier_transaction) : une seule pour un retrait, " +
             "plusieurs pour ventiler un dépôt.")] List<VentilationDonnees>? ventilation = null,
         [Description("Entrée du journal de complétion à lier (retrait seulement).")]
-        Guid? entreeJournalId = null)
+        Guid? entreeJournalId = null,
+        [Description("Libellé de la ligne de relevé (saisir_transaction).")] string? description = null,
+        [Description("saisir_transaction : accepter un doublon exact (même date, montant, " +
+            "description) quand la banque en a vraiment passé deux.")] bool? forcer = null)
     {
         switch (Conversions.NormaliserAction(action))
         {
@@ -634,10 +640,28 @@ public static class OutilsMaison
                     _ => new { restauree = true, id = idTransaction },
                 };
             }
+            case "saisir_transaction":
+            {
+                var compteAncre = await db.ComptesBudget.FirstOrDefaultAsync()
+                    ?? throw new McpException("Ancrer le compte avant de saisir une ligne (ancrer_compte).");
+                var requete = new SaisieTransactionRequete(
+                    Conversions.ParserDate(date, "date") ?? throw new McpException("Le paramètre date est requis."),
+                    montant ?? throw new McpException("Le paramètre montant est requis (négatif = retrait)."),
+                    description ?? "",
+                    forcer ?? false);
+                var issue = await ImportTransactionsEndpoints.SaisirAsync(
+                    db, compteAncre, requete, BudgetEndpoints.Aujourdhui());
+                if (issue.Erreur is { } erreur)
+                {
+                    throw new McpException(erreur.Message);
+                }
+                await db.SaveChangesAsync();
+                return new { saisie = true, id = issue.Transaction!.Id, statut = nameof(StatutTransaction.Nouvelle) };
+            }
             default:
                 throw new McpException($"Action inconnue : '{action}' (ancrer_compte, " +
                     "modifier_compte, creer_enveloppe, modifier_enveloppe, fermer_enveloppe, " +
-                    "ajouter_mouvement, transferer, lier_transaction, ignorer_transaction " +
+                    "ajouter_mouvement, transferer, lier_transaction, ignorer_transaction, saisir_transaction " +
                     "ou restaurer_transaction).");
         }
     }

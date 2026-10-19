@@ -31,3 +31,16 @@ servie par l'API et le MCP mais pas encore par le web (aucun endpoint de liste
 du journal — à faire si le besoin se présente) ; le lecteur CSV lit les
 colonnes Desjardins positionnellement (retrait, dépôt, solde) faute d'un export
 réel — à confronter au premier vrai fichier AccWeb.
+
+## Ajout 2026-10-19 — saisie manuelle et enveloppes fermées
+
+- Premier vrai relevé : le compte d'épargne AccèsD n'exporte **rien** (ni CSV ni
+  OFX). Trois lignes sont entrées par un CSV écrit à la main ; le lecteur AccWeb
+  positionnel les a lues correctement (retrait, dépôt, solde ; virgule décimale).
+- D'où [[D-2026-10-19 Saisie Manuelle De Transaction]] : `POST
+  /api/budget/transactions` et `gerer_budget` `saisir_transaction`, opération
+  partagée `SaisirAsync` dans `ImportTransactionsEndpoints.cs` ; doublon exact
+  refusé sauf `forcer`. Formulaire « Saisir une ligne » sous l'inbox.
+- Les enveloppes fermées, jusque-là invisibles (la grille filtrait les actives),
+  sont repliées sous la grille et s'ouvrent en lecture seule.
+- Tests : +3 intégration (saisie, doublon/forcer, refus), +2 MCP, +2 web.

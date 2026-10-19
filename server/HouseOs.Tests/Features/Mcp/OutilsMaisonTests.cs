@@ -287,6 +287,43 @@ public class OutilsMaisonTests : TestAvecSqlite
     }
 
     [Fact]
+    public async Task Saisir_transaction_via_mcp_cree_une_nouvelle_et_refuse_le_doublon_sauf_forcer()
+    {
+        CreerTransactionBudget(-25m); // ancre le compte
+        var aujourdhui = DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd");
+
+        var resultat = await OutilsMaison.GererBudget(Db, "saisir_transaction",
+            date: aujourdhui, montant: -10_000m, description: "Virement - AccèsD Internet /à EOP");
+
+        var id = (Guid)resultat.GetType().GetProperty("id")!.GetValue(resultat)!;
+        var saisie = Db.TransactionsBancaires.Single(t => t.Id == id);
+        Assert.Equal(StatutTransaction.Nouvelle, saisie.Statut);
+        Assert.Equal(-10_000m, saisie.Montant);
+
+        var exception = await Assert.ThrowsAsync<McpException>(() => OutilsMaison.GererBudget(
+            Db, "saisir_transaction", date: aujourdhui, montant: -10_000m,
+            description: "Virement - AccèsD Internet /à EOP"));
+        Assert.Contains("identique", exception.Message);
+
+        await OutilsMaison.GererBudget(Db, "saisir_transaction", date: aujourdhui, montant: -10_000m,
+            description: "Virement - AccèsD Internet /à EOP", forcer: true);
+        Assert.Equal(2, Db.TransactionsBancaires.Count(t => t.Montant == -10_000m));
+    }
+
+    [Fact]
+    public async Task Saisir_transaction_sans_compte_ancre_ou_sans_date_est_refusee()
+    {
+        var sansCompte = await Assert.ThrowsAsync<McpException>(() => OutilsMaison.GererBudget(
+            Db, "saisir_transaction", date: "2026-10-02", montant: -15_000m, description: "Virement"));
+        Assert.Contains("ancrer_compte", sansCompte.Message);
+
+        CreerTransactionBudget(-25m);
+        var sansDate = await Assert.ThrowsAsync<McpException>(() => OutilsMaison.GererBudget(
+            Db, "saisir_transaction", montant: -15_000m, description: "Virement"));
+        Assert.Contains("date", sansDate.Message);
+    }
+
+    [Fact]
     public async Task Lier_transaction_rejouee_apres_une_liaison_concurrente_est_refusee_sans_doubler()
     {
         var (transactionId, enveloppeId) = CreerTransactionBudget(-40m);

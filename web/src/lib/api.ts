@@ -814,6 +814,16 @@ export const api = {
     }),
   ignorerTransaction: (id: string) =>
     requete<void>(`/api/budget/transactions/${id}/ignorer`, { method: 'POST' }),
+  saisirTransaction: (donnees: {
+    date: string
+    montant: number
+    description: string
+    forcer?: boolean
+  }) =>
+    requete<TransactionBudget>('/api/budget/transactions', {
+      method: 'POST',
+      body: JSON.stringify({ forcer: false, ...donnees }),
+    }),
   importerReleve: (fichier: File) => {
     const formulaire = new FormData()
     formulaire.append('fichier', fichier)

@@ -256,4 +256,66 @@ public class ImportTransactionsApiTests(HouseOsFactory factory)
         Assert.Equal(new RapportImportDto(0, 1, 0), second);
         Assert.Single(await InboxAsync(client), t => t.Description == $"INSTITUTION VERBEUSE {marqueur}");
     }
+
+    // ——— Saisie manuelle (POST /api/budget/transactions) ———
+
+    private static async Task<HttpResponseMessage> SaisirAsync(
+        HttpClient client, string date, decimal montant, string description, bool forcer = false) =>
+        await client.PostAsJsonAsync("/api/budget/transactions", new { date, montant, description, forcer });
+
+    [Fact]
+    public async Task SaisieManuelle_CreeUneNouvelleDansLInbox()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var description = $"Intérêt sur ET {Guid.NewGuid():N}";
+
+        var reponse = await SaisirAsync(client, "2026-09-30", 130.49m, $"  {description}  ");
+
+        Assert.Equal(HttpStatusCode.Created, reponse.StatusCode);
+        var creee = (await reponse.Content.ReadFromJsonAsync<TransactionDto>())!;
+        Assert.Equal("Nouvelle", creee.Statut);
+        Assert.Equal(description, creee.Description); // espaces de bord retirés
+        var inbox = await InboxAsync(client);
+        var ligne = Assert.Single(inbox, t => t.Id == creee.Id);
+        Assert.Equal(130.49m, ligne.Montant);
+        Assert.Equal(new DateOnly(2026, 9, 30), ligne.Date);
+    }
+
+    [Fact]
+    public async Task SaisieManuelle_RefuseLeDoublonExact_SaufForcer()
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var description = $"Virement AccèsD {Guid.NewGuid():N}";
+
+        Assert.Equal(HttpStatusCode.Created,
+            (await SaisirAsync(client, "2026-10-05", -5000m, description)).StatusCode);
+        // Rejeu (double clic, timeout) : refusé net, rien de doublé.
+        var rejeu = await SaisirAsync(client, "2026-10-05", -5000m, description);
+        Assert.Equal(HttpStatusCode.Conflict, rejeu.StatusCode);
+        Assert.Single(await InboxAsync(client), t => t.Description == description);
+
+        // La banque a vraiment passé deux Interac identiques le même jour : forcer.
+        var force = await SaisirAsync(client, "2026-10-05", -5000m, description, forcer: true);
+        Assert.Equal(HttpStatusCode.Created, force.StatusCode);
+        Assert.Equal(2, (await InboxAsync(client)).Count(t => t.Description == description));
+    }
+
+    [Theory]
+    [InlineData("2025-12-31", -10, "Antérieure")] // avant l'ancrage 2026-01-01
+    [InlineData("2099-01-01", -10, "futur")]
+    [InlineData("2026-03-01", 0, "zéro")]
+    [InlineData("2026-03-01", -10, "requise")] // description vide
+    public async Task SaisieManuelle_RefuseLesLignesInvalides(string date, int montant, string motif)
+    {
+        var client = await factory.ClientConnecte();
+        await AncrerAsync(client);
+        var description = motif == "requise" ? "   " : $"Ligne {Guid.NewGuid():N}";
+
+        var reponse = await SaisirAsync(client, date, montant, description);
+
+        Assert.Equal(HttpStatusCode.BadRequest, reponse.StatusCode);
+        Assert.Contains(motif, await reponse.Content.ReadAsStringAsync());
+    }
 }

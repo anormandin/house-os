@@ -7,6 +7,7 @@ import {
   Check,
   LayoutGrid,
   Link2,
+  Lock,
   Pencil,
   Plus,
   Share2,
@@ -16,6 +17,7 @@ import {
 import ChoixCherchable from '@/components/ChoixCherchable'
 import {
   api,
+  ApiError,
   dateLocaleIso,
   type EnveloppeBudget,
   type EnveloppeBudgetDonnees,
@@ -529,15 +531,15 @@ function GrilleEnveloppes({
   onOuvrir: (enveloppeId: string) => void
 }) {
   const actives = resume.enveloppes.filter((e) => e.statut === 'Active')
-  if (actives.length === 0) {
-    return (
+  const fermees = resume.enveloppes.filter((e) => e.statut === 'Fermee')
+
+  return (
+    <>
+    {actives.length === 0 ? (
       <p className="rounded-[20px] border-2 border-dashed border-tiret px-5 py-8 text-center text-sm font-bold text-tiret-texte">
         Aucune enveloppe encore — crée la première : taxes, gros entretien, projet ou réserve.
       </p>
-    )
-  }
-
-  return (
+    ) : (
     <div className="grid grid-cols-3 gap-3">
       {actives.map((enveloppe) => {
         const pct = pctJauge(enveloppe.solde, enveloppe.montantCible)
@@ -610,6 +612,40 @@ function GrilleEnveloppes({
         )
       })}
     </div>
+    )}
+    {fermees.length > 0 && (
+      // Une enveloppe ne se supprime jamais : son journal est de l'historique
+      // (où est passé l'argent). Repliées par défaut, ouvrables en lecture seule.
+      <details className="group rounded-[20px] bg-carte/60 px-5 py-2.5 shadow-carte">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-bold text-sourdine">
+          <Lock className="size-3.5" />
+          {fermees.length} enveloppe{fermees.length > 1 ? 's' : ''} fermée{fermees.length > 1 ? 's' : ''}
+          <span className="ml-auto text-[11.5px] font-normal italic text-tiret-texte group-open:hidden">
+            voir l’historique
+          </span>
+        </summary>
+        <div className="mt-2 flex flex-col">
+          {fermees.map((enveloppe, i) => (
+            <button
+              key={enveloppe.id}
+              type="button"
+              onClick={() => onOuvrir(enveloppe.id)}
+              className={cn('flex items-center gap-2.5 py-2 text-left text-[13px] hover:text-orange',
+                i > 0 && 'border-t border-dashed border-tiret')}
+            >
+              <span className="min-w-0 flex-1 truncate font-extrabold">{enveloppe.nom}</span>
+              <ChipType type={enveloppe.type} />
+              {enveloppe.montantCible !== null && (
+                <span className="w-28 shrink-0 text-right text-xs text-sourdine tabular-nums">
+                  cible {dollars(enveloppe.montantCible)}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </details>
+    )}
+    </>
   )
 }
 
@@ -842,7 +878,7 @@ function Inbox({
 
       {transactions.length === 0 ? (
         <p className="py-3 text-sm text-sourdine">
-          Rien à rapprocher — importe un relevé CSV ou OFX de la banque.
+          Rien à rapprocher — importe un relevé CSV ou OFX de la banque, ou saisis une ligne ci-dessous.
         </p>
       ) : (
         transactions.map((transaction, i) => (
@@ -893,10 +929,91 @@ function Inbox({
         ))
       )}
 
+      <SaisieLigne />
+
       {aLier !== null && (
         <LierModal resume={resume} transaction={aLier} onFermer={() => setALier(null)} />
       )}
     </section>
+  )
+}
+
+// Saisie d'une ligne de relevé à la main : pour les comptes dont la banque n'offre
+// aucun export (compte d'épargne AccèsD). La ligne arrive dans l'inbox comme une
+// importée, à lier ensuite. Un doublon exact est refusé (409) — « quand même » force.
+function SaisieLigne() {
+  const invalider = useInvaliderBudget()
+  const [date, setDate] = useState(dateLocaleIso())
+  const [description, setDescription] = useState('')
+  const [sens, setSens] = useState<'retrait' | 'depot'>('retrait')
+  const [montant, setMontant] = useState('')
+  const [doublon, setDoublon] = useState(false)
+
+  const saisir = useMutation({
+    mutationFn: (forcer: boolean) =>
+      api.saisirTransaction({
+        date,
+        description,
+        montant: sens === 'retrait' ? -Math.abs(Number(montant)) : Math.abs(Number(montant)),
+        forcer,
+      }),
+    onSuccess: () => {
+      setDescription('')
+      setMontant('')
+      setDoublon(false)
+      invalider()
+    },
+    onError: (erreur) => setDoublon(erreur instanceof ApiError && erreur.statut === 409),
+  })
+
+  const classeChamp =
+    'rounded-xl bg-creux px-3 py-1.5 text-sm text-texte focus:outline-2 focus:outline-orange/60'
+  const pret = description.trim().length > 0 && montant !== '' && Number(montant) > 0 && date !== ''
+
+  return (
+    <form
+      className="mt-2 flex flex-wrap items-center gap-2 border-t border-dashed border-tiret pt-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        saisir.mutate(false)
+      }}
+    >
+      <span className="flex items-center gap-1.5 whitespace-nowrap text-sm font-bold text-dore">
+        <Pencil className="size-3.5" /> Saisir une ligne
+      </span>
+      <input type="date" value={date} aria-label="Date de la ligne" max={dateLocaleIso()}
+        onChange={(e) => { setDate(e.target.value); setDoublon(false) }}
+        className={classeChamp} />
+      <input value={description} aria-label="Description de la ligne"
+        placeholder="Description (ex. Virement - AccèsD Internet)"
+        onChange={(e) => { setDescription(e.target.value); setDoublon(false) }}
+        className={cn(classeChamp, 'min-w-0 flex-1')} />
+      <select value={sens} aria-label="Sens de la ligne"
+        onChange={(e) => setSens(e.target.value as 'retrait' | 'depot')}
+        className={classeChamp}>
+        <option value="retrait">Retrait</option>
+        <option value="depot">Dépôt</option>
+      </select>
+      <input type="number" min="0.01" step="0.01" value={montant} aria-label="Montant de la ligne"
+        placeholder="Montant"
+        onChange={(e) => { setMontant(e.target.value); setDoublon(false) }}
+        className={cn(classeChamp, 'w-28 text-right tabular-nums')} />
+      <button type="submit" disabled={pret === false || saisir.isPending}
+        className="rounded-full bg-creux px-3.5 py-1.5 text-xs font-bold text-dore hover:text-orange disabled:opacity-40">
+        Ajouter
+      </button>
+      {saisir.isError && (
+        <span role="alert" className="flex w-full items-center gap-2 text-xs font-bold text-rouge">
+          {saisir.error.message}
+          {doublon && (
+            <button type="button" onClick={() => saisir.mutate(true)}
+              className="rounded-full bg-rouge px-2.5 py-0.5 text-[11px] text-carte">
+              Saisir quand même
+            </button>
+          )}
+        </span>
+      )}
+    </form>
   )
 }
 
@@ -1160,6 +1277,9 @@ function EnveloppeEditeur({
   const maj = (champ: Partial<typeof fiche & {}>) =>
     setFiche((ancienne) => ({ ...ancienne!, ...champ }))
   const tacheLiee = fiche.lien.startsWith('t:')
+  // Une fermée est figée côté serveur (fiche et mouvements refusés) : on montre
+  // la fiche et le journal, sans aucun geste.
+  const fermee = detail?.enveloppe.statut === 'Fermee'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-encre/30 p-4" onClick={onFermer}>
@@ -1172,7 +1292,12 @@ function EnveloppeEditeur({
             {creation ? 'Nouvelle enveloppe' : fiche.nom || '…'}
           </h2>
           {creation === false && detail !== undefined && (
-            <span className="ml-auto text-sm text-sourdine tabular-nums">
+            <span className="ml-auto flex items-center gap-2 text-sm text-sourdine tabular-nums">
+              {fermee && (
+                <span className="flex items-center gap-1 rounded-full bg-creux px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.04em]">
+                  <Lock className="size-3" /> fermée
+                </span>
+              )}
               solde <b className={cn(detail.enveloppe.solde < 0 ? 'text-rouge' : 'text-encre')}>
                 {dollars(detail.enveloppe.solde, true)}
               </b>
@@ -1180,6 +1305,26 @@ function EnveloppeEditeur({
           )}
         </div>
 
+        {fermee && detail !== undefined ? (
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt className="text-sourdine">Type</dt>
+            <dd><ChipType type={detail.enveloppe.type} /></dd>
+            {detail.enveloppe.montantCible !== null && (
+              <><dt className="text-sourdine">Cible</dt>
+                <dd className="tabular-nums">{dollars(detail.enveloppe.montantCible, true)}</dd></>
+            )}
+            {detail.enveloppe.dateCible !== null && (
+              <><dt className="text-sourdine">Date cible</dt>
+                <dd>{dateLisible(detail.enveloppe.dateCible)}</dd></>
+            )}
+            {detail.enveloppe.titreTache !== null && (
+              <><dt className="text-sourdine">Tâche</dt><dd>{detail.enveloppe.titreTache}</dd></>
+            )}
+            {detail.enveloppe.nomEquipement !== null && (
+              <><dt className="text-sourdine">Équipement</dt><dd>{detail.enveloppe.nomEquipement}</dd></>
+            )}
+          </dl>
+        ) : (
         <div className="grid grid-cols-2 gap-3">
           <input value={fiche.nom} onChange={(e) => maj({ nom: e.target.value })}
             placeholder="Nom (ex. Repeindre la toiture)" aria-label="Nom"
@@ -1231,8 +1376,9 @@ function EnveloppeEditeur({
             </label>
           )}
         </div>
+        )}
 
-        {fiche.type === 'Taxes' && (
+        {fermee === false && fiche.type === 'Taxes' && (
           <div className="flex flex-col gap-2">
             <span className="text-sm font-bold text-dore">Échéancier des versements</span>
             {fiche.echeancier.map((versement, i) => (
@@ -1266,7 +1412,7 @@ function EnveloppeEditeur({
         )}
 
         <div className="flex items-center justify-end gap-2">
-          {creation === false && (
+          {creation === false && fermee === false && (
             <button
               type="button"
               disabled={detail === undefined || detail.enveloppe.solde !== 0 || fermerEnveloppe.isPending}
@@ -1281,22 +1427,25 @@ function EnveloppeEditeur({
           )}
           <button type="button" onClick={onFermer}
             className="rounded-xl px-4 py-2 text-sm font-bold text-sourdine hover:text-texte">
-            Annuler
+            {fermee ? 'Refermer' : 'Annuler'}
           </button>
-          <button
-            type="button"
-            disabled={fiche.nom.trim().length === 0 || enregistrer.isPending}
-            onClick={() => enregistrer.mutate()}
-            className="rounded-xl bg-orange px-5 py-2 text-sm font-bold text-carte disabled:opacity-40"
-          >
-            Enregistrer
-          </button>
+          {fermee === false && (
+            <button
+              type="button"
+              disabled={fiche.nom.trim().length === 0 || enregistrer.isPending}
+              onClick={() => enregistrer.mutate()}
+              className="rounded-xl bg-orange px-5 py-2 text-sm font-bold text-carte disabled:opacity-40"
+            >
+              Enregistrer
+            </button>
+          )}
         </div>
 
         {creation === false && detail !== undefined && (
           <>
             {/* Deux gestes sur une rangée qui passe à la ligne : côte à côte, ils
                 débordaient le modal (barre de défilement horizontale). */}
+            {fermee === false && (
             <div className="flex flex-wrap items-center gap-2 border-t border-barre-piste pt-3">
               <span className="whitespace-nowrap text-sm font-bold text-dore">Ajustement rapide</span>
               <input type="number" step="0.01" value={ajustement}
@@ -1311,6 +1460,7 @@ function EnveloppeEditeur({
               </button>
               <TransfertRapide enveloppeId={enveloppeId!} />
             </div>
+            )}
 
             <div className="border-t border-barre-piste pt-3">
               <div className="mb-1 flex items-baseline justify-between">
