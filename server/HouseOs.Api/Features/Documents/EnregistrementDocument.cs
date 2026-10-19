@@ -191,6 +191,23 @@ public static class EnregistrementDocument
         _ => ".bin",
     };
 
+    /// <summary>
+    /// Type MIME déduit de l'extension du nom de fichier — pour une pièce jointe que
+    /// l'expéditeur a déclarée <c>application/octet-stream</c> (eZsign, certains
+    /// portails de signature). Le reniflage de l'en-tête fait ensuite foi : un
+    /// « .pdf » qui n'en est pas un est refusé à l'enregistrement.
+    /// </summary>
+    internal static string? TypeMimeDepuisExtension(string? nomFichier) =>
+        Path.GetExtension(nomFichier ?? "").ToLowerInvariant() switch
+        {
+            ".pdf" => "application/pdf",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".heic" => "image/heic",
+            _ => null,
+        };
+
     internal static string? Nettoyer(string? valeur) =>
         string.IsNullOrWhiteSpace(valeur) ? null : valeur.Trim();
 }

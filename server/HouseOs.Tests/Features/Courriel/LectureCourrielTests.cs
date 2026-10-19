@@ -108,6 +108,24 @@ public class LectureCourrielTests
     }
 
     [Fact]
+    public async Task Un_pdf_declare_octet_stream_est_retenu_par_son_extension_mais_pas_un_doc()
+    {
+        // eZsign joint ses PDF signés en application/octet-stream ; l'extension tranche,
+        // et l'enregistrement reniflera l'en-tête %PDF-. Un .doc reste hors périmètre.
+        var message = Message(corps: b =>
+        {
+            b.Attachments.Add("MO-56626-SE-1.pdf", PetitPdf(), ContentType.Parse("application/octet-stream"));
+            b.Attachments.Add("EtatCompte.doc", [1, 2, 3], ContentType.Parse("application/octet-stream"));
+        });
+
+        var lu = await LectureCourriel.LireAsync(Octets(message), CancellationToken.None);
+
+        var piece = Assert.Single(lu.PiecesJointes);
+        Assert.Equal("MO-56626-SE-1.pdf", piece.NomFichier);
+        Assert.Equal("application/pdf", piece.TypeMime);
+    }
+
+    [Fact]
     public async Task Un_nom_encode_rfc2047_est_decode()
     {
         var message = Message(corps: b =>

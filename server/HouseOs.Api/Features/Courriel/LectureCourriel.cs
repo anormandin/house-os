@@ -41,6 +41,21 @@ public static partial class LectureCourriel
         return Lire(message);
     }
 
+    /// <summary>
+    /// Type MIME annoncé, ou déduit de l'extension quand l'expéditeur a mis le fourre-tout
+    /// <c>application/octet-stream</c> (eZsign joint ses PDF ainsi). L'enregistrement
+    /// renifle ensuite l'en-tête du fichier : on ne croit l'extension que jusque-là.
+    /// </summary>
+    internal static string TypeMimeEffectif(MimePart part)
+    {
+        var typeMime = EnregistrementDocument.NormaliserTypeMime(part.ContentType.MimeType);
+        if (typeMime is "application/octet-stream" or "")
+        {
+            typeMime = EnregistrementDocument.TypeMimeDepuisExtension(part.FileName) ?? typeMime;
+        }
+        return typeMime;
+    }
+
     public static CourrielLu Lire(MimeMessage message)
     {
         var html = message.HtmlBody;
@@ -51,7 +66,7 @@ public static partial class LectureCourriel
         var pieces = new List<PieceJointeLue>();
         foreach (var part in message.BodyParts.OfType<MimePart>())
         {
-            var typeMime = EnregistrementDocument.NormaliserTypeMime(part.ContentType.MimeType);
+            var typeMime = TypeMimeEffectif(part);
             if (DocumentsEndpoints.TypesMimePermis.Contains(typeMime) == false || part.Content is null)
             {
                 continue;
